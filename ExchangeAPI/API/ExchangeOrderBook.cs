@@ -12,13 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    public class ExchangeOrderPrice
+    public struct ExchangeOrderPrice
     {
         public double Price { get; set; }
         public double Amount { get; set; }
@@ -27,11 +28,51 @@ namespace ExchangeSharp
         {
             return "Price: " + Price + ", Amount: " + Amount;
         }
+
+        public void ToBinary(BinaryWriter writer)
+        {
+            writer.Write(Price);
+            writer.Write(Amount);
+        }
+
+        public ExchangeOrderPrice(BinaryReader reader)
+        {
+            Price = reader.ReadDouble();
+            Amount = reader.ReadDouble();
+        }
     }
 
     public class ExchangeOrderBook
     {
         public List<ExchangeOrderPrice> Asks { get; } = new List<ExchangeOrderPrice>();
         public List<ExchangeOrderPrice> Bids { get; } = new List<ExchangeOrderPrice>();
+
+        public void ToBinary(BinaryWriter writer)
+        {
+            writer.Write(Asks.Count);
+            writer.Write(Bids.Count);
+            foreach (ExchangeOrderPrice price in Asks)
+            {
+                price.ToBinary(writer);
+            }
+            foreach (ExchangeOrderPrice price in Bids)
+            {
+                price.ToBinary(writer);
+            }
+        }
+
+        public void FromBinary(BinaryReader reader)
+        {
+            Asks.Clear();
+            Bids.Clear();
+            for (int i = 0; i < reader.ReadInt32(); i++)
+            {
+                Asks.Add(new ExchangeOrderPrice(reader));
+            }
+            for (int i = 0; i < reader.ReadInt32(); i++)
+            {
+                Bids.Add(new ExchangeOrderPrice(reader));
+            }
+        }
     }
 }

@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,6 +30,24 @@ namespace ExchangeSharp
         public override string ToString()
         {
             return string.Format("{0:s},{1},{2},{3}", Timestamp, Price, Amount, IsBuy ? "Buy" : "Sell");
+        }
+
+        public void ToBinary(BinaryWriter writer)
+        {
+            writer.Write(Timestamp.ToUniversalTime().Ticks);
+            writer.Write(Id);
+            writer.Write(Price);
+            writer.Write(Amount);
+            writer.Write(IsBuy);
+        }
+
+        public void FromBinary(BinaryReader reader)
+        {
+            Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
+            Id = reader.ReadInt64();
+            Price = reader.ReadDouble();
+            Amount = reader.ReadDouble();
+            IsBuy = reader.ReadBoolean();
         }
     }
 }

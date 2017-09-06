@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -50,6 +51,30 @@ namespace ExchangeSharp
         {
             return string.Format("Bid: {0}, Ask: {1}, Last: {2}", Bid, Ask, Last);
         }
+
+        /// <summary>
+        /// Write to writer
+        /// </summary>
+        /// <param name="writer">Writer</param>
+        public void ToBinary(BinaryWriter writer)
+        {
+            writer.Write(Bid);
+            writer.Write(Ask);
+            writer.Write(Last);
+            Volume.ToBinary(writer);
+        }
+
+        /// <summary>
+        /// Read from reader
+        /// </summary>
+        /// <param name="reader">Reader</param>
+        public void FromBinary(BinaryReader reader)
+        {
+            Bid = reader.ReadDouble();
+            Ask = reader.ReadDouble();
+            Last = reader.ReadDouble();
+            Volume.FromBinary(reader);
+        }
     }
 
     /// <summary>
@@ -81,5 +106,23 @@ namespace ExchangeSharp
         /// Quantity amount (this many units total)
         /// </summary>
         public double QuantityAmount { get; set; }
+
+        public void ToBinary(BinaryWriter writer)
+        {
+            writer.Write(Timestamp.ToUniversalTime().Ticks);
+            writer.Write(PriceSymbol);
+            writer.Write(PriceAmount);
+            writer.Write(QuantitySymbol);
+            writer.Write(QuantityAmount);
+        }
+
+        public void FromBinary(BinaryReader reader)
+        {
+            Timestamp = new DateTime(reader.ReadInt64()).ToUniversalTime();
+            PriceSymbol = reader.ReadString();
+            PriceAmount = reader.ReadDouble();
+            QuantitySymbol = reader.ReadString();
+            QuantityAmount = reader.ReadDouble();
+        }
     }
 }
