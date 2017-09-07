@@ -34,7 +34,7 @@ namespace ExchangeSharp
         ExchangeTicker GetTicker(string symbol);
 
         /// <summary>
-        /// Get pending orders
+        /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Orders</returns>

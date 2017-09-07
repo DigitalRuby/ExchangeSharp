@@ -96,8 +96,9 @@ namespace ExchangeSharp
 
         public override ExchangeOrderBook GetOrderBook(string symbol)
         {
+            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
-            JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both")["result"];
+            JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount)["result"];
             if (obj == null)
             {
                 return null;

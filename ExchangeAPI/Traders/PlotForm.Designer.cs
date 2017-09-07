@@ -28,28 +28,27 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             this.PlotChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             ((System.ComponentModel.ISupportInitialize)(this.PlotChart)).BeginInit();
             this.SuspendLayout();
             // 
             // PlotChart
             // 
-            chartArea1.Name = "ChartArea1";
-            this.PlotChart.ChartAreas.Add(chartArea1);
             this.PlotChart.Dock = System.Windows.Forms.DockStyle.Fill;
             this.PlotChart.Location = new System.Drawing.Point(0, 0);
+            this.PlotChart.Margin = new System.Windows.Forms.Padding(2);
             this.PlotChart.Name = "PlotChart";
-            this.PlotChart.Size = new System.Drawing.Size(1317, 792);
+            this.PlotChart.Size = new System.Drawing.Size(658, 412);
             this.PlotChart.TabIndex = 0;
             this.PlotChart.Text = "chart1";
             // 
             // PlotForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1317, 792);
+            this.ClientSize = new System.Drawing.Size(658, 412);
             this.Controls.Add(this.PlotChart);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "PlotForm";
             this.Text = "Plot of Trade Data";
             ((System.ComponentModel.ISupportInitialize)(this.PlotChart)).EndInit();

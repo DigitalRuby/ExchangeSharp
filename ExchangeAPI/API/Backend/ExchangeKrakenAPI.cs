@@ -75,7 +75,7 @@ namespace ExchangeSharp
 
         public override ExchangeOrderBook GetOrderBook(string symbol)
         {
-            const int maxCount = 50;
+            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
             JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount)["result"][symbol];
             if (obj == null)

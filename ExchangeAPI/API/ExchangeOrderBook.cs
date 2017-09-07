@@ -65,11 +65,13 @@ namespace ExchangeSharp
         {
             Asks.Clear();
             Bids.Clear();
-            for (int i = 0; i < reader.ReadInt32(); i++)
+            int askCount = reader.ReadInt32();
+            int bidCount = reader.ReadInt32();
+            while (askCount-- > 0)
             {
                 Asks.Add(new ExchangeOrderPrice(reader));
             }
-            for (int i = 0; i < reader.ReadInt32(); i++)
+            while (bidCount-- > 0)
             {
                 Bids.Add(new ExchangeOrderPrice(reader));
             }

@@ -73,6 +73,7 @@ namespace ExchangeSharp
             Bid = reader.ReadDouble();
             Ask = reader.ReadDouble();
             Last = reader.ReadDouble();
+            Volume = (Volume ?? new ExchangeVolume());
             Volume.FromBinary(reader);
         }
     }

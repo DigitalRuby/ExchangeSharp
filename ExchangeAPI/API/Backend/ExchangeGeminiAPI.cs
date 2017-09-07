@@ -91,7 +91,7 @@ namespace ExchangeSharp
 
         public override ExchangeOrderBook GetOrderBook(string symbol)
         {
-            const int maxCount = 50;
+            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
             JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
             if (obj == null || obj.Count == 0)
