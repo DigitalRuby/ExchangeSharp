@@ -19,15 +19,8 @@ using System.Threading.Tasks;
 namespace ExchangeSharp
 {
     /// <summary>
-    /// Calculates a moving average value over a specified window.  The window size must be specified
-    /// upon creation of this object.
+    /// Calculates a moving average value over a specified window
     /// </summary>
-    /// <remarks>Authored by Drew Noakes, February 2005.  Use freely, though keep this message intact and
-    /// report any bugs to me.  I also appreciate seeing extensions, or simply hearing that you're using
-    /// these classes.  You may not copyright this work, though may use it in commercial/copyrighted works.
-    /// Happy coding.
-    ///
-    /// Updated 29 March 2007.  Added a Reset() method.</remarks>
     public sealed class MovingAverageCalculator
     {
         private int _windowSize;
@@ -48,6 +41,20 @@ namespace ExchangeSharp
         public override string ToString()
         {
             return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
+        }
+
+        /// <summary>
+        /// Constructor - must call Reset before use
+        /// </summary>
+        public MovingAverageCalculator() { }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="windowSize"></param>
+        public MovingAverageCalculator(int windowSize)
+        {
+            Reset(windowSize);
         }
 
         /// <summary>
