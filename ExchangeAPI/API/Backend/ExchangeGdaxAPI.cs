@@ -28,6 +28,7 @@ namespace ExchangeSharp
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
+        public override string Name => ExchangeAPI.ExchangeNameGDAX;
 
         /// <summary>
         /// The response will also contain a CB-AFTER header which will return the cursor id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.
@@ -135,7 +136,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol)
+        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 50)
         {
             string url = "/products/" + symbol.ToUpperInvariant() + "/book?level=2";
             ExchangeOrderBook orders = new ExchangeOrderBook();

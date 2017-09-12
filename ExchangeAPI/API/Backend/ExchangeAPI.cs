@@ -46,6 +46,16 @@ namespace ExchangeSharp
         public const string ExchangeNameGDAX = "GDAX";
 
         /// <summary>
+        /// Kraken
+        /// </summary>
+        public const string ExchangeNameKraken = "Kraken";
+
+        /// <summary>
+        /// Bittrex
+        /// </summary>
+        public const string ExchangeNameBittrex = "Bittrex";
+
+        /// <summary>
         /// Base URL for the exchange API
         /// </summary>
         public abstract string BaseUrl { get; set; }
@@ -194,13 +204,8 @@ namespace ExchangeSharp
         /// <returns>Exchange API or null if not found</returns>
         public static IExchangeAPI GetExchangeAPI(string exchangeName)
         {
-            switch (exchangeName.ToUpperInvariant())
-            {
-                case ExchangeNameGemini: return new ExchangeGeminiAPI();
-                case ExchangeNameBitfinex: return new ExchangeBitfinexAPI();
-                case ExchangeNameGDAX: return new ExchangeGdaxAPI();
-                default: return null;
-            }
+            GetExchangeAPIDictionary().TryGetValue(exchangeName, out IExchangeAPI api);
+            return api;
         }
 
         /// <summary>
@@ -213,7 +218,9 @@ namespace ExchangeSharp
             {
                 { ExchangeNameGemini, new ExchangeGeminiAPI() },
                 { ExchangeNameBitfinex, new ExchangeBitfinexAPI() },
-                { ExchangeNameGDAX, new ExchangeGdaxAPI() }
+                { ExchangeNameGDAX, new ExchangeGdaxAPI() },
+                { ExchangeNameKraken, new ExchangeKrakenAPI() },
+                { ExchangeNameBittrex, new ExchangeBittrexAPI() }
             };
         }
 
@@ -234,8 +241,9 @@ namespace ExchangeSharp
         /// Get exchange order book
         /// </summary>
         /// <param name="symbol">Symbol to get order book for</param>
+        /// <param name="maxCount">Max count, not all exchanges will honor this parameter</param>
         /// <returns>Exchange order book or null if failure</returns>
-        public virtual ExchangeOrderBook GetOrderBook(string symbol) { throw new NotImplementedException(); }
+        public virtual ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100) { throw new NotImplementedException(); }
 
         /// <summary>
         /// Get historical trades for the exchange
@@ -281,5 +289,10 @@ namespace ExchangeSharp
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <returns>Null/empty if success, otherwise an error message</returns>
         public virtual string CancelOrder(string orderId) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Gets the name of the exchange
+        /// </summary>
+        public virtual string Name { get { return "NullExchange"; } }
     }
 }

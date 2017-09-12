@@ -29,6 +29,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
+        public override string Name => ExchangeAPI.ExchangeNameBitfinex;
 
         private string NormalizeSymbol(string symbol)
         {
@@ -89,9 +90,8 @@ namespace ExchangeSharp
             }
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol)
+        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
-            const int maxCount = 50;
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             double[][] books = MakeJsonRequest<double[][]>("/book/t" + symbol.ToUpperInvariant() + "/P0?len=" + maxCount);

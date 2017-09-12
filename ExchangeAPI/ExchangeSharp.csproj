@@ -60,6 +60,7 @@
     <Compile Include="API\Backend\ExchangeGdaxAPI.cs" />
     <Compile Include="API\Backend\ExchangeGeminiAPI.cs" />
     <Compile Include="API\Backend\ExchangeKrakenAPI.cs" />
+    <Compile Include="API\Backend\ExchangeLogger.cs" />
     <Compile Include="API\Backend\IExchangeAPI.cs" />
     <Compile Include="API\ExchangeOrder.cs" />
     <Compile Include="CryptoUtility.cs" />

@@ -30,6 +30,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
+        public override string Name => ExchangeAPI.ExchangeNameBittrex;
 
         private string NormalizeSymbol(string symbol)
         {
@@ -94,9 +95,8 @@ namespace ExchangeSharp
             return null;
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol)
+        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
-            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
             JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount)["result"];
             if (obj == null)

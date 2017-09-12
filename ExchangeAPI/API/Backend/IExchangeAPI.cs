@@ -21,6 +21,11 @@ namespace ExchangeSharp
     public interface IExchangeAPI
     {
         /// <summary>
+        /// Get the name of the exchange this API connects to
+        /// </summary>
+        string Name { get; }
+
+        /// <summary>
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
@@ -37,8 +42,9 @@ namespace ExchangeSharp
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="symbol">Symbol</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Orders</returns>
-        ExchangeOrderBook GetOrderBook(string symbol);
+        ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100);
 
         /// <summary>
         /// Get historical trades

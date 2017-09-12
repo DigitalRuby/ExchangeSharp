@@ -28,6 +28,7 @@ namespace ExchangeSharp
     public class ExchangeGeminiAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
+        public override string Name => ExchangeAPI.ExchangeNameGemini;
 
         private string NormalizeSymbol(string symbol)
         {
@@ -89,9 +90,8 @@ namespace ExchangeSharp
             return t;
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol)
+        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
-            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
             JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
             if (obj == null || obj.Count == 0)

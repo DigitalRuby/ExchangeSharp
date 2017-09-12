@@ -28,6 +28,7 @@ namespace ExchangeSharp
     public class ExchangeKrakenAPI : ExchangeAPI, IExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
+        public override string Name => ExchangeAPI.ExchangeNameKraken;
 
         private string NormalizeSymbol(string symbol)
         {
@@ -73,9 +74,8 @@ namespace ExchangeSharp
             };
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol)
+        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
-            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
             JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount)["result"][symbol];
             if (obj == null)
