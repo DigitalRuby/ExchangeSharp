@@ -74,7 +74,7 @@ namespace ExchangeSharp
                 }
                 foreach (double[] tradeChunkPiece in tradeChunk)
                 {
-                    trades.Add(new ExchangeTrade { Amount = tradeChunkPiece[2], IsBuy = tradeChunkPiece[2] > 0.0, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(tradeChunkPiece[1]), Id = (long)tradeChunkPiece[0] });
+                    trades.Add(new ExchangeTrade { Amount = Math.Abs(tradeChunkPiece[2]), IsBuy = tradeChunkPiece[2] > 0.0, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(tradeChunkPiece[1]), Id = (long)tradeChunkPiece[0] });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
                 foreach (ExchangeTrade t in trades)

@@ -27,14 +27,14 @@ namespace ExchangeSharp
     public unsafe class TraderTester : IDisposable
     {
         private readonly List<KeyValuePair<double, string>> csv = new List<KeyValuePair<double, string>>();
-        private double maxProfit;
+        //private double maxProfit;
         private TradeReaderMemory tradeReader;
         private DateTime startDate;
         private DateTime endDate;
         private const double InitialCashFlow = 25000.0;
         private const double UnitsToBuy = 1.0f;
         private long Interval = (long)TimeSpan.FromSeconds(15.0).TotalMilliseconds;
-        private bool staticTests;
+        //private bool staticTests;
 
         private void RunAllTests()
         {
@@ -43,7 +43,7 @@ namespace ExchangeSharp
 
         private void RunStaticTests()
         {
-            staticTests = true;
+            //staticTests = true;
         }
 
         public void Dispose()
