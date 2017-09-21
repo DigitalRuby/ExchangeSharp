@@ -141,6 +141,8 @@ namespace ExchangeSharp
 
             // set scrollbar small change to blockSize (e.g. 100)
             chartArea.AxisX.ScaleView.SmallScrollSize = blockSize;
+
+            chartArea.AxisX.ScaleView.ZoomReset();
         }
     }
 }

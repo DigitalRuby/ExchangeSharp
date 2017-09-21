@@ -103,6 +103,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/0/public/Trades?pair=" + symbol;
             string url;
+            DateTime timestamp;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             while (true)
             {
@@ -127,12 +128,13 @@ namespace ExchangeSharp
                 }
                 foreach (JArray array in outerArray.Children<JArray>())
                 {
+                    timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[2].Value<double>());
                     trades.Add(new ExchangeTrade
                     {
                         Amount = array[1].Value<double>(),
                         Price = array[0].Value<double>(),
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[2].Value<double>()),
-                        Id = -1,
+                        Timestamp = timestamp,
+                        Id = timestamp.Ticks,
                         IsBuy = array[3].Value<char>() == 'b'
                     });
                 }
