@@ -218,18 +218,18 @@ namespace ExchangeSharp
                 OrderId = orderId,
                 Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["timestampms"].Value<double>()),
-                Symbol = result["symbol"].Value<string>()
+                Symbol = result["symbol"].Value<string>(),
+                IsBuy = result["side"].Value<string>() == "buy"
             };
         }
 
-        public override string CancelOrder(string orderId)
+        public override void CancelOrder(string orderId)
         {
             JObject result = MakeJsonRequest<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "order_id", orderId } });
             if (result["result"] != null && result["result"].Value<string>() == "error")
             {
-                return result["reason"].Value<string>();
+                throw new ExchangeAPIException(result["reason"].Value<string>());
             }
-            return null;
         }
     }
 }

@@ -96,10 +96,9 @@ namespace ExchangeSharp
         ExchangeOrderResult GetOrderDetails(string orderId);
 
         /// <summary>
-        /// Cancel an order
+        /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        /// <returns>Null/empty if success, otherwise an error message</returns>
-        string CancelOrder(string orderId);
+        void CancelOrder(string orderId);
     }
 }

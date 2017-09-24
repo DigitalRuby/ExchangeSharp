@@ -26,6 +26,18 @@ using Newtonsoft.Json.Linq;
 namespace ExchangeSharp
 {
     /// <summary>
+    /// Exception class for ExchangeAPI exceptions
+    /// </summary>
+    public class ExchangeAPIException : Exception
+    {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="message">Message</param>
+        public ExchangeAPIException(string message) : base(message) { }
+    }
+
+    /// <summary>
     /// Base class for all exchange API
     /// </summary>
     public abstract class ExchangeAPI : IExchangeAPI
@@ -298,11 +310,10 @@ namespace ExchangeSharp
         public virtual ExchangeOrderResult GetOrderDetails(string orderId) { throw new NotImplementedException(); }
 
         /// <summary>
-        /// Cancel an order
+        /// Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        /// <returns>Null/empty if success, otherwise an error message</returns>
-        public virtual string CancelOrder(string orderId) { throw new NotImplementedException(); }
+        public virtual void CancelOrder(string orderId) { throw new NotImplementedException(); }
 
         /// <summary>
         /// Gets the name of the exchange

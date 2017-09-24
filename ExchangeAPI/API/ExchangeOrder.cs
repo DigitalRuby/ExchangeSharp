@@ -24,6 +24,11 @@ namespace ExchangeSharp
     public enum ExchangeAPIOrderResult
     {
         /// <summary>
+        /// Order status is unknown
+        /// </summary>
+        Unknown,
+
+        /// <summary>
         /// Order filled immediately
         /// </summary>
         Filled,
@@ -41,7 +46,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Error
         /// </summary>
-        Error
+        Error,
+
+        /// <summary>
+        /// Order was cancelled
+        /// </summary>
+        Canceled
     }
 
     /// <summary>
@@ -88,5 +98,10 @@ namespace ExchangeSharp
         /// Symbol
         /// </summary>
         public string Symbol { get; set; }
+
+        /// <summary>
+        /// Whether the order is a buy or sell
+        /// </summary>
+        public bool IsBuy { get; set; }
     }
 }

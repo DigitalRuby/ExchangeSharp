@@ -36,6 +36,14 @@ namespace ExchangeSharp
             return symbol.ToUpperInvariant();
         }
 
+        private void CheckError(JObject json)
+        {
+            if (json["error"] is JArray error && error.Count != 0)
+            {
+                throw new ExchangeAPIException(error[0].Value<string>());
+            }
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || !payload.ContainsKey("nonce"))
@@ -77,15 +85,17 @@ namespace ExchangeSharp
 
         public override string[] GetSymbols()
         {
-            Dictionary<string, object> json = MakeJsonRequest<Dictionary<string, object>>("/0/public/AssetPairs");
-            JObject result = json["result"] as JObject;
+            JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
+            CheckError(json);
+            JToken result = json["result"] as JToken;
             return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
         }
 
         public override ExchangeTicker GetTicker(string symbol)
         {
-            Dictionary<string, object> json = MakeJsonRequest<Dictionary<string, object>>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
-            JObject ticker = (json["result"] as JObject)[symbol] as JObject;
+            JObject json = MakeJsonRequest<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
+            CheckError(json);
+            JToken ticker = (json["result"] as JToken)[symbol] as JToken;
             return new ExchangeTicker
             {
                 Ask = ticker["a"][0].Value<decimal>(),
@@ -105,7 +115,9 @@ namespace ExchangeSharp
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount)["result"][symbol];
+            JObject json = MakeJsonRequest<JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
+            CheckError(json);
+            JToken obj = json["result"][symbol] as JToken;
             if (obj == null)
             {
                 return null;
@@ -140,19 +152,21 @@ namespace ExchangeSharp
                 {
                     url += "&since=" + (long)(CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) * 1000000.0);
                 }
-                JToken obj = MakeJsonRequest<JToken>(url)["result"];
+                JObject obj = MakeJsonRequest<JObject>(url);
+                CheckError(obj);
                 if (obj == null)
                 {
                     break;
                 }
-                JArray outerArray = obj[symbol] as JArray;
+                JToken result = obj["result"];
+                JArray outerArray = result[symbol] as JArray;
                 if (outerArray == null || outerArray.Count == 0)
                 {
                     break;
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj["last"].Value<double>() / 1000000.0d);
+                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["last"].Value<double>() / 1000000.0d);
                 }
                 foreach (JArray array in outerArray.Children<JArray>())
                 {
@@ -189,26 +203,71 @@ namespace ExchangeSharp
                 { "ordertype", "limit" },
                 { "price", price.ToString(CultureInfo.InvariantCulture) },
                 { "volume", amount.ToString(CultureInfo.InvariantCulture) },
-                { "nonce", 1 }//DateTime.UtcNow.Ticks }
+                { "nonce", DateTime.UtcNow.Ticks }
             };
 
             JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);
+            CheckError(obj);
             ExchangeOrderResult result = new ExchangeOrderResult();
-            if (obj["error"] != null)
+            if (obj["error"] != null && obj["error"] as JArray != null && (obj["error"] as JArray).Count != 0)
             {
-                result.Message = obj["error"].ToString();
+                result.Message = obj["error"][0].ToString();
+            }
+            result.OrderDate = DateTime.UtcNow;
+            if (obj["result"] != null)
+            {
+                if (obj["result"]["txid"] is JArray array)
+                {
+                    result.OrderId = array[0].Value<string>();
+                }
             }
             return result;
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
-            return base.GetOrderDetails(orderId);
+            Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "txid", orderId },
+                { "nonce", DateTime.UtcNow.Ticks }
+            };
+            JObject obj = MakeJsonRequest<JObject>("/0/private/QueryOrders", null, payload);
+            CheckError(obj);
+            JToken result = obj["result"];
+            ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
+            if (result == null || result[orderId] == null)
+            {
+                orderResult.Message = "Unknown Error";
+                return orderResult;
+            }
+            result = result[orderId];
+            switch (result["status"].Value<string>())
+            {
+                case "pending": orderResult.Result = ExchangeAPIOrderResult.Pending; break;
+                case "open": orderResult.Result = ExchangeAPIOrderResult.FilledPartially; break;
+                case "closed": orderResult.Result = ExchangeAPIOrderResult.Filled; break;
+                case "canceled": case "expired": orderResult.Result = ExchangeAPIOrderResult.Canceled; break;
+                default: orderResult.Result = ExchangeAPIOrderResult.Error; break;
+            }
+            orderResult.Message = (orderResult.Message ?? result["reason"].Value<string>());
+            orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(result["opentm"].Value<double>());
+            orderResult.Symbol = result["descr"]["pair"].Value<string>();
+            orderResult.IsBuy = (result["descr"]["type"].Value<string>() == "buy");
+            orderResult.Amount = result["vol"].Value<decimal>();
+            orderResult.AmountFilled = result["vol_exec"].Value<decimal>();
+            orderResult.AveragePrice = result["price"].Value<decimal>();
+            return orderResult;
         }
 
-        public override string CancelOrder(string orderId)
+        public override void CancelOrder(string orderId)
         {
-            return base.CancelOrder(orderId);
+            Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "txid", orderId },
+                { "nonce", DateTime.UtcNow.Ticks }
+            };
+            JObject obj = MakeJsonRequest<JObject>("/0/private/CancelOrder", null, payload);
+            CheckError(obj);
         }
     }
 }
