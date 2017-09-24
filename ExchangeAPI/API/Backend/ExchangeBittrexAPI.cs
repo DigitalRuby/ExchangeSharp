@@ -53,7 +53,7 @@ namespace ExchangeSharp
             if (payload != null)
             {
                 string url = request.RequestUri.ToString();
-                string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey);
+                string sign = CryptoUtility.SHA512Sign(url, CryptoUtility.SecureStringToString(PrivateApiKey));
                 request.Headers["apisign"] = sign;
             }
         }
@@ -79,14 +79,14 @@ namespace ExchangeSharp
             {
                 return new ExchangeTicker
                 {
-                    Ask = ticker["Ask"].Value<double>(),
-                    Bid = ticker["Bid"].Value<double>(),
-                    Last = ticker["Last"].Value<double>(),
+                    Ask = ticker["Ask"].Value<decimal>(),
+                    Bid = ticker["Bid"].Value<decimal>(),
+                    Last = ticker["Last"].Value<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = ticker["BaseVolume"].Value<double>(),
+                        PriceAmount = ticker["BaseVolume"].Value<decimal>(),
                         PriceSymbol = symbol,
-                        QuantityAmount = ticker["Volume"].Value<double>(),
+                        QuantityAmount = ticker["Volume"].Value<decimal>(),
                         QuantitySymbol = symbol,
                         Timestamp = ticker["TimeStamp"].Value<DateTime>()
                     }
@@ -107,13 +107,13 @@ namespace ExchangeSharp
             JToken bids = obj["buy"];
             foreach (JToken token in bids)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<double>(), Price = token["Rate"].Value<double>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<decimal>(), Price = token["Rate"].Value<decimal>() };
                 orders.Bids.Add(order);
             }
             JToken asks = obj["sell"];
             foreach (JToken token in asks)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<double>(), Price = token["Rate"].Value<double>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<decimal>(), Price = token["Rate"].Value<decimal>() };
                 orders.Asks.Add(order);
             }
             return orders;
@@ -148,8 +148,8 @@ namespace ExchangeSharp
                     // {"O":0.00106302,"H":0.00106302,"L":0.00106302,"C":0.00106302,"V":80.58638589,"T":"2017-08-18T17:48:00","BV":0.08566493}
                     trades.Add(new ExchangeTrade
                     {
-                        Amount = trade["V"].Value<double>(),
-                        Price = trade["C"].Value<double>(),
+                        Amount = trade["V"].Value<decimal>(),
+                        Price = trade["C"].Value<decimal>(),
                         Timestamp = trade["T"].Value<DateTime>(),
                         Id = -1,
                         IsBuy = true
@@ -178,31 +178,31 @@ namespace ExchangeSharp
             {
                 yield return new ExchangeTrade
                 {
-                    Amount = token.Value<double>("Quantity"),
+                    Amount = token.Value<decimal>("Quantity"),
                     IsBuy = token.Value<string>("OrderType").Equals("BUY", StringComparison.OrdinalIgnoreCase),
-                    Price = token.Value<double>("Price"),
+                    Price = token.Value<decimal>("Price"),
                     Timestamp = token.Value<DateTime>("TimeStamp"),
                     Id = token.Value<long>("Id")
                 };
             }
         }
 
-        public override Dictionary<string, double> GetAmountsAvailableToTrade()
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
-            Dictionary<string, double> currencies = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
             JObject result = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
             if (result["success"].Value<bool>())
             {
                 foreach (JToken token in result["result"].Children())
                 {
-                    currencies.Add(token["Currency"].Value<string>(), token["Available"].Value<double>());
+                    currencies.Add(token["Currency"].Value<string>(), token["Available"].Value<decimal>());
                 }
             }
             return currencies;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, double amount, double price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
         {
             symbol = NormalizeSymbol(symbol);
             string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" + amount + "&rate=" + price;
@@ -227,17 +227,17 @@ namespace ExchangeSharp
             {
                 return new ExchangeOrderResult { Result = ExchangeAPIOrderResult.Error, Message = result["message"].Value<string>() };
             }
-            double amount = result.Value<double>("Quantity");
-            double remaining = result.Value<double>("QuantityRemaining");
-            double amountFilled = amount - remaining;
+            decimal amount = result.Value<decimal>("Quantity");
+            decimal remaining = result.Value<decimal>("QuantityRemaining");
+            decimal amountFilled = amount - remaining;
             return new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                AveragePrice = result.Value<double>("Price"),
+                AveragePrice = result.Value<decimal>("Price"),
                 Message = string.Empty,
                 OrderId = orderId,
-                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0.0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
                 OrderDate = result["Opened"].Value<DateTime>(),
                 Symbol = result["Exchange"].Value<string>()
             };

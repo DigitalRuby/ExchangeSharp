@@ -26,17 +26,17 @@ namespace ExchangeSharp
         /// <summary>
         /// The bid is the price to sell at
         /// </summary>
-        public double Bid { get; set; }
+        public decimal Bid { get; set; }
 
         /// <summary>
         /// The ask is the price to buy at
         /// </summary>
-        public double Ask { get; set; }
+        public decimal Ask { get; set; }
 
         /// <summary>
         /// The last trade purchase price
         /// </summary>
-        public double Last { get; set; }
+        public decimal Last { get; set; }
 
         /// <summary>
         /// Volume info
@@ -58,9 +58,9 @@ namespace ExchangeSharp
         /// <param name="writer">Writer</param>
         public void ToBinary(BinaryWriter writer)
         {
-            writer.Write(Bid);
-            writer.Write(Ask);
-            writer.Write(Last);
+            writer.Write((double)Bid);
+            writer.Write((double)Ask);
+            writer.Write((double)Last);
             Volume.ToBinary(writer);
         }
 
@@ -70,9 +70,9 @@ namespace ExchangeSharp
         /// <param name="reader">Reader</param>
         public void FromBinary(BinaryReader reader)
         {
-            Bid = reader.ReadDouble();
-            Ask = reader.ReadDouble();
-            Last = reader.ReadDouble();
+            Bid = (decimal)reader.ReadDouble();
+            Ask = (decimal)reader.ReadDouble();
+            Last = (decimal)reader.ReadDouble();
             Volume = (Volume ?? new ExchangeVolume());
             Volume.FromBinary(reader);
         }
@@ -96,7 +96,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Price
         /// </summary>
-        public double PriceAmount { get; set; }
+        public decimal PriceAmount { get; set; }
 
         /// <summary>
         /// Quantity symbol (converted into this unit)
@@ -106,24 +106,24 @@ namespace ExchangeSharp
         /// <summary>
         /// Quantity amount (this many units total)
         /// </summary>
-        public double QuantityAmount { get; set; }
+        public decimal QuantityAmount { get; set; }
 
         public void ToBinary(BinaryWriter writer)
         {
             writer.Write(Timestamp.ToUniversalTime().Ticks);
             writer.Write(PriceSymbol);
-            writer.Write(PriceAmount);
+            writer.Write((double)PriceAmount);
             writer.Write(QuantitySymbol);
-            writer.Write(QuantityAmount);
+            writer.Write((double)QuantityAmount);
         }
 
         public void FromBinary(BinaryReader reader)
         {
             Timestamp = new DateTime(reader.ReadInt64()).ToUniversalTime();
             PriceSymbol = reader.ReadString();
-            PriceAmount = reader.ReadDouble();
+            PriceAmount = (decimal)reader.ReadDouble();
             QuantitySymbol = reader.ReadString();
-            QuantityAmount = reader.ReadDouble();
+            QuantityAmount = (decimal)reader.ReadDouble();
         }
     }
 }

@@ -21,8 +21,8 @@ namespace ExchangeSharp
 {
     public struct ExchangeOrderPrice
     {
-        public double Price { get; set; }
-        public double Amount { get; set; }
+        public decimal Price { get; set; }
+        public decimal Amount { get; set; }
 
         public override string ToString()
         {
@@ -31,14 +31,14 @@ namespace ExchangeSharp
 
         public void ToBinary(BinaryWriter writer)
         {
-            writer.Write(Price);
-            writer.Write(Amount);
+            writer.Write((double)Price);
+            writer.Write((double)Amount);
         }
 
         public ExchangeOrderPrice(BinaryReader reader)
         {
-            Price = reader.ReadDouble();
-            Amount = reader.ReadDouble();
+            Price = (decimal)reader.ReadDouble();
+            Amount = (decimal)reader.ReadDouble();
         }
     }
 

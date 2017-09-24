@@ -42,9 +42,9 @@ namespace ExchangeSharp
             if (props.Length == 3)
             {
                 vol.PriceSymbol = props[0].Name;
-                vol.PriceAmount = (double)props[0].Value;
+                vol.PriceAmount = props[0].Value<decimal>();
                 vol.QuantitySymbol = props[1].Name;
-                vol.QuantityAmount = (double)props[1].Value;
+                vol.QuantityAmount = props[1].Value<decimal>();
                 vol.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)props[2].Value);
             }
 
@@ -59,10 +59,10 @@ namespace ExchangeSharp
                 payload.Add("nonce", DateTime.UtcNow.Ticks);
                 string json = JsonConvert.SerializeObject(payload);
                 string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
-                string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey);
+                string hexSha384 = CryptoUtility.SHA384Sign(json64, CryptoUtility.SecureStringToString(PrivateApiKey));
                 request.Headers["X-GEMINI-PAYLOAD"] = json64;
                 request.Headers["X-GEMINI-SIGNATURE"] = hexSha384;
-                request.Headers["X-GEMINI-APIKEY"] = PublicApiKey;
+                request.Headers["X-GEMINI-APIKEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
                 request.Method = "POST";
             }
         }
@@ -82,9 +82,9 @@ namespace ExchangeSharp
             }
             ExchangeTicker t = new ExchangeTicker
             {
-                Ask = obj.Value<double>("ask"),
-                Bid = obj.Value<double>("bid"),
-                Last = obj.Value<double>("last")
+                Ask = obj.Value<decimal>("ask"),
+                Bid = obj.Value<decimal>("bid"),
+                Last = obj.Value<decimal>("last")
             };
             t.Volume = ParseVolume(obj["volume"]);
             return t;
@@ -103,13 +103,13 @@ namespace ExchangeSharp
             JToken bids = obj["bids"];
             foreach (JToken token in bids)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["amount"].Value<double>(), Price = token["price"].Value<double>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["amount"].Value<decimal>(), Price = token["price"].Value<decimal>() };
                 orders.Bids.Add(order);
             }
             JToken asks = obj["asks"];
             foreach (JToken token in asks)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["amount"].Value<double>(), Price = token["price"].Value<double>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["amount"].Value<decimal>(), Price = token["price"].Value<decimal>() };
                 orders.Asks.Add(order);
             }
             return orders;
@@ -142,8 +142,8 @@ namespace ExchangeSharp
                 {
                     trades.Add(new ExchangeTrade
                     {
-                        Amount = token["amount"].Value<double>(),
-                        Price = token["price"].Value<double>(),
+                        Amount = token["amount"].Value<decimal>(),
+                        Price = token["price"].Value<decimal>(),
                         Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestampms"].Value<long>()),
                         Id = token["tid"].Value<long>(),
                         IsBuy = token["type"].Value<string>() == "buy"
@@ -163,12 +163,12 @@ namespace ExchangeSharp
             }
         }
 
-        public override Dictionary<string, double> GetAmountsAvailableToTrade()
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
-            Dictionary<string, double> lookup = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", payload: new Dictionary<string, object>());
             var q = from JToken token in obj
-                    select new { Currency = token["currency"].Value<string>(), Available = token["available"].Value<double>() };
+                    select new { Currency = token["currency"].Value<string>(), Available = token["available"].Value<decimal>() };
             foreach (var kv in q)
             {
                 lookup[kv.Currency] = kv.Available;
@@ -176,7 +176,7 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, double amount, double price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
         {
             symbol = NormalizeSymbol(symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
@@ -189,13 +189,13 @@ namespace ExchangeSharp
                 { "type", "exchange limit" }
             };
             JObject obj = MakeJsonRequest<JObject>("/order/new", null, payload);
-            double amountFilled = obj.Value<double>("executed_amount");
+            decimal amountFilled = obj.Value<decimal>("executed_amount");
             return new ExchangeOrderResult
             {
                 AmountFilled = amountFilled,
-                AveragePrice = obj.Value<double>("avg_execution_price"),
+                AveragePrice = obj.Value<decimal>("avg_execution_price"),
                 Message = string.Empty,
-                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0.0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
                 OrderId = obj.Value<string>("order_id")
             };
         }
@@ -207,16 +207,16 @@ namespace ExchangeSharp
             {
                 return new ExchangeOrderResult { Result = ExchangeAPIOrderResult.Error, Message = result["reason"].Value<string>() };
             }
-            double amount = result["original_amount"].Value<double>();
-            double amountFilled = result["executed_amount"].Value<double>();
+            decimal amount = result["original_amount"].Value<decimal>();
+            decimal amountFilled = result["executed_amount"].Value<decimal>();
             return new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                AveragePrice = result["price"].Value<double>(),
+                AveragePrice = result["price"].Value<decimal>(),
                 Message = string.Empty,
                 OrderId = orderId,
-                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0.0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["timestampms"].Value<double>()),
                 Symbol = result["symbol"].Value<string>()
             };

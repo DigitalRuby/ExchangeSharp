@@ -67,17 +67,17 @@ namespace ExchangeSharp
         /// <summary>
         /// Original order amount
         /// </summary>
-        public double Amount { get; set; }
+        public decimal Amount { get; set; }
 
         /// <summary>
         /// Amount filled
         /// </summary>
-        public double AmountFilled { get; set; }
+        public decimal AmountFilled { get; set; }
 
         /// <summary>
         /// Average price
         /// </summary>
-        public double AveragePrice { get; set; }
+        public decimal AveragePrice { get; set; }
 
         /// <summary>
         /// Order date

@@ -23,8 +23,8 @@ namespace ExchangeSharp
     {
         public DateTime Timestamp { get; set; }
         public long Id { get; set; }
-        public double Price { get; set; }
-        public double Amount { get; set; }
+        public decimal Price { get; set; }
+        public decimal Amount { get; set; }
         public bool IsBuy { get; set; }
 
         public override string ToString()
@@ -36,8 +36,8 @@ namespace ExchangeSharp
         {
             writer.Write(Timestamp.ToUniversalTime().Ticks);
             writer.Write(Id);
-            writer.Write(Price);
-            writer.Write(Amount);
+            writer.Write((double)Price);
+            writer.Write((double)Amount);
             writer.Write(IsBuy);
         }
 
@@ -45,8 +45,8 @@ namespace ExchangeSharp
         {
             Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
             Id = reader.ReadInt64();
-            Price = reader.ReadDouble();
-            Amount = reader.ReadDouble();
+            Price = (decimal)reader.ReadDouble();
+            Amount = (decimal)reader.ReadDouble();
             IsBuy = reader.ReadBoolean();
         }
     }

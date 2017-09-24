@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,6 +25,16 @@ namespace ExchangeSharp
         /// Get the name of the exchange this API connects to
         /// </summary>
         string Name { get; }
+
+        /// <summary>
+        /// Optional public API key
+        /// </summary>
+        SecureString PublicApiKey { get; set; }
+
+        /// <summary>
+        /// Optional private API key
+        /// </summary>
+        SecureString PrivateApiKey { get; set; }
 
         /// <summary>
         /// Get symbols for the exchange
@@ -65,7 +76,7 @@ namespace ExchangeSharp
         /// Get amounts available to trade
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
-        Dictionary<string, double> GetAmountsAvailableToTrade();
+        Dictionary<string, decimal> GetAmountsAvailableToTrade();
 
         /// <summary>
         /// Place a limit order
@@ -75,7 +86,7 @@ namespace ExchangeSharp
         /// <param name="price">Price to buy or sell at</param>
         /// <param name="buy">True to buy, false to sell</param>
         /// <returns>Order result and message string if any</returns>
-        ExchangeOrderResult PlaceOrder(string symbol, double amount, double price, bool buy);
+        ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy);
 
         /// <summary>
         /// Get details of an order

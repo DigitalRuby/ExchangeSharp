@@ -61,14 +61,14 @@ namespace ExchangeSharp
         public override ExchangeTicker GetTicker(string symbol)
         {
             Dictionary<string, string> ticker = MakeJsonRequest<Dictionary<string, string>>("/products/" + symbol + "/ticker");
-            double volume = double.Parse(ticker["volume"]);
+            decimal volume = decimal.Parse(ticker["volume"]);
             DateTime timestamp = DateTime.Parse(ticker["time"]);
 
             return new ExchangeTicker
             {
-                Ask = double.Parse(ticker["ask"]),
-                Bid = double.Parse(ticker["bid"]),
-                Last = double.Parse(ticker["price"]),
+                Ask = decimal.Parse(ticker["ask"]),
+                Bid = decimal.Parse(ticker["bid"]),
+                Last = decimal.Parse(ticker["price"]),
                 Volume = new ExchangeVolume { PriceAmount = volume, PriceSymbol = symbol, QuantityAmount = volume, QuantitySymbol = symbol, Timestamp = timestamp }
             };
         }
@@ -78,7 +78,7 @@ namespace ExchangeSharp
             string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/candles?granularity=1.0";
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            double[][] tradeChunk;
+            decimal[][] tradeChunk;
             while (true)
             {
                 url = baseUrl;
@@ -87,18 +87,18 @@ namespace ExchangeSharp
                     url += "&start=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s"));
                     url += "&end=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s"));
                 }
-                tradeChunk = MakeJsonRequest<double[][]>(url);
+                tradeChunk = MakeJsonRequest<decimal[][]>(url);
                 if (tradeChunk == null || tradeChunk.Length == 0)
                 {
                     break;
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeSeconds(tradeChunk[0][0]);
+                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeSeconds((double)tradeChunk[0][0]);
                 }
-                foreach (double[] tradeChunkPiece in tradeChunk)
+                foreach (decimal[] tradeChunkPiece in tradeChunk)
                 {
-                    trades.Add(new ExchangeTrade { Amount = tradeChunkPiece[5], IsBuy = true, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(tradeChunkPiece[0]), Id = 0 });
+                    trades.Add(new ExchangeTrade { Amount = tradeChunkPiece[5], IsBuy = true, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((double)tradeChunkPiece[0]), Id = 0 });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
                 foreach (ExchangeTrade t in trades)
@@ -123,9 +123,9 @@ namespace ExchangeSharp
             {
                 tradeList.Add(new ExchangeTrade
                 {
-                    Amount = double.Parse(trade["size"] as string),
+                    Amount = decimal.Parse(trade["size"] as string),
                     IsBuy = trade["side"] as string == "buy",
-                    Price = double.Parse(trade["price"] as string),
+                    Price = decimal.Parse(trade["price"] as string),
                     Timestamp = (DateTime)trade["time"],
                     Id = (long)trade["trade_id"]
                 });
@@ -145,11 +145,11 @@ namespace ExchangeSharp
             JArray bids = books["bids"] as JArray;
             foreach (JArray ask in asks)
             {
-                orders.Asks.Add(new ExchangeOrderPrice { Amount = (double)ask[1], Price = (double)ask[0] });
+                orders.Asks.Add(new ExchangeOrderPrice { Amount = (decimal)ask[1], Price = (decimal)ask[0] });
             }
             foreach (JArray bid in bids)
             {
-                orders.Bids.Add(new ExchangeOrderPrice { Amount = (double)bid[1], Price = (double)bid[0] });
+                orders.Bids.Add(new ExchangeOrderPrice { Amount = (decimal)bid[1], Price = (decimal)bid[0] });
             }
             return orders;
         }

@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,6 +23,24 @@ namespace ExchangeSharp
 {
     public static class CryptoUtility
     {
+        public static string SecureStringToString(SecureString s)
+        {
+            IntPtr ptr = System.Runtime.InteropServices.Marshal.SecureStringToCoTaskMemUnicode(s);
+            string unsecure = System.Runtime.InteropServices.Marshal.PtrToStringUni(ptr);
+            System.Runtime.InteropServices.Marshal.ZeroFreeCoTaskMemUnicode(ptr);
+            return unsecure;
+        }
+
+        public static SecureString StringToSecureString(string unsecure)
+        {
+            SecureString secure = new SecureString();
+            foreach (char c in unsecure)
+            {
+                secure.AppendChar(c);
+            }
+            return secure;
+        }
+
         public static DateTime UnixTimeStampToDateTimeSeconds(double unixTimeStampSeconds)
         {
             // Unix timestamp is seconds past epoch

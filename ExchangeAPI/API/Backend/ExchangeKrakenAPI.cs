@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,7 +26,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public class ExchangeKrakenAPI : ExchangeAPI, IExchangeAPI
+    public class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
         public override string Name => ExchangeAPI.ExchangeNameKraken;
@@ -37,8 +38,35 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            base.ProcessRequest(request, payload);
-            AppendFormToRequest(request, payload);
+            if (payload == null || !payload.ContainsKey("nonce"))
+            {
+                PostPayloadToRequest(request, payload);
+            }
+            else
+            {
+                string nonce = payload["nonce"].ToString();
+                payload.Remove("nonce");
+                string form = GetFormForPayload(payload);
+                // nonce must be first on Kraken
+                form = "nonce=" + nonce + (string.IsNullOrWhiteSpace(form) ? string.Empty : "&" + form);
+                using (SHA256 sha256 = SHA256Managed.Create())
+                {
+                    string hashString = nonce + form;
+                    byte[] sha256Bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(hashString));
+                    byte[] pathBytes = Encoding.UTF8.GetBytes(request.RequestUri.AbsolutePath);
+                    byte[] sigBytes = new byte[sha256Bytes.Length + pathBytes.Length];
+                    pathBytes.CopyTo(sigBytes, 0);
+                    sha256Bytes.CopyTo(sigBytes, pathBytes.Length);
+                    byte[] privateKey = Convert.FromBase64String(CryptoUtility.SecureStringToString(PrivateApiKey));
+                    using (System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
+                    {
+                        string sign = Convert.ToBase64String(hmac.ComputeHash(sigBytes));
+                        request.Headers.Add("API-Sign", sign);
+                    }
+                }
+                request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
+                PostFormToRequest(request, form);
+            }
         }
 
         public ExchangeKrakenAPI()
@@ -60,14 +88,14 @@ namespace ExchangeSharp
             JObject ticker = (json["result"] as JObject)[symbol] as JObject;
             return new ExchangeTicker
             {
-                Ask = (double)ticker["a"][0],
-                Bid = (double)ticker["b"][0],
-                Last = (double)ticker["c"][0],
+                Ask = ticker["a"][0].Value<decimal>(),
+                Bid = ticker["b"][0].Value<decimal>(),
+                Last = ticker["c"][0].Value<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = (double)ticker["v"][0],
+                    PriceAmount = ticker["v"][0].Value<decimal>(),
                     PriceSymbol = symbol,
-                    QuantityAmount = (double)ticker["v"][0],
+                    QuantityAmount = ticker["v"][0].Value<decimal>(),
                     QuantitySymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }
@@ -86,13 +114,13 @@ namespace ExchangeSharp
             JToken bids = obj["bids"];
             foreach (JToken token in bids)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token[1].Value<double>(), Price = token[0].Value<double>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token[1].Value<decimal>(), Price = token[0].Value<decimal>() };
                 orders.Bids.Add(order);
             }
             JToken asks = obj["asks"];
             foreach (JToken token in asks)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token[1].Value<double>(), Price = token[0].Value<double>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token[1].Value<decimal>(), Price = token[0].Value<decimal>() };
                 orders.Asks.Add(order);
             }
             return orders;
@@ -131,8 +159,8 @@ namespace ExchangeSharp
                     timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[2].Value<double>());
                     trades.Add(new ExchangeTrade
                     {
-                        Amount = array[1].Value<double>(),
-                        Price = array[0].Value<double>(),
+                        Amount = array[1].Value<decimal>(),
+                        Price = array[0].Value<decimal>(),
                         Timestamp = timestamp,
                         Id = timestamp.Ticks,
                         IsBuy = array[3].Value<char>() == 'b'
@@ -150,6 +178,37 @@ namespace ExchangeSharp
                 }
                 System.Threading.Thread.Sleep(1000);
             }
+        }
+
+        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        {
+            Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "pair", symbol },
+                { "type", (buy ? "buy" : "sell") },
+                { "ordertype", "limit" },
+                { "price", price.ToString(CultureInfo.InvariantCulture) },
+                { "volume", amount.ToString(CultureInfo.InvariantCulture) },
+                { "nonce", 1 }//DateTime.UtcNow.Ticks }
+            };
+
+            JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);
+            ExchangeOrderResult result = new ExchangeOrderResult();
+            if (obj["error"] != null)
+            {
+                result.Message = obj["error"].ToString();
+            }
+            return result;
+        }
+
+        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        {
+            return base.GetOrderDetails(orderId);
+        }
+
+        public override string CancelOrder(string orderId)
+        {
+            return base.CancelOrder(orderId);
         }
     }
 }

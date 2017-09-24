@@ -63,12 +63,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Public API key - only needs to be set if you are using private authenticated end points
         /// </summary>
-        public string PublicApiKey { get; set; }
+        public System.Security.SecureString PublicApiKey { get; set; }
 
         /// <summary>
         /// Private API key - only needs to be set if you are using private authenticated end points
         /// </summary>
-        public string PrivateApiKey { get; set; }
+        public System.Security.SecureString PrivateApiKey { get; set; }
 
         /// <summary>
         /// Rate limiter - set this to a new limit if you are seeing your ip get blocked by the exchange
@@ -125,7 +125,7 @@ namespace ExchangeSharp
 
         }
 
-        protected void AppendFormToRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected string GetFormForPayload(Dictionary<string, object> payload)
         {
             if (payload != null && payload.Count != 0)
             {
@@ -135,11 +135,25 @@ namespace ExchangeSharp
                     form.AppendFormat("{0}={1}&", keyValue.Key, keyValue.Value);
                 }
                 form.Length--; // trim ampersand
+                return form.ToString();
+            }
+            return null;
+        }
+
+        protected void PostFormToRequest(HttpWebRequest request, string form)
+        {
+            if (form != null)
+            {
                 using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), Encoding.ASCII))
                 {
                     writer.Write(form);
                 }
             }
+        }
+
+        protected void PostPayloadToRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            PostFormToRequest(request, GetFormForPayload(payload));
         }
 
         /// <summary>
@@ -264,17 +278,17 @@ namespace ExchangeSharp
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Symbol / amount dictionary</returns>
-        public virtual Dictionary<string, double> GetAmountsAvailableToTrade() { throw new NotImplementedException(); }
+        public virtual Dictionary<string, decimal> GetAmountsAvailableToTrade() { throw new NotImplementedException(); }
 
         /// <summary>
-        /// Place an order
+        /// Place a limit order
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <param name="amount">Amount</param>
         /// <param name="price">Price</param>
         /// <param name="buy">True to buy, false to sell</param>
         /// <returns>Result</returns>
-        public virtual ExchangeOrderResult PlaceOrder(string symbol, double amount, double price, bool buy) { throw new NotImplementedException(); }
+        public virtual ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy) { throw new NotImplementedException(); }
 
         /// <summary>
         /// Get order details

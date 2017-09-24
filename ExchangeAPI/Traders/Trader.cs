@@ -27,10 +27,10 @@ namespace ExchangeSharp
         public long LastTradeTimestamp { get; protected set; }
         public int Buys { get; protected set; }
         public int Sells { get; protected set; }
-        public double ItemCount { get; protected set; }
-        public double Profit { get; protected set; }
-        public double Spend { get; protected set; }
-        public double StartCashFlow { get; protected set; }
+        public decimal ItemCount { get; protected set; }
+        public decimal Profit { get; protected set; }
+        public decimal Spend { get; protected set; }
+        public decimal StartCashFlow { get; protected set; }
 
 #if DEBUG
 
@@ -39,17 +39,17 @@ namespace ExchangeSharp
 #endif
 
         // configuration
-        public double CashFlow { get; set; } // can be set for testing but the API will typically grab this
+        public decimal CashFlow { get; set; } // can be set for testing but the API will typically grab this
         public long Interval { get; set; } // milliseconds
-        public double BuyUnits { get; set; } = 1.0;
-        public double SellUnits { get; set; } = 1.0;
+        public decimal BuyUnits { get; set; } = 1.0m;
+        public decimal SellUnits { get; set; } = 1.0m;
         public double BuyThresholdPercent { get; set; } // how low price must go from baseline before considering a buy
         public double SellThresholdPercent { get; set; } // how high price must go from purchase point before considering a sell
         public double BuyReverseThresholdPercent { get; set; } // how high the price must go up from BuyThreshold to do a buy, this tries to predict when a valley is ending
         public double BuyFalseReverseThresholdPercent { get; set; } // how low the price and go from BuyReverseThresholdPercent to tell the trader the price is continuing to drop and buy more
         public double SellReverseThresholdPercent { get; set; } // how low the price mus go down from a SellThreshold to do a sell, this tries to predict when a peak is ending
-        public double FeePercentage { get; set; } = 0.0025; // fee percent * price of a trade = fee for the trade
-        public double OrderPriceDifferentialPercentage { get; set; } = 0.001; // lower sell orders and increase buy orders by this amount to ensure they get filled
+        public decimal FeePercentage { get; set; } = 0.0025m; // fee percent * price of a trade = fee for the trade
+        public decimal OrderPriceDifferentialPercentage { get; set; } = 0.001m; // lower sell orders and increase buy orders by this amount to ensure they get filled
         public bool ProductionMode { get; set; } // default is false, no trades or API calls
 
         public ExchangeTradeInfo TradeInfo { get; private set; }
@@ -65,10 +65,10 @@ namespace ExchangeSharp
             LastTradeTimestamp = info.Trade.Ticks;
             UpdateAmounts();
             StartCashFlow = CashFlow;
-            Profit = (CashFlow - StartCashFlow) + (ItemCount * info.Trade.Price);
-			ItemCount = 0.0;
+            Profit = (CashFlow - StartCashFlow) + (ItemCount * (decimal)info.Trade.Price);
+			ItemCount = 0.0m;
 			Buys = Sells = 0;
-            Spend = 0.0;
+            Spend = 0.0m;
 
 #if DEBUG
 
@@ -84,13 +84,13 @@ namespace ExchangeSharp
             if (ProductionMode)
             {
                 var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTrade();
-                double itemCount, cashFlow;
+                decimal itemCount, cashFlow;
                 dict.TryGetValue("BTC", out itemCount);
                 dict.TryGetValue("USD", out cashFlow);
                 ItemCount = itemCount;
                 CashFlow = cashFlow;
             }
-            Profit = (CashFlow - StartCashFlow) + (ItemCount * TradeInfo.Trade.Price);
+            Profit = (CashFlow - StartCashFlow) + (ItemCount * (decimal)TradeInfo.Trade.Price);
         }
 
         protected void SetPlotListCount(int count)
@@ -151,13 +151,13 @@ namespace ExchangeSharp
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public double PerformBuy(double count = -1)
+        public decimal PerformBuy(decimal count = -1)
         {
-            count = (count <= 0.0 ? BuyUnits : count);
-            if (CashFlow >= (TradeInfo.Trade.Price * count))
+            count = (count <= 0m ? BuyUnits : count);
+            if (CashFlow >= ((decimal)TradeInfo.Trade.Price * count))
             {
                 // buy one
-                double actualBuyPrice = (TradeInfo.Trade.Price * count);
+                decimal actualBuyPrice = ((decimal)TradeInfo.Trade.Price * count);
                 actualBuyPrice += (actualBuyPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
@@ -175,16 +175,16 @@ namespace ExchangeSharp
                 UpdateAmounts();
                 return count;
             }
-            return 0.0;
+            return 0m;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public double PerformSell(double count = -1)
+        public decimal PerformSell(decimal count = -1)
         {
-            count = (count <= 0.0 ? SellUnits : count);
+            count = (count <= 0m ? SellUnits : count);
             if (ItemCount >= count)
             {
-                double actualSellPrice = (TradeInfo.Trade.Price * count);
+                decimal actualSellPrice = ((decimal)TradeInfo.Trade.Price * count);
                 actualSellPrice -= (actualSellPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
@@ -201,7 +201,7 @@ namespace ExchangeSharp
                 UpdateAmounts();
                 return count;
             }
-            return 0.0;
+            return 0m;
         }
 
         public void Graph()

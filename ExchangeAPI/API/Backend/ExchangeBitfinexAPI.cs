@@ -44,7 +44,7 @@ namespace ExchangeSharp
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
-            double[] ticker = MakeJsonRequest<double[]>("/ticker/t" + symbol);
+            decimal[] ticker = MakeJsonRequest<decimal[]>("/ticker/t" + symbol);
             return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
         }
 
@@ -55,7 +55,7 @@ namespace ExchangeSharp
             string baseUrl = "/trades/t" + symbol.ToUpperInvariant() + "/hist?sort=" + (sinceDateTime == null ? "-1" : "1") + "&limit=" + maxCount;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            double[][] tradeChunk;
+            decimal[][] tradeChunk;
             while (true)
             {
                 url = baseUrl;
@@ -63,18 +63,18 @@ namespace ExchangeSharp
                 {
                     url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value);
                 }
-                tradeChunk = MakeJsonRequest<double[][]>(url);
+                tradeChunk = MakeJsonRequest<decimal[][]>(url);
                 if (tradeChunk == null || tradeChunk.Length == 0)
                 {
                     break;
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(tradeChunk[tradeChunk.Length - 1][1]);
+                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((double)tradeChunk[tradeChunk.Length - 1][1]);
                 }
-                foreach (double[] tradeChunkPiece in tradeChunk)
+                foreach (decimal[] tradeChunkPiece in tradeChunk)
                 {
-                    trades.Add(new ExchangeTrade { Amount = Math.Abs(tradeChunkPiece[2]), IsBuy = tradeChunkPiece[2] > 0.0, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(tradeChunkPiece[1]), Id = (long)tradeChunkPiece[0] });
+                    trades.Add(new ExchangeTrade { Amount = Math.Abs(tradeChunkPiece[2]), IsBuy = tradeChunkPiece[2] > 0m, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((double)tradeChunkPiece[1]), Id = (long)tradeChunkPiece[0] });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
                 foreach (ExchangeTrade t in trades)
@@ -94,10 +94,10 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            double[][] books = MakeJsonRequest<double[][]>("/book/t" + symbol.ToUpperInvariant() + "/P0?len=" + maxCount);
-            foreach (double[] book in books)
+            decimal[][] books = MakeJsonRequest<decimal[][]>("/book/t" + symbol.ToUpperInvariant() + "/P0?len=" + maxCount);
+            foreach (decimal[] book in books)
             {
-                if (book[2] > 0.0)
+                if (book[2] > 0m)
                 {
                     orders.Bids.Add(new ExchangeOrderPrice { Amount = book[2], Price = book[0] });
                 }
