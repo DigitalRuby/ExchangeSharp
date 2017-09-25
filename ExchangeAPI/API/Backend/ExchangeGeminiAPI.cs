@@ -42,9 +42,9 @@ namespace ExchangeSharp
             if (props.Length == 3)
             {
                 vol.PriceSymbol = props[0].Name;
-                vol.PriceAmount = props[0].Value<decimal>();
+                vol.PriceAmount = (decimal)props[0].Value;
                 vol.QuantitySymbol = props[1].Name;
-                vol.QuantityAmount = props[1].Value<decimal>();
+                vol.QuantityAmount = (decimal)props[1].Value;
                 vol.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)props[2].Value);
             }
 

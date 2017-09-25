@@ -33,7 +33,7 @@ namespace ExchangeSharp
 
         private string NormalizeSymbol(string symbol)
         {
-            return symbol.ToUpperInvariant();
+            return symbol.Replace("-", string.Empty).ToUpperInvariant();
         }
 
         public override string[] GetSymbols()

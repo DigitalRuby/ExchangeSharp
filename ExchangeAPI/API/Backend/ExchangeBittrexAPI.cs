@@ -37,6 +37,14 @@ namespace ExchangeSharp
             return symbol.ToUpperInvariant();
         }
 
+        private void CheckError(JObject obj)
+        {
+            if (obj["success"] == null || !obj["success"].Value<bool>())
+            {
+                throw new ExchangeAPIException(obj["message"].Value<string>());
+            }
+        }
+
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             if (payload != null)
@@ -61,10 +69,11 @@ namespace ExchangeSharp
         public override string[] GetSymbols()
         {
             List<string> symbols = new List<string>();
-            JArray obj = MakeJsonRequest<JObject>("/public/getmarkets")["result"] as JArray;
-            if (obj != null)
+            JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
+            CheckError(obj);
+            if (obj["result"] is JArray array)
             {
-                foreach (JToken token in obj)
+                foreach (JToken token in array)
                 {
                     symbols.Add(token["MarketName"].Value<string>());
                 }
@@ -74,7 +83,9 @@ namespace ExchangeSharp
 
         public override ExchangeTicker GetTicker(string symbol)
         {
-            JToken ticker = MakeJsonRequest<JObject>("/public/getmarketsummary?market=" + NormalizeSymbol(symbol))["result"][0];
+            JObject obj = MakeJsonRequest<JObject>("/public/getmarketsummary?market=" + NormalizeSymbol(symbol));
+            CheckError(obj);
+            JToken ticker = obj["result"][0];
             if (ticker != null)
             {
                 return new ExchangeTicker
@@ -98,19 +109,21 @@ namespace ExchangeSharp
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount)["result"];
-            if (obj == null)
+            JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
+            CheckError(obj);
+            JToken book = obj["result"];
+            if (book == null)
             {
                 return null;
             }
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken bids = obj["buy"];
+            JToken bids = book["buy"];
             foreach (JToken token in bids)
             {
                 ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<decimal>(), Price = token["Rate"].Value<decimal>() };
                 orders.Bids.Add(order);
             }
-            JToken asks = obj["sell"];
+            JToken asks = book["sell"];
             foreach (JToken token in asks)
             {
                 ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<decimal>(), Price = token["Rate"].Value<decimal>() };
@@ -134,16 +147,18 @@ namespace ExchangeSharp
                 {
                     url += "&_=" + DateTime.UtcNow.Ticks;
                 }
-                JArray obj = MakeJsonRequest<JObject>(url, BaseUrl2)["result"] as JArray;
-                if (obj == null || obj.Count == 0)
+                JObject obj = MakeJsonRequest<JObject>(url, BaseUrl2);
+                CheckError(obj);
+                JArray array = obj["result"] as JArray;
+                if (array == null || array.Count == 0)
                 {
                     break;
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = obj.Last["T"].Value<DateTime>();
+                    sinceDateTime = array.Last["T"].Value<DateTime>();
                 }
-                foreach (JToken trade in obj)
+                foreach (JToken trade in array)
                 {
                     // {"O":0.00106302,"H":0.00106302,"L":0.00106302,"C":0.00106302,"V":80.58638589,"T":"2017-08-18T17:48:00","BV":0.08566493}
                     trades.Add(new ExchangeTrade
@@ -173,8 +188,14 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/public/getmarkethistory?market=" + symbol;
-            JArray obj = MakeJsonRequest<JObject>(baseUrl)["result"] as JArray;
-            foreach (JToken token in obj)
+            JObject obj = MakeJsonRequest<JObject>(baseUrl);
+            CheckError(obj);
+            JArray array = obj["result"] as JArray;
+            if (array == null || array.Count == 0)
+            {
+                yield break;
+            }
+            foreach (JToken token in array)
             {
                 yield return new ExchangeTrade
                 {
@@ -191,10 +212,11 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
-            JObject result = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
-            if (result["success"].Value<bool>())
+            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            CheckError(obj);
+            if (obj["result"] is JArray array)
             {
-                foreach (JToken token in result["result"].Children())
+                foreach (JToken token in array)
                 {
                     currencies.Add(token["Currency"].Value<string>(), token["Available"].Value<decimal>());
                 }
@@ -206,26 +228,21 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" + amount + "&rate=" + price;
-            JObject result = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
-            if (result["success"].Value<bool>())
-            {
-                string orderId = result["result"]["uuid"].Value<string>();
-                return GetOrderDetails(orderId);
-            }
-            return new ExchangeOrderResult
-            {
-                Result = ExchangeAPIOrderResult.Error,
-                Message = result["message"].Value<string>()
-            };
+            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            CheckError(obj);
+            string orderId = obj["result"]["uuid"].Value<string>();
+            return GetOrderDetails(orderId);
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
             string url = "/account/getorder?uuid=" + orderId;
-            JObject result = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
-            if (!result["success"].Value<bool>())
+            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            CheckError(obj);
+            JToken result = obj["result"];
+            if (result == null)
             {
-                return new ExchangeOrderResult { Result = ExchangeAPIOrderResult.Error, Message = result["message"].Value<string>() };
+                return null;
             }
             decimal amount = result.Value<decimal>("Quantity");
             decimal remaining = result.Value<decimal>("QuantityRemaining");
@@ -246,11 +263,8 @@ namespace ExchangeSharp
 
         public override void CancelOrder(string orderId)
         {
-            JObject result = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId);
-            if (!result.Value<bool>("success"))
-            {
-                throw new ExchangeAPIException(result.Value<string>("message"));
-            }
+            JObject obj = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId);
+            CheckError(obj);
         }
     }
 }

@@ -205,6 +205,10 @@ namespace ExchangeSharp
                 response = we.Response as HttpWebResponse;
             }
             string responseString = (response == null ? null : new StreamReader(response.GetResponseStream()).ReadToEnd());
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new ExchangeAPIException(responseString);
+            }
             ProcessResponse(response);
             return responseString;
         }
