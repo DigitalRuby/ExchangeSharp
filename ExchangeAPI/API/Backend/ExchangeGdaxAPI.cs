@@ -75,7 +75,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
-            string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/candles?granularity=1.0";
+            string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/candles?granularity=" + (sinceDateTime == null ? "30.0" : "1.0");
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             decimal[][] tradeChunk;

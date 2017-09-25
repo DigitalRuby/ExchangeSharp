@@ -23,10 +23,39 @@ namespace ExchangeSharpConsole
 {
     public partial class ExchangeSharpConsoleApp
     {
+        private static void Assert(bool expression)
+        {
+            if (!expression)
+            {
+                throw new ApplicationException("Test failure, unexpected result");
+            }
+        }
+
         private static void PerformTests(Dictionary<string, string> dict)
         {
-            // This function is for testing exchange API or trader to make sure it works
-            
+            // test all public API for each exchange
+            IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
+            foreach (IExchangeAPI api in apis)
+            {
+                string symbol = (api is ExchangeKrakenAPI ? "XXBTZUSD" : (api is ExchangeBittrexAPI ? "BTC-LTC" : "BTC-USD"));
+
+                string[] symbols = api.GetSymbols();
+                Assert(symbols != null && symbols.Length != 0);
+
+                ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
+                Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+
+                var book = api.GetOrderBook(symbol);
+                Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks[0].Amount > 0m &&
+                    book.Asks[0].Price > 0m && book.Bids[0].Amount > 0m && book.Bids[0].Price > 0m);
+
+                trades = api.GetRecentTrades(symbol).ToArray();
+                Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+
+                var ticker = api.GetTicker(symbol);
+                Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
+                    ticker.Volume != null && ticker.Volume.PriceAmount > 0m && ticker.Volume.QuantityAmount > 0m);
+            }           
         }
     }
 }

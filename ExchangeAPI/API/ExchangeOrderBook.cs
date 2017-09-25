@@ -47,6 +47,11 @@ namespace ExchangeSharp
         public List<ExchangeOrderPrice> Asks { get; } = new List<ExchangeOrderPrice>();
         public List<ExchangeOrderPrice> Bids { get; } = new List<ExchangeOrderPrice>();
 
+        public override string ToString()
+        {
+            return string.Format("Asks: {0}, Bids: {1}", Asks.Count, Bids.Count);
+        }
+
         public void ToBinary(BinaryWriter writer)
         {
             writer.Write(Asks.Count);
