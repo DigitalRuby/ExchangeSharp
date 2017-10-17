@@ -58,41 +58,55 @@ namespace ExchangeSharp
 
             try
             {
-                // make API calls first, if they fail we will try again later
-                Ticker = API.GetTicker(Symbol);
-                OrderBook = API.GetOrderBook(Symbol);
-                Trades = API.GetRecentTrades(Symbol).OrderBy(t => t.Timestamp).ToArray();
-
-                // all API calls succeeded, we can write to files
-
-                // write system date / time
-                sysTimeWriter.Write(DateTime.UtcNow.Ticks);
-
-                // write ticker
-                Ticker.ToBinary(tickerWriter);
-
-                // write order book
-                OrderBook.ToBinary(bookWriter);
-
-                // new trades only
-                newTrades = Trades.Where(t => !tradeIds.Contains(t.Id)).ToArray();
-
-                // write new trades
-                tradeWriter.Write(newTrades.Length);
-                foreach (ExchangeTrade trade in newTrades)
+                if (Symbol == "*")
                 {
-                    trade.ToBinary(tradeWriter);
+                    // get all symbols
+                    Tickers = API.GetTickers();
+                    tickerWriter.Write(Tickers.Length);
+                    foreach (KeyValuePair<string, ExchangeTicker> ticker in Tickers)
+                    {
+                        tickerWriter.Write(ticker.Key);
+                        ticker.Value.ToBinary(tickerWriter);
+                    }
                 }
-
-                // track trade ids for the latest set of trades
-                foreach (ExchangeTrade trade in Trades)
+                else
                 {
-                    tradeIds2.Add(trade.Id);
+                    // make API calls first, if they fail we will try again later
+                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(Symbol, API.GetTicker(Symbol)) };
+                    OrderBook = API.GetOrderBook(Symbol);
+                    Trades = API.GetRecentTrades(Symbol).OrderBy(t => t.Timestamp).ToArray();
+
+                    // all API calls succeeded, we can write to files
+
+                    // write system date / time
+                    sysTimeWriter.Write(DateTime.UtcNow.Ticks);
+
+                    // write ticker
+                    Tickers[0].Value.ToBinary(tickerWriter);
+
+                    // write order book
+                    OrderBook.ToBinary(bookWriter);
+
+                    // new trades only
+                    newTrades = Trades.Where(t => !tradeIds.Contains(t.Id)).ToArray();
+
+                    // write new trades
+                    tradeWriter.Write(newTrades.Length);
+                    foreach (ExchangeTrade trade in newTrades)
+                    {
+                        trade.ToBinary(tradeWriter);
+                    }
+
+                    // track trade ids for the latest set of trades
+                    foreach (ExchangeTrade trade in Trades)
+                    {
+                        tradeIds2.Add(trade.Id);
+                    }
+                    tmpTradeIds = tradeIds;
+                    tradeIds = tradeIds2;
+                    tradeIds2 = tmpTradeIds;
+                    tradeIds2.Clear();
                 }
-                tmpTradeIds = tradeIds;
-                tradeIds = tradeIds2;
-                tradeIds2 = tmpTradeIds;
-                tradeIds2.Clear();
 
                 DataAvailable?.Invoke(this);
             }
@@ -150,6 +164,7 @@ namespace ExchangeSharp
         /// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
         public static void LogExchanges(string path, float intervalSeconds, out System.Action terminateAction, params string[] exchangeNamesAndSymbols)
         {
+            bool terminating = false;
             System.Action terminator = null;
             path = (string.IsNullOrWhiteSpace(path) ? "./" : path);
             Dictionary<ExchangeLogger, int> errors = new Dictionary<ExchangeLogger, int>();
@@ -179,13 +194,17 @@ namespace ExchangeSharp
             }
             terminator = () =>
             {
-                foreach (ExchangeLogger logger in loggers)
+                if (!terminating)
                 {
-                    logger.Stop();
-                    logger.Dispose();
+                    terminating = true;
+                    foreach (ExchangeLogger logger in loggers.ToArray())
+                    {
+                        logger.Stop();
+                        logger.Dispose();
+                    }
+                    loggers.Clear();
+                    errorLog.Close();
                 }
-                loggers.Clear();
-                errorLog.Close();
             };
             terminateAction = terminator;
 
@@ -234,9 +253,9 @@ namespace ExchangeSharp
         public event System.Action<ExchangeLogger> DataAvailable;
 
         /// <summary>
-        /// Latest ticker
+        /// Latest tickers
         /// </summary>
-        public ExchangeTicker Ticker { get; private set; }
+        public KeyValuePair<string, ExchangeTicker>[] Tickers { get; private set; }
 
         /// <summary>
         /// Latest order book

@@ -46,8 +46,14 @@ namespace ExchangeSharp
         /// Get latest ticker
         /// </summary>
         /// <param name="symbol">Symbol</param>
-        /// <returns>Latest ticker or null if error</returns>
+        /// <returns>Latest ticker</returns>
         ExchangeTicker GetTicker(string symbol);
+
+        /// <summary>
+        /// Get all tickers
+        /// </summary>
+        /// <returns>Key value pair of symbol and tickers array</returns>
+        KeyValuePair<string, ExchangeTicker>[] GetTickers();
 
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.

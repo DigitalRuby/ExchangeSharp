@@ -264,8 +264,14 @@ namespace ExchangeSharp
         /// Get exchange ticker
         /// </summary>
         /// <param name="symbol">Symbol to get ticker for</param>
-        /// <returns>Ticker or null if failure</returns>
+        /// <returns>Ticker</returns>
         public virtual ExchangeTicker GetTicker(string symbol) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Get all tickers
+        /// </summary>
+        /// <returns>Key value pair of symbol and tickers array</returns>
+        public virtual KeyValuePair<string, ExchangeTicker>[] GetTickers() { throw new NotImplementedException(); }
 
         /// <summary>
         /// Get exchange order book

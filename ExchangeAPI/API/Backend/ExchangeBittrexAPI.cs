@@ -106,6 +106,39 @@ namespace ExchangeSharp
             return null;
         }
 
+        public override KeyValuePair<string, ExchangeTicker>[] GetTickers()
+        {
+            JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getmarketsummaries");
+            CheckError(obj);
+            JToken tickers = obj["result"];
+            if (tickers == null)
+            {
+                return null;
+            }
+            string symbol;
+            List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+            foreach (JToken ticker in tickers)
+            {
+                symbol = (string)ticker["MarketName"];
+                ExchangeTicker tickerObj = new ExchangeTicker
+                {
+                    Ask = (decimal)ticker["Ask"],
+                    Bid = (decimal)ticker["Bid"],
+                    Last = (decimal)ticker["Last"],
+                    Volume = new ExchangeVolume
+                    {
+                        PriceAmount = (decimal)ticker["BaseVolume"],
+                        PriceSymbol = symbol,
+                        QuantityAmount = (decimal)ticker["Volume"],
+                        QuantitySymbol = symbol,
+                        Timestamp = (DateTime)ticker["TimeStamp"]
+                    }
+                };
+                tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
+            }
+            return tickerList.ToArray();
+        }
+
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
