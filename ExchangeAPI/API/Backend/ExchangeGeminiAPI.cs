@@ -30,11 +30,6 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
         public override string Name => ExchangeAPI.ExchangeNameGemini;
 
-        private string NormalizeSymbol(string symbol)
-        {
-            return symbol.Replace("-", string.Empty).ToLowerInvariant();
-        }
-
         private ExchangeVolume ParseVolume(JToken token)
         {
             ExchangeVolume vol = new ExchangeVolume();
@@ -67,7 +62,12 @@ namespace ExchangeSharp
             }
         }
 
-        public override string[] GetSymbols()
+        public override string NormalizeSymbol(string symbol)
+        {
+            return symbol.Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        public override IReadOnlyCollection<string> GetSymbols()
         {
             return MakeJsonRequest<string[]>("/symbols");
         }
@@ -117,7 +117,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
-            const int maxCount = 500;
+            const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/trades/" + symbol + "?limit_trades=" + maxCount;
             string url;
@@ -202,6 +202,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
+            if (string.IsNullOrWhiteSpace(orderId))
+            {
+                return null;
+            }
+
             JObject result = MakeJsonRequest<JObject>("/order/status", null, new Dictionary<string, object> { { "order_id", orderId } });
             if (result["result"].Value<string>() == "error")
             {

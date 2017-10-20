@@ -32,11 +32,6 @@ namespace ExchangeSharp
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
         public override string Name => ExchangeAPI.ExchangeNameBittrex;
 
-        private string NormalizeSymbol(string symbol)
-        {
-            return symbol.ToUpperInvariant();
-        }
-
         private void CheckError(JObject obj)
         {
             if (obj["success"] == null || !obj["success"].Value<bool>())
@@ -66,7 +61,12 @@ namespace ExchangeSharp
             }
         }
 
-        public override string[] GetSymbols()
+        public override string NormalizeSymbol(string symbol)
+        {
+            return symbol.ToUpperInvariant();
+        }
+
+        public override IReadOnlyCollection<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
@@ -78,7 +78,7 @@ namespace ExchangeSharp
                     symbols.Add(token["MarketName"].Value<string>());
                 }
             }
-            return symbols.ToArray();
+            return symbols;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -106,7 +106,7 @@ namespace ExchangeSharp
             return null;
         }
 
-        public override KeyValuePair<string, ExchangeTicker>[] GetTickers()
+        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getmarketsummaries");
             CheckError(obj);
@@ -136,7 +136,7 @@ namespace ExchangeSharp
                 };
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
             }
-            return tickerList.ToArray();
+            return tickerList;
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
@@ -269,6 +269,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
+            if (string.IsNullOrWhiteSpace(orderId))
+            {
+                return null;
+            }
+
             string url = "/account/getorder?uuid=" + orderId;
             JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
             CheckError(obj);

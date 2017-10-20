@@ -48,9 +48,9 @@ namespace ExchangeSharp
         public const string ExchangeNameBitfinex = "Bitfinex";
 
         /// <summary>
-        /// Gemini
+        /// Bittrex
         /// </summary>
-        public const string ExchangeNameGemini = "Gemini";
+        public const string ExchangeNameBittrex = "Bittrex";
 
         /// <summary>
         /// GDAX
@@ -58,14 +58,19 @@ namespace ExchangeSharp
         public const string ExchangeNameGDAX = "GDAX";
 
         /// <summary>
+        /// Gemini
+        /// </summary>
+        public const string ExchangeNameGemini = "Gemini";
+
+        /// <summary>
         /// Kraken
         /// </summary>
         public const string ExchangeNameKraken = "Kraken";
 
         /// <summary>
-        /// Bittrex
+        /// Poloniex
         /// </summary>
-        public const string ExchangeNameBittrex = "Bittrex";
+        public const string ExchangeNamePoloniex = "Poloniex";
 
         /// <summary>
         /// Base URL for the exchange API
@@ -100,7 +105,12 @@ namespace ExchangeSharp
         /// <summary>
         /// User agent for requests
         /// </summary>
-        public string RequestUserAgent { get; set; } = "ExchangeSharp";
+        public string RequestUserAgent { get; set; } = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
+
+        /// <summary>
+        /// Timeout for requests
+        /// </summary>
+        public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30.0);
 
         /// <summary>
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
@@ -194,22 +204,37 @@ namespace ExchangeSharp
             request.ContentType = RequestContentType;
             request.UserAgent = RequestUserAgent;
             request.CachePolicy = CachePolicy;
+            request.Timeout = (int)RequestTimeout.TotalMilliseconds;
+            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             ProcessRequest(request, payload);
             HttpWebResponse response;
             try
             {
                 response = request.GetResponse() as HttpWebResponse;
+                if (response == null)
+                {
+                    throw new ExchangeAPIException("Unknown response from server");
+                }
             }
             catch (WebException we)
             {
                 response = we.Response as HttpWebResponse;
+                if (response == null)
+                {
+                    throw new ExchangeAPIException(we.Message ?? "Unknown response from server");
+                }
             }
-            string responseString = (response == null ? null : new StreamReader(response.GetResponseStream()).ReadToEnd());
-            if (response.StatusCode != HttpStatusCode.OK)
+            string responseString = null;
+            using (Stream responseStream = response.GetResponseStream())
             {
-                throw new ExchangeAPIException(responseString);
+                responseString = new StreamReader(responseStream).ReadToEnd();
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new ExchangeAPIException(responseString);
+                }
+                ProcessResponse(response);
             }
-            ProcessResponse(response);
+            response.Dispose();
             return responseString;
         }
 
@@ -250,15 +275,23 @@ namespace ExchangeSharp
                 { ExchangeNameBitfinex, new ExchangeBitfinexAPI() },
                 { ExchangeNameGDAX, new ExchangeGdaxAPI() },
                 { ExchangeNameKraken, new ExchangeKrakenAPI() },
-                { ExchangeNameBittrex, new ExchangeBittrexAPI() }
+                { ExchangeNameBittrex, new ExchangeBittrexAPI() },
+                { ExchangeNamePoloniex, new ExchangePoloniexAPI() }
             };
         }
+
+        /// <summary>
+        /// Normalize a symbol for use on this exchange
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Normalized symbol</returns>
+        public virtual string NormalizeSymbol(string symbol) { return symbol; }
 
         /// <summary>
         /// Get exchange symbols
         /// </summary>
         /// <returns>Array of symbols</returns>
-        public virtual string[] GetSymbols() { throw new NotImplementedException(); }
+        public virtual IReadOnlyCollection<string> GetSymbols() { throw new NotImplementedException(); }
 
         /// <summary>
         /// Get exchange ticker
@@ -271,7 +304,7 @@ namespace ExchangeSharp
         /// Get all tickers
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public virtual KeyValuePair<string, ExchangeTicker>[] GetTickers() { throw new NotImplementedException(); }
+        public virtual IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers() { throw new NotImplementedException(); }
 
         /// <summary>
         /// Get exchange order book
@@ -280,6 +313,13 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count, not all exchanges will honor this parameter</param>
         /// <returns>Exchange order book or null if failure</returns>
         public virtual ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Get all pending orders for all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
+        /// </summary>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <returns>Symbol and order books pairs</returns>
+        public virtual IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100) { throw new NotImplementedException(); }
 
         /// <summary>
         /// Get historical trades for the exchange

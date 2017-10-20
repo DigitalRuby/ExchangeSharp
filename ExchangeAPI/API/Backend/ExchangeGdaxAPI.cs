@@ -47,7 +47,7 @@ namespace ExchangeSharp
             cursorBefore = response.Headers["cb-before"];
         }
 
-        public override string[] GetSymbols()
+        public override IReadOnlyCollection<string> GetSymbols()
         {
             Dictionary<string, string>[] symbols = MakeJsonRequest<Dictionary<string, string>[]>("/products");
             List<string> symbolList = new List<string>();

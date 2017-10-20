@@ -62,7 +62,7 @@ namespace ExchangeSharp
                 {
                     // get all symbols
                     Tickers = API.GetTickers();
-                    tickerWriter.Write(Tickers.Length);
+                    tickerWriter.Write(Tickers.Count);
                     foreach (KeyValuePair<string, ExchangeTicker> ticker in Tickers)
                     {
                         tickerWriter.Write(ticker.Key);
@@ -82,7 +82,7 @@ namespace ExchangeSharp
                     sysTimeWriter.Write(DateTime.UtcNow.Ticks);
 
                     // write ticker
-                    Tickers[0].Value.ToBinary(tickerWriter);
+                    Tickers.First().Value.ToBinary(tickerWriter);
 
                     // write order book
                     OrderBook.ToBinary(bookWriter);
@@ -255,7 +255,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Latest tickers
         /// </summary>
-        public KeyValuePair<string, ExchangeTicker>[] Tickers { get; private set; }
+        public IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> Tickers { get; private set; }
 
         /// <summary>
         /// Latest order book

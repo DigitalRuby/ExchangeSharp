@@ -58,7 +58,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Symbols of the exchange
         /// </summary>
-        public string[] Symbols { get; private set; }
+        public IReadOnlyCollection<string> Symbols { get; private set; }
 
         /// <summary>
         /// Latest trade info for the exchange

@@ -31,16 +31,11 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
         public override string Name => ExchangeAPI.ExchangeNameKraken;
 
-        private string NormalizeSymbol(string symbol)
-        {
-            return symbol.ToUpperInvariant();
-        }
-
         private void CheckError(JObject json)
         {
             if (json["error"] is JArray error && error.Count != 0)
             {
-                throw new ExchangeAPIException(error[0].Value<string>());
+                throw new ExchangeAPIException((string)error[0]);
             }
         }
 
@@ -83,7 +78,12 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
         }
 
-        public override string[] GetSymbols()
+        public override string NormalizeSymbol(string symbol)
+        {
+            return symbol.ToUpperInvariant();
+        }
+
+        public override IReadOnlyCollection<string> GetSymbols()
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
             CheckError(json);
@@ -218,7 +218,7 @@ namespace ExchangeSharp
             {
                 if (obj["result"]["txid"] is JArray array)
                 {
-                    result.OrderId = array[0].Value<string>();
+                    result.OrderId = (string)array[0];
                 }
             }
             return result;
@@ -226,6 +226,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
+            if (string.IsNullOrWhiteSpace(orderId))
+            {
+                return null;
+            }
+
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },

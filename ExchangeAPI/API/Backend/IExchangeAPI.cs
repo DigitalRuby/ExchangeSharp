@@ -37,10 +37,17 @@ namespace ExchangeSharp
         SecureString PrivateApiKey { get; set; }
 
         /// <summary>
+        /// Normalize a symbol for use on this exchange
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Normalized symbol</returns>
+        string NormalizeSymbol(string symbol);
+
+        /// <summary>
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
-        string[] GetSymbols();
+        IReadOnlyCollection<string> GetSymbols();
 
         /// <summary>
         /// Get latest ticker
@@ -53,7 +60,7 @@ namespace ExchangeSharp
         /// Get all tickers
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        KeyValuePair<string, ExchangeTicker>[] GetTickers();
+        IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers();
 
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -62,6 +69,13 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Orders</returns>
         ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100);
+
+        /// <summary>
+        /// Get all pending orders for all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
+        /// </summary>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <returns>Symbol and order books pairs</returns>
+        IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100);
 
         /// <summary>
         /// Get historical trades

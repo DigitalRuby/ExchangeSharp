@@ -31,31 +31,52 @@ namespace ExchangeSharpConsole
             }
         }
 
+        private static string GetSymbol(IExchangeAPI api)
+        {
+            if (api is ExchangeKrakenAPI)
+            {
+                return api.NormalizeSymbol("XXBTZUSD");
+            }
+            else if (api is ExchangeBittrexAPI || api is ExchangePoloniexAPI)
+            {
+                return api.NormalizeSymbol("BTC-LTC");
+            }
+            return api.NormalizeSymbol("BTC-USD");
+        }
+
         private static void PerformTests(Dictionary<string, string> dict)
         {
-            // test all public API for each exchange
+
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {
-                string symbol = (api is ExchangeKrakenAPI ? "XXBTZUSD" : (api is ExchangeBittrexAPI ? "BTC-LTC" : "BTC-USD"));
+                // test all public API for each exchange
+                try
+                {
+                    string symbol = GetSymbol(api);
 
-                string[] symbols = api.GetSymbols();
-                Assert(symbols != null && symbols.Length != 0);
+                    IReadOnlyCollection<string> symbols = api.GetSymbols();
+                    Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol));
 
-                ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
-                Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                    ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
+                    Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
 
-                var book = api.GetOrderBook(symbol);
-                Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks[0].Amount > 0m &&
-                    book.Asks[0].Price > 0m && book.Bids[0].Amount > 0m && book.Bids[0].Price > 0m);
+                    var book = api.GetOrderBook(symbol);
+                    Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks[0].Amount > 0m &&
+                        book.Asks[0].Price > 0m && book.Bids[0].Amount > 0m && book.Bids[0].Price > 0m);
 
-                trades = api.GetRecentTrades(symbol).ToArray();
-                Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                    trades = api.GetRecentTrades(symbol).ToArray();
+                    Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
 
-                var ticker = api.GetTicker(symbol);
-                Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-                    ticker.Volume != null && ticker.Volume.PriceAmount > 0m && ticker.Volume.QuantityAmount > 0m);
-            }           
+                    var ticker = api.GetTicker(symbol);
+                    Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
+                        ticker.Volume != null && ticker.Volume.PriceAmount > 0m && ticker.Volume.QuantityAmount > 0m);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Request failed, api: {0}, error: {1}", api, ex);
+                }
+            }
         }
     }
 }

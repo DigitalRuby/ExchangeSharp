@@ -31,14 +31,19 @@ namespace ExchangeSharp
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
         public override string Name => ExchangeAPI.ExchangeNameBitfinex;
 
-        private string NormalizeSymbol(string symbol)
+        public override string NormalizeSymbol(string symbol)
         {
             return symbol.Replace("-", string.Empty).ToUpperInvariant();
         }
 
-        public override string[] GetSymbols()
+        public override IReadOnlyCollection<string> GetSymbols()
         {
-            return MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
+            string[] symbols = MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
+            for (int i = 0; i < symbols.Length; i++)
+            {
+                symbols[i] = NormalizeSymbol(symbols[i]);
+            }
+            return symbols;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -52,7 +57,7 @@ namespace ExchangeSharp
         {
             const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
-            string baseUrl = "/trades/t" + symbol.ToUpperInvariant() + "/hist?sort=" + (sinceDateTime == null ? "-1" : "1") + "&limit=" + maxCount;
+            string baseUrl = "/trades/t" + symbol + "/hist?sort=" + (sinceDateTime == null ? "-1" : "1") + "&limit=" + maxCount;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             decimal[][] tradeChunk;
@@ -94,7 +99,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            decimal[][] books = MakeJsonRequest<decimal[][]>("/book/t" + symbol.ToUpperInvariant() + "/P0?len=" + maxCount);
+            decimal[][] books = MakeJsonRequest<decimal[][]>("/book/t" + symbol + "/P0?len=" + maxCount);
             foreach (decimal[] book in books)
             {
                 if (book[2] > 0m)
