@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,10 +26,16 @@ namespace ExchangeSharp
     {
         public static string SecureStringToString(SecureString s)
         {
-            IntPtr ptr = System.Runtime.InteropServices.Marshal.SecureStringToCoTaskMemUnicode(s);
-            string unsecure = System.Runtime.InteropServices.Marshal.PtrToStringUni(ptr);
-            System.Runtime.InteropServices.Marshal.ZeroFreeCoTaskMemUnicode(ptr);
-            return unsecure;
+            IntPtr valuePtr = IntPtr.Zero;
+            try
+            {
+                valuePtr = Marshal.SecureStringToGlobalAllocUnicode(s);
+                return Marshal.PtrToStringUni(valuePtr);
+            }
+            finally
+            {
+                Marshal.ZeroFreeGlobalAllocUnicode(valuePtr);
+            }
         }
 
         public static SecureString StringToSecureString(string unsecure)
