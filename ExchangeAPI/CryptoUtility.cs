@@ -173,5 +173,79 @@ namespace ExchangeSharp
             output.Seek(0, SeekOrigin.Begin);
             return output;
         }
+
+        /// <summary>
+        /// Load protected data as strings from file. Call this function in your production environment, loading in a securely encrypted file which will stay encrypted in memory.
+        /// </summary>
+        /// <param name="path">Path to load from</param>
+        /// <returns>Protected data</returns>
+        public static SecureString[] LoadProtectedStringsFromFile(string path)
+        {
+            byte[] bytes = File.ReadAllBytes(path);
+
+            // while unprotectedBytes is populated, app is vulnerable - we clear this array ASAP to remove sensitive data from memory
+            byte[] unprotectedBytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
+
+            MemoryStream memory = new MemoryStream(unprotectedBytes);
+            BinaryReader reader = new BinaryReader(memory, Encoding.UTF8);
+            SecureString current;
+            char c;
+            int len;
+            List<SecureString> strings = new List<SecureString>();
+
+            while (memory.Position != memory.Length)
+            {
+                // copy char by char into secure string to avoid making additional string copies of sensitive data
+                current = new SecureString();
+                strings.Add(current);
+                len = reader.ReadInt32();
+                while (len-- > 0)
+                {
+                    current.AppendChar(reader.ReadChar());
+                }
+            }
+
+            // cleanup and zero it out, hopefully GC hasn't moved unprotectedBytes around in memory
+            Array.Clear(bytes, 0, bytes.Length);
+            Array.Clear(unprotectedBytes, 0, unprotectedBytes.Length);
+
+            return strings.ToArray();
+        }
+
+        /// <summary>
+        /// Save unprotected data as strings to a file, where it will be encrypted for the current user account. Call this method offline with the data you need to secure.
+        /// Call CryptoUtility.LoadProtectedStringsFromFile to later load these strings from the file.
+        /// </summary>
+        /// <param name="path">Path to save to</param>
+        /// <param name="strings">Strings to save.</param>
+        /// <example><![CDATA[ 
+        /// CryptoUtility.SaveUnprotectedStringsToFile("test.bin", new string[] { "my super secret user name", "my super secret password with a ❤heart" });
+        /// SecureString[] secure = CryptoUtility.LoadProtectedStringsFromFile("test.bin");
+        /// string s;
+        /// for (int i = 0; i<secure.Length; i++)
+        /// {
+        ///     s = CryptoUtility.SecureStringToString(secure[i]);
+        ///     Console.WriteLine(s);
+        /// }
+        /// Console.ReadLine();
+        /// ]]></example>
+        public static void SaveUnprotectedStringsToFile(string path, string[] strings)
+        {
+            MemoryStream memory = new MemoryStream();
+            BinaryWriter writer = new BinaryWriter(memory, Encoding.UTF8);
+            char[] chars;
+
+            foreach (string s in strings)
+            {
+                chars = s.ToArray();
+                writer.Write(chars.Length);
+                foreach (char c in chars)
+                {
+                    writer.Write(c);
+                }
+            }
+            writer.Flush();
+            File.WriteAllBytes(path, ProtectedData.Protect(memory.ToArray(), null, DataProtectionScope.CurrentUser));
+        }
     }
 }

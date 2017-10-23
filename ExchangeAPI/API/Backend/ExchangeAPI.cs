@@ -78,12 +78,12 @@ namespace ExchangeSharp
         public abstract string BaseUrl { get; set; }
 
         /// <summary>
-        /// Public API key - only needs to be set if you are using private authenticated end points
+        /// Public API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// </summary>
         public System.Security.SecureString PublicApiKey { get; set; }
 
         /// <summary>
-        /// Private API key - only needs to be set if you are using private authenticated end points
+        /// Private API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// </summary>
         public System.Security.SecureString PrivateApiKey { get; set; }
 
