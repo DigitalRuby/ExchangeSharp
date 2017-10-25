@@ -70,7 +70,7 @@
     <None Include="LICENSE" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="ExchangeAPI\ExchangeSharp.csproj">
+    <ProjectReference Include="ExchangeSharp\ExchangeSharp.csproj">
       <Project>{fdded71d-96a2-4914-bf48-796a63263559}</Project>
       <Name>ExchangeSharp</Name>
     </ProjectReference>
