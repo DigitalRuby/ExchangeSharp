@@ -189,7 +189,6 @@ namespace ExchangeSharp
             MemoryStream memory = new MemoryStream(unprotectedBytes);
             BinaryReader reader = new BinaryReader(memory, Encoding.UTF8);
             SecureString current;
-            char c;
             int len;
             List<SecureString> strings = new List<SecureString>();
 

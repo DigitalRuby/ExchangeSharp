@@ -17,16 +17,21 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ExchangeSharp;
-
-namespace ExchangeSharpConsole
+namespace ExchangeSharp
 {
-    public partial class ExchangeSharpConsoleApp
+    public static partial class ExchangeSharpConsole
     {
-        private static void RunConvertData(Dictionary<string, string> dict)
+        public static void RunExportData(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "symbol", "path");
-            TraderExchangeExport.ExportExchangeTrades(null, dict["symbol"], dict["path"], DateTime.UtcNow);
+            RequireArgs(dict, "exchange", "symbol", "path", "sinceDateTime");
+            string exchange = dict["exchange"];
+            long total = 0;
+            TraderExchangeExport.ExportExchangeTrades(ExchangeAPI.GetExchangeAPI(exchange), dict["symbol"], dict["path"], DateTime.Parse(dict["sinceDateTime"]), (long count) =>
+            {
+                total = count;
+                Console.Write("Exporting {0}: {1}     \r", exchange, total);
+            });
+            Console.WriteLine("{0}Finished Exporting {1}: {2}     \r", Environment.NewLine, exchange, total);
         }
     }
 }

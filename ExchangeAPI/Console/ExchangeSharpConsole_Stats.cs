@@ -17,13 +17,11 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ExchangeSharp;
-
-namespace ExchangeSharpConsole
+namespace ExchangeSharp
 {
-    public partial class ExchangeSharpConsoleApp
+    public static partial class ExchangeSharpConsole
     {
-        private static void RunShowExchangeStats(Dictionary<string, string> dict)
+        public static void RunShowExchangeStats(Dictionary<string, string> dict)
         {
             string symbol = "BTC-USD";
             string symbol2 = "XXBTZUSD";

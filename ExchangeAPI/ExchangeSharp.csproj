@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ExchangeSharp</RootNamespace>
     <AssemblyName>ExchangeSharp</AssemblyName>
-    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -35,9 +35,6 @@
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\Visual Studio 2017\Projects\AutomatedTraderApp\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="RateGate, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\Visual Studio 2017\Projects\AutomatedTraderApp\packages\JackLeitch.RateGate.1.0.0\lib\net40\RateGate.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -65,6 +62,13 @@
     <Compile Include="API\Backend\ExchangePoloniexAPI.cs" />
     <Compile Include="API\Backend\IExchangeAPI.cs" />
     <Compile Include="API\ExchangeOrder.cs" />
+    <Compile Include="Console\ExchangeSharpConsole.cs" />
+    <Compile Include="Console\ExchangeSharpConsole_Convert.cs" />
+    <Compile Include="Console\ExchangeSharpConsole_Export.cs" />
+    <Compile Include="Console\ExchangeSharpConsole_Help.cs" />
+    <Compile Include="Console\ExchangeSharpConsole_Stats.cs" />
+    <Compile Include="Console\ExchangeSharpConsole_Example.cs" />
+    <Compile Include="Console\ExchangeSharpConsole_Tests.cs" />
     <Compile Include="CryptoUtility.cs" />
     <Compile Include="API\ExchangeInfo.cs" />
     <Compile Include="API\ExchangeOrderBook.cs" />
@@ -73,6 +77,7 @@
     <Compile Include="API\ExchangeTradeInfo.cs" />
     <Compile Include="API\Trade.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RateGate.cs" />
     <Compile Include="Traders\MovingAverageCalculator.cs" />
     <Compile Include="Traders\PlotForm.cs">
       <SubType>Form</SubType>
@@ -93,7 +98,11 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ExchangeSharp.nuspec" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Readme.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -90,7 +90,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Rate limiter - set this to a new limit if you are seeing your ip get blocked by the exchange
         /// </summary>
-        public JackLeitch.RateGate.RateGate RateLimit { get; set; } = new JackLeitch.RateGate.RateGate(5, TimeSpan.FromSeconds(15.0d));
+        public RateGate RateLimit { get; set; } = new RateGate(5, TimeSpan.FromSeconds(15.0d));
 
         /// <summary>
         /// Default request method

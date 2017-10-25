@@ -12,28 +12,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
+using System.Text;
+using System.Threading.Tasks;
 
-using ExchangeSharp;
-
-namespace ExchangeSharpConsole
+namespace ExchangeSharp
 {
-    public partial class ExchangeSharpConsoleApp
+    public static class ExchangeSharpConsoleMain
     {
-        private static void RunExportData(Dictionary<string, string> dict)
+        public static int Main(string[] args)
         {
-            RequireArgs(dict, "exchange", "symbol", "path", "sinceDateTime");
-            string exchange = dict["exchange"];
-            long total = 0;
-            TraderExchangeExport.ExportExchangeTrades(ExchangeAPI.GetExchangeAPI(exchange), dict["symbol"], dict["path"], DateTime.Parse(dict["sinceDateTime"]), (long count) =>
-            {
-                total = count;
-                Console.Write("Exporting {0}: {1}     \r", exchange, total);
-            });
-            Console.WriteLine("{0}Finished Exporting {1}: {2}     \r", Environment.NewLine, exchange, total);
+            return ExchangeSharpConsole.ConsoleMain(args);
         }
     }
 }

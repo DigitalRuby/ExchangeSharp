@@ -17,11 +17,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ExchangeSharp;
-
-namespace ExchangeSharpConsole
+namespace ExchangeSharp
 {
-    public partial class ExchangeSharpConsoleApp
+    public static partial class ExchangeSharpConsole
     {
         private static void Assert(bool expression)
         {
@@ -44,9 +42,8 @@ namespace ExchangeSharpConsole
             return api.NormalizeSymbol("BTC-USD");
         }
 
-        private static void PerformTests(Dictionary<string, string> dict)
+        public static void RunPerformTests(Dictionary<string, string> dict)
         {
-
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {

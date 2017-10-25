@@ -19,9 +19,9 @@ using System.Threading;
 
 using ExchangeSharp;
 
-namespace ExchangeSharpConsole
+namespace ExchangeSharp
 {
-    public sealed unsafe partial class ExchangeSharpConsoleApp
+    public static partial class ExchangeSharpConsole
     {
         private static void RequireArgs(Dictionary<string, string> dict, params string[] args)
         {
@@ -58,35 +58,51 @@ namespace ExchangeSharpConsole
             return dict;
         }
 
-        public static int Main(string[] args)
+        public static int ConsoleMain(string[] args)
         {
-            Dictionary<string, string> dict = ParseCommandLine(args);
-            if (dict.Count == 0 || dict.ContainsKey("help"))
+            try
             {
-                RunShowHelp(dict);
+                Dictionary<string, string> dict = ParseCommandLine(args);
+                if (dict.Count == 0 || dict.ContainsKey("help"))
+                {
+                    RunShowHelp(dict);
+                }
+                else if (dict.Count >= 1 && dict.ContainsKey("test"))
+                {
+                    RunPerformTests(dict);
+                }
+                else if (dict.Count >= 1 && dict.ContainsKey("export"))
+                {
+                    RunExportData(dict);
+                }
+                else if (dict.Count >= 1 && dict.ContainsKey("convert"))
+                {
+                    RunConvertData(dict);
+                }
+                else if (dict.Count >= 1 && dict.ContainsKey("stats"))
+                {
+                    RunShowExchangeStats(dict);
+                }
+                else if (dict.ContainsKey("example"))
+                {
+                    RunExample(dict);
+                }
+                else if (dict.ContainsKey("keys"))
+                {
+                    RunProcessEncryptedAPIKeys(dict);
+                }
+                else
+                {
+                    Console.WriteLine("Unrecognized command line arguments.");
+                    return -1;
+                }
+                return 0;
             }
-            else if (dict.Count >= 1 && dict.ContainsKey("test"))
+            catch (Exception ex)
             {
-                PerformTests(dict);
+                Console.WriteLine("Fatal error: {0}", ex);
+                return -99;
             }
-            else if (dict.Count >= 1 && dict.ContainsKey("export"))
-            {
-                RunExportData(dict);
-            }
-            else if (dict.Count >= 1 && dict.ContainsKey("convert"))
-            {
-                RunConvertData(dict);
-            }
-            else if (dict.Count >= 1 && dict.ContainsKey("stats"))
-            {
-                RunShowExchangeStats(dict);
-            }
-            else
-            {
-                Console.WriteLine("Unrecognized command line arguments.");
-                return -1;
-            }
-            return 0;
         }
     }
 }
