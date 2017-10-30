@@ -30,6 +30,16 @@ namespace ExchangeSharp
             IsRunningInBackground = false;
         }
 
+        private BinaryWriter CreateLogWriter(string path, bool compress)
+        {
+            Stream stream = File.Open(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+            if (compress)
+            {
+                stream = new System.IO.Compression.GZipStream(stream, System.IO.Compression.CompressionLevel.Optimal, false);
+            }
+            return new BinaryWriter(stream);
+        }
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -37,15 +47,17 @@ namespace ExchangeSharp
         /// <param name="symbol">The symbol to log, i.e. btcusd</param>
         /// <param name="intervalSeconds">Interval in seconds between updates</param>
         /// <param name="path">The path to write the log files to</param>
-        public ExchangeLogger(IExchangeAPI api, string symbol, float intervalSeconds, string path)
+        /// <param name="compress">Whether to compress the log files using gzip compression</param>
+        public ExchangeLogger(IExchangeAPI api, string symbol, float intervalSeconds, string path, bool compress = false)
         {
+            string compressExtension = (compress ? ".gz" : string.Empty);
             API = api;
             Symbol = symbol;
             Interval = TimeSpan.FromSeconds(intervalSeconds);
-            sysTimeWriter = new BinaryWriter(File.Open(Path.Combine(path, api.Name + "_time.bin"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite));
-            tickerWriter = new BinaryWriter(File.Open(Path.Combine(path, api.Name + "_ticker.bin"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite));
-            bookWriter = new BinaryWriter(File.Open(Path.Combine(path, api.Name + "_book.bin"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite));
-            tradeWriter = new BinaryWriter(File.Open(Path.Combine(path, api.Name + "_trades.bin"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite));
+            sysTimeWriter = CreateLogWriter(Path.Combine(path, api.Name + "_time.bin" + compressExtension), compress);
+            tickerWriter = CreateLogWriter(Path.Combine(path, api.Name + "_ticker.bin" + compressExtension), compress);
+            bookWriter = CreateLogWriter(Path.Combine(path, api.Name + "_book.bin" + compressExtension), compress);
+            tradeWriter = CreateLogWriter(Path.Combine(path, api.Name + "_trades.bin" + compressExtension), compress);
         }
 
         /// <summary>
@@ -156,13 +168,28 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Open a log reader for a base path - will detect if there is a compressed version automatically
+        /// </summary>
+        /// <param name="basePath">Base path (i.e. logFile.bin)</param>
+        /// <returns>BinaryReader</returns>
+        public static BinaryReader OpenLogReader(string basePath)
+        {
+            if (File.Exists(basePath))
+            {
+                return new BinaryReader(File.OpenRead(basePath));
+            }
+            return new BinaryReader(new System.IO.Compression.GZipStream(File.OpenRead(basePath + ".gz"), System.IO.Compression.CompressionMode.Decompress, false));
+        }
+
+        /// <summary>
         /// Begins logging exchanges - writes errors to console. You should block the app using Console.ReadLine.
         /// </summary>
         /// <param name="path">Path to write files to</param>
         /// <param name="intervalSeconds">Interval in seconds in between each log calls for each exchange</param>
         /// <param name="terminateAction">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</param>
+        /// <param name="compress">Whether to compress the log files</param>
         /// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
-        public static void LogExchanges(string path, float intervalSeconds, out System.Action terminateAction, params string[] exchangeNamesAndSymbols)
+        public static void LogExchanges(string path, float intervalSeconds, out System.Action terminateAction, bool compress, params string[] exchangeNamesAndSymbols)
         {
             bool terminating = false;
             System.Action terminator = null;
@@ -171,7 +198,7 @@ namespace ExchangeSharp
             List<ExchangeLogger> loggers = new List<ExchangeLogger>();
             for (int i = 0; i < exchangeNamesAndSymbols.Length;)
             {
-                loggers.Add(new ExchangeLogger(ExchangeAPI.GetExchangeAPI(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path));
+                loggers.Add(new ExchangeLogger(ExchangeAPI.GetExchangeAPI(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path, compress));
             };
             StreamWriter errorLog = File.CreateText(Path.Combine(path, "errors.txt"));
             foreach (ExchangeLogger logger in loggers)
@@ -220,6 +247,43 @@ namespace ExchangeSharp
 
             Console.WriteLine("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
             errorLog.WriteLine("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
+        }
+
+        /// <summary>
+        /// Enumerate over a log file that contains multiple tickers per entry. The previous dictionary is not valid once the enumerator is moved.
+        /// Multi ticker log format: [int32 count](count times:)[string key][exchange ticker]
+        /// </summary>
+        /// <param name="path">Path to read from</param>
+        /// <returns>Enumerator returning the tickers for each entry</returns>
+        public static IEnumerable<Dictionary<string, ExchangeTicker>> ReadMultiTickers(string path)
+        {
+            int count;
+            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>();
+            ExchangeTicker ticker;
+            string key;
+            using (BinaryReader tickerReader = ExchangeLogger.OpenLogReader(path))
+            {
+                while (true)
+                {
+                    try
+                    {
+                        tickers.Clear();
+                        count = tickerReader.ReadInt32();
+                        while (count-- > 0)
+                        {
+                            key = tickerReader.ReadString();
+                            ticker = new ExchangeTicker();
+                            ticker.FromBinary(tickerReader);
+                            tickers[key] = ticker;
+                        }
+                    }
+                    catch (EndOfStreamException)
+                    {
+                        break;
+                    }
+                    yield return tickers;
+                }
+            }
         }
 
         /// <summary>
