@@ -58,12 +58,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Updates the moving average with its next value, and returns the updated average value.
+        /// Updates the moving average with its next value.
         /// When IsMature is true and NextValue is called, a previous value will 'fall out' of the
         /// moving average.
         /// </summary>
         /// <param name="nextValue">The next value to be considered within the moving average.</param>
-        /// <exception cref="ArgumentOutOfRangeException">If nextValue is equal to double.NaN.</exception>
         public void NextValue(double nextValue)
         {
             // add new value to the sum

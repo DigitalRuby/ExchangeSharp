@@ -119,7 +119,7 @@ namespace ExchangeSharp
 
         public void FromBinary(BinaryReader reader)
         {
-            Timestamp = new DateTime(reader.ReadInt64()).ToUniversalTime();
+            Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
             PriceSymbol = reader.ReadString();
             PriceAmount = (decimal)reader.ReadDouble();
             QuantitySymbol = reader.ReadString();
