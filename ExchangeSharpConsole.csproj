@@ -67,13 +67,13 @@
     <None Include="README" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="LICENSE" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="ExchangeSharp\ExchangeSharp.csproj">
       <Project>{fdded71d-96a2-4914-bf48-796a63263559}</Project>
       <Name>ExchangeSharp</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
