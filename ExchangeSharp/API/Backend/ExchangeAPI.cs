@@ -360,6 +360,13 @@ namespace ExchangeSharp
         public virtual ExchangeOrderResult GetOrderDetails(string orderId) { throw new NotImplementedException(); }
 
         /// <summary>
+        /// Get the details of all open orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get open orders for or null for all</param>
+        /// <returns>All open order details</returns>
+        public virtual IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null) { throw new NotImplementedException(); }
+
+        /// <summary>
         /// Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>

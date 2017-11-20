@@ -116,6 +116,13 @@ namespace ExchangeSharp
         ExchangeOrderResult GetOrderDetails(string orderId);
 
         /// <summary>
+        /// Get the details of all open orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get open orders for or null for all</param>
+        /// <returns>All open order details for the specified symbol</returns>
+        IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null);
+
+        /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>

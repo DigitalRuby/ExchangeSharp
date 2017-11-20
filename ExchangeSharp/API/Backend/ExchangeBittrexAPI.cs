@@ -40,12 +40,35 @@ namespace ExchangeSharp
             }
         }
 
+        private ExchangeOrderResult ParseOrder(JToken token)
+        {
+            ExchangeOrderResult order = new ExchangeOrderResult();
+            decimal amount = token.Value<decimal>("Quantity");
+            decimal remaining = token.Value<decimal>("QuantityRemaining");
+            decimal amountFilled = amount - remaining;
+            order.Amount = amount;
+            order.AmountFilled = amountFilled;
+            order.AveragePrice = token.Value<decimal>("Price");
+            order.Message = string.Empty;
+            order.OrderId = token.Value<string>("OrderUuid");
+            order.Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially));
+            order.OrderDate = token["Opened"].Value<DateTime>();
+            order.Symbol = token["Exchange"].Value<string>();
+            string type = (string)token["OrderType"];
+            if (string.IsNullOrWhiteSpace(type))
+            {
+                type = (string)token["Type"] ?? string.Empty;
+            }
+            order.IsBuy = type.IndexOf("BUY", StringComparison.OrdinalIgnoreCase) >= 0;
+            return order;
+        }
+
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             if (payload != null)
             {
                 var query = HttpUtility.ParseQueryString(url.Query);
-                url.Query = "apikey=" + PublicApiKey + "&nonce=" + DateTime.UtcNow.Ticks + (query.Count == 0 ? string.Empty : "&" + query.ToString());
+                url.Query = "apikey=" + CryptoUtility.SecureStringToString(PublicApiKey) + "&nonce=" + DateTime.UtcNow.Ticks + (query.Count == 0 ? string.Empty : "&" + query.ToString());
                 return url.Uri;
             }
             return url.Uri;
@@ -282,21 +305,22 @@ namespace ExchangeSharp
             {
                 return null;
             }
-            decimal amount = result.Value<decimal>("Quantity");
-            decimal remaining = result.Value<decimal>("QuantityRemaining");
-            decimal amountFilled = amount - remaining;
-            return new ExchangeOrderResult
+            return ParseOrder(result);
+        }
+
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            string url = "/market/getopenorders" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
+            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            CheckError(obj);
+            JToken result = obj["result"];
+            if (result != null)
             {
-                Amount = amount,
-                AmountFilled = amountFilled,
-                AveragePrice = result.Value<decimal>("Price"),
-                Message = string.Empty,
-                OrderId = orderId,
-                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
-                OrderDate = result["Opened"].Value<DateTime>(),
-                Symbol = result["Exchange"].Value<string>(),
-                IsBuy = result["OrderType"].Value<string>().IndexOf("BUY", StringComparison.OrdinalIgnoreCase) >= 0
-            };
+                foreach (JToken token in result.Children())
+                {
+                    yield return ParseOrder(token);
+                }
+            }
         }
 
         public override void CancelOrder(string orderId)
