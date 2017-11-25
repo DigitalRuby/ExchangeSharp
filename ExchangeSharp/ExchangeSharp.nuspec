@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>DigitalRuby.ExchangeSharp</id>
-    <version>0.1.0.0</version>
+    <version>0.1.1.0</version>
     <title>Exchange Sharp - C# API for cryptocurrency, stock and other exchanges</title>
     <authors>jjxtra</authors>
     <owners>jjxtra</owners>
