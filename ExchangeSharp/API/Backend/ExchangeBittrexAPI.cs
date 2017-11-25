@@ -63,12 +63,21 @@ namespace ExchangeSharp
             return order;
         }
 
+        private Dictionary<string, object> GetNoncePayload()
+        {
+            return new Dictionary<string, object>
+            {
+                { "nonce", DateTime.UtcNow.Ticks }
+            };
+        }
+
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
-            if (payload != null && PrivateApiKey != null && PublicApiKey != null)
+            if (payload != null && payload.ContainsKey("nonce") && PrivateApiKey != null && PublicApiKey != null)
             {
+                // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
-                url.Query = "apikey=" + CryptoUtility.SecureStringToString(PublicApiKey) + "&nonce=" + DateTime.UtcNow.Ticks + (query.Count == 0 ? string.Empty : "&" + query.ToString());
+                url.Query = "apikey=" + CryptoUtility.SecureStringToString(PublicApiKey) + "&nonce=" + payload["nonce"].ToString() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
                 return url.Uri;
             }
             return url.Uri;
@@ -268,7 +277,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
-            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             CheckError(obj);
             if (obj["result"] is JArray array)
             {
@@ -284,7 +293,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" + amount + "&rate=" + price;
-            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             CheckError(obj);
             string orderId = obj["result"]["uuid"].Value<string>();
             return GetOrderDetails(orderId);
@@ -298,7 +307,7 @@ namespace ExchangeSharp
             }
 
             string url = "/account/getorder?uuid=" + orderId;
-            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             CheckError(obj);
             JToken result = obj["result"];
             if (result == null)
@@ -311,7 +320,7 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             string url = "/market/getopenorders" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
-            JObject obj = MakeJsonRequest<JObject>(url, null, new Dictionary<string, object>());
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             CheckError(obj);
             JToken result = obj["result"];
             if (result != null)
@@ -325,7 +334,7 @@ namespace ExchangeSharp
 
         public override void CancelOrder(string orderId)
         {
-            JObject obj = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId);
+            JObject obj = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
             CheckError(obj);
         }
     }

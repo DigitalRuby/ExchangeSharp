@@ -48,18 +48,25 @@ namespace ExchangeSharp
 
         private void CheckError(JToken result)
         {
-            if (result["result"] != null && result["result"].Value<string>() == "error")
+            if (result != null && !(result is JArray) && result["result"] != null && result["result"].Value<string>() == "error")
             {
                 throw new ExchangeAPIException(result["reason"].Value<string>());
             }
         }
 
+        private Dictionary<string, object> GetNoncePayload()
+        {
+            return new Dictionary<string, object>
+            {
+                { "nonce", DateTime.UtcNow.Ticks }
+            };
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (payload != null && PrivateApiKey != null && PublicApiKey != null)
+            if (payload != null && payload.ContainsKey("nonce") && PrivateApiKey != null && PublicApiKey != null)
             {
                 payload.Add("request", request.RequestUri.AbsolutePath);
-                payload.Add("nonce", DateTime.UtcNow.Ticks);
                 string json = JsonConvert.SerializeObject(payload);
                 string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
                 string hexSha384 = CryptoUtility.SHA384Sign(json64, CryptoUtility.SecureStringToString(PrivateApiKey));
@@ -176,7 +183,7 @@ namespace ExchangeSharp
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", payload: new Dictionary<string, object>());
+            JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", null, GetNoncePayload());
             CheckError(obj);
             var q = from JToken token in obj
                     select new { Currency = token["currency"].Value<string>(), Available = token["available"].Value<decimal>() };
@@ -192,6 +199,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
+                { "nonce", DateTime.UtcNow.Ticks },
                 { "client_order_id", "GeminiAPI_" + DateTime.UtcNow.ToString("s") },
                 { "symbol", symbol },
                 { "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
@@ -219,7 +227,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            JObject result = MakeJsonRequest<JObject>("/order/status", null, new Dictionary<string, object> { { "order_id", orderId } });
+            JObject result = MakeJsonRequest<JObject>("/order/status", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks }, { "order_id", orderId } });
             CheckError(result);
             decimal amount = result["original_amount"].Value<decimal>();
             decimal amountFilled = result["executed_amount"].Value<decimal>();
@@ -239,7 +247,7 @@ namespace ExchangeSharp
 
         public override void CancelOrder(string orderId)
         {
-            JObject result = MakeJsonRequest<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "order_id", orderId } });
+            JObject result = MakeJsonRequest<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", DateTime.UtcNow.Ticks }, { "order_id", orderId } });
             CheckError(result);
         }
     }
