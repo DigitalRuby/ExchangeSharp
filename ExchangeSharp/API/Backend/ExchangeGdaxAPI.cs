@@ -98,7 +98,7 @@ namespace ExchangeSharp
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // all public GDAX api are GET requests
-            if (payload == null || payload.Count == 0 || PublicApiKey == null || PrivateApiKey == null || Passphrase == null || !payload.ContainsKey("CB-ACCESS-TIMESTAMP"))
+            if (payload == null || payload.Count == 0 || PublicApiKey == null || PrivateApiKey == null || Passphrase == null || !payload.ContainsKey("nonce"))
             {
                 return;
             }
