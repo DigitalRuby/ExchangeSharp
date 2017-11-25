@@ -41,7 +41,7 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (payload == null || !payload.ContainsKey("nonce"))
+            if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
                 PostPayloadToRequest(request, payload);
             }

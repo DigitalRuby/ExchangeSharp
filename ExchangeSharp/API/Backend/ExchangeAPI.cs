@@ -88,6 +88,12 @@ namespace ExchangeSharp
         public System.Security.SecureString PrivateApiKey { get; set; }
 
         /// <summary>
+        /// Pass phrase API key  - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
+        /// Most exchanges do not require this, but GDAX is an example of one that does
+        /// </summary>
+        public System.Security.SecureString Passphrase { get; set; }
+
+        /// <summary>
         /// Rate limiter - set this to a new limit if you are seeing your ip get blocked by the exchange
         /// </summary>
         public RateGate RateLimit { get; set; } = new RateGate(5, TimeSpan.FromSeconds(15.0d));
@@ -105,7 +111,7 @@ namespace ExchangeSharp
         /// <summary>
         /// User agent for requests
         /// </summary>
-        public string RequestUserAgent { get; set; } = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
+        public string RequestUserAgent { get; set; } = "ExchangeSharp (https://github.com/jjxtra/ExchangeSharp)";
 
         /// <summary>
         /// Timeout for requests
@@ -159,12 +165,21 @@ namespace ExchangeSharp
                 form.Length--; // trim ampersand
                 return form.ToString();
             }
-            return null;
+            return string.Empty;
+        }
+
+        protected string GetJsonForPayload(Dictionary<string, object> payload)
+        {
+            if (payload != null && payload.Count != 0)
+            {
+                return JsonConvert.SerializeObject(payload);
+            }
+            return string.Empty;
         }
 
         protected void PostFormToRequest(HttpWebRequest request, string form)
         {
-            if (form != null)
+            if (!string.IsNullOrEmpty(form))
             {
                 using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), Encoding.ASCII))
                 {
@@ -173,9 +188,11 @@ namespace ExchangeSharp
             }
         }
 
-        protected void PostPayloadToRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected string PostPayloadToRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            PostFormToRequest(request, GetFormForPayload(payload));
+            string form = GetFormForPayload(payload);
+            PostFormToRequest(request, form);
+            return form;
         }
 
         /// <summary>
@@ -184,8 +201,9 @@ namespace ExchangeSharp
         /// <param name="url">Url</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
         /// <param name="payload">Payload, can be null and should at least be an empty dictionary for private API end points</param>
+        /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response in JSON</returns>
-        public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null)
+        public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
             RateLimit.WaitToProceed();
             if (string.IsNullOrWhiteSpace(url))
@@ -200,7 +218,7 @@ namespace ExchangeSharp
             string fullUrl = (baseUrl ?? BaseUrl) + url;
             Uri uri = ProcessRequestUrl(new UriBuilder(fullUrl), payload);
             HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
-            request.Method = RequestMethod;
+            request.Method = method ?? RequestMethod;
             request.ContentType = RequestContentType;
             request.UserAgent = RequestUserAgent;
             request.CachePolicy = CachePolicy;
@@ -245,10 +263,11 @@ namespace ExchangeSharp
         /// <param name="url">Url</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
         /// <param name="payload">Payload, can be null and should at least be an empty dictionary for private API end points</param>
+        /// <param name="requestMethod">Request method or null for default</param>
         /// <returns></returns>
-        public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null)
+        public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
-            string response = MakeRequest(url, baseUrl, payload);
+            string response = MakeRequest(url, baseUrl, payload, requestMethod);
             return JsonConvert.DeserializeObject<T>(response);
         }
 
@@ -278,6 +297,21 @@ namespace ExchangeSharp
                 { ExchangeNameBittrex, new ExchangeBittrexAPI() },
                 { ExchangeNamePoloniex, new ExchangePoloniexAPI() }
             };
+        }
+
+        /// <summary>
+        /// Load API keys from an encrypted file - keys will stay encrypted in memory
+        /// </summary>
+        /// <param name="encryptedFile">Encrypted file to load keys from</param>
+        public virtual void LoadAPIKeys(string encryptedFile)
+        {
+            SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
+            if (strings.Length != 2)
+            {
+                throw new InvalidOperationException("Encrypted keys file should have a public and private key");
+            }
+            PublicApiKey = strings[0];
+            PrivateApiKey = strings[1];
         }
 
         /// <summary>

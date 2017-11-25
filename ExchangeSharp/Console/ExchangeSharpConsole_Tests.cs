@@ -71,7 +71,7 @@ namespace ExchangeSharp
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Request failed, api: {0}, error: {1}", api, ex);
+                    Console.WriteLine("Request failed, api: {0}, error: {1}", api, ex.Message);
                 }
             }
         }

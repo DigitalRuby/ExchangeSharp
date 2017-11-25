@@ -48,7 +48,7 @@ namespace ExchangeSharp
             Console.WriteLine();
             Console.WriteLine("keys - encrypted API key file utility - this file is only valid for the current user and only on the computer it is created on.");
             Console.WriteLine(" Create a key file:");
-            Console.WriteLine("  keys mode=create path=pathToKeyFile.bin keylist=publickey1,privatekey1,publickey2,privatekey2");
+            Console.WriteLine("  keys mode=create path=pathToKeyFile.bin keylist=key1,key2,key3,key4,etc.");
             Console.WriteLine("  The keys parameter is comma separated and may contain any number of keys in any order.");
             Console.WriteLine(" Display a key file:");
             Console.WriteLine("  keys mode=display path=pathToKeyFile.bin");               

@@ -32,7 +32,7 @@ namespace ExchangeSharp
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
         public override string Name => ExchangeAPI.ExchangeNameBittrex;
 
-        private void CheckError(JObject obj)
+        private void CheckError(JToken obj)
         {
             if (obj["success"] == null || !obj["success"].Value<bool>())
             {
@@ -65,7 +65,7 @@ namespace ExchangeSharp
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
-            if (payload != null)
+            if (payload != null && PrivateApiKey != null && PublicApiKey != null)
             {
                 var query = HttpUtility.ParseQueryString(url.Query);
                 url.Query = "apikey=" + CryptoUtility.SecureStringToString(PublicApiKey) + "&nonce=" + DateTime.UtcNow.Ticks + (query.Count == 0 ? string.Empty : "&" + query.ToString());
@@ -76,7 +76,7 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (payload != null)
+            if (payload != null && PrivateApiKey != null && PublicApiKey != null)
             {
                 string url = request.RequestUri.ToString();
                 string sign = CryptoUtility.SHA512Sign(url, CryptoUtility.SecureStringToString(PrivateApiKey));

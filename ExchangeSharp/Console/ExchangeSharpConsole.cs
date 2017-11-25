@@ -45,15 +45,10 @@ namespace ExchangeSharp
             Dictionary<string, string> dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (string a in args)
             {
-                string[] pieces = a.Split('=');
-                if (pieces.Length == 1)
-                {
-                    dict[pieces[0].ToLowerInvariant()] = string.Empty;
-                }
-                else
-                {
-                    dict[pieces[0].ToLowerInvariant()] = pieces[1];
-                }
+                int idx = a.IndexOf('=');
+                string key = (idx < 0 ? a.Trim('-') : a.Substring(0, idx)).ToLowerInvariant();
+                string value = (idx < 0 ? string.Empty : a.Substring(idx + 1));
+                dict[key] = value;
             }
             return dict;
         }

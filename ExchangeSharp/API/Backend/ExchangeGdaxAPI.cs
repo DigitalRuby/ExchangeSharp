@@ -39,12 +39,123 @@ namespace ExchangeSharp
         /// The response will contain a CB-BEFORE header which will return the cursor id to use in your next request for the page before the current one. The page before is a newer page and not one that happened before in chronological time.
         /// </summary>
         private string cursorBefore;
-        
+
+        private ExchangeOrderResult ParseOrder(JToken result)
+        {
+            ExchangeOrderResult order = new ExchangeOrderResult
+            {
+                Amount = (decimal)result["size"],
+                AmountFilled = (decimal)result["filled_size"],
+                AveragePrice = (decimal)result["executed_value"],
+                IsBuy = ((string)result["side"]) == "buy",
+                OrderDate = (DateTime)result["created_at"],
+                Symbol = (string)result["product_id"],
+                OrderId = (string)result["id"]
+            };
+            switch ((string)result["status"])
+            {
+                case "pending":
+                    order.Result = ExchangeAPIOrderResult.Pending;
+                    break;
+                case "active":
+                case "open":
+                    if (order.Amount == order.AmountFilled)
+                    {
+                        order.Result = ExchangeAPIOrderResult.Filled;
+                    }
+                    else if (order.AmountFilled > 0.0m)
+                    {
+                        order.Result = ExchangeAPIOrderResult.FilledPartially;
+                    }
+                    else
+                    {
+                        order.Result = ExchangeAPIOrderResult.Pending;
+                    }
+                    break;
+                case "done":
+                case "settled":
+                    order.Result = ExchangeAPIOrderResult.Filled;
+                    break;
+                case "cancelled":
+                case "canceled":
+                    order.Result = ExchangeAPIOrderResult.Canceled;
+                    break;
+                default:
+                    order.Result = ExchangeAPIOrderResult.Unknown;
+                    break;
+            }
+            return order;
+        }
+
+        private Dictionary<string, object> GetTimestampPayload()
+        {
+            return new Dictionary<string, object>
+            {
+                { "CB-ACCESS-TIMESTAMP", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) }
+            };
+        }
+
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            // all public GDAX api are GET requests
+            if (payload == null || payload.Count == 0 || PublicApiKey == null || PrivateApiKey == null || Passphrase == null || !payload.ContainsKey("CB-ACCESS-TIMESTAMP"))
+            {
+                return;
+            }
+            string timestamp = ((double)payload["CB-ACCESS-TIMESTAMP"]).ToString(CultureInfo.InvariantCulture);
+            payload.Remove("CB-ACCESS-TIMESTAMP");
+            string form = GetJsonForPayload(payload);
+            byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);
+            string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
+            string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
+            secret = null;
+            toHash = null;
+            request.Headers["CB-ACCESS-KEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
+            request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
+            request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
+            request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
+            PostFormToRequest(request, form);
+        }
+
         protected override void ProcessResponse(HttpWebResponse response)
         {
             base.ProcessResponse(response);
             cursorAfter = response.Headers["cb-after"];
             cursorBefore = response.Headers["cb-before"];
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public ExchangeGdaxAPI()
+        {
+            RequestContentType = "application/json";
+        }
+
+        /// <summary>
+        /// Normalize GDAX symbol / product id
+        /// </summary>
+        /// <param name="symbol">Symbol / product id</param>
+        /// <returns>Normalized symbol / product id</returns>
+        public override string NormalizeSymbol(string symbol)
+        {
+            return symbol?.Replace('_', '-').ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// Load API keys from an encrypted file - keys will stay encrypted in memory
+        /// </summary>
+        /// <param name="encryptedFile">Encrypted file to load keys from</param>
+        public override void LoadAPIKeys(string encryptedFile)
+        {
+            SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
+            if (strings.Length != 3)
+            {
+                throw new InvalidOperationException("Encrypted keys file should have a public and private key and pass phrase");
+            }
+            PublicApiKey = strings[0];
+            PrivateApiKey = strings[1];
+            Passphrase = strings[2];
         }
 
         public override IReadOnlyCollection<string> GetSymbols()
@@ -152,6 +263,81 @@ namespace ExchangeSharp
                 orders.Bids.Add(new ExchangeOrderPrice { Amount = (decimal)bid[1], Price = (decimal)bid[0] });
             }
             return orders;
+        }
+
+        /// <summary>
+        /// Get amounts available to trade, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Symbol / amount dictionary</returns>
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        {
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
+            foreach (JToken token in array)
+            {
+                amounts[(string)token["currency"]] = (decimal)token["available"];
+            }
+            return amounts;
+        }
+
+        /// <summary>
+        /// Place a limit order
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="amount">Amount</param>
+        /// <param name="price">Price</param>
+        /// <param name="buy">True to buy, false to sell</param>
+        /// <returns>Result</returns>
+        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        {
+            symbol = NormalizeSymbol(symbol);
+            Dictionary<string, object> payload = new Dictionary<string, object>
+            {
+                { "CB-ACCESS-TIMESTAMP", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) },
+                { "type", "limit" },
+                { "side", (buy ? "buy" : "sell") },
+                { "product_id", symbol },
+                { "price", price.ToString(CultureInfo.InvariantCulture) },
+                { "size", amount.ToString(CultureInfo.InvariantCulture) },
+                { "time_in_force", "GTC" } // good til cancel
+            };
+            JObject result = MakeJsonRequest<JObject>("/orders", null, payload, "POST");
+            return ParseOrder(result);
+        }
+
+        /// <summary>
+        /// Get order details
+        /// </summary>
+        /// <param name="orderId">Order id to get details for</param>
+        /// <returns>Order details</returns>
+        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        {
+            JObject obj = MakeJsonRequest<JObject>("/orders/" + orderId, null, GetTimestampPayload(), "GET");
+            return ParseOrder(obj);
+        }
+
+        /// <summary>
+        /// Get the details of all open orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get open orders for or null for all</param>
+        /// <returns>All open order details</returns>
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            symbol = NormalizeSymbol(symbol);
+            JArray array = MakeJsonRequest<JArray>("orders?type=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
+            foreach (JToken token in array)
+            {
+                yield return ParseOrder(token);
+            }
+        }
+
+        /// <summary>
+        /// Cancel an order, an exception is thrown if error
+        /// </summary>
+        /// <param name="orderId">Order id of the order to cancel</param>
+        public override void CancelOrder(string orderId)
+        {
+            MakeJsonRequest<JArray>("orders/" + orderId, null, GetTimestampPayload(), "DELETE");
         }
     }
 }

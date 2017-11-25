@@ -29,7 +29,7 @@ namespace ExchangeSharp
         Unknown,
 
         /// <summary>
-        /// Order filled immediately
+        /// Order has been filled completely
         /// </summary>
         Filled,
 
@@ -39,7 +39,7 @@ namespace ExchangeSharp
         FilledPartially,
 
         /// <summary>
-        /// Order is pending
+        /// Order is pending or open but no amount has been filled yet
         /// </summary>
         Pending,
 
