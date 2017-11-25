@@ -198,7 +198,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Make a request to a path on the API
         /// </summary>
-        /// <param name="url">Url</param>
+        /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
         /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
         /// The encoding of payload is exchange dependant but is typically json.</param>
@@ -261,7 +261,7 @@ namespace ExchangeSharp
         /// Make a JSON request to an API end point
         /// </summary>
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
-        /// <param name="url">Url</param>
+        /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
         /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
         /// <param name="requestMethod">Request method or null for default</param>
