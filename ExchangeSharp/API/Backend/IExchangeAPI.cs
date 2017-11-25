@@ -50,6 +50,28 @@ namespace ExchangeSharp
         string NormalizeSymbol(string symbol);
 
         /// <summary>
+        /// Make a raw request to a path on the API
+        /// </summary>
+        /// <param name="url">Path and query</param>
+        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
+        /// The encoding of payload is exchange dependant but is typically json.</param>
+        /// <param name="method">Request method or null for default</param>
+        /// <returns>Raw response</returns>
+        string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null);
+
+        /// <summary>
+        /// Make a JSON request to an API end point
+        /// </summary>
+        /// <typeparam name="T">Type of object to parse JSON as</typeparam>
+        /// <param name="url">Path and query</param>
+        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
+        /// <param name="requestMethod">Request method or null for default</param>
+        /// <returns>Result decoded from JSON response</returns>
+        T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
+
+        /// <summary>
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>

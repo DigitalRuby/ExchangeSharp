@@ -91,7 +91,7 @@ namespace ExchangeSharp
         {
             return new Dictionary<string, object>
             {
-                { "CB-ACCESS-TIMESTAMP", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) }
+                { "nonce", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) }
             };
         }
 
@@ -102,8 +102,8 @@ namespace ExchangeSharp
             {
                 return;
             }
-            string timestamp = ((double)payload["CB-ACCESS-TIMESTAMP"]).ToString(CultureInfo.InvariantCulture);
-            payload.Remove("CB-ACCESS-TIMESTAMP");
+            string timestamp = ((double)payload["nonce"]).ToString(CultureInfo.InvariantCulture);
+            payload.Remove("nonce");
             string form = GetJsonForPayload(payload);
             byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);
             string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
@@ -293,7 +293,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
-                { "CB-ACCESS-TIMESTAMP", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) },
+                { "nonce", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) },
                 { "type", "limit" },
                 { "side", (buy ? "buy" : "sell") },
                 { "product_id", symbol },

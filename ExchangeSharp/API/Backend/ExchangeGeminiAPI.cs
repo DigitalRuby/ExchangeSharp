@@ -67,6 +67,8 @@ namespace ExchangeSharp
                 request.Headers["X-GEMINI-SIGNATURE"] = hexSha384;
                 request.Headers["X-GEMINI-APIKEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
                 request.Method = "POST";
+
+                // gemini doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
             }
         }
 

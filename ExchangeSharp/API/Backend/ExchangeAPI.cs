@@ -200,9 +200,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Url</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null and should at least be an empty dictionary for private API end points</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
+        /// The encoding of payload is exchange dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
-        /// <returns>Raw response in JSON</returns>
+        /// <returns>Raw response</returns>
         public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
             RateLimit.WaitToProceed();
@@ -262,9 +263,9 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Url</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null and should at least be an empty dictionary for private API end points</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
         /// <param name="requestMethod">Request method or null for default</param>
-        /// <returns></returns>
+        /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
             string response = MakeRequest(url, baseUrl, payload, requestMethod);
