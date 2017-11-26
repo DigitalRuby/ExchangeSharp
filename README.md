@@ -41,6 +41,7 @@ If this project has helped you in any way, donations are always appreciated. I m
 
 Missing a key piece of functionality or private or public API for your favorite exchange? Tips and donations are a great motivator :)
 Donate via...
+
 Bitcoin: 15i8jW7jHJLJjAsCD2zYVaqyf3it4kusLr
 
 Ethereum: 0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc
