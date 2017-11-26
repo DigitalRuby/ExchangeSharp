@@ -50,4 +50,4 @@ Litecoin: LYrut92FnkBgd5Mmnt7RcyFpuTWn8vKFQq
 
 Thanks for visiting!
 
-- Jeff Johnson
+Jeff Johnson
