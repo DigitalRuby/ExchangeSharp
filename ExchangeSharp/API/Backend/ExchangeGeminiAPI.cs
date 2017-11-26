@@ -46,6 +46,24 @@ namespace ExchangeSharp
             return vol;
         }
 
+        private ExchangeOrderResult ParseOrder(JToken result)
+        {
+            decimal amount = result["original_amount"].Value<decimal>();
+            decimal amountFilled = result["executed_amount"].Value<decimal>();
+            return new ExchangeOrderResult
+            {
+                Amount = amount,
+                AmountFilled = amountFilled,
+                AveragePrice = result["price"].Value<decimal>(),
+                Message = string.Empty,
+                OrderId = result["id"].Value<string>(),
+                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["timestampms"].Value<double>()),
+                Symbol = result["symbol"].Value<string>(),
+                IsBuy = result["side"].Value<string>() == "buy"
+            };
+        }
+
         private void CheckError(JToken result)
         {
             if (result != null && !(result is JArray) && result["result"] != null && result["result"].Value<string>() == "error")
@@ -81,7 +99,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol.Replace("-", string.Empty).ToLowerInvariant();
+            return symbol?.Replace("-", string.Empty).ToLowerInvariant();
         }
 
         public override IReadOnlyCollection<string> GetSymbols()
@@ -200,24 +218,16 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce", DateTime.UtcNow.Ticks },
-                { "client_order_id", "GeminiAPI_" + DateTime.UtcNow.ToString("s") },
+                { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s") },
                 { "symbol", symbol },
                 { "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "price", price.ToString() },
                 { "side", (buy ? "buy" : "sell") },
                 { "type", "exchange limit" }
             };
-            JObject obj = MakeJsonRequest<JObject>("/order/new", null, payload);
+            JToken obj = MakeJsonRequest<JToken>("/order/new", null, payload);
             CheckError(obj);
-            decimal amountFilled = obj.Value<decimal>("executed_amount");
-            return new ExchangeOrderResult
-            {
-                AmountFilled = amountFilled,
-                AveragePrice = obj.Value<decimal>("avg_execution_price"),
-                Message = string.Empty,
-                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
-                OrderId = obj.Value<string>("order_id")
-            };
+            return ParseOrder(obj);
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
@@ -227,22 +237,31 @@ namespace ExchangeSharp
                 return null;
             }
 
-            JObject result = MakeJsonRequest<JObject>("/order/status", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks }, { "order_id", orderId } });
+            JToken result = MakeJsonRequest<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks }, { "order_id", orderId } });
             CheckError(result);
-            decimal amount = result["original_amount"].Value<decimal>();
-            decimal amountFilled = result["executed_amount"].Value<decimal>();
-            return new ExchangeOrderResult
+            return ParseOrder(result);
+        }
+
+        /// <summary>
+        /// Get the details of all open orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get open orders for or null for all</param>
+        /// <returns>All open order details</returns>
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            symbol = NormalizeSymbol(symbol);
+            JToken result = MakeJsonRequest<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks } });
+            CheckError(result);
+            if (result is JArray array)
             {
-                Amount = amount,
-                AmountFilled = amountFilled,
-                AveragePrice = result["price"].Value<decimal>(),
-                Message = string.Empty,
-                OrderId = orderId,
-                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
-                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["timestampms"].Value<double>()),
-                Symbol = result["symbol"].Value<string>(),
-                IsBuy = result["side"].Value<string>() == "buy"
-            };
+                foreach (JToken token in array)
+                {
+                    if (symbol == null || (string)token["symbol"] == symbol)
+                    {
+                        yield return ParseOrder(token);
+                    }
+                }
+            }
         }
 
         public override void CancelOrder(string orderId)

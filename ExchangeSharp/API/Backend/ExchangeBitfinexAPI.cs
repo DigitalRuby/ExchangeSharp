@@ -33,7 +33,63 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol.Replace("-", string.Empty).ToUpperInvariant();
+            return symbol?.Replace("-", string.Empty).ToUpperInvariant();
+        }
+
+        public string NormalizeSymbolV1(string symbol)
+        {
+            return symbol?.Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        private void CheckError(JToken result)
+        {
+            if (result != null && !(result is JArray) && result["result"] != null && result["result"].Value<string>() == "error")
+            {
+                throw new ExchangeAPIException(result["reason"].Value<string>());
+            }
+        }
+
+        private Dictionary<string, object> GetNoncePayload()
+        {
+            return new Dictionary<string, object>
+            {
+                { "nonce", DateTime.UtcNow.Ticks.ToString() }
+            };
+        }
+
+        private ExchangeOrderResult ParseOrder(JToken order)
+        {
+            decimal amount = order["original_amount"].Value<decimal>();
+            decimal amountFilled = order["executed_amount"].Value<decimal>();
+            return new ExchangeOrderResult
+            {
+                Amount = amount,
+                AmountFilled = amountFilled,
+                AveragePrice = order["price"].Value<decimal>(),
+                Message = string.Empty,
+                OrderId = order["id"].Value<string>(),
+                Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["timestamp"].Value<double>()),
+                Symbol = order["symbol"].Value<string>(),
+                IsBuy = order["side"].Value<string>() == "buy"
+            };
+        }
+
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            if (payload != null && payload.ContainsKey("nonce") && PrivateApiKey != null && PublicApiKey != null)
+            {
+                payload.Add("request", request.RequestUri.AbsolutePath);
+                string json = JsonConvert.SerializeObject(payload);
+                string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
+                string hexSha384 = CryptoUtility.SHA384Sign(json64, CryptoUtility.SecureStringToString(PrivateApiKey));
+                request.Headers["X-BFX-PAYLOAD"] = json64;
+                request.Headers["X-BFX-SIGNATURE"] = hexSha384;
+                request.Headers["X-BFX-APIKEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
+                request.Method = "POST";
+
+                // bitfinex doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
+            }
         }
 
         public override IReadOnlyCollection<string> GetSymbols()
@@ -112,6 +168,78 @@ namespace ExchangeSharp
                 }
             }
             return orders;
+        }
+
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        {
+            Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
+            CheckError(obj);
+            var q = from JToken token in obj
+                    where token["type"].Equals("trading")
+                    select new { Currency = token["currency"].Value<string>(), Available = token["available"].Value<decimal>() };
+            foreach (var kv in q)
+            {
+                lookup[kv.Currency] = kv.Available;
+            }
+            return lookup;
+        }
+
+        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        {
+            symbol = NormalizeSymbolV1(symbol);
+            Dictionary<string, object> payload = new Dictionary<string, object>
+            {
+                { "nonce", DateTime.UtcNow.Ticks.ToString() },
+                { "symbol", symbol },
+                { "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "price", price.ToString() },
+                { "side", (buy ? "buy" : "sell") },
+                { "type", "exchange limit" }
+            };
+            JToken obj = MakeJsonRequest<JToken>("/order/new", BaseUrlV1, payload);
+            CheckError(obj);
+            return ParseOrder(obj);
+        }
+
+        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        {
+            if (string.IsNullOrWhiteSpace(orderId))
+            {
+                return null;
+            }
+
+            JToken result = MakeJsonRequest<JToken>("/order/status", BaseUrlV1, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks.ToString() }, { "order_id", long.Parse(orderId) } });
+            CheckError(result);
+            return ParseOrder(result);
+        }
+
+        /// <summary>
+        /// Get the details of all open orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get open orders for or null for all</param>
+        /// <returns>All open order details</returns>
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            symbol = NormalizeSymbolV1(symbol);
+            JToken result = MakeJsonRequest<JToken>("/orders", BaseUrlV1, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks.ToString() } });
+            CheckError(result);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    if (symbol == null || (string)token["symbol"] == symbol)
+                    {
+                        yield return ParseOrder(token);
+                    }
+                }
+            }
+        }
+
+        public override void CancelOrder(string orderId)
+        {
+            JObject result = MakeJsonRequest<JObject>("/order/cancel", BaseUrlV1, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks.ToString() }, { "order_id", long.Parse(orderId) } });
+            CheckError(result);
         }
     }
 }

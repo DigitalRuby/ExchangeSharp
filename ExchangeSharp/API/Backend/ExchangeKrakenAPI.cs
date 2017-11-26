@@ -80,7 +80,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol.ToUpperInvariant();
+            return symbol?.ToUpperInvariant();
         }
 
         public override IReadOnlyCollection<string> GetSymbols()

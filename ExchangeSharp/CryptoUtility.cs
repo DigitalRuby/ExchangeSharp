@@ -24,6 +24,16 @@ namespace ExchangeSharp
 {
     public static class CryptoUtility
     {
+        public static string ToUnsecureString(this SecureString s)
+        {
+            return SecureStringToString(s);
+        }
+
+        public static SecureString ToSecureString(this string s)
+        {
+            return StringToSecureString(s);
+        }
+
         public static string SecureStringToString(SecureString s)
         {
             IntPtr valuePtr = IntPtr.Zero;

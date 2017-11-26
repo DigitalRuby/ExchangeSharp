@@ -46,7 +46,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol.ToUpperInvariant().Replace('-', '_');
+            return symbol?.ToUpperInvariant().Replace('-', '_');
         }
 
         public override IReadOnlyCollection<string> GetSymbols()
