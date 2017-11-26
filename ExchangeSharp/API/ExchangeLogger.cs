@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// Logs data from an exchange
+    /// </summary>
     public class ExchangeLogger : IDisposable
     {
         private readonly AutoResetEvent cancelEvent = new AutoResetEvent(false);

@@ -15,6 +15,9 @@ using System.Runtime.InteropServices;
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// A tight, lightweight trade object useful for iterating quickly in memory for trader testing
+    /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 0)]
     public struct Trade
     {

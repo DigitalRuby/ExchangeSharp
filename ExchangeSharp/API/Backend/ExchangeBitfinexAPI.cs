@@ -82,10 +82,10 @@ namespace ExchangeSharp
                 payload.Add("request", request.RequestUri.AbsolutePath);
                 string json = JsonConvert.SerializeObject(payload);
                 string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
-                string hexSha384 = CryptoUtility.SHA384Sign(json64, CryptoUtility.SecureStringToString(PrivateApiKey));
+                string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
                 request.Headers["X-BFX-PAYLOAD"] = json64;
                 request.Headers["X-BFX-SIGNATURE"] = hexSha384;
-                request.Headers["X-BFX-APIKEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
+                request.Headers["X-BFX-APIKEY"] = PublicApiKey.ToUnsecureString();
                 request.Method = "POST";
 
                 // bitfinex doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream

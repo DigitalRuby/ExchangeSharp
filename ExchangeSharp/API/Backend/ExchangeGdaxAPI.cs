@@ -110,7 +110,7 @@ namespace ExchangeSharp
             string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
             secret = null;
             toHash = null;
-            request.Headers["CB-ACCESS-KEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
+            request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
             request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
             request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
             request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);

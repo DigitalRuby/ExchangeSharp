@@ -27,11 +27,8 @@ namespace ExchangeSharp
             ExchangeTicker ticker = api.GetTicker("XXBTZUSD");
             Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
-            // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=key1,key2,key3,key4
-            // assuming key1 is the public key for Kraken and key2 is the private key for Kraken
-            System.Security.SecureString[] keys = CryptoUtility.LoadProtectedStringsFromFile("keys.bin");
-            api.PublicApiKey = keys[0];
-            api.PrivateApiKey = keys[1];
+            // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
+            api.LoadAPIKeys("keys.bin");
 
             /// place limit order for 0.01 bitcoin at ticker.Ask USD
             ExchangeOrderResult result = api.PlaceOrder("XXBTZUSD", 0.01m, ticker.Ask, true);

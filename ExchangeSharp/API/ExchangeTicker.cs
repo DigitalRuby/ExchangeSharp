@@ -21,6 +21,9 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// Details of the current price of an exchange asset
+    /// </summary>
     public class ExchangeTicker
     {
         /// <summary>
@@ -108,6 +111,10 @@ namespace ExchangeSharp
         /// </summary>
         public decimal QuantityAmount { get; set; }
 
+        /// <summary>
+        /// Write to a binary writer
+        /// </summary>
+        /// <param name="writer">Binary writer</param>
         public void ToBinary(BinaryWriter writer)
         {
             writer.Write(Timestamp.ToUniversalTime().Ticks);
@@ -117,6 +124,10 @@ namespace ExchangeSharp
             writer.Write((double)QuantityAmount);
         }
 
+        /// <summary>
+        /// Read from a binary reader
+        /// </summary>
+        /// <param name="reader">Binary reader</param>
         public void FromBinary(BinaryReader reader)
         {
             Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);

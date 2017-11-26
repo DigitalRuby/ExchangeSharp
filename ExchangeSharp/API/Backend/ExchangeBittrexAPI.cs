@@ -77,7 +77,7 @@ namespace ExchangeSharp
             {
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
-                url.Query = "apikey=" + CryptoUtility.SecureStringToString(PublicApiKey) + "&nonce=" + payload["nonce"].ToString() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
+                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToString() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
                 return url.Uri;
             }
             return url.Uri;
@@ -88,7 +88,7 @@ namespace ExchangeSharp
             if (payload != null && PrivateApiKey != null && PublicApiKey != null)
             {
                 string url = request.RequestUri.ToString();
-                string sign = CryptoUtility.SHA512Sign(url, CryptoUtility.SecureStringToString(PrivateApiKey));
+                string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey.ToUnsecureString());
                 request.Headers["apisign"] = sign;
             }
         }

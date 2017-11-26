@@ -19,6 +19,9 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// Interface for communicating with an exchange over the Internet
+    /// </summary>
     public interface IExchangeAPI
     {
         /// <summary>
@@ -41,6 +44,12 @@ namespace ExchangeSharp
         /// Most exchanges do not require this, but GDAX is an example of one that does
         /// </summary>
         System.Security.SecureString Passphrase { get; set; }
+
+        /// <summary>
+        /// Load API keys from an encrypted file - keys will stay encrypted in memory
+        /// </summary>
+        /// <param name="encryptedFile">Encrypted file to load keys from</param>
+        void LoadAPIKeys(string encryptedFile);
 
         /// <summary>
         /// Normalize a symbol for use on this exchange
