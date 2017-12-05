@@ -53,7 +53,7 @@ namespace ExchangeSharp
                     string symbol = GetSymbol(api);
 
                     IReadOnlyCollection<string> symbols = api.GetSymbols();
-                    Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol));
+                    Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
 
                     ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
                     Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
