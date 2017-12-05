@@ -45,7 +45,7 @@ namespace ExchangeSharp
         public decimal Amount { get; set; }
 
         /// <summary>
-        /// True if buy, false if sell
+        /// True if buy, false if sell - for some exchanges (Binance) the meaning can be different, i.e. is the buyer the maker
         /// </summary>
         public bool IsBuy { get; set; }
 

@@ -28,7 +28,7 @@ namespace ExchangeSharp
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
-        public override string Name => ExchangeAPI.ExchangeNameGDAX;
+        public override string Name => ExchangeName.GDAX;
 
         /// <summary>
         /// The response will also contain a CB-AFTER header which will return the cursor id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.

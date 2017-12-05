@@ -30,7 +30,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
-        public override string Name => ExchangeAPI.ExchangeNameBittrex;
+        public override string Name => ExchangeName.Bittrex;
 
         private void CheckError(JToken obj)
         {

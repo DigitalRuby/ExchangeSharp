@@ -39,6 +39,10 @@ namespace ExchangeSharp
             {
                 return api.NormalizeSymbol("BTC-LTC");
             }
+            else if (api is ExchangeBinanceAPI)
+            {
+                return api.NormalizeSymbol("ETH-BTC");
+            }
             return api.NormalizeSymbol("BTC-USD");
         }
 

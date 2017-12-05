@@ -29,7 +29,7 @@ namespace ExchangeSharp
     public class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
-        public override string Name => ExchangeAPI.ExchangeNamePoloniex;
+        public override string Name => ExchangeName.Poloniex;
 
         private void CheckError(JObject json)
         {

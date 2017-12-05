@@ -29,7 +29,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
-        public override string Name => ExchangeAPI.ExchangeNameBitfinex;
+        public override string Name => ExchangeName.Bitfinex;
 
         public override string NormalizeSymbol(string symbol)
         {

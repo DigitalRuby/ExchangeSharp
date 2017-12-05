@@ -29,7 +29,7 @@ namespace ExchangeSharp
     public class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
-        public override string Name => ExchangeAPI.ExchangeNameKraken;
+        public override string Name => ExchangeName.Kraken;
 
         private void CheckError(JObject json)
         {

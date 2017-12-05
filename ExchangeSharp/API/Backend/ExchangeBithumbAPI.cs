@@ -28,7 +28,7 @@ namespace ExchangeSharp
     public class ExchangeBithumbAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
-        public override string Name => ExchangeAPI.ExchangeNameBithumb;
+        public override string Name => ExchangeName.Bithumb;
 
         private static readonly char[] normalizeSeps = new char[] { '-', '_' };
 
@@ -72,7 +72,7 @@ namespace ExchangeSharp
         private JToken MakeRequestBithumb(ref string symbol, string subUrl)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject obj = MakeJsonRequest<JObject>(subUrl);
+            JObject obj = MakeJsonRequest<JObject>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
             CheckError(obj);
             return obj["data"];
         }
@@ -113,7 +113,7 @@ namespace ExchangeSharp
         {
             List<string> symbols = new List<string>();
             string symbol = "all";
-            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/" + symbol);
+            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
             foreach (JProperty token in data)
             {
                 if (token.Name != "date")
@@ -126,7 +126,7 @@ namespace ExchangeSharp
 
         public override ExchangeTicker GetTicker(string symbol)
         {
-            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/" + symbol);
+            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
             return ParseTicker(symbol, data, null);
         }
 
@@ -134,7 +134,7 @@ namespace ExchangeSharp
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/" + symbol);
+            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
             DateTime date = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)data["date"]);
             foreach (JProperty token in data)
             {
@@ -148,7 +148,7 @@ namespace ExchangeSharp
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
         {
-            JToken data = MakeRequestBithumb(ref symbol, "/public/orderbook/" + symbol);
+            JToken data = MakeRequestBithumb(ref symbol, "/public/orderbook/$SYMBOL$");
             return ParseOrderBook(data);
         }
 
@@ -156,7 +156,7 @@ namespace ExchangeSharp
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
-            JToken data = MakeRequestBithumb(ref symbol, "/public/orderbook/" + symbol);
+            JToken data = MakeRequestBithumb(ref symbol, "/public/orderbook/$SYMBOL$");
             foreach (JProperty book in data)
             {
                 if (book.Name != "timestamp" && book.Name != "payment_currency")
@@ -169,7 +169,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
-            JToken data = MakeRequestBithumb(ref symbol, "/public/recent_transactions/" + symbol);
+            JToken data = MakeRequestBithumb(ref symbol, "/public/recent_transactions/$SYMBOL$");
             foreach (JToken token in data)
             {
                 yield return new ExchangeTrade

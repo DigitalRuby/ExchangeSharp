@@ -43,41 +43,6 @@ namespace ExchangeSharp
     public abstract class ExchangeAPI : IExchangeAPI
     {
         /// <summary>
-        /// Bitfinex
-        /// </summary>
-        public const string ExchangeNameBitfinex = "Bitfinex";
-
-        /// <summary>
-        /// Bithumb
-        /// </summary>
-        public const string ExchangeNameBithumb = "Bithumb";
-
-        /// <summary>
-        /// Bittrex
-        /// </summary>
-        public const string ExchangeNameBittrex = "Bittrex";
-
-        /// <summary>
-        /// GDAX
-        /// </summary>
-        public const string ExchangeNameGDAX = "GDAX";
-
-        /// <summary>
-        /// Gemini
-        /// </summary>
-        public const string ExchangeNameGemini = "Gemini";
-
-        /// <summary>
-        /// Kraken
-        /// </summary>
-        public const string ExchangeNameKraken = "Kraken";
-
-        /// <summary>
-        /// Poloniex
-        /// </summary>
-        public const string ExchangeNamePoloniex = "Poloniex";
-
-        /// <summary>
         /// Base URL for the exchange API
         /// </summary>
         public abstract string BaseUrl { get; set; }
@@ -414,5 +379,51 @@ namespace ExchangeSharp
         /// Gets the name of the exchange
         /// </summary>
         public virtual string Name { get { return "NullExchange"; } }
+    }
+
+    /// <summary>
+    /// List of exchange names
+    /// </summary>
+    public static class ExchangeName
+    {
+        /// <summary>
+        /// Binance
+        /// </summary>
+        public const string Binance = "Binance";
+
+        /// <summary>
+        /// Bitfinex
+        /// </summary>
+        public const string Bitfinex = "Bitfinex";
+
+        /// <summary>
+        /// Bithumb
+        /// </summary>
+        public const string Bithumb = "Bithumb";
+
+        /// <summary>
+        /// Bittrex
+        /// </summary>
+        public const string Bittrex = "Bittrex";
+
+        /// <summary>
+        /// GDAX
+        /// </summary>
+        public const string GDAX = "GDAX";
+
+        /// <summary>
+        /// Gemini
+        /// </summary>
+        public const string Gemini = "Gemini";
+
+        /// <summary>
+        /// Kraken
+        /// </summary>
+        public const string Kraken = "Kraken";
+
+        /// <summary>
+        /// Poloniex
+        /// </summary>
+        public const string Poloniex = "Poloniex";
     }
 }

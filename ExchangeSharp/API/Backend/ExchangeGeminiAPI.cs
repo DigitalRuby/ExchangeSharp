@@ -28,7 +28,7 @@ namespace ExchangeSharp
     public class ExchangeGeminiAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
-        public override string Name => ExchangeAPI.ExchangeNameGemini;
+        public override string Name => ExchangeName.Gemini;
 
         private ExchangeVolume ParseVolume(JToken token)
         {
