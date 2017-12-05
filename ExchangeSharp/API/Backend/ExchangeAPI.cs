@@ -48,6 +48,11 @@ namespace ExchangeSharp
         public const string ExchangeNameBitfinex = "Bitfinex";
 
         /// <summary>
+        /// Bithumb
+        /// </summary>
+        public const string ExchangeNameBithumb = "Bithumb";
+
+        /// <summary>
         /// Bittrex
         /// </summary>
         public const string ExchangeNameBittrex = "Bittrex";
@@ -160,7 +165,7 @@ namespace ExchangeSharp
                 StringBuilder form = new StringBuilder();
                 foreach (KeyValuePair<string, object> keyValue in payload)
                 {
-                    form.AppendFormat("{0}={1}&", keyValue.Key, keyValue.Value);
+                    form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToString()));
                 }
                 form.Length--; // trim ampersand
                 return form.ToString();
@@ -289,15 +294,13 @@ namespace ExchangeSharp
         /// <returns>Dictionary of string exchange name and value exchange api</returns>
         public static Dictionary<string, IExchangeAPI> GetExchangeAPIDictionary()
         {
-            return new Dictionary<string, IExchangeAPI>
+            Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
+            foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI))))
             {
-                { ExchangeNameGemini, new ExchangeGeminiAPI() },
-                { ExchangeNameBitfinex, new ExchangeBitfinexAPI() },
-                { ExchangeNameGDAX, new ExchangeGdaxAPI() },
-                { ExchangeNameKraken, new ExchangeKrakenAPI() },
-                { ExchangeNameBittrex, new ExchangeBittrexAPI() },
-                { ExchangeNamePoloniex, new ExchangePoloniexAPI() }
-            };
+                ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI;
+                apis[api.Name] = api;
+            }
+            return apis;
         }
 
         /// <summary>

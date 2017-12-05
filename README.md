@@ -2,6 +2,7 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 
 The following exchanges are supported:
 - Bitfinex (public, basic private)
+- Bithumb (public)
 - Bittrex (public, basic private)
 - Gemini (public, basic private)
 - GDAX (public, basic private)
