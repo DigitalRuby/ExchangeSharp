@@ -94,11 +94,16 @@ namespace ExchangeSharp
 
         public override IReadOnlyCollection<string> GetSymbols()
         {
-            string[] symbols = MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
+            if (ReadCache("GetSymbols", out string[] symbols))
+            {
+                return symbols;
+            }
+            symbols = MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
             for (int i = 0; i < symbols.Length; i++)
             {
                 symbols[i] = NormalizeSymbol(symbols[i]);
             }
+            WriteCache("GetSymbols", TimeSpan.FromMinutes(1.0), symbols);
             return symbols;
         }
 
@@ -107,6 +112,43 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             decimal[] ticker = MakeJsonRequest<decimal[]>("/ticker/t" + symbol);
             return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
+        }
+
+        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        {
+            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            IReadOnlyCollection<string> symbols = GetSymbols();
+            if (symbols != null && symbols.Count != 0)
+            {
+                StringBuilder symbolString = new StringBuilder();
+                foreach (string symbol in symbols)
+                {
+                    symbolString.Append('t');
+                    symbolString.Append(symbol.ToUpperInvariant());
+                    symbolString.Append(',');
+                }
+                symbolString.Length--;
+                JToken token = MakeJsonRequest<JToken>("/tickers?symbols=" + symbolString);
+                DateTime now = DateTime.UtcNow;
+                foreach (JArray array in token)
+                {
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>((string)array[0], new ExchangeTicker
+                    {
+                        Ask = (decimal)array[3],
+                        Bid = (decimal)array[1],
+                        Last = (decimal)array[7],
+                        Volume = new ExchangeVolume
+                        {
+                            PriceAmount = (decimal)array[8],
+                            PriceSymbol = (string)array[0],
+                            QuantityAmount = (decimal)array[8],
+                            QuantitySymbol = (string)array[0],
+                            Timestamp = now
+                        }
+                    }));
+                }
+            }
+            return tickers;
         }
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)

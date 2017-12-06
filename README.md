@@ -39,10 +39,11 @@ Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status
 ```
 ---
 
-If this project has helped you in any way, donations are always appreciated. I maintain this code for free.
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jjxtra@gmail.com).
 
-Missing a key piece of functionality or private or public API for your favorite exchange? Tips and donations are a great motivator :)
-Donate via...
+If this project has helped you in any way, donations are always appreciated. I maintain this code for free and for the glory of the crypto revolution.
+
+Donation addresses...
 
 Bitcoin: 15i8jW7jHJLJjAsCD2zYVaqyf3it4kusLr
 
@@ -53,3 +54,5 @@ Litecoin: LYrut92FnkBgd5Mmnt7RcyFpuTWn8vKFQq
 Thanks for visiting!
 
 Jeff Johnson
+jjxtra@gmail.com
+http://www.digitalruby.com

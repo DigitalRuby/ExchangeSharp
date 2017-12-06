@@ -93,6 +93,8 @@ namespace ExchangeSharp
         /// </summary>
         public System.Net.Cache.RequestCachePolicy CachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
 
+        private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>();
+
         /// <summary>
         /// Process a request url
         /// </summary>
@@ -225,6 +227,33 @@ namespace ExchangeSharp
             }
             response.Dispose();
             return responseString;
+        }
+
+        protected bool ReadCache<T>(string key, out T value)
+        {
+            lock (cache)
+            {
+                if (cache.TryGetValue(key, out KeyValuePair<DateTime, object> cacheValue))
+                {
+                    // if not expired, return
+                    if (cacheValue.Key > DateTime.UtcNow)
+                    {
+                        value = (T)cacheValue.Value;
+                        return true;
+                    }
+                    cache.Remove(key);
+                }
+            }
+            value = default(T);
+            return false;
+        }
+
+        protected void WriteCache<T>(string key, TimeSpan expiration, T value)
+        {
+            lock (cache)
+            {
+                cache[key] = new KeyValuePair<DateTime, object>(DateTime.UtcNow + expiration, value);
+            }
         }
 
         /// <summary>

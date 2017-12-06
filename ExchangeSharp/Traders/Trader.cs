@@ -84,9 +84,8 @@ namespace ExchangeSharp
             if (ProductionMode)
             {
                 var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTrade();
-                decimal itemCount, cashFlow;
-                dict.TryGetValue("BTC", out itemCount);
-                dict.TryGetValue("USD", out cashFlow);
+                dict.TryGetValue("BTC", out decimal itemCount);
+                dict.TryGetValue("USD", out decimal cashFlow);
                 ItemCount = itemCount;
                 CashFlow = cashFlow;
             }

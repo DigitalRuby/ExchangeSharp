@@ -97,7 +97,7 @@ namespace ExchangeSharp
         public string PriceSymbol { get; set; }
 
         /// <summary>
-        /// Price
+        /// Price amount - will equal QuantityAmount if exchange doesn't break it out by price unit and quantity unit
         /// </summary>
         public decimal PriceAmount { get; set; }
 
