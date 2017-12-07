@@ -1,7 +1,7 @@
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
 
 The following exchanges are supported:
-- Binance (public)
+- Binance (public, basic private)
 - Bitfinex (public, basic private)
 - Bithumb (public)
 - Bittrex (public, basic private)
