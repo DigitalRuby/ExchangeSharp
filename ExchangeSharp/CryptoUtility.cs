@@ -48,6 +48,14 @@ namespace ExchangeSharp
             }
         }
 
+        public static byte[] SecureStringToBytes(SecureString s)
+        {
+            string unsecure = SecureStringToString(s);
+            byte[] bytes = Encoding.ASCII.GetBytes(unsecure);
+            unsecure = null;
+            return bytes;
+        }
+
         public static byte[] SecureStringToBytesBase64Decode(SecureString s)
         {
             string unsecure = SecureStringToString(s);
@@ -66,7 +74,7 @@ namespace ExchangeSharp
             return secure;
         }
 
-        public static DateTime UnixTimeStampToDateTimeSeconds(double unixTimeStampSeconds)
+        public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
         {
             // Unix timestamp is seconds past epoch
             System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
@@ -74,7 +82,7 @@ namespace ExchangeSharp
             return dtDateTime;
         }
 
-        public static DateTime UnixTimeStampToDateTimeMilliseconds(double unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
             // Unix timestamp is seconds past epoch
             System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
@@ -82,12 +90,12 @@ namespace ExchangeSharp
             return dtDateTime;
         }
 
-        public static double UnixTimestampFromDateTimeSeconds(DateTime dt)
+        public static double UnixTimestampFromDateTimeSeconds(this DateTime dt)
         {
             return (dt - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
         }
 
-        public static double UnixTimestampFromDateTimeMilliseconds(DateTime dt)
+        public static double UnixTimestampFromDateTimeMilliseconds(this DateTime dt)
         {
             return (dt - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
         }

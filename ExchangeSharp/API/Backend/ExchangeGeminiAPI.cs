@@ -82,7 +82,7 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (payload != null && payload.ContainsKey("nonce") && PrivateApiKey != null && PublicApiKey != null)
+            if (CanMakeAuthenticatedRequest(payload))
             {
                 payload.Add("request", request.RequestUri.AbsolutePath);
                 string json = JsonConvert.SerializeObject(payload);

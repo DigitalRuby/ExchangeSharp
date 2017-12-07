@@ -114,6 +114,16 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Whether the exchange API can make authenticated (private) API requests
+        /// </summary>
+        /// <param name="payload">Payload to potentially send</param>
+        /// <returns>True if an authenticated request can be made with the payload, false otherwise</returns>
+        protected bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+        {
+            return (PrivateApiKey != null && PublicApiKey != null && payload != null && payload.ContainsKey("nonce"));
+        }
+
+        /// <summary>
         /// Process a request url
         /// </summary>
         /// <param name="url">Url</param>
@@ -143,16 +153,22 @@ namespace ExchangeSharp
 
         }
 
-        protected string GetFormForPayload(Dictionary<string, object> payload)
+        protected string GetFormForPayload(Dictionary<string, object> payload, bool includeNonce = true)
         {
             if (payload != null && payload.Count != 0)
             {
                 StringBuilder form = new StringBuilder();
                 foreach (KeyValuePair<string, object> keyValue in payload)
                 {
-                    form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToString()));
+                    if (includeNonce || keyValue.Key != "nonce")
+                    {
+                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToString()));
+                    }
                 }
-                form.Length--; // trim ampersand
+                if (form.Length != 0)
+                {
+                    form.Length--; // trim ampersand
+                }
                 return form.ToString();
             }
             return string.Empty;
@@ -259,7 +275,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the exchange.</param>
         /// The encoding of payload is exchange dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
@@ -321,7 +337,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the exchange.</param>
         /// The encoding of payload is exchange dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
@@ -333,7 +349,7 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the exchange.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
@@ -348,7 +364,7 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the exchange.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         public Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null) => Task.Factory.StartNew(() => MakeJsonRequest<T>(url, baseUrl, payload, requestMethod));

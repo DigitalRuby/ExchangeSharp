@@ -97,12 +97,13 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            // all public GDAX api are GET requests
-            if (payload == null || payload.Count == 0 || PublicApiKey == null || PrivateApiKey == null || Passphrase == null || !payload.ContainsKey("nonce"))
+            if (!CanMakeAuthenticatedRequest(payload) || Passphrase == null)
             {
                 return;
             }
-            string timestamp = ((double)payload["nonce"]).ToString(CultureInfo.InvariantCulture);
+
+            // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
+            string timestamp = double.Parse(payload["nonce"].ToString()).ToString(CultureInfo.InvariantCulture);
             payload.Remove("nonce");
             string form = GetJsonForPayload(payload);
             byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);

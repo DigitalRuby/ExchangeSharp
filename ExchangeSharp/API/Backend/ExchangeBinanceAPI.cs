@@ -19,6 +19,7 @@ using System.Net;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -79,6 +80,91 @@ namespace ExchangeSharp
                 book.Asks.Add(new ExchangeOrderPrice { Price = (decimal)array[0], Amount = (decimal)array[1] });
             }
             return book;
+        }
+
+        private Dictionary<string, object> GetNoncePayload()
+        {
+            return new Dictionary<string, object>
+            {
+                { "nonce", ((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()).ToString() }
+            };
+        }
+
+        private ExchangeOrderResult ParseOrder(JToken token)
+        {
+            /*
+              "symbol": "IOTABTC",
+              "orderId": 1,
+              "clientOrderId": "abABsrARGZfl5wwdkYrsx1",
+              "transactTime": 1510629334993,
+              "price": "1.00000000",
+              "origQty": "1.00000000",
+              "executedQty": "0.00000000",
+              "status": "NEW",
+              "timeInForce": "GTC",
+              "type": "LIMIT",
+              "side": "SELL"
+            */
+            ExchangeOrderResult result = new ExchangeOrderResult
+            {
+                Amount = (decimal)token["origQty"],
+                AmountFilled = (decimal)token["executedQty"],
+                AveragePrice = (decimal)token["price"],
+                IsBuy = (string)token["side"] == "BUY",
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"] == null ? (long)token["transactTime"] : (long)token["time"]),
+                OrderId = (string)token["orderId"],
+                Symbol = (string)token["symbol"]
+            };
+            switch ((string)token["status"])
+            {
+                case "NEW":
+                    result.Result = ExchangeAPIOrderResult.Pending;
+                    break;
+
+                case "PARTIALLY_FILLED":
+                    result.Result = ExchangeAPIOrderResult.FilledPartially;
+                    break;
+
+                case "FILLED":
+                    result.Result = ExchangeAPIOrderResult.Filled;
+                    break;
+
+                case "CANCELED":
+                case "PENDING_CANCEL":
+                case "EXPIRED":
+                case "REJECTED":
+                    result.Result = ExchangeAPIOrderResult.Canceled;
+                    break;
+
+                default:
+                    result.Result = ExchangeAPIOrderResult.Error;
+                    break;
+            }
+            return result;
+        }
+
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            if (CanMakeAuthenticatedRequest(payload))
+            {
+                request.Headers["X-MBX-APIKEY"] = PublicApiKey.ToUnsecureString();
+            }
+        }
+
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        {
+            if (CanMakeAuthenticatedRequest(payload))
+            {
+                // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
+                var query = HttpUtility.ParseQueryString(url.Query);
+                string newQuery = "timestamp=" + payload["nonce"].ToString() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
+                    (payload.Count > 1 ? "&" + GetFormForPayload(payload, false) : string.Empty);
+                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.SecureStringToBytes(PrivateApiKey));
+                newQuery += "&signature=" + signature;
+                url.Query = newQuery;
+                return url.Uri;
+            }
+            return base.ProcessRequestUrl(url, payload);
         }
 
         public override IReadOnlyCollection<string> GetSymbols()
@@ -184,6 +270,83 @@ namespace ExchangeSharp
                 }
                 System.Threading.Thread.Sleep(1000);
             }
+        }
+
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        {
+            JToken token = MakeJsonRequest<JToken>("/account", BaseUrlPrivate, GetNoncePayload());
+            CheckError(token);
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (JToken balance in token["balances"])
+            {
+                balances[(string)balance["asset"]] = (decimal)balance["free"];
+            }
+            return balances;
+        }
+
+        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        {
+            symbol = NormalizeSymbol(symbol);
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["symbol"] = symbol;
+            payload["side"] = (buy ? "BUY" : "SELL");
+            payload["type"] = "LIMIT";
+            payload["quantity"] = amount;
+            payload["price"] = price;
+            payload["timeInForce"] = "GTC";
+            JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "POST");
+            CheckError(token);
+            return ParseOrder(token);
+        }
+
+        /// <summary>
+        /// Binance is really bad here, you have to pass the symbol and the orderId, WTF...
+        /// </summary>
+        /// <param name="orderId">Symbol,OrderId</param>
+        /// <returns>Order details</returns>
+        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            string[] pieces = orderId.Split(',');
+            if (pieces.Length != 2)
+            {
+                throw new InvalidOperationException("Binance single order details request requires the symbol and order id. The order id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+            }
+            payload["symbol"] = pieces[0];
+            payload["orderId"] = pieces[1];
+            JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload);
+            CheckError(token);
+            return ParseOrder(token);
+        }
+
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new InvalidOperationException("Binance order details request requires the symbol parameter. I am sorry for this, I cannot control their API implementation which is really bad here.");
+            }
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["symbol"] = NormalizeSymbol(symbol);
+            JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
+            CheckError(token);
+            foreach (JToken order in token)
+            {
+                yield return ParseOrder(order);
+            }
+        }
+
+        public override void CancelOrder(string orderId)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            string[] pieces = orderId.Split(',');
+            if (pieces.Length != 2)
+            {
+                throw new InvalidOperationException("Binance cancel order request requires the order id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+            }
+            payload["symbol"] = pieces[0];
+            payload["orderId"] = pieces[1];
+            JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
+            CheckError(token);
         }
     }
 }

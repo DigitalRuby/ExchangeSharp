@@ -73,7 +73,7 @@ namespace ExchangeSharp
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
-            if (payload != null && payload.ContainsKey("nonce") && PrivateApiKey != null && PublicApiKey != null)
+            if (CanMakeAuthenticatedRequest(payload))
             {
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
@@ -85,7 +85,7 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (payload != null && PrivateApiKey != null && PublicApiKey != null)
+            if (CanMakeAuthenticatedRequest(payload))
             {
                 string url = request.RequestUri.ToString();
                 string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey.ToUnsecureString());

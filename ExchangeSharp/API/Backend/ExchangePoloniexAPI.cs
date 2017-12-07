@@ -106,7 +106,7 @@ namespace ExchangeSharp
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (payload != null && payload.ContainsKey("nonce") && PrivateApiKey != null && PublicApiKey != null)
+            if (CanMakeAuthenticatedRequest(payload))
             {
                 string form = GetFormForPayload(payload);
                 request.Headers["Key"] = PublicApiKey.ToUnsecureString();
