@@ -50,11 +50,13 @@ If this project has helped you in any way, donations are always appreciated. I m
 
 Donation addresses...
 
-Bitcoin: 15i8jW7jHJLJjAsCD2zYVaqyf3it4kusLr
+Bitcoin: 1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG
 
-Ethereum: 0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc
+Ethereum: 0xC7374A3e745fDcB43A8c5F3C4a588285A38417b7
 
-Litecoin: LYrut92FnkBgd5Mmnt7RcyFpuTWn8vKFQq
+Litecoin: LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i
+
+Vertcoin: Vcu6Fqh8MGiLEyyifNSCgoCuQShTijzwFx
 
 Thanks for visiting!
 
