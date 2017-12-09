@@ -45,7 +45,7 @@ namespace ExchangeSharp
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
             {
-                throw new ExchangeAPIException(result["code"].Value<string>() + ": " + (result["msg"] != null ? result["msg"].Value<string>() : "Unknown Error"));
+                throw new APIException(result["code"].Value<string>() + ": " + (result["msg"] != null ? result["msg"].Value<string>() : "Unknown Error"));
             }
         }
 

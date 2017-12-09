@@ -35,7 +35,7 @@ namespace ExchangeSharp
         {
             if (json["error"] is JArray error && error.Count != 0)
             {
-                throw new ExchangeAPIException((string)error[0]);
+                throw new APIException((string)error[0]);
             }
         }
 
@@ -43,7 +43,7 @@ namespace ExchangeSharp
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
-                PostPayloadToRequest(request, payload);
+                WritePayloadToRequest(request, payload);
             }
             else
             {
@@ -68,7 +68,7 @@ namespace ExchangeSharp
                     }
                 }
                 request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
-                PostFormToRequest(request, form);
+                WriteFormToRequest(request, form);
             }
         }
 

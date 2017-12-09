@@ -65,7 +65,7 @@ namespace ExchangeSharp
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["status"].Value<string>() != "0000")
             {
-                throw new ExchangeAPIException(result["status"].Value<string>() + ": " + result["message"].Value<string>());
+                throw new APIException(result["status"].Value<string>() + ": " + result["message"].Value<string>());
             }
         }
         

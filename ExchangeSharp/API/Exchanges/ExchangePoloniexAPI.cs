@@ -35,12 +35,12 @@ namespace ExchangeSharp
         {
             if (json == null)
             {
-                throw new ExchangeAPIException("No response from server");
+                throw new APIException("No response from server");
             }
             JToken error = json["error"];
             if (error != null)
             {
-                throw new ExchangeAPIException((string)error);
+                throw new APIException((string)error);
             }
         }
 
@@ -56,7 +56,7 @@ namespace ExchangeSharp
         {
             if (result != null && !(result is JArray) && result["error"] != null)
             {
-                throw new ExchangeAPIException(result["error"].Value<string>());
+                throw new APIException(result["error"].Value<string>());
             }
         }
 
@@ -112,7 +112,7 @@ namespace ExchangeSharp
                 request.Headers["Key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["Sign"] = CryptoUtility.SHA512Sign(form, PrivateApiKey.ToUnsecureString());
                 request.Method = "POST";
-                PostFormToRequest(request, form);
+                WriteFormToRequest(request, form);
             }
         }
 
@@ -329,7 +329,7 @@ namespace ExchangeSharp
             CheckError(token);
             if (token["success"] == null || (int)token["success"] != 1)
             {
-                throw new ExchangeAPIException("Failed to cancel order, success was not 1");
+                throw new APIException("Failed to cancel order, success was not 1");
             }
         }
     }

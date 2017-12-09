@@ -95,9 +95,14 @@ namespace ExchangeSharp
             };
         }
 
+        protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+        {
+            return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (!CanMakeAuthenticatedRequest(payload) || Passphrase == null)
+            if (!CanMakeAuthenticatedRequest(payload))
             {
                 return;
             }
@@ -115,7 +120,7 @@ namespace ExchangeSharp
             request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
             request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
             request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
-            PostFormToRequest(request, form);
+            WriteFormToRequest(request, form);
         }
 
         protected override void ProcessResponse(HttpWebResponse response)

@@ -36,7 +36,7 @@ namespace ExchangeSharp
         {
             if (obj["success"] == null || !obj["success"].Value<bool>())
             {
-                throw new ExchangeAPIException(obj["message"].Value<string>());
+                throw new APIException(obj["message"].Value<string>());
             }
         }
 
