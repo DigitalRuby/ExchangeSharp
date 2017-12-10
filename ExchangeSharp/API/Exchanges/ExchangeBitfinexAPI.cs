@@ -155,7 +155,7 @@ namespace ExchangeSharp
                         {
                             PriceAmount = (decimal)array[8],
                             PriceSymbol = (string)array[0],
-                            QuantityAmount = (decimal)array[8],
+                            QuantityAmount = (decimal)array[8] * (decimal)array[7],
                             QuantitySymbol = (string)array[0],
                             Timestamp = now
                         }

@@ -22,6 +22,8 @@ namespace ExchangeSharp
     {
         public static int Main(string[] args)
         {
+            IExchangeAPI b = new ExchangeBitfinexAPI();
+            var t = b.GetTicker("LTCBTC");
             return ExchangeSharpConsole.ConsoleMain(args);
         }
     }
