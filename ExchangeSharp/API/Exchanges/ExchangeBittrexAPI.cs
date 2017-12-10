@@ -127,9 +127,9 @@ namespace ExchangeSharp
                     Last = ticker["Last"].Value<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = ticker["BaseVolume"].Value<decimal>(),
+                        PriceAmount = ticker["Volume"].Value<decimal>(),
                         PriceSymbol = symbol,
-                        QuantityAmount = ticker["Volume"].Value<decimal>(),
+                        QuantityAmount = ticker["BaseVolume"].Value<decimal>(),
                         QuantitySymbol = symbol,
                         Timestamp = ticker["TimeStamp"].Value<DateTime>()
                     }

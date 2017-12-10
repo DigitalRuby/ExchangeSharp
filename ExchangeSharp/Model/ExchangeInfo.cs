@@ -28,11 +28,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="api">Exchange API</param>
         /// <param name="name">Exchange name</param>
-        /// <param name="symbol">The symbol to trade by default</param>
-        public ExchangeInfo(IExchangeAPI api, string name, string symbol)
+        /// <param name="symbol">The symbol to trade by default, can be null</param>
+        public ExchangeInfo(IExchangeAPI api, string name, string symbol = null)
         {
             API = api;
-            Name = name;
             Symbols = api.GetSymbols();
             TradeInfo = new ExchangeTradeInfo(this, symbol);
         }
@@ -51,9 +50,9 @@ namespace ExchangeSharp
         public IExchangeAPI API { get; private set; }
 
         /// <summary>
-        /// Name of the exchange
+        /// User assigned identifier of the exchange, can be left at zero if not needed
         /// </summary>
-        public string Name { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Symbols of the exchange

@@ -36,6 +36,20 @@ namespace ExchangeSharp
             return symbol?.Replace("-", string.Empty).ToUpperInvariant();
         }
 
+        /// <summary>
+        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btcusd
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns>Normalized global symbol</returns>
+        public override string NormalizeSymbolGlobal(string symbol)
+        {
+            if (symbol != null && symbol.Length > 1 && symbol[0] == 't' && char.IsUpper(symbol[1]))
+            {
+                symbol = symbol.Substring(1);
+            }
+            return base.NormalizeSymbolGlobal(symbol);
+        }
+
         public string NormalizeSymbolV1(string symbol)
         {
             return symbol?.Replace("-", string.Empty).ToLowerInvariant();
@@ -111,7 +125,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             decimal[] ticker = MakeJsonRequest<decimal[]>("/ticker/t" + symbol);
-            return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
+            return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7] * ticker[6], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
         }
 
         public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()

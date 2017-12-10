@@ -18,6 +18,11 @@ namespace ExchangeSharp
     public class MarketSummary
     {
         /// <summary>
+        /// The name of the exchange for the market
+        /// </summary>
+        public string ExchangeName { get; set; }
+
+        /// <summary>
         /// The name of the market
         /// </summary>
         public string Name { get; set; }

@@ -59,6 +59,13 @@ namespace ExchangeSharp
         string NormalizeSymbol(string symbol);
 
         /// <summary>
+        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btcusd
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns>Normalized global symbol</returns>
+        string NormalizeSymbolGlobal(string symbol);
+
+        /// <summary>
         /// Make a raw request to a path on the API
         /// </summary>
         /// <param name="url">Path and query</param>

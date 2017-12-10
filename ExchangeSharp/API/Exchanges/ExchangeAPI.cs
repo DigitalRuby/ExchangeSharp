@@ -72,6 +72,13 @@ namespace ExchangeSharp
         public virtual string NormalizeSymbol(string symbol) { return symbol; }
 
         /// <summary>
+        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btcusd
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns>Normalized global symbol</returns>
+        public virtual string NormalizeSymbolGlobal(string symbol) { return symbol?.Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant(); }
+
+        /// <summary>
         /// Get exchange symbols
         /// </summary>
         /// <returns>Array of symbols</returns>

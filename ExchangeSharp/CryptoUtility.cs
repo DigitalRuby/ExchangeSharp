@@ -24,6 +24,11 @@ namespace ExchangeSharp
 {
     public static class CryptoUtility
     {
+        public static string NormalizeSymbol(string symbol)
+        {
+            return symbol?.Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
+        }
+
         public static string ToUnsecureString(this SecureString s)
         {
             return SecureStringToString(s);

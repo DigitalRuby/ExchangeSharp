@@ -12,9 +12,19 @@ namespace ExchangeSharp
     public class MarketCandle
     {
         /// <summary>
-        /// Close time
+        /// The name of the exchange for this candle
         /// </summary>
-        public DateTime CloseTime { get; set; }
+        public string ExchangeName { get; set; }
+
+        /// <summary>
+        /// The name of the market
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Timestamp, can be the opening or closing time of the candle
+        /// </summary>
+        public DateTime Timestamp { get; set; }
 
         /// <summary>
         /// The period in seconds
@@ -52,7 +62,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}, {7}", CloseTime, PeriodSeconds, OpenPrice, HighPrice, LowPrice, CloseTime, Volume);
+            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}", Timestamp, PeriodSeconds, OpenPrice, HighPrice, LowPrice, Volume);
         }
     }
 }

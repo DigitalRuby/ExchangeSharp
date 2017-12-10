@@ -180,13 +180,13 @@ namespace ExchangeSharp
             Dictionary<string, string> ticker = MakeJsonRequest<Dictionary<string, string>>("/products/" + symbol + "/ticker");
             decimal volume = decimal.Parse(ticker["volume"]);
             DateTime timestamp = DateTime.Parse(ticker["time"]);
-
+            decimal price = decimal.Parse(ticker["price"]);
             return new ExchangeTicker
             {
                 Ask = decimal.Parse(ticker["ask"]),
                 Bid = decimal.Parse(ticker["bid"]),
-                Last = decimal.Parse(ticker["price"]),
-                Volume = new ExchangeVolume { PriceAmount = volume, PriceSymbol = symbol, QuantityAmount = volume, QuantitySymbol = symbol, Timestamp = timestamp }
+                Last = price,
+                Volume = new ExchangeVolume { PriceAmount = volume, PriceSymbol = symbol, QuantityAmount = volume * price, QuantitySymbol = symbol, Timestamp = timestamp }
             };
         }
 

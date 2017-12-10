@@ -31,6 +31,68 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
         public override string Name => ExchangeName.Kraken;
 
+        private readonly Dictionary<string, string> symbolNormalizerGlobal = new Dictionary<string, string>
+        {
+            { "BCHEUR", "bcheur" },
+            { "BCHUSD", "bchusd" },
+            { "BCHXBT", "bchbtc" },
+            { "DASHEUR", "dasheur" },
+            { "DASHUSD", "dashusd" },
+            { "DASHXBT", "dashbtc" },
+            { "EOSETH", "eoseth" },
+            { "EOSXBT", "eosbtc" },
+            { "GNOETH", "gnoeth" },
+            { "GNOXBT", "gnobtc" },
+            { "USDTZUSD", "usdtusd" },
+            { "XETCXETH", "etceth" },
+            { "XETCXXBT", "etcbtc" },
+            { "XETCZEUR", "etceur" },
+            { "XETCZUSD", "etcusd" },
+            { "XETHXXBT", "ethbtc" },
+            { "XETHXXBT.d", "ethbtc" },
+            { "XETHZCAD", "ethcad" },
+            { "XETHZCAD.d", "ethcad" },
+            { "XETHZEUR", "etheur" },
+            { "XETHZEUR.d", "etheur" },
+            { "XETHZGBP", "ethgbp" },
+            { "XETHZGBP.d", "ethgbp" },
+            { "XETHZJPY", "ethjpy" },
+            { "XETHZJPY.d", "ethjpy" },
+            { "XETHZUSD", "ethusd" },
+            { "XETHZUSD.d", "ethusd" },
+            { "XICNXETH", "icneth" },
+            { "XICNXXBT", "icnbtc" },
+            { "XLTCXXBT", "ltcbtc" },
+            { "XLTCZEUR", "ltceur" },
+            { "XLTCZUSD", "ltcusd" },
+            { "XMLNXETH", "mlneth" },
+            { "XMLNXXBT", "mlnbtc" },
+            { "XREPXETH", "repeth" },
+            { "XREPXXBT", "repbtc" },
+            { "XREPZEUR", "repeur" },
+            { "XXBTZCAD", "btccad" },
+            { "XXBTZCAD.d", "btccad" },
+            { "XXBTZEUR", "btceur" },
+            { "XXBTZEUR.d", "btceur" },
+            { "XXBTZGBP", "btcgbp" },
+            { "XXBTZGBP.d", "btcgpb" },
+            { "XXBTZJPY", "btcjpy" },
+            { "XXBTZJPY.d", "btcjpy" },
+            { "XXBTZUSD", "btcusd" },
+            { "XXBTZUSD.d", "btcusd" },
+            { "XXDGXXBT", "dogebtc" },
+            { "XXLMXXBT", "xmlbtc" },
+            { "XXMRXXBT", "xmrbtc" },
+            { "XXMRZEUR", "xmreur" },
+            { "XXMRZUSD", "xmrusd" },
+            { "XXRPXXBT", "xrpbtc" },
+            { "XXRPZEUR", "xrpeur" },
+            { "XXRPZUSD", "xrpusd" },
+            { "XZECXXBT", "zecbtc" },
+            { "XZECZEUR", "zeceur" },
+            { "XZECZUSD", "zecusd" }
+        };
+
         private void CheckError(JObject json)
         {
             if (json["error"] is JArray error && error.Count != 0)
@@ -83,6 +145,15 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
+        public override string NormalizeSymbolGlobal(string symbol)
+        {
+            if (symbolNormalizerGlobal.TryGetValue(symbol, out string normalized))
+            {
+                symbol = normalized;
+            }
+            return base.NormalizeSymbolGlobal(symbol);
+        }
+
         public override IReadOnlyCollection<string> GetSymbols()
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
@@ -96,16 +167,17 @@ namespace ExchangeSharp
             JObject json = MakeJsonRequest<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
             CheckError(json);
             JToken ticker = (json["result"] as JToken)[symbol] as JToken;
+            decimal last = ticker["c"][0].Value<decimal>();
             return new ExchangeTicker
             {
                 Ask = ticker["a"][0].Value<decimal>(),
                 Bid = ticker["b"][0].Value<decimal>(),
-                Last = ticker["c"][0].Value<decimal>(),
+                Last = last,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = ticker["v"][0].Value<decimal>(),
+                    PriceAmount = ticker["v"][1].Value<decimal>(),
                     PriceSymbol = symbol,
-                    QuantityAmount = ticker["v"][0].Value<decimal>(),
+                    QuantityAmount = ticker["v"][1].Value<decimal>() * last,
                     QuantitySymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }

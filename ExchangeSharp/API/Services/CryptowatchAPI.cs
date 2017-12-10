@@ -65,8 +65,10 @@ namespace ExchangeSharp
                 {
                     yield return new MarketCandle
                     {
+                        ExchangeName = exchange,
+                        Name = marketName,
                         ClosePrice = (decimal)array[4],
-                        CloseTime = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)array[0]),
+                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)array[0]),
                         HighPrice = (decimal)array[2],
                         LowPrice = (decimal)array[3],
                         OpenPrice = (decimal)array[1],
@@ -86,9 +88,15 @@ namespace ExchangeSharp
             JToken token = MakeCryptowatchRequest("/markets/summaries");
             foreach (JProperty prop in token)
             {
+                string[] pieces = prop.Name.Split(':');
+                if (pieces.Length != 2)
+                {
+                    continue;
+                }
                 yield return new MarketSummary
                 {
-                    Name = prop.Name,
+                    ExchangeName = pieces[0],
+                    Name = pieces[1],
                     HighPrice = (decimal)prop.Value["price"]["high"],
                     LastPrice = (decimal)prop.Value["price"]["last"],
                     LowPrice = (decimal)prop.Value["price"]["low"],
