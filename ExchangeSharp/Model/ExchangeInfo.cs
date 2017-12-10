@@ -27,9 +27,8 @@ namespace ExchangeSharp
         /// Constructor
         /// </summary>
         /// <param name="api">Exchange API</param>
-        /// <param name="name">Exchange name</param>
         /// <param name="symbol">The symbol to trade by default, can be null</param>
-        public ExchangeInfo(IExchangeAPI api, string name, string symbol = null)
+        public ExchangeInfo(IExchangeAPI api, string symbol = null)
         {
             API = api;
             Symbols = api.GetSymbols();
