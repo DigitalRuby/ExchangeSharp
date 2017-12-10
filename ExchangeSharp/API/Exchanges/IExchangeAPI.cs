@@ -66,6 +66,11 @@ namespace ExchangeSharp
         string NormalizeSymbolGlobal(string symbol);
 
         /// <summary>
+        /// Request timeout
+        /// </summary>
+        TimeSpan RequestTimeout { get; set; }
+
+        /// <summary>
         /// Make a raw request to a path on the API
         /// </summary>
         /// <param name="url">Path and query</param>

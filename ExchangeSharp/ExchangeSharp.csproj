@@ -62,7 +62,7 @@
     <Compile Include="API\Exchanges\ExchangeGdaxAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeGeminiAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeKrakenAPI.cs" />
-    <Compile Include="API\RemoteService.cs" />
+    <Compile Include="API\BaseAPI.cs" />
     <Compile Include="API\Services\CryptowatchAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeLogger.cs" />
     <Compile Include="API\Exchanges\ExchangePoloniexAPI.cs" />
