@@ -73,7 +73,8 @@ namespace ExchangeSharp
                         LowPrice = (decimal)array[3],
                         OpenPrice = (decimal)array[1],
                         PeriodSeconds = int.Parse(prop.Name),
-                        Volume = (double)array[5]
+                        VolumePrice = (double)array[5],
+                        VolumeQuantity = (double)array[5] * (double)array[4]
                     };
                 }
             }

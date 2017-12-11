@@ -31,7 +31,7 @@ namespace ExchangeSharp
         public ExchangeInfo(IExchangeAPI api, string symbol = null)
         {
             API = api;
-            Symbols = api.GetSymbols();
+            Symbols = api.GetSymbols().ToArray();
             TradeInfo = new ExchangeTradeInfo(this, symbol);
         }
 

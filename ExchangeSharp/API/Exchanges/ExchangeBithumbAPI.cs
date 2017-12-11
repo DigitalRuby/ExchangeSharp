@@ -109,7 +109,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
             string symbol = "all";
@@ -130,7 +130,7 @@ namespace ExchangeSharp
             return ParseTicker(symbol, data, null);
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -152,7 +152,7 @@ namespace ExchangeSharp
             return ParseOrderBook(data);
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100)
+        public override IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100)
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();

@@ -232,6 +232,43 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Convert seconds to a period string, i.e. 5s, 1m, 2h, 3d, 1w, 1M, etc.
+        /// </summary>
+        /// <param name="seconds">Seconds</param>
+        /// <param name="spelledOut">Whether the string should be spelled out, i.e. hour, day, thirtyMin, etc.</param>
+        /// <returns>Period string</returns>
+        public static string SecondsToPeriodString(int seconds, bool spelledOut = false)
+        {
+            const int minuteThreshold = 60;
+            const int hourThreshold = 60 * 60;
+            const int dayThreshold = 60 * 60 * 24;
+            const int weekThreshold = dayThreshold * 7;
+            const int monthThreshold = dayThreshold * 30;
+            
+            if (seconds >= monthThreshold)
+            {
+                return seconds / monthThreshold + "M";
+            }
+            else if (seconds >= weekThreshold)
+            {
+                return seconds / weekThreshold + "w";
+            }
+            else if (seconds >= dayThreshold)
+            {
+                return seconds / dayThreshold + "d";
+            }
+            else if (seconds >= hourThreshold)
+            {
+                return seconds / hourThreshold + "h";
+            }
+            else if (seconds >= minuteThreshold)
+            {
+                return seconds / minuteThreshold + "m";
+            }
+            return seconds + "s";
+        }
+
+        /// <summary>
         /// Load protected data as strings from file. Call this function in your production environment, loading in a securely encrypted file which will stay encrypted in memory.
         /// </summary>
         /// <param name="path">Path to load from</param>

@@ -102,7 +102,7 @@ namespace ExchangeSharp
             return symbol?.Replace("-", string.Empty).ToLowerInvariant();
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             return MakeJsonRequest<string[]>("/symbols");
         }
@@ -218,7 +218,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce", DateTime.UtcNow.Ticks },
-                { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s") },
+                { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", symbol },
                 { "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "price", price.ToString() },

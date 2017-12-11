@@ -118,13 +118,13 @@ namespace ExchangeSharp
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
-        IReadOnlyCollection<string> GetSymbols();
+        IEnumerable<string> GetSymbols();
 
         /// <summary>
         /// ASYNC - Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
-        Task<IReadOnlyCollection<string>> GetSymbolsAsync();
+        Task<IEnumerable<string>> GetSymbolsAsync();
 
         /// <summary>
         /// Get latest ticker
@@ -144,13 +144,13 @@ namespace ExchangeSharp
         /// Get all tickers, not all exchanges support this
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers();
+        IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers();
 
         /// <summary>
         /// ASYNC - Get all tickers, not all exchanges support this
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        Task<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
+        Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
 
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -173,14 +173,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100);
+        IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100);
 
         /// <summary>
         /// ASYNC - Get exchange order book for all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        Task<IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100);
+        Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100);
 
         /// <summary>
         /// Get historical trades
@@ -211,6 +211,26 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol</param>
         /// <returns>Trades</returns>
         Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol);
+
+        /// <summary>
+        /// Get candles (open, high, low, close)
+        /// </summary>
+        /// <param name="symbol">Symbol to get candles for</param>
+        /// <param name="periodsSeconds">Period in seconds to get candles for</param>
+        /// <param name="startDate">Optional start date to get candles for</param>
+        /// <param name="endDate">Optional end date to get candles for</param>
+        /// <returns>Candles</returns>
+        IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>
+        /// ASYNC - Get candles (open, high, low, close)
+        /// </summary>
+        /// <param name="symbol">Symbol to get candles for</param>
+        /// <param name="periodsSeconds">Period in seconds to get candles for</param>
+        /// <param name="startDate">Optional start date to get candles for</param>
+        /// <param name="endDate">Optional end date to get candles for</param>
+        /// <returns>Candles</returns>
+        Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
         /// Get amounts available to trade

@@ -142,7 +142,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.ToUpperInvariant();
+            return symbol?.Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
         }
 
         public override string NormalizeSymbolGlobal(string symbol)
@@ -154,7 +154,7 @@ namespace ExchangeSharp
             return base.NormalizeSymbolGlobal(symbol);
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
             CheckError(json);
@@ -263,6 +263,43 @@ namespace ExchangeSharp
                     break;
                 }
                 System.Threading.Thread.Sleep(1000);
+            }
+        }
+
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            // https://api.kraken.com/0/public/OHLC
+            // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given id(optional.exclusive)
+            // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)
+            symbol = NormalizeSymbol(symbol);
+            startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
+            endDate = endDate ?? DateTime.UtcNow;
+            JObject json = MakeJsonRequest<JObject>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
+            CheckError(json);
+            if (json["result"].Children().Count() != 0)
+            {
+                JProperty prop = json["result"].Children().First() as JProperty;
+                foreach (JArray jsonCandle in prop.Value)
+                {
+                    MarketCandle candle = new MarketCandle
+                    {
+                        ClosePrice = (decimal)jsonCandle[4],
+                        ExchangeName = Name,
+                        HighPrice = (decimal)jsonCandle[2],
+                        LowPrice = (decimal)jsonCandle[3],
+                        Name = symbol,
+                        OpenPrice = (decimal)jsonCandle[1],
+                        PeriodSeconds = periodSeconds,
+                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)jsonCandle[0]),
+                        VolumePrice = (double)jsonCandle[6],
+                        VolumeQuantity = (double)jsonCandle[6] * (double)jsonCandle[4],
+                        WeightedAverage = (decimal)jsonCandle[5]
+                    };
+                    if (candle.Timestamp >= startDate.Value && candle.Timestamp <= endDate.Value)
+                    {
+                        yield return candle;
+                    }
+                }
             }
         }
 

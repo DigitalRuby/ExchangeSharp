@@ -106,7 +106,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             if (ReadCache("GetSymbols", out string[] symbols))
             {
@@ -128,10 +128,10 @@ namespace ExchangeSharp
             return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7] * ticker[6], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            IReadOnlyCollection<string> symbols = GetSymbols();
+            IReadOnlyCollection<string> symbols = GetSymbols().ToArray();
             if (symbols != null && symbols.Count != 0)
             {
                 StringBuilder symbolString = new StringBuilder();
@@ -163,6 +163,25 @@ namespace ExchangeSharp
                 }
             }
             return tickers;
+        }
+
+        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
+        {
+            symbol = NormalizeSymbol(symbol);
+            ExchangeOrderBook orders = new ExchangeOrderBook();
+            decimal[][] books = MakeJsonRequest<decimal[][]>("/book/t" + symbol + "/P0?len=" + maxCount);
+            foreach (decimal[] book in books)
+            {
+                if (book[2] > 0m)
+                {
+                    orders.Bids.Add(new ExchangeOrderPrice { Amount = book[2], Price = book[0] });
+                }
+                else
+                {
+                    orders.Asks.Add(new ExchangeOrderPrice { Amount = -book[2], Price = book[0] });
+                }
+            }
+            return orders;
         }
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
@@ -207,23 +226,35 @@ namespace ExchangeSharp
             }
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
         {
+            // https://api.bitfinex.com/v2/candles/trade:1d:btcusd/hist?start=ms_start&end=ms_end
             symbol = NormalizeSymbol(symbol);
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            decimal[][] books = MakeJsonRequest<decimal[][]>("/book/t" + symbol + "/P0?len=" + maxCount);
-            foreach (decimal[] book in books)
+            endDate = endDate ?? DateTime.UtcNow;
+            startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
+            string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds).Replace("d", "D"); // WTF Bitfinex, capital D???
+            string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1&start=" +
+                (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds() + "&end=" + (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds();
+            JToken token = MakeJsonRequest<JToken>(url);
+            CheckError(token);
+
+            /* MTS, OPEN, CLOSE, HIGH, LOW, VOL */
+            foreach (JArray candle in token)
             {
-                if (book[2] > 0m)
+                yield return new MarketCandle
                 {
-                    orders.Bids.Add(new ExchangeOrderPrice { Amount = book[2], Price = book[0] });
-                }
-                else
-                {
-                    orders.Asks.Add(new ExchangeOrderPrice { Amount = -book[2], Price = book[0] });
-                }
+                    ClosePrice = (decimal)candle[2],
+                    ExchangeName = Name,
+                    HighPrice = (decimal)candle[3],
+                    LowPrice = (decimal)candle[4],
+                    Name = symbol,
+                    OpenPrice = (decimal)candle[1],
+                    PeriodSeconds = periodSeconds,
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)candle[0]),
+                    VolumePrice = (double)candle[5],
+                    VolumeQuantity = (double)candle[5] * (double)candle[2]
+                };
             }
-            return orders;
         }
 
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()

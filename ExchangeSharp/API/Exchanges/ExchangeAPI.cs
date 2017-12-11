@@ -82,13 +82,13 @@ namespace ExchangeSharp
         /// Get exchange symbols
         /// </summary>
         /// <returns>Array of symbols</returns>
-        public virtual IReadOnlyCollection<string> GetSymbols() { throw new NotImplementedException(); }
+        public virtual IEnumerable<string> GetSymbols() { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get exchange symbols
         /// </summary>
         /// <returns>Array of symbols</returns>
-        public Task<IReadOnlyCollection<string>> GetSymbolsAsync() => Task.Factory.StartNew(() => GetSymbols());
+        public Task<IEnumerable<string>> GetSymbolsAsync() => Task.Factory.StartNew(() => GetSymbols());
 
         /// <summary>
         /// Get exchange ticker
@@ -108,13 +108,13 @@ namespace ExchangeSharp
         /// Get all tickers, not all exchanges support this
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public virtual IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers() { throw new NotImplementedException(); }
+        public virtual IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers() { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get all tickers, not all exchanges support this
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public Task<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync() => Task.Factory.StartNew(() => GetTickers());
+        public Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync() => Task.Factory.StartNew(() => GetTickers());
 
         /// <summary>
         /// Get exchange order book
@@ -137,14 +137,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        public virtual IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100) { throw new NotImplementedException(); }
+        public virtual IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get exchange order book all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        public Task<IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100) => Task.Factory.StartNew(() => GetOrderBooks(maxCount));
+        public Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100) => Task.Factory.StartNew(() => GetOrderBooks(maxCount));
 
         /// <summary>
         /// Get historical trades for the exchange
@@ -175,6 +175,26 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all trades</returns>
         public Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol) => Task.Factory.StartNew(() => GetRecentTrades(symbol));
+
+        /// <summary>
+        /// Get candles (open, high, low, close)
+        /// </summary>
+        /// <param name="symbol">Symbol to get candles for</param>
+        /// <param name="periodsSeconds">Period in seconds to get candles for</param>
+        /// <param name="startDate">Optional start date to get candles for</param>
+        /// <param name="endDate">Optional end date to get candles for</param>
+        /// <returns>Candles</returns>
+        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) { throw new NotSupportedException(); }
+
+        /// <summary>
+        /// ASYNC - Get candles (open, high, low, close)
+        /// </summary>
+        /// <param name="symbol">Symbol to get candles for</param>
+        /// <param name="periodsSeconds">Period in seconds to get candles for</param>
+        /// <param name="startDate">Optional start date to get candles for</param>
+        /// <param name="endDate">Optional end date to get candles for</param>
+        /// <returns>Candles</returns>
+        public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate));
 
         /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary

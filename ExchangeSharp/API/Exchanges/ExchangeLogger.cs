@@ -76,7 +76,7 @@ namespace ExchangeSharp
                 if (Symbol == "*")
                 {
                     // get all symbols
-                    Tickers = API.GetTickers();
+                    Tickers = API.GetTickers().ToArray();
                     tickerWriter.Write(Tickers.Count);
                     foreach (KeyValuePair<string, ExchangeTicker> ticker in Tickers)
                     {

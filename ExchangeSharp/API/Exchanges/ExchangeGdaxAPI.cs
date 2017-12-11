@@ -164,7 +164,7 @@ namespace ExchangeSharp
             Passphrase = strings[2];
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             Dictionary<string, string>[] symbols = MakeJsonRequest<Dictionary<string, string>[]>("/products");
             List<string> symbolList = new List<string>();
@@ -201,8 +201,8 @@ namespace ExchangeSharp
                 url = baseUrl;
                 if (sinceDateTime != null)
                 {
-                    url += "&start=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s"));
-                    url += "&end=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s"));
+                    url += "&start=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture));
+                    url += "&end=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s", System.Globalization.CultureInfo.InvariantCulture));
                 }
                 tradeChunk = MakeJsonRequest<decimal[][]>(url);
                 if (tradeChunk == null || tradeChunk.Length == 0)
@@ -269,6 +269,47 @@ namespace ExchangeSharp
                 orders.Bids.Add(new ExchangeOrderPrice { Amount = (decimal)bid[1], Price = (decimal)bid[0] });
             }
             return orders;
+        }
+
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            // /products/<product-id>/candles
+            // https://api.gdax.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
+            List<MarketCandle> candles = new List<MarketCandle>();
+            symbol = NormalizeSymbol(symbol);
+            string url = "/products/" + symbol + "/candles?granularity=" + periodSeconds;
+            if (startDate == null)
+            {
+                startDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
+            }
+            url += "&start=" + startDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+            if (endDate == null)
+            {
+                endDate = DateTime.UtcNow;
+            }
+            url += "&end=" + endDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
+
+            // time, low, high, open, close, volume
+            JToken token = MakeJsonRequest<JToken>(url);
+            foreach (JArray candle in token)
+            {
+                candles.Add(new MarketCandle
+                {
+                    ClosePrice = (decimal)candle[4],
+                    ExchangeName = Name,
+                    HighPrice = (decimal)candle[2],
+                    LowPrice = (decimal)candle[1],
+                    Name = symbol,
+                    OpenPrice = (decimal)candle[3],
+                    PeriodSeconds = periodSeconds,
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)candle[0]),
+                    VolumePrice = (double)candle[5],
+                    VolumeQuantity = (double)candle[5] * (double)candle[4]
+                });
+            }
+            // re-sort in ascending order
+            candles.Sort((c1, c2) => c1.Timestamp.CompareTo(c2.Timestamp));
+            return candles;
         }
 
         /// <summary>

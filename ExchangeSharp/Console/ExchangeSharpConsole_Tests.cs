@@ -56,7 +56,7 @@ namespace ExchangeSharp
                 {
                     string symbol = GetSymbol(api);
 
-                    IReadOnlyCollection<string> symbols = api.GetSymbols();
+                    IReadOnlyCollection<string> symbols = api.GetSymbols().ToArray();
                     Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
 
                     ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
@@ -72,6 +72,23 @@ namespace ExchangeSharp
                     var ticker = api.GetTicker(symbol);
                     Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
                         ticker.Volume != null && ticker.Volume.PriceAmount > 0m && ticker.Volume.QuantityAmount > 0m);
+
+                    try
+                    {
+                        var candles = api.GetCandles(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).ToArray();
+                        Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
+                            candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
+                            !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].VolumePrice > 0.0 &&
+                            candles[0].VolumeQuantity > 0.0 && candles[0].WeightedAverage >= 0m);
+                    }
+                    catch (NotSupportedException)
+                    {
+
+                    }
+                    catch (NotImplementedException)
+                    {
+
+                    }
                 }
                 catch (Exception ex)
                 {

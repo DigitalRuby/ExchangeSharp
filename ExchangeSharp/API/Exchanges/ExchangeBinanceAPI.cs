@@ -167,7 +167,7 @@ namespace ExchangeSharp
             return base.ProcessRequestUrl(url, payload);
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
             JToken obj = MakeJsonRequest<JToken>("/ticker/allPrices");
@@ -192,7 +192,7 @@ namespace ExchangeSharp
             return ParseTicker(symbol, obj);
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             // TODO: I put in a support request to add a symbol field to https://www.binance.com/api/v1/ticker/24hr, until then multi tickers in one request is not supported
             return base.GetTickers();
@@ -269,6 +269,54 @@ namespace ExchangeSharp
                     break;
                 }
                 System.Threading.Thread.Sleep(1000);
+            }
+        }
+
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            /* [
+            [
+		    1499040000000,      // Open time
+		    "0.01634790",       // Open
+		    "0.80000000",       // High
+		    "0.01575800",       // Low
+		    "0.01577100",       // Close
+		    "148976.11427815",  // Volume
+		    1499644799999,      // Close time
+		    "2434.19055334",    // Quote asset volume
+		    308,                // Number of trades
+		    "1756.87402397",    // Taker buy base asset volume
+		    "28.46694368",      // Taker buy quote asset volume
+		    "17928899.62484339" // Can be ignored
+		    ]] */
+
+            symbol = NormalizeSymbol(symbol);
+            string url = "/klines?symbol=" + symbol;
+            if (startDate != null)
+            {
+                url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeSeconds();
+            }
+            url += "&endTime=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
+            string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
+            url += "&interval=" + periodString;
+            JToken obj = MakeJsonRequest<JToken>(url);
+            CheckError(obj);
+            foreach (JArray array in obj)
+            {
+                yield return new MarketCandle
+                {
+                    ClosePrice = (decimal)array[4],
+                    ExchangeName = Name,
+                    HighPrice = (decimal)array[2],
+                    LowPrice = (decimal)array[3],
+                    Name = symbol,
+                    OpenPrice = (decimal)array[1],
+                    PeriodSeconds = periodSeconds,
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)array[0]),
+                    VolumePrice = (double)array[5],
+                    VolumeQuantity = (double)array[7],
+                    WeightedAverage = 0m
+                };
             }
         }
 

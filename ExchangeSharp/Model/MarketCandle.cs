@@ -22,7 +22,7 @@ namespace ExchangeSharp
         public string Name { get; set; }
 
         /// <summary>
-        /// Timestamp, can be the opening or closing time of the candle
+        /// Timestamp, the open time of the candle
         /// </summary>
         public DateTime Timestamp { get; set; }
 
@@ -52,9 +52,19 @@ namespace ExchangeSharp
         public decimal ClosePrice { get; set; }
 
         /// <summary>
-        /// Volume
+        /// Price volume
         /// </summary>
-        public double Volume { get; set; }
+        public double VolumePrice { get; set; }
+
+        /// <summary>
+        /// Quantity volume
+        /// </summary>
+        public double VolumeQuantity { get; set; }
+
+        /// <summary>
+        /// The weighted average price if provided
+        /// </summary>
+        public decimal WeightedAverage { get; set; }
 
         /// <summary>
         /// ToString
@@ -62,7 +72,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}", Timestamp, PeriodSeconds, OpenPrice, HighPrice, LowPrice, Volume);
+            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}, {7}, {8}", Timestamp, PeriodSeconds, OpenPrice, HighPrice, LowPrice, ClosePrice, VolumePrice, VolumeQuantity, WeightedAverage);
         }
     }
 }

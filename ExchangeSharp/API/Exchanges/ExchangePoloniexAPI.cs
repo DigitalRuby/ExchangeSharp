@@ -126,7 +126,7 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant().Replace('-', '_');
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
             var tickers = GetTickers();
@@ -140,7 +140,7 @@ namespace ExchangeSharp
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
-            IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> tickers = GetTickers();
+            IEnumerable<KeyValuePair<string, ExchangeTicker>> tickers = GetTickers();
             foreach (var kv in tickers)
             {
                 if (kv.Key == symbol)
@@ -151,7 +151,7 @@ namespace ExchangeSharp
             return null;
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             // {"BTC_LTC":{"last":"0.0251","lowestAsk":"0.02589999","highestBid":"0.0251","percentChange":"0.02390438","baseVolume":"6.16485315","quoteVolume":"245.82513926"}
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -197,7 +197,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100)
+        public override IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100)
         {
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
             JObject obj = MakeJsonRequest<JObject>("/public?command=returnOrderBook&currencyPair=all&depth=" + maxCount);
@@ -275,6 +275,39 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeTrade> GetRecentTrades(string symbol)
         {
             return GetHistoricalTrades(symbol);
+        }
+
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            // https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400
+            // [{"date":1405699200,"high":0.0045388,"low":0.00403001,"open":0.00404545,"close":0.00435873,"volume":44.34555992,"quoteVolume":10311.88079097,"weightedAverage":0.00430043}]
+            symbol = NormalizeSymbol(symbol);
+            string url = "/public?command=returnChartData&currencyPair=" + symbol;
+            if (startDate != null)
+            {
+                url += "&start=" + (long)startDate.Value.UnixTimestampFromDateTimeSeconds();
+            }
+            url += "&end=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
+            url += "&period=" + periodSeconds;
+            JToken token = MakeJsonRequest<JToken>(url);
+            CheckError(token);
+            foreach (JToken candle in token)
+            {
+                yield return new MarketCandle
+                {
+                    ClosePrice = (decimal)candle["close"],
+                    ExchangeName = Name,
+                    HighPrice = (decimal)candle["high"],
+                    LowPrice = (decimal)candle["low"],
+                    OpenPrice = (decimal)candle["open"],
+                    Name = symbol,
+                    PeriodSeconds = periodSeconds,
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)candle["date"]),
+                    VolumePrice = (double)candle["volume"],
+                    VolumeQuantity = (double)candle["quoteVolume"],
+                    WeightedAverage = (decimal)candle["weightedAverage"]
+                };
+            }
         }
 
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()

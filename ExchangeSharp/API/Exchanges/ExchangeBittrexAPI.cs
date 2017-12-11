@@ -98,7 +98,7 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override IReadOnlyCollection<string> GetSymbols()
+        public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
@@ -138,7 +138,7 @@ namespace ExchangeSharp
             return null;
         }
 
-        public override IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getmarketsummaries");
             CheckError(obj);
@@ -256,20 +256,91 @@ namespace ExchangeSharp
             JObject obj = MakeJsonRequest<JObject>(baseUrl);
             CheckError(obj);
             JArray array = obj["result"] as JArray;
-            if (array == null || array.Count == 0)
+            if (array != null && array.Count != 0)
             {
-                yield break;
-            }
-            foreach (JToken token in array)
-            {
-                yield return new ExchangeTrade
+                foreach (JToken token in array)
                 {
-                    Amount = token.Value<decimal>("Quantity"),
-                    IsBuy = token.Value<string>("OrderType").Equals("BUY", StringComparison.OrdinalIgnoreCase),
-                    Price = token.Value<decimal>("Price"),
-                    Timestamp = token.Value<DateTime>("TimeStamp"),
-                    Id = token.Value<long>("Id")
+                    yield return new ExchangeTrade
+                    {
+                        Amount = token.Value<decimal>("Quantity"),
+                        IsBuy = token.Value<string>("OrderType").Equals("BUY", StringComparison.OrdinalIgnoreCase),
+                        Price = token.Value<decimal>("Price"),
+                        Timestamp = token.Value<DateTime>("TimeStamp"),
+                        Id = token.Value<long>("Id")
+                    };
+                }
+            }
+        }
+
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
+            // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
+            string periodString;
+            switch (periodSeconds)
+            {
+                case 60: periodString = "oneMin"; break;
+                case 300: periodString = "fiveMin"; break;
+                case 1800: periodString = "thirtyMin"; break;
+                case 3600: periodString = "hour"; break;
+                case 86400: periodString = "day"; break;
+                case 259200: periodString = "threeDay"; break;
+                case 604800: periodString = "week"; break;
+                default:
+                    if (periodSeconds > 604800)
+                    {
+                        periodString = "month";
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException("Period seconds must be 60,300,1800,3600,86400, 259200 or 604800");
+                    }
+                    break;
+            }
+            symbol = NormalizeSymbol(symbol);
+            JToken result = MakeJsonRequest<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
+            CheckError(result);
+            JArray array = result["result"] as JArray;
+            foreach (JToken jsonCandle in array)
+            {
+                MarketCandle candle = new MarketCandle
+                {
+                    ClosePrice = (decimal)jsonCandle["C"],
+                    ExchangeName = Name,
+                    HighPrice = (decimal)jsonCandle["H"],
+                    LowPrice = (decimal)jsonCandle["L"],
+                    Name = symbol,
+                    OpenPrice = (decimal)jsonCandle["O"],
+                    PeriodSeconds = periodSeconds,
+                    Timestamp = (DateTime)jsonCandle["T"],
+                    VolumePrice = (double)jsonCandle["BV"],
+                    VolumeQuantity = (double)jsonCandle["V"]
                 };
+                if (startDate == null && endDate == null)
+                {
+                    yield return candle;
+                }
+                else if (startDate != null && endDate != null)
+                {
+                    if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
+                    {
+                        yield return candle;
+                    }
+                }
+                else if (startDate != null)
+                {
+                    if (candle.Timestamp >= startDate)
+                    {
+                        yield return candle;
+                    }
+                }
+                else // endDate != null
+                {
+                    if (candle.Timestamp <= endDate)
+                    {
+                        yield return candle;
+                    }
+                }
             }
         }
 
