@@ -146,7 +146,7 @@ namespace ExchangeSharp
                 DateTime now = DateTime.UtcNow;
                 foreach (JArray array in token)
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>((string)array[0], new ExchangeTicker
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(((string)array[0]).Substring(1), new ExchangeTicker
                     {
                         Ask = (decimal)array[3],
                         Bid = (decimal)array[1],

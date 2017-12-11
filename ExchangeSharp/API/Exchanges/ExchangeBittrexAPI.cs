@@ -298,6 +298,8 @@ namespace ExchangeSharp
                     break;
             }
             symbol = NormalizeSymbol(symbol);
+            startDate = startDate ?? DateTime.UtcNow;
+            endDate = endDate ?? startDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = MakeJsonRequest<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
             CheckError(result);
             JArray array = result["result"] as JArray;
@@ -316,30 +318,9 @@ namespace ExchangeSharp
                     VolumePrice = (double)jsonCandle["BV"],
                     VolumeQuantity = (double)jsonCandle["V"]
                 };
-                if (startDate == null && endDate == null)
+                if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                 {
                     yield return candle;
-                }
-                else if (startDate != null && endDate != null)
-                {
-                    if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
-                    {
-                        yield return candle;
-                    }
-                }
-                else if (startDate != null)
-                {
-                    if (candle.Timestamp >= startDate)
-                    {
-                        yield return candle;
-                    }
-                }
-                else // endDate != null
-                {
-                    if (candle.Timestamp <= endDate)
-                    {
-                        yield return candle;
-                    }
                 }
             }
         }
