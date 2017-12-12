@@ -117,7 +117,7 @@ namespace ExchangeSharp
             {
                 symbols[i] = NormalizeSymbol(symbols[i]);
             }
-            WriteCache("GetSymbols", TimeSpan.FromMinutes(1.0), symbols);
+            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
             return symbols;
         }
 
