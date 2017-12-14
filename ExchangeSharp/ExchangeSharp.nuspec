@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>DigitalRuby.ExchangeSharp</id>
-    <version>0.1.8.0</version>
+    <version>0.1.8.1</version>
     <title>Exchange Sharp - C# API for cryptocurrency, stock and other exchanges</title>
     <authors>jjxtra</authors>
     <owners>jjxtra</owners>
@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/jjxtra/ExchangeSharp</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>ExchangeSharp is a C# API for working with various exchanges for stocks and cryptocurrency. Binance, Bitfinex, Bithumb, Bittrex, Gemini, GDAX, Kraken and Poloniex are supported.</description>
-    <releaseNotes>Add OHLC (candle) GetCandles end points for those exchanges that support it.</releaseNotes>
+    <releaseNotes>Update readme files</releaseNotes>
     <copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</copyright>
     <tags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos</tags>
   </metadata>
