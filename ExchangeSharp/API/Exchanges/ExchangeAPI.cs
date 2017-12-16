@@ -72,11 +72,14 @@ namespace ExchangeSharp
         public virtual string NormalizeSymbol(string symbol) { return symbol; }
 
         /// <summary>
-        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btcusd
+        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btc-usd. This base method standardizes with a hyphen separator.
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns>Normalized global symbol</returns>
-        public virtual string NormalizeSymbolGlobal(string symbol) { return symbol?.Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant(); }
+        public virtual string NormalizeSymbolGlobal(string symbol)
+        {
+            return symbol?.Replace("_", "-").Replace("/", "-").ToLowerInvariant();
+        }
 
         /// <summary>
         /// Get exchange symbols
@@ -105,13 +108,19 @@ namespace ExchangeSharp
         public Task<ExchangeTicker> GetTickerAsync(string symbol) => Task.Factory.StartNew(() => GetTicker(symbol));
 
         /// <summary>
-        /// Get all tickers, not all exchanges support this
+        /// Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public virtual IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers() { throw new NotImplementedException(); }
+        public virtual IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        {
+            foreach (string symbol in GetSymbols())
+            {
+                yield return new KeyValuePair<string, ExchangeTicker>(symbol, GetTicker(symbol));
+            }
+        }
 
         /// <summary>
-        /// ASYNC - Get all tickers, not all exchanges support this
+        /// ASYNC - Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
         public Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync() => Task.Factory.StartNew(() => GetTickers());
@@ -133,14 +142,20 @@ namespace ExchangeSharp
         public Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100) => Task.Factory.StartNew(() => GetOrderBook(symbol, maxCount));
 
         /// <summary>
-        /// Get exchange order book all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
+        /// Get exchange order book all symbols. If the exchange does not support this, an order book will be requested for each symbol. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        public virtual IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100) { throw new NotImplementedException(); }
+        public virtual IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100)
+        {
+            foreach (string symbol in GetSymbols())
+            {
+                yield return new KeyValuePair<string, ExchangeOrderBook>(symbol, GetOrderBook(symbol, maxCount));
+            }
+        }
 
         /// <summary>
-        /// ASYNC - Get exchange order book all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
+        /// ASYNC - Get exchange order book all symbols. If the exchange does not support this, an order book will be requested for each symbol. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
@@ -163,14 +178,14 @@ namespace ExchangeSharp
         public Task<IEnumerable<ExchangeTrade>> GetHistoricalTradesAsync(string symbol, DateTime? sinceDateTime = null) => Task.Factory.StartNew(() => GetHistoricalTrades(symbol, sinceDateTime));
 
         /// <summary>
-        /// Get recent trades on the exchange
+        /// Get recent trades on the exchange - this implementation simply calls GetHistoricalTrades with a null sinceDateTime.
         /// </summary>
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all trades</returns>
         public virtual IEnumerable<ExchangeTrade> GetRecentTrades(string symbol) { return GetHistoricalTrades(symbol, null); }
 
         /// <summary>
-        /// ASYNC - Get recent trades on the exchange
+        /// ASYNC - Get recent trades on the exchange - this implementation simply calls GetHistoricalTradesAsync with a null sinceDateTime.
         /// </summary>
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all trades</returns>
@@ -288,6 +303,11 @@ namespace ExchangeSharp
         /// Bithumb
         /// </summary>
         public const string Bithumb = "Bithumb";
+
+        /// <summary>
+        /// Bitstamp
+        /// </summary>
+        public const string Bitstamp = "Bitstamp";
 
         /// <summary>
         /// Bittrex

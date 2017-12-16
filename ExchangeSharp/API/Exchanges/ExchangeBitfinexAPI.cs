@@ -47,7 +47,7 @@ namespace ExchangeSharp
             {
                 symbol = symbol.Substring(1);
             }
-            return base.NormalizeSymbolGlobal(symbol);
+            return symbol.ToLowerInvariant();
         }
 
         public string NormalizeSymbolV1(string symbol)

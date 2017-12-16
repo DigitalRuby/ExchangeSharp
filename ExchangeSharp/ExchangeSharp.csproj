@@ -58,6 +58,7 @@
     <Compile Include="API\Exchanges\ExchangeBitfinexAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeBinanceAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeBithumbAPI.cs" />
+    <Compile Include="API\Exchanges\ExchangeBitstampAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeBittrexAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeGdaxAPI.cs" />
     <Compile Include="API\Exchanges\ExchangeGeminiAPI.cs" />
