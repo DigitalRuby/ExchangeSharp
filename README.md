@@ -4,6 +4,7 @@ The following cryptocurrency exchanges are supported:
 - Binance (public, basic private)
 - Bitfinex (public, basic private)
 - Bithumb (public)
+- Bitstamp (public)
 - Bittrex (public, basic private)
 - Gemini (public, basic private)
 - GDAX (public, basic private)
