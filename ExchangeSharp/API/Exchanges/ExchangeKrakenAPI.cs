@@ -93,12 +93,13 @@ namespace ExchangeSharp
             { "XZECZUSD", "zecusd" }
         };
 
-        private void CheckError(JObject json)
+        private JToken CheckError(JToken json)
         {
-            if (json["error"] is JArray error && error.Count != 0)
+            if (!(json is JArray) && json["error"] is JArray error && error.Count != 0)
             {
                 throw new APIException((string)error[0]);
             }
+            return json["result"];
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
@@ -157,16 +158,15 @@ namespace ExchangeSharp
         public override IEnumerable<string> GetSymbols()
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
-            CheckError(json);
-            JToken result = json["result"] as JToken;
+            JToken result = CheckError(json);
             return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
         }
 
         public override ExchangeTicker GetTicker(string symbol)
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
-            CheckError(json);
-            JToken ticker = (json["result"] as JToken)[symbol] as JToken;
+            JToken ticker = CheckError(json);
+            ticker = ticker[symbol];
             decimal last = ticker["c"][0].Value<decimal>();
             return new ExchangeTicker
             {
@@ -188,8 +188,8 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JObject json = MakeJsonRequest<JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
-            CheckError(json);
-            JToken obj = json["result"][symbol] as JToken;
+            JToken obj = CheckError(json);
+            obj = obj[symbol];
             if (obj == null)
             {
                 return null;
@@ -225,12 +225,11 @@ namespace ExchangeSharp
                     url += "&since=" + (long)(CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) * 1000000.0);
                 }
                 JObject obj = MakeJsonRequest<JObject>(url);
-                CheckError(obj);
                 if (obj == null)
                 {
                     break;
                 }
-                JToken result = obj["result"];
+                JToken result = CheckError(obj);
                 JArray outerArray = result[symbol] as JArray;
                 if (outerArray == null || outerArray.Count == 0)
                 {
@@ -303,6 +302,18 @@ namespace ExchangeSharp
             }
         }
 
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        {
+            JToken token = MakeJsonRequest<JToken>("/0/private/Balance", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks } });
+            JToken result = CheckError(token);
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (JProperty prop in result)
+            {
+                balances[prop.Name] = (decimal)prop.Value;
+            }
+            return balances;
+        }
+
         public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
         {
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
@@ -316,19 +327,12 @@ namespace ExchangeSharp
             };
 
             JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);
-            CheckError(obj);
+            JToken token = CheckError(obj);
             ExchangeOrderResult result = new ExchangeOrderResult();
-            if (obj["error"] != null && obj["error"] as JArray != null && (obj["error"] as JArray).Count != 0)
-            {
-                result.Message = obj["error"][0].ToString();
-            }
             result.OrderDate = DateTime.UtcNow;
-            if (obj["result"] != null)
+            if (token["txid"] is JArray array)
             {
-                if (obj["result"]["txid"] is JArray array)
-                {
-                    result.OrderId = (string)array[0];
-                }
+                result.OrderId = (string)array[0];
             }
             return result;
         }
@@ -346,8 +350,7 @@ namespace ExchangeSharp
                 { "nonce", DateTime.UtcNow.Ticks }
             };
             JObject obj = MakeJsonRequest<JObject>("/0/private/QueryOrders", null, payload);
-            CheckError(obj);
-            JToken result = obj["result"];
+            JToken result = CheckError(obj);
             ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
             if (result == null || result[orderId] == null)
             {

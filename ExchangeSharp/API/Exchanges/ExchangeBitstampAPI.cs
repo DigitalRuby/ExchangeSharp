@@ -44,7 +44,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.Replace("/", string.Empty).ToLowerInvariant();
+            return symbol?.Replace("/", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
         }
 
         public override IEnumerable<string> GetSymbols()
