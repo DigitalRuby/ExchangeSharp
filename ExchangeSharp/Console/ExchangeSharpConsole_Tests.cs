@@ -46,8 +46,31 @@ namespace ExchangeSharp
             return api.NormalizeSymbol("BTC-USD");
         }
 
+        private static void TestEncryption()
+        {
+            byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
+            byte[] data = new byte[255];
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = (byte)i;
+            }
+            byte[] password = new byte[16];
+            for (int i = password.Length - 1; i >= 0; i--)
+            {
+                password[i] = (byte)i;
+            }
+            byte[] encrypted = CryptoUtility.AesEncryption(data, password, salt);
+            byte[] decrypted = CryptoUtility.AesDecryption(encrypted, password, salt);
+            if (!decrypted.SequenceEqual(data))
+            {
+                throw new ApplicationException("AES encryption test fail");
+            }
+        }
+
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
+            TestEncryption();
+
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {

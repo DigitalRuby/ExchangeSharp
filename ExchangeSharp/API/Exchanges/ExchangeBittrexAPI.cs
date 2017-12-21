@@ -298,8 +298,8 @@ namespace ExchangeSharp
                     break;
             }
             symbol = NormalizeSymbol(symbol);
-            startDate = startDate ?? DateTime.UtcNow;
-            endDate = endDate ?? startDate.Value.Subtract(TimeSpan.FromDays(1.0));
+            endDate = endDate ?? DateTime.UtcNow;
+            startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = MakeJsonRequest<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
             CheckError(result);
             JArray array = result["result"] as JArray;

@@ -169,66 +169,61 @@ namespace ExchangeSharp
             return salt;
         }
 
-        public static void AesEncryption(Stream input, string file, string password)
+        public static byte[] AesEncryption(byte[] input, byte[] password, byte[] salt)
         {
-            using (var encrypted = new FileStream(file, FileMode.Create, FileAccess.Write))
+            if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
             {
-                byte[] salt = GenerateSalt(32);
-                var AES = new RijndaelManaged()
-                {
-                    KeySize = 256,
-                    BlockSize = 128,
-                    Padding = PaddingMode.PKCS7,
-                };
-
-                var key = new Rfc2898DeriveBytes(password, salt, 1024);
-                AES.Key = key.GetBytes(AES.KeySize / 8);
-                AES.IV = key.GetBytes(AES.BlockSize / 8);
-
-                AES.Mode = CipherMode.CFB;
-
-                encrypted.Write(salt, 0, salt.Length);
-
-                var cs = new CryptoStream(encrypted, AES.CreateEncryptor(), CryptoStreamMode.Write);
-                var buffer = new byte[4096];
-                int read;
-
-                while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
-                    cs.Write(buffer, 0, read);
-                cs.FlushFinalBlock();
+                return null;
             }
+            var encrypted = new MemoryStream();
+            var AES = new RijndaelManaged()
+            {
+                KeySize = 256,
+                BlockSize = 128,
+                Padding = PaddingMode.PKCS7,
+            };
+            var key = new Rfc2898DeriveBytes(password, salt, 1024);
+            AES.Key = key.GetBytes(AES.KeySize / 8);
+            AES.IV = key.GetBytes(AES.BlockSize / 8);
+            AES.Mode = CipherMode.CFB;
+            encrypted.Write(salt, 0, salt.Length);
+            var cs = new CryptoStream(encrypted, AES.CreateEncryptor(), CryptoStreamMode.Write);
+            cs.Write(input, 0, input.Length);
+            cs.FlushFinalBlock();
+            return encrypted.ToArray();
         }
 
-        public static Stream AesDecryption(string file, string password)
+        public static byte[] AesDecryption(byte[] input, byte[] password, byte[] salt)
         {
-            Stream output = new MemoryStream();
-            using (Stream input = new FileStream(file, FileMode.Open, FileAccess.Read))
+            if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
             {
-                byte[] salt = new byte[32];
-                input.Read(salt, 0, 32);
-
-                var AES = new RijndaelManaged()
-                {
-                    KeySize = 256,
-                    BlockSize = 128,
-                    Padding = PaddingMode.PKCS7,
-                };
-
-                var key = new Rfc2898DeriveBytes(password, salt, 1024);
-                AES.Key = key.GetBytes(AES.KeySize / 8);
-                AES.IV = key.GetBytes(AES.BlockSize / 8);
-
-                AES.Mode = CipherMode.CFB;
-
-                var cs = new CryptoStream(input, AES.CreateDecryptor(), CryptoStreamMode.Read);
-                var buffer = new byte[4096];
-                int read;
-
-                while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
-                    output.Write(buffer, 0, read);
+                return null;
             }
-            output.Seek(0, SeekOrigin.Begin);
-            return output;
+            MemoryStream decrypted = new MemoryStream();
+            var AES = new RijndaelManaged()
+            {
+                KeySize = 256,
+                BlockSize = 128,
+                Padding = PaddingMode.PKCS7,
+            };
+            var key = new Rfc2898DeriveBytes(password, salt, 1024);
+            AES.Key = key.GetBytes(AES.KeySize / 8);
+            AES.IV = key.GetBytes(AES.BlockSize / 8);
+            AES.Mode = CipherMode.CFB;
+            MemoryStream encrypted = new MemoryStream(input);
+            byte[] saltMatch = new byte[salt.Length];
+            if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
+            {
+                throw new InvalidOperationException("Invalid salt");
+            }
+            var cs = new CryptoStream(encrypted, AES.CreateDecryptor(), CryptoStreamMode.Read);
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = cs.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                decrypted.Write(buffer, 0, count);
+            }
+            return decrypted.ToArray();
         }
 
         /// <summary>
