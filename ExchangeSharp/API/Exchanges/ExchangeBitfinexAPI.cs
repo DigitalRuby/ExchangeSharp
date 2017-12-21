@@ -262,14 +262,12 @@ namespace ExchangeSharp
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
             CheckError(obj);
-            var q = from JToken token in obj
-                    where token["type"].Equals("trading")
-                    select new { Currency = token["currency"].Value<string>(), Available = token["available"].Value<decimal>() };
-            foreach (var kv in q)
+            foreach (JToken token in obj)
             {
-                if (kv.Available > 0m)
+                decimal amount = (decimal)token["available"];
+                if (amount > 0m)
                 {
-                    lookup[kv.Currency] = kv.Available;
+                    lookup[(string)token["currency"]] = amount;
                 }
             }
             return lookup;
