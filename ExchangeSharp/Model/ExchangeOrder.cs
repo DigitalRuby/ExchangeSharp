@@ -103,5 +103,32 @@ namespace ExchangeSharp
         /// Whether the order is a buy or sell
         /// </summary>
         public bool IsBuy { get; set; }
+
+        /// <summary>
+        /// Append another order to this order - order id and type must match
+        /// </summary>
+        /// <param name="other">Order to append</param>
+        public void AppendOrderWithOrder(ExchangeOrderResult other)
+        {
+            if (OrderId != other.OrderId || IsBuy != other.IsBuy)
+            {
+                throw new InvalidOperationException("Appending orders requires order id and IsBuy to match");
+            }
+
+            decimal tradeSum = Amount + other.Amount;
+            decimal baseAmount = Amount;
+            Amount += other.Amount;
+            AmountFilled += other.AmountFilled;
+            AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
+        }
+
+        /// <summary>
+        /// ToString
+        /// </summary>
+        /// <returns>String</returns>
+        public override string ToString()
+        {
+            return string.Format("[{0}], {1} {2} of {3} {4} filled at {5}", OrderDate, (IsBuy ? "Buy" : "Sell"), AmountFilled, Amount, Symbol, AveragePrice);
+        }
     }
 }

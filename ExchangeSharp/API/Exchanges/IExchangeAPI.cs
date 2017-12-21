@@ -293,6 +293,20 @@ namespace ExchangeSharp
         Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null);
 
         /// <summary>
+        /// Get the details of all completed orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get completed orders for or null for all</param>
+        /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
+        IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null);
+
+        /// <summary>
+        /// ASYNC - Get the details of all completed orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get completed orders for or null for all</param>
+        /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
+        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null);
+
+        /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>

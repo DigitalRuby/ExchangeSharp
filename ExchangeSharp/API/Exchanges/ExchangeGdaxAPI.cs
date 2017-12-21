@@ -42,11 +42,15 @@ namespace ExchangeSharp
 
         private ExchangeOrderResult ParseOrder(JToken result)
         {
+            decimal executedValue = (decimal)result["executed_value"];
+            decimal amountFilled = (decimal)result["filled_size"];
+            decimal amount = result["size"] == null ? amountFilled : (decimal)result["size"];
+            decimal averagePrice = (executedValue <= 0m ? 0m : executedValue / amountFilled);
             ExchangeOrderResult order = new ExchangeOrderResult
             {
-                Amount = (decimal)result["size"],
-                AmountFilled = (decimal)result["filled_size"],
-                AveragePrice = (decimal)result["executed_value"],
+                Amount = amount,
+                AmountFilled = amountFilled,
+                AveragePrice = averagePrice,
                 IsBuy = ((string)result["side"]) == "buy",
                 OrderDate = (DateTime)result["created_at"],
                 Symbol = (string)result["product_id"],
@@ -375,7 +379,17 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
-            JArray array = MakeJsonRequest<JArray>("orders?type=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
+            JArray array = MakeJsonRequest<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
+            foreach (JToken token in array)
+            {
+                yield return ParseOrder(token);
+            }
+        }
+
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        {
+            symbol = NormalizeSymbol(symbol);
+            JArray array = MakeJsonRequest<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
             foreach (JToken token in array)
             {
                 yield return ParseOrder(token);

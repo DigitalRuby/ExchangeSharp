@@ -380,6 +380,18 @@ namespace ExchangeSharp
             return orderResult;
         }
 
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            // TODO: Implement
+            return base.GetOpenOrderDetails(symbol);
+        }
+
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        {
+            // TODO: Implement
+            return base.GetCompletedOrderDetails(symbol);
+        }
+
         public override void CancelOrder(string orderId)
         {
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)

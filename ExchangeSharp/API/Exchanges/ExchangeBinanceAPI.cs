@@ -383,6 +383,22 @@ namespace ExchangeSharp
             }
         }
 
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new InvalidOperationException("Binance order details request requires the symbol parameter. I am sorry for this, I cannot control their API implementation which is really bad here.");
+            }
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["symbol"] = NormalizeSymbol(symbol);
+            JToken token = MakeJsonRequest<JToken>("/allOrders", BaseUrlPrivate, payload);
+            CheckError(token);
+            foreach (JToken order in token)
+            {
+                yield return ParseOrder(order);
+            }
+        }
+
         public override void CancelOrder(string orderId)
         {
             Dictionary<string, object> payload = GetNoncePayload();

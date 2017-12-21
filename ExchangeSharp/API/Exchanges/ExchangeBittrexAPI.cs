@@ -32,12 +32,18 @@ namespace ExchangeSharp
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
         public override string Name => ExchangeName.Bittrex;
 
-        private void CheckError(JToken obj)
+        private JToken CheckError(JToken obj)
         {
             if (obj["success"] == null || !obj["success"].Value<bool>())
             {
                 throw new APIException(obj["message"].Value<string>());
             }
+            JToken token = obj["result"];
+            if (token == null)
+            {
+                throw new APIException("Null result");
+            }
+            return token;
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)
@@ -48,11 +54,11 @@ namespace ExchangeSharp
             decimal amountFilled = amount - remaining;
             order.Amount = amount;
             order.AmountFilled = amountFilled;
-            order.AveragePrice = token.Value<decimal>("Price");
+            order.AveragePrice = token["PricePerUnit"] == null ? token["Price"].Value<decimal>() : token.Value<decimal>("PricePerUnit");
             order.Message = string.Empty;
             order.OrderId = token.Value<string>("OrderUuid");
             order.Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially));
-            order.OrderDate = token["Opened"].Value<DateTime>();
+            order.OrderDate = token["Opened"] == null ? token["TimeStamp"].Value<DateTime>() : token["Opened"].Value<DateTime>();
             order.Symbol = token["Exchange"].Value<string>();
             string type = (string)token["OrderType"];
             if (string.IsNullOrWhiteSpace(type))
@@ -102,8 +108,8 @@ namespace ExchangeSharp
         {
             List<string> symbols = new List<string>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
-            CheckError(obj);
-            if (obj["result"] is JArray array)
+            JToken result = CheckError(obj);
+            if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
@@ -116,8 +122,8 @@ namespace ExchangeSharp
         public override ExchangeTicker GetTicker(string symbol)
         {
             JObject obj = MakeJsonRequest<JObject>("/public/getmarketsummary?market=" + NormalizeSymbol(symbol));
-            CheckError(obj);
-            JToken ticker = obj["result"][0];
+            JToken result = CheckError(obj);
+            JToken ticker = result[0];
             if (ticker != null)
             {
                 return new ExchangeTicker
@@ -141,12 +147,7 @@ namespace ExchangeSharp
         public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getmarketsummaries");
-            CheckError(obj);
-            JToken tickers = obj["result"];
-            if (tickers == null)
-            {
-                return null;
-            }
+            JToken tickers = CheckError(obj);
             string symbol;
             List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
             foreach (JToken ticker in tickers)
@@ -175,12 +176,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JObject obj = MakeJsonRequest<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
-            CheckError(obj);
-            JToken book = obj["result"];
-            if (book == null)
-            {
-                return null;
-            }
+            JToken book = CheckError(obj);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken bids = book["buy"];
             foreach (JToken token in bids)
@@ -213,8 +209,8 @@ namespace ExchangeSharp
                     url += "&_=" + DateTime.UtcNow.Ticks;
                 }
                 JObject obj = MakeJsonRequest<JObject>(url, BaseUrl2);
-                CheckError(obj);
-                JArray array = obj["result"] as JArray;
+                JToken result = CheckError(obj);
+                JArray array = result as JArray;
                 if (array == null || array.Count == 0)
                 {
                     break;
@@ -254,8 +250,8 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/public/getmarkethistory?market=" + symbol;
             JObject obj = MakeJsonRequest<JObject>(baseUrl);
-            CheckError(obj);
-            JArray array = obj["result"] as JArray;
+            JToken result = CheckError(obj);
+            JArray array = result as JArray;
             if (array != null && array.Count != 0)
             {
                 foreach (JToken token in array)
@@ -301,8 +297,8 @@ namespace ExchangeSharp
             endDate = endDate ?? DateTime.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = MakeJsonRequest<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
-            CheckError(result);
-            JArray array = result["result"] as JArray;
+            result = CheckError(result);
+            JArray array = result as JArray;
             foreach (JToken jsonCandle in array)
             {
                 MarketCandle candle = new MarketCandle
@@ -330,8 +326,8 @@ namespace ExchangeSharp
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
-            CheckError(obj);
-            if (obj["result"] is JArray array)
+            JToken result = CheckError(obj);
+            if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
@@ -350,8 +346,8 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" + amount + "&rate=" + price;
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
-            CheckError(obj);
-            string orderId = obj["result"]["uuid"].Value<string>();
+            JToken result = CheckError(obj);
+            string orderId = result["uuid"].Value<string>();
             return GetOrderDetails(orderId);
         }
 
@@ -364,12 +360,7 @@ namespace ExchangeSharp
 
             string url = "/account/getorder?uuid=" + orderId;
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
-            CheckError(obj);
-            JToken result = obj["result"];
-            if (result == null)
-            {
-                return null;
-            }
+            JToken result = CheckError(obj);
             return ParseOrder(result);
         }
 
@@ -379,12 +370,20 @@ namespace ExchangeSharp
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             CheckError(obj);
             JToken result = obj["result"];
-            if (result != null)
+            foreach (JToken token in result.Children())
             {
-                foreach (JToken token in result.Children())
-                {
-                    yield return ParseOrder(token);
-                }
+                yield return ParseOrder(token);
+            }
+        }
+
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        {
+            string url = "/account/getorderhistory" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
+            JToken result = CheckError(obj);
+            foreach (JToken token in result.Children())
+            {
+                yield return ParseOrder(token);
             }
         }
 
