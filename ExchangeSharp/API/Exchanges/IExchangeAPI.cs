@@ -233,13 +233,25 @@ namespace ExchangeSharp
         Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
-        /// Get amounts available to trade
+        /// Get total amounts, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Dictionary of symbols and amounts</returns>
+        Dictionary<string, decimal> GetAmounts();
+
+        /// <summary>
+        /// ASYNC - Get total amounts, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Dictionary of symbols and amounts</returns>
+        Task<Dictionary<string, decimal>> GetAmountsAsync();
+
+        /// <summary>
+        /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
         Dictionary<string, decimal> GetAmountsAvailableToTrade();
 
         /// <summary>
-        /// ASYNC - Get amounts available to trade
+        /// ASYNC - Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
         Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync();

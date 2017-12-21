@@ -134,28 +134,16 @@ namespace ExchangeSharp
             cursorBefore = response.Headers["cb-before"];
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
         public ExchangeGdaxAPI()
         {
             RequestContentType = "application/json";
         }
 
-        /// <summary>
-        /// Normalize GDAX symbol / product id
-        /// </summary>
-        /// <param name="symbol">Symbol / product id</param>
-        /// <returns>Normalized symbol / product id</returns>
         public override string NormalizeSymbol(string symbol)
         {
             return symbol?.Replace('_', '-').ToUpperInvariant();
         }
 
-        /// <summary>
-        /// Load API keys from an encrypted file - keys will stay encrypted in memory
-        /// </summary>
-        /// <param name="encryptedFile">Encrypted file to load keys from</param>
         public override void LoadAPIKeys(string encryptedFile)
         {
             SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
@@ -316,10 +304,21 @@ namespace ExchangeSharp
             return candles;
         }
 
-        /// <summary>
-        /// Get amounts available to trade, symbol / amount dictionary
-        /// </summary>
-        /// <returns>Symbol / amount dictionary</returns>
+        public override Dictionary<string, decimal> GetAmounts()
+        {
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
+            foreach (JToken token in array)
+            {
+                decimal amount = (decimal)token["balance"];
+                if (amount > 0m)
+                {
+                    amounts[(string)token["currency"]] = amount;
+                }
+            }
+            return amounts;
+        }
+
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
@@ -335,14 +334,6 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        /// <summary>
-        /// Place a limit order
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="amount">Amount</param>
-        /// <param name="price">Price</param>
-        /// <param name="buy">True to buy, false to sell</param>
-        /// <returns>Result</returns>
         public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
         {
             symbol = NormalizeSymbol(symbol);
@@ -360,22 +351,12 @@ namespace ExchangeSharp
             return ParseOrder(result);
         }
 
-        /// <summary>
-        /// Get order details
-        /// </summary>
-        /// <param name="orderId">Order id to get details for</param>
-        /// <returns>Order details</returns>
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
             JObject obj = MakeJsonRequest<JObject>("/orders/" + orderId, null, GetTimestampPayload(), "GET");
             return ParseOrder(obj);
         }
 
-        /// <summary>
-        /// Get the details of all open orders
-        /// </summary>
-        /// <param name="symbol">Symbol to get open orders for or null for all</param>
-        /// <returns>All open order details</returns>
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
@@ -396,10 +377,6 @@ namespace ExchangeSharp
             }
         }
 
-        /// <summary>
-        /// Cancel an order, an exception is thrown if error
-        /// </summary>
-        /// <param name="orderId">Order id of the order to cancel</param>
         public override void CancelOrder(string orderId)
         {
             MakeJsonRequest<JArray>("orders/" + orderId, null, GetTimestampPayload(), "DELETE");

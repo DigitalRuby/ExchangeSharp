@@ -302,7 +302,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        public override Dictionary<string, decimal> GetAmounts()
         {
             JToken token = MakeJsonRequest<JToken>("/0/private/Balance", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks } });
             JToken result = CheckError(token);

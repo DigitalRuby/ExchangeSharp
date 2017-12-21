@@ -320,6 +320,18 @@ namespace ExchangeSharp
             }
         }
 
+        public override Dictionary<string, decimal> GetAmounts()
+        {
+            JToken token = MakeJsonRequest<JToken>("/account", BaseUrlPrivate, GetNoncePayload());
+            CheckError(token);
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (JToken balance in token["balances"])
+            {
+                balances[(string)balance["asset"]] = (decimal)balance["free"] + (decimal)balance["locked"];
+            }
+            return balances;
+        }
+
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             JToken token = MakeJsonRequest<JToken>("/account", BaseUrlPrivate, GetNoncePayload());

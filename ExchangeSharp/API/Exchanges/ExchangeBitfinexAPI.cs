@@ -267,6 +267,25 @@ namespace ExchangeSharp
             }
         }
 
+        public override Dictionary<string, decimal> GetAmounts()
+        {
+            Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
+            CheckError(obj);
+            foreach (JToken token in obj)
+            {
+                if ((string)token["type"] == "exchange")
+                {
+                    decimal amount = (decimal)token["amount"];
+                    if (amount > 0m)
+                    {
+                        lookup[(string)token["currency"]] = amount;
+                    }
+                }
+            }
+            return lookup;
+        }
+
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
@@ -274,10 +293,13 @@ namespace ExchangeSharp
             CheckError(obj);
             foreach (JToken token in obj)
             {
-                decimal amount = (decimal)token["available"];
-                if (amount > 0m)
+                if ((string)token["type"] == "exchange")
                 {
-                    lookup[(string)token["currency"]] = amount;
+                    decimal amount = (decimal)token["available"];
+                    if (amount > 0m)
+                    {
+                        lookup[(string)token["currency"]] = amount;
+                    }
                 }
             }
             return lookup;

@@ -321,6 +321,26 @@ namespace ExchangeSharp
             }
         }
 
+        public override Dictionary<string, decimal> GetAmounts()
+        {
+            Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            string url = "/account/getbalances";
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
+            JToken result = CheckError(obj);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    decimal amount = token["Balance"].Value<decimal>();
+                    if (amount > 0m)
+                    {
+                        currencies.Add(token["Currency"].Value<string>(), amount);
+                    }
+                }
+            }
+            return currencies;
+        }
+
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);

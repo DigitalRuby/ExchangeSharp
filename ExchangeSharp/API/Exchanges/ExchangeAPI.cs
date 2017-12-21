@@ -212,10 +212,22 @@ namespace ExchangeSharp
         public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate));
 
         /// <summary>
+        /// Get total amounts, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Dictionary of symbols and amounts</returns>
+        public virtual Dictionary<string, decimal> GetAmounts() { throw new NotSupportedException(); }
+
+        /// <summary>
+        /// ASYNC - Get total amounts, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Dictionary of symbols and amounts</returns>
+        public Task<Dictionary<string, decimal>> GetAmountsAsync() => Task.Factory.StartNew(() => GetAmounts());
+
+        /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Symbol / amount dictionary</returns>
-        public virtual Dictionary<string, decimal> GetAmountsAvailableToTrade() { throw new NotImplementedException(); }
+        public virtual Dictionary<string, decimal> GetAmountsAvailableToTrade() { return GetAmounts(); }
 
         /// <summary>
         /// ASYNC - Get amounts available to trade, symbol / amount dictionary

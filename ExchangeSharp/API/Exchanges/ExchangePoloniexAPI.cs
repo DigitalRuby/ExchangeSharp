@@ -337,6 +337,21 @@ namespace ExchangeSharp
             }
         }
 
+        public override Dictionary<string, decimal> GetAmounts()
+        {
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            JToken result = MakePrivateAPIRequest("returnCompleteBalances");
+            foreach (JProperty child in result.Children())
+            {
+                decimal amount = (decimal)child.Value["available"];
+                if (amount > 0m)
+                {
+                    amounts[child.Name] = amount;
+                }
+            }
+            return amounts;
+        }
+
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
