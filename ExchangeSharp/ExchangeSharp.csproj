@@ -68,7 +68,7 @@
     <Compile Include="API\Exchanges\ExchangeLogger.cs" />
     <Compile Include="API\Exchanges\ExchangePoloniexAPI.cs" />
     <Compile Include="API\Exchanges\IExchangeAPI.cs" />
-    <Compile Include="Model\ExchangeOrder.cs" />
+    <Compile Include="Model\ExchangeOrderResult.cs" />
     <Compile Include="Model\MarketCandle.cs" />
     <Compile Include="Model\MarketSummary.cs" />
     <Compile Include="Console\ExchangeSharpConsole.cs" />

@@ -340,11 +340,22 @@ namespace ExchangeSharp
 
         public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
         {
-            if (string.IsNullOrWhiteSpace(symbol))
+            string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty);
+            if (!ReadCache<ExchangeOrderResult[]>(cacheKey, out ExchangeOrderResult[] orders))
             {
-                return GetOrderDetailsInternalV2("/auth/r/orders/hist", symbol);
+                if (string.IsNullOrWhiteSpace(symbol))
+                {
+                    orders = GetOrderDetailsInternalV2("/auth/r/orders/hist", symbol).ToArray();
+                }
+                else
+                {
+                    orders = GetOrderDetailsInternalV2("/auth/r/orders/t" + NormalizeSymbol(symbol) + "/hist", symbol).ToArray();
+                }
+
+                // Bitfinex gets angry if this is called more than once a minute
+                WriteCache(cacheKey, TimeSpan.FromMinutes(2.0), orders);
             }
-            return GetOrderDetailsInternalV2("/auth/r/orders/t" + NormalizeSymbol(symbol) + "/hist", symbol);
+            return orders;
         }
 
         public override void CancelOrder(string orderId)
