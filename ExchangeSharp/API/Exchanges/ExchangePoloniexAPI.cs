@@ -316,7 +316,11 @@ namespace ExchangeSharp
             JToken result = MakePrivateAPIRequest("returnBalances");
             foreach (JProperty child in result.Children())
             {
-                amounts[child.Name] = (decimal)child.Value;
+                decimal amount = (decimal)child.Value;
+                if (amount > 0m)
+                {
+                    amounts[child.Name] = amount;
+                }
             }
             return amounts;
         }

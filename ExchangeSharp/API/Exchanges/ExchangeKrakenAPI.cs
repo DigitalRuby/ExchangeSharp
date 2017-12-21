@@ -309,7 +309,11 @@ namespace ExchangeSharp
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
             foreach (JProperty prop in result)
             {
-                balances[prop.Name] = (decimal)prop.Value;
+                decimal amount = (decimal)prop.Value;
+                if (amount > 0m)
+                {
+                    balances[prop.Name] = amount;
+                }
             }
             return balances;
         }

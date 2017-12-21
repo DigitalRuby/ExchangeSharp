@@ -335,7 +335,11 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    currencies.Add(token["Currency"].Value<string>(), token["Available"].Value<decimal>());
+                    decimal amount = token["Available"].Value<decimal>();
+                    if (amount > 0m)
+                    {
+                        currencies.Add(token["Currency"].Value<string>(), amount);
+                    }
                 }
             }
             return currencies;

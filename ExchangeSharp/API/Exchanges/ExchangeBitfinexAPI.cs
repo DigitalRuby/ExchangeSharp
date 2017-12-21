@@ -267,7 +267,10 @@ namespace ExchangeSharp
                     select new { Currency = token["currency"].Value<string>(), Available = token["available"].Value<decimal>() };
             foreach (var kv in q)
             {
-                lookup[kv.Currency] = kv.Available;
+                if (kv.Available > 0m)
+                {
+                    lookup[kv.Currency] = kv.Available;
+                }
             }
             return lookup;
         }

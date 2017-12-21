@@ -322,7 +322,11 @@ namespace ExchangeSharp
             JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
             foreach (JToken token in array)
             {
-                amounts[(string)token["currency"]] = (decimal)token["available"];
+                decimal amount = (decimal)token["available"];
+                if (amount > 0m)
+                {
+                    amounts[(string)token["currency"]] = amount;
+                }
             }
             return amounts;
         }
