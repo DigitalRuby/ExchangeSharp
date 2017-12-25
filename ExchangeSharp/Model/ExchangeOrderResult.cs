@@ -110,9 +110,9 @@ namespace ExchangeSharp
         /// <param name="other">Order to append</param>
         public void AppendOrderWithOrder(ExchangeOrderResult other)
         {
-            if (OrderId != other.OrderId || IsBuy != other.IsBuy)
+            if (OrderId != null && Symbol != null && (OrderId != other.OrderId || IsBuy != other.IsBuy || Symbol != other.Symbol))
             {
-                throw new InvalidOperationException("Appending orders requires order id and IsBuy to match");
+                throw new InvalidOperationException("Appending orders requires order id, symbol and is buy to match");
             }
 
             decimal tradeSum = Amount + other.Amount;
@@ -120,6 +120,10 @@ namespace ExchangeSharp
             Amount += other.Amount;
             AmountFilled += other.AmountFilled;
             AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
+            OrderId = other.OrderId;
+            OrderDate = (OrderDate == default(DateTime)) ? other.OrderDate : OrderDate;
+            Symbol = other.Symbol;
+            IsBuy = other.IsBuy;
         }
 
         /// <summary>
