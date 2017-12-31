@@ -67,20 +67,60 @@ namespace ExchangeSharp
             }
         }
 
+        public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV1(IEnumerable<string> symbols)
+        {
+            Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>();
+            foreach (string symbol in symbols.Where(s => !s.Equals("btcbtc", StringComparison.OrdinalIgnoreCase)))
+            {
+                string normalizedSymbol = NormalizeSymbol(symbol);
+                Dictionary<string, object> payload = GetNoncePayload();
+                payload["symbol"] = normalizedSymbol;
+                payload["limit_trades"] = 250;
+                JToken token = MakeJsonRequest<JToken>("/mytrades", BaseUrlV1, payload);
+                CheckError(token);
+                ExchangeOrderResult baseOrder;
+                foreach (JToken trade in token)
+                {
+                    ExchangeOrderResult subOrder = ParseTrade(trade, normalizedSymbol);
+                    if (orders.TryGetValue(subOrder.OrderId, out baseOrder))
+                    {
+                        baseOrder.AppendOrderWithOrder(subOrder);
+                    }
+                    else
+                    {
+                        orders[subOrder.OrderId] = subOrder;
+                    }
+                }
+            }
+            return orders.Values.OrderByDescending(o => o.OrderDate);
+        }
+
         public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV2(string url, string symbol = null)
         {
-            JToken result = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["limit"] = 250;
+            payload["start"] = DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
+            payload["end"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds();
+            JToken result = MakeJsonRequest<JToken>(url, null, payload);
             CheckError(result);
+            Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>();
             if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
-                    if (symbol == null || (string)token[3] == "t" + symbol.ToUpperInvariant())
+                    if (symbol == null || (string)token[1] == "t" + symbol.ToUpperInvariant())
                     {
-                        yield return ParseOrderV2(token);
+                        List<JToken> tradeList;
+                        string lookup = ((string)token[1]).Substring(1).ToLowerInvariant();
+                        if (!trades.TryGetValue(lookup, out tradeList))
+                        {
+                            tradeList = trades[lookup] = new List<JToken>();
+                        }
+                        tradeList.Add(token);
                     }
                 }
             }
+            return ParseOrderV2(trades);
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
@@ -345,11 +385,13 @@ namespace ExchangeSharp
             {
                 if (string.IsNullOrWhiteSpace(symbol))
                 {
-                    orders = GetOrderDetailsInternalV2("/auth/r/orders/hist", symbol).ToArray();
+                    Dictionary<string, decimal> amounts = GetAmounts();
+                    orders = GetOrderDetailsInternalV1(amounts.Keys.Select(k => k + "BTC")).ToArray();
                 }
                 else
                 {
-                    orders = GetOrderDetailsInternalV2("/auth/r/orders/t" + NormalizeSymbol(symbol) + "/hist", symbol).ToArray();
+                    symbol = NormalizeSymbol(symbol);
+                    orders = GetOrderDetailsInternalV1(new string[] { symbol }).ToArray();
                 }
 
                 // Bitfinex gets angry if this is called more than once a minute
@@ -398,51 +440,67 @@ namespace ExchangeSharp
             };
         }
 
-        private ExchangeOrderResult ParseOrderV2(JToken order)
+        private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
         {
 
-/*
+            /*
             [
-                ID, 
-                GID,
-                CID,
-                SYMBOL, 
-                MTS_CREATE, 
-                MTS_UPDATE, 
-                AMOUNT, 
-                AMOUNT_ORIG, 
-                TYPE,
-                TYPE_PREV,
-                _PLACEHOLDER,
-                _PLACEHOLDER,
-                FLAGS,
-                STATUS,
-                _PLACEHOLDER,
-                _PLACEHOLDER,
-                PRICE,
-                PRICE_AVG,
-                PRICE_TRAILING,
-                PRICE_AUX_LIMIT,
-                _PLACEHOLDER,
-                _PLACEHOLDER,
-                _PLACEHOLDER,
-                NOTIFY, 
-                HIDDEN, 
-                PLACED_ID,
-                ...
+            ID	integer	Trade database id
+            PAIR	string	Pair (BTCUSD, …)
+            MTS_CREATE	integer	Execution timestamp
+            ORDER_ID	integer	Order id
+            EXEC_AMOUNT	float	Positive means buy, negative means sell
+            EXEC_PRICE	float	Execution price
+            ORDER_TYPE	string	Order type
+            ORDER_PRICE	float	Order price
+            MAKER	int	1 if true, 0 if false
+            FEE	float	Fee
+            FEE_CURRENCY	string	Fee currency
             ],
-*/
+            */
 
+            foreach (var kv in trades)
+            {
+                ExchangeOrderResult order = new ExchangeOrderResult { Result = ExchangeAPIOrderResult.Filled };
+                foreach (JToken trade in kv.Value)
+                {
+                    ExchangeOrderResult append = new ExchangeOrderResult { Symbol = kv.Key, OrderId = (string)trade[3] };
+                    append.Amount = append.AmountFilled = Math.Abs((decimal)trade[4]);
+                    append.AveragePrice = (decimal)trade[5];
+                    append.IsBuy = (decimal)trade[4] >= 0m;
+                    append.OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)trade[2]);
+                    append.OrderId = (string)trade[3];
+                    order.AppendOrderWithOrder(append);
+                }
+                yield return order;
+            }
+        }
+
+        private ExchangeOrderResult ParseTrade(JToken trade, string symbol)
+        {
+            /*
+            [{
+              "price":"246.94",
+              "amount":"1.0",
+              "timestamp":"1444141857.0",
+              "exchange":"",
+              "type":"Buy",
+              "fee_currency":"USD",
+              "fee_amount":"-0.49388",
+              "tid":11970839,
+              "order_id":446913929
+            }]
+            */
             return new ExchangeOrderResult
             {
-                Amount = (decimal)order[7],
-                AmountFilled = (decimal)order[7],
-                AveragePrice = (decimal)order[17],
-                IsBuy = (decimal)order[6] >= 0m,
-                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)order[4]),
-                OrderId = (string)order[0],
+                Amount = (decimal)trade["amount"],
+                AmountFilled = (decimal)trade["amount"],
+                AveragePrice = (decimal)trade["price"],
+                IsBuy = (string)trade["type"] == "Buy",
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((double)trade["timestamp"]),
+                OrderId = (string)trade["order_id"],
                 Result = ExchangeAPIOrderResult.Filled,
-                Symbol = ((string)order[3]).Substring(1).ToLowerInvariant()
+                Symbol = symbol
             };
         }
     }
