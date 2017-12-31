@@ -110,7 +110,7 @@ namespace ExchangeSharp
         /// <param name="other">Order to append</param>
         public void AppendOrderWithOrder(ExchangeOrderResult other)
         {
-            if (OrderId != other.OrderId || IsBuy != other.IsBuy)
+            if (OrderId != null && (OrderId != other.OrderId || IsBuy != other.IsBuy))
             {
                 throw new InvalidOperationException("Appending orders requires order id and IsBuy to match");
             }

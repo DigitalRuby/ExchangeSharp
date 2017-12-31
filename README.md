@@ -1,6 +1,7 @@
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
 
 The following cryptocurrency exchanges are supported:
+
 - Binance (public, basic private)
 - Bitfinex (public, basic private)
 - Bithumb (public)
@@ -53,16 +54,13 @@ Donation addresses...
 
 Paypal: jjxtra@gmail.com (pick the send to friends and family with bank account option to avoid fees)
 
-Bitcoin: 1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG
-
-Ethereum: 0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433
-
-Litecoin: LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i
-
-Vertcoin: Vcu6Fqh8MGiLEyyifNSCgoCuQShTijzwFx
+Bitcoin: 1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG  
+Ethereum: 0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433  
+Litecoin: LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i  
+Vertcoin: Vcu6Fqh8MGiLEyyifNSCgoCuQShTijzwFx  
 
 Thanks for visiting!
 
-Jeff Johnson
-jjxtra@gmail.com
-http://www.digitalruby.com
+Jeff Johnson  
+jjxtra@gmail.com  
+http://www.digitalruby.com  
