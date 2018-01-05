@@ -306,7 +306,7 @@ namespace ExchangeSharp
         {
             JToken token = MakeJsonRequest<JToken>("/0/private/Balance", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks } });
             JToken result = CheckError(token);
-            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty prop in result)
             {
                 decimal amount = (decimal)prop.Value;

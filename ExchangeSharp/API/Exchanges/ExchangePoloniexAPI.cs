@@ -106,7 +106,7 @@ namespace ExchangeSharp
 
         private void ParseOrderFromTrades(List<ExchangeOrderResult> orders, JArray trades, string symbol)
         {
-            Dictionary<string, ExchangeOrderResult> orderLookup = new Dictionary<string, ExchangeOrderResult>();
+            Dictionary<string, ExchangeOrderResult> orderLookup = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken token in trades)
             {
                 // { "globalTradeID": 25129732, "tradeID": "6325758", "date": "2016-04-05 08:08:40", "rate": "0.02565498", "amount": "0.10000000", "total": "0.00256549", "fee": "0.00200000", "orderNumber": "34225313575", "type": "sell", "category": "exchange" }
@@ -339,7 +339,7 @@ namespace ExchangeSharp
 
         public override Dictionary<string, decimal> GetAmounts()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JToken result = MakePrivateAPIRequest("returnCompleteBalances");
             foreach (JProperty child in result.Children())
             {
@@ -354,7 +354,7 @@ namespace ExchangeSharp
 
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JToken result = MakePrivateAPIRequest("returnBalances");
             foreach (JProperty child in result.Children())
             {

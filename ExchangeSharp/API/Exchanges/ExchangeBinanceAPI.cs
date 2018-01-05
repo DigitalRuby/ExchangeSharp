@@ -324,7 +324,7 @@ namespace ExchangeSharp
         {
             JToken token = MakeJsonRequest<JToken>("/account", BaseUrlPrivate, GetNoncePayload());
             CheckError(token);
-            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
                 balances[(string)balance["asset"]] = (decimal)balance["free"] + (decimal)balance["locked"];
@@ -336,7 +336,7 @@ namespace ExchangeSharp
         {
             JToken token = MakeJsonRequest<JToken>("/account", BaseUrlPrivate, GetNoncePayload());
             CheckError(token);
-            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
                 balances[(string)balance["asset"]] = (decimal)balance["free"];

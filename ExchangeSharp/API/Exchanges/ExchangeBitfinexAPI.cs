@@ -69,7 +69,7 @@ namespace ExchangeSharp
 
         public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV1(IEnumerable<string> symbols, DateTime? afterDate)
         {
-            Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>();
+            Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
             foreach (string symbol in symbols.Where(s => !s.Equals("btcbtc", StringComparison.OrdinalIgnoreCase)))
             {
                 string normalizedSymbol = NormalizeSymbol(symbol);
@@ -106,7 +106,7 @@ namespace ExchangeSharp
             payload["end"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds();
             JToken result = MakeJsonRequest<JToken>(url, null, payload);
             CheckError(result);
-            Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>();
+            Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
             if (result is JArray array)
             {
                 foreach (JToken token in array)

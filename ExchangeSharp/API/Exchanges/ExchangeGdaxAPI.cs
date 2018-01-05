@@ -306,7 +306,7 @@ namespace ExchangeSharp
 
         public override Dictionary<string, decimal> GetAmounts()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
             foreach (JToken token in array)
             {
@@ -321,7 +321,7 @@ namespace ExchangeSharp
 
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
             foreach (JToken token in array)
             {

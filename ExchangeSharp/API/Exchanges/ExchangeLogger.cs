@@ -261,7 +261,7 @@ namespace ExchangeSharp
         public static IEnumerable<Dictionary<string, ExchangeTicker>> ReadMultiTickers(string path)
         {
             int count;
-            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>();
+            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
             ExchangeTicker ticker;
             string key;
             using (BinaryReader tickerReader = ExchangeLogger.OpenLogReader(path))
