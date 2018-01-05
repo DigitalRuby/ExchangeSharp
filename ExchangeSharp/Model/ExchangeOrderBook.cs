@@ -125,5 +125,49 @@ namespace ExchangeSharp
                 Bids.Add(new ExchangeOrderPrice(reader));
             }
         }
+
+        /// <summary>
+        /// Get the price necessary to buy at to acquire an equivelant amount of currency from the order book, i.e. amount of 2 BTC could acquire x amount of other currency by buying at a certain BTC price.
+        /// You would place a limit buy order for buyAmount of alt coin at buyPrice.
+        /// </summary>
+        /// <param name="amount">Amount of currency to trade, i.e. you have 0.1 BTC and want to buy an equivelant amount of alt coins</param>
+        /// <param name="buyAmount">The amount of new currency that will be acquired</param>
+        /// <param name="buyPrice">The price necessary to buy at to acquire buyAmount of currency</param>
+        public void GetPriceToBuy(decimal amount, out decimal buyAmount, out decimal buyPrice)
+        {
+            ExchangeOrderPrice ask;
+            decimal spent;
+            buyAmount = 0m;
+            buyPrice = 0m;
+
+            for (int i = 0; i < Asks.Count && amount > 0m; i++)
+            {
+                ask = Asks[i];
+                spent = Math.Min(amount, ask.Amount * ask.Price);
+                buyAmount += spent / ask.Price;
+                buyPrice = ask.Price;
+                amount -= spent;
+            }
+        }
+
+        /// <summary>
+        /// Get the price necessary to sell amount currency. You would place a limit sell order for amount at the returned price to sell all of the amount.
+        /// </summary>
+        /// <param name="amount">Amount to sell</param>
+        /// <returns>The price necessary to sell at to sell amount currency</returns>
+        public decimal GetPriceToSell(decimal amount)
+        {
+            ExchangeOrderPrice bid;
+            decimal sellPrice = 0m;
+
+            for (int i = 0; i < Bids.Count && amount > 0m; i++)
+            {
+                bid = Bids[i];
+                sellPrice = bid.Price;
+                amount -= bid.Amount;
+            }
+
+            return sellPrice;
+        }
     }
 }
