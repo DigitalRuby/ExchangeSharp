@@ -393,7 +393,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             if (string.IsNullOrWhiteSpace(symbol))
@@ -402,7 +402,9 @@ namespace ExchangeSharp
             }
             JToken result;
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            result = MakePrivateAPIRequest("returnTradeHistory", "currencyPair", symbol, "limit", 10000, "start", (long)DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeSeconds());
+            afterDate = afterDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0));
+            long afterTimestamp = (long)afterDate.Value.UnixTimestampFromDateTimeSeconds();
+            result = MakePrivateAPIRequest("returnTradeHistory", "currencyPair", symbol, "limit", 10000, "start", afterTimestamp);
             CheckError(result);
             if (symbol != "all")
             {

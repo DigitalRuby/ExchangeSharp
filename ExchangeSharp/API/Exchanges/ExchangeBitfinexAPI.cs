@@ -67,7 +67,7 @@ namespace ExchangeSharp
             }
         }
 
-        public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV1(IEnumerable<string> symbols)
+        public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV1(IEnumerable<string> symbols, DateTime? afterDate)
         {
             Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>();
             foreach (string symbol in symbols.Where(s => !s.Equals("btcbtc", StringComparison.OrdinalIgnoreCase)))
@@ -76,13 +76,16 @@ namespace ExchangeSharp
                 Dictionary<string, object> payload = GetNoncePayload();
                 payload["symbol"] = normalizedSymbol;
                 payload["limit_trades"] = 250;
+                if (afterDate != null)
+                {
+                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds().ToString();
+                }
                 JToken token = MakeJsonRequest<JToken>("/mytrades", BaseUrlV1, payload);
                 CheckError(token);
-                ExchangeOrderResult baseOrder;
                 foreach (JToken trade in token)
                 {
                     ExchangeOrderResult subOrder = ParseTrade(trade, normalizedSymbol);
-                    if (orders.TryGetValue(subOrder.OrderId, out baseOrder))
+                    if (orders.TryGetValue(subOrder.OrderId, out ExchangeOrderResult baseOrder))
                     {
                         baseOrder.AppendOrderWithOrder(subOrder);
                     }
@@ -378,20 +381,20 @@ namespace ExchangeSharp
             return GetOrderDetailsInternal("/orders", symbol);
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
-            string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty);
+            string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty) + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToString());
             if (!ReadCache<ExchangeOrderResult[]>(cacheKey, out ExchangeOrderResult[] orders))
             {
                 if (string.IsNullOrWhiteSpace(symbol))
                 {
                     Dictionary<string, decimal> amounts = GetAmounts();
-                    orders = GetOrderDetailsInternalV1(amounts.Keys.Select(k => k + "BTC")).ToArray();
+                    orders = GetOrderDetailsInternalV1(amounts.Keys.Select(k => k + "BTC"), afterDate).ToArray();
                 }
                 else
                 {
                     symbol = NormalizeSymbol(symbol);
-                    orders = GetOrderDetailsInternalV1(new string[] { symbol }).ToArray();
+                    orders = GetOrderDetailsInternalV1(new string[] { symbol }, afterDate).ToArray();
                 }
 
                 // Bitfinex gets angry if this is called more than once a minute

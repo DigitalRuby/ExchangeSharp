@@ -308,8 +308,9 @@ namespace ExchangeSharp
         /// Get the details of all completed orders
         /// </summary>
         /// <param name="symbol">Symbol to get completed orders for or null for all</param>
+        /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null);
+        IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null);
 
         /// <summary>
         /// ASYNC - Get the details of all completed orders

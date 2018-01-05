@@ -396,14 +396,20 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             string url = "/account/getorderhistory" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
             foreach (JToken token in result.Children())
             {
-                yield return ParseOrder(token);
+                ExchangeOrderResult order = ParseOrder(token);
+
+                // Bittrex v1.1 API call has no timestamp parameter, sigh...
+                if (afterDate == null || order.OrderDate >= afterDate.Value)
+                {
+                    yield return order;
+                }
             }
         }
 

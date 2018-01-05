@@ -395,7 +395,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
@@ -403,6 +403,10 @@ namespace ExchangeSharp
             }
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = NormalizeSymbol(symbol);
+            if (afterDate != null)
+            {
+                payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+            }
             JToken token = MakeJsonRequest<JToken>("/allOrders", BaseUrlPrivate, payload);
             CheckError(token);
             foreach (JToken order in token)

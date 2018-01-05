@@ -367,13 +367,17 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             JArray array = MakeJsonRequest<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
             foreach (JToken token in array)
             {
-                yield return ParseOrder(token);
+                ExchangeOrderResult result = ParseOrder(token);
+                if (afterDate == null || result.OrderDate >= afterDate)
+                {
+                    yield return result;
+                }
             }
         }
 

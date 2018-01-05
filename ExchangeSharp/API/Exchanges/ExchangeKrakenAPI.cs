@@ -386,7 +386,7 @@ namespace ExchangeSharp
             return base.GetOpenOrderDetails(symbol);
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null)
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             // TODO: Implement
             return base.GetCompletedOrderDetails(symbol);
