@@ -48,7 +48,7 @@ Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status
 
 I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jjxtra@gmail.com).
 
-If this project has helped you in any way, donations are always appreciated. I maintain this code for free and for the glory of the crypto revolution.
+If this project has helped you in any way or you need support / questions answered, donations are always appreciated. I maintain this code for free and for the glory of the crypto revolution.
 
 Donation addresses...
 
