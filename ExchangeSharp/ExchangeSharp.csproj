@@ -71,13 +71,6 @@
     <Compile Include="Model\ExchangeOrderResult.cs" />
     <Compile Include="Model\MarketCandle.cs" />
     <Compile Include="Model\MarketSummary.cs" />
-    <Compile Include="Console\ExchangeSharpConsole.cs" />
-    <Compile Include="Console\ExchangeSharpConsole_Convert.cs" />
-    <Compile Include="Console\ExchangeSharpConsole_Export.cs" />
-    <Compile Include="Console\ExchangeSharpConsole_Help.cs" />
-    <Compile Include="Console\ExchangeSharpConsole_Stats.cs" />
-    <Compile Include="Console\ExchangeSharpConsole_Example.cs" />
-    <Compile Include="Console\ExchangeSharpConsole_Tests.cs" />
     <Compile Include="CryptoUtility.cs" />
     <Compile Include="Model\ExchangeInfo.cs" />
     <Compile Include="Model\ExchangeOrderBook.cs" />

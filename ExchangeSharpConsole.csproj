@@ -59,6 +59,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExchangeSharpConsole.cs" />
+    <Compile Include="ExchangeSharpConsole_Convert.cs" />
+    <Compile Include="ExchangeSharpConsole_Example.cs" />
+    <Compile Include="ExchangeSharpConsole_Export.cs" />
+    <Compile Include="ExchangeSharpConsole_Help.cs" />
+    <Compile Include="ExchangeSharpConsole_Stats.cs" />
+    <Compile Include="ExchangeSharpConsole_Tests.cs" />
     <Compile Include="ExchangeSharpConsoleMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
