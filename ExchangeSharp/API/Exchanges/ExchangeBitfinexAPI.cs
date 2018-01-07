@@ -50,54 +50,6 @@ namespace ExchangeSharp
             return symbol?.Replace("-", string.Empty).ToLowerInvariant();
         }
 
-        public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternal(string url, string symbol = null)
-        {
-            symbol = NormalizeSymbolV1(symbol);
-            JToken result = MakeJsonRequest<JToken>(url, BaseUrlV1, GetNoncePayload());
-            CheckError(result);
-            if (result is JArray array)
-            {
-                foreach (JToken token in array)
-                {
-                    if (symbol == null || (string)token["symbol"] == symbol)
-                    {
-                        yield return ParseOrder(token);
-                    }
-                }
-            }
-        }
-
-        public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV1(IEnumerable<string> symbols, DateTime? afterDate)
-        {
-            Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
-            foreach (string symbol in symbols.Where(s => !s.Equals("btcbtc", StringComparison.OrdinalIgnoreCase)))
-            {
-                string normalizedSymbol = NormalizeSymbol(symbol);
-                Dictionary<string, object> payload = GetNoncePayload();
-                payload["symbol"] = normalizedSymbol;
-                payload["limit_trades"] = 250;
-                if (afterDate != null)
-                {
-                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds().ToString();
-                }
-                JToken token = MakeJsonRequest<JToken>("/mytrades", BaseUrlV1, payload);
-                CheckError(token);
-                foreach (JToken trade in token)
-                {
-                    ExchangeOrderResult subOrder = ParseTrade(trade, normalizedSymbol);
-                    if (orders.TryGetValue(subOrder.OrderId, out ExchangeOrderResult baseOrder))
-                    {
-                        baseOrder.AppendOrderWithOrder(subOrder);
-                    }
-                    else
-                    {
-                        orders[subOrder.OrderId] = subOrder;
-                    }
-                }
-            }
-            return orders.Values.OrderByDescending(o => o.OrderDate);
-        }
-
         public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV2(string url, string symbol = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
@@ -388,8 +340,8 @@ namespace ExchangeSharp
             {
                 if (string.IsNullOrWhiteSpace(symbol))
                 {
-                    Dictionary<string, decimal> amounts = GetAmounts();
-                    orders = GetOrderDetailsInternalV1(amounts.Keys.Select(k => k + "BTC"), afterDate).ToArray();
+                    var symbols = GetSymbols().Where(s => s.IndexOf("usd", StringComparison.OrdinalIgnoreCase) < 0 && s.IndexOf("btc", StringComparison.OrdinalIgnoreCase) >= 0);
+                    orders = GetOrderDetailsInternalV1(symbols, afterDate).ToArray();
                 }
                 else
                 {
@@ -409,6 +361,57 @@ namespace ExchangeSharp
             payload["order_id"] = long.Parse(orderId);
             JObject result = MakeJsonRequest<JObject>("/order/cancel", BaseUrlV1, payload);
             CheckError(result);
+        }
+
+        private IEnumerable<ExchangeOrderResult> GetOrderDetailsInternal(string url, string symbol = null)
+        {
+            symbol = NormalizeSymbolV1(symbol);
+            JToken result = MakeJsonRequest<JToken>(url, BaseUrlV1, GetNoncePayload());
+            CheckError(result);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    if (symbol == null || (string)token["symbol"] == symbol)
+                    {
+                        yield return ParseOrder(token);
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV1(IEnumerable<string> symbols, DateTime? afterDate)
+        {
+            Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
+            foreach (string symbol in symbols)
+            {
+                string normalizedSymbol = NormalizeSymbol(symbol);
+                Dictionary<string, object> payload = GetNoncePayload();
+                payload["symbol"] = normalizedSymbol;
+                payload["limit_trades"] = 250;
+                if (afterDate != null)
+                {
+                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds().ToString();
+                }
+                JToken token = MakeJsonRequest<JToken>("/mytrades", BaseUrlV1, payload);
+                CheckError(token);
+                foreach (JToken trade in token)
+                {
+                    ExchangeOrderResult subOrder = ParseTrade(trade, normalizedSymbol);
+                    lock (orders)
+                    {
+                        if (orders.TryGetValue(subOrder.OrderId, out ExchangeOrderResult baseOrder))
+                        {
+                            baseOrder.AppendOrderWithOrder(subOrder);
+                        }
+                        else
+                        {
+                            orders[subOrder.OrderId] = subOrder;
+                        }
+                    }
+                }
+            }
+            return orders.Values.OrderByDescending(o => o.OrderDate);
         }
 
         private Dictionary<string, object> GetNoncePayload()
