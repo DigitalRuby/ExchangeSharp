@@ -19,7 +19,7 @@ using System.Threading;
 
 using ExchangeSharp;
 
-namespace ExchangeSharp
+namespace ExchangeSharpConsoleApp
 {
     public static partial class ExchangeSharpConsole
     {

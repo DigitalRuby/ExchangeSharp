@@ -13,14 +13,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
-namespace ExchangeSharp
+namespace ExchangeSharpConsoleApp
 {
-    public static partial class ExchangeSharpConsole
+	public static partial class ExchangeSharpConsole
     {
         public static void RunShowHelp(Dictionary<string, string> dict)
         {
