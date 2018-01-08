@@ -251,8 +251,7 @@ namespace ExchangeSharp
             string baseUrl = "/public/getmarkethistory?market=" + symbol;
             JObject obj = MakeJsonRequest<JObject>(baseUrl);
             JToken result = CheckError(obj);
-            JArray array = result as JArray;
-            if (array != null && array.Count != 0)
+            if (result is JArray array && array.Count != 0)
             {
                 foreach (JToken token in array)
                 {
@@ -298,25 +297,27 @@ namespace ExchangeSharp
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = MakeJsonRequest<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
             result = CheckError(result);
-            JArray array = result as JArray;
-            foreach (JToken jsonCandle in array)
+            if (result is JArray array)
             {
-                MarketCandle candle = new MarketCandle
+                foreach (JToken jsonCandle in array)
                 {
-                    ClosePrice = (decimal)jsonCandle["C"],
-                    ExchangeName = Name,
-                    HighPrice = (decimal)jsonCandle["H"],
-                    LowPrice = (decimal)jsonCandle["L"],
-                    Name = symbol,
-                    OpenPrice = (decimal)jsonCandle["O"],
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = (DateTime)jsonCandle["T"],
-                    VolumePrice = (double)jsonCandle["BV"],
-                    VolumeQuantity = (double)jsonCandle["V"]
-                };
-                if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
-                {
-                    yield return candle;
+                    MarketCandle candle = new MarketCandle
+                    {
+                        ClosePrice = (decimal)jsonCandle["C"],
+                        ExchangeName = Name,
+                        HighPrice = (decimal)jsonCandle["H"],
+                        LowPrice = (decimal)jsonCandle["L"],
+                        Name = symbol,
+                        OpenPrice = (decimal)jsonCandle["O"],
+                        PeriodSeconds = periodSeconds,
+                        Timestamp = (DateTime)jsonCandle["T"],
+                        VolumePrice = (double)jsonCandle["BV"],
+                        VolumeQuantity = (double)jsonCandle["V"]
+                    };
+                    if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
+                    {
+                        yield return candle;
+                    }
                 }
             }
         }
