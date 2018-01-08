@@ -391,7 +391,8 @@ namespace ExchangeSharp
                 payload["limit_trades"] = 250;
                 if (afterDate != null)
                 {
-                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds().ToString();
+                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeSeconds().ToString(CultureInfo.InvariantCulture);
+                    payload["until"] = DateTime.UtcNow.UnixTimestampFromDateTimeSeconds().ToString(CultureInfo.InvariantCulture);
                 }
                 JToken token = MakeJsonRequest<JToken>("/mytrades", BaseUrlV1, payload);
                 CheckError(token);
