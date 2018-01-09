@@ -32,6 +32,11 @@ namespace ExchangeSharp
         public string BaseUrlPrivate { get; set; } = "https://www.binance.com/api/v3";
         public override string Name => ExchangeName.Binance;
 
+        /// <summary>
+        /// Request is valid as long as it is processed within this amount of milliseconds
+        /// </summary>
+        public int RequestWindowMilliseconds { get; set; } = 60000;
+
         public override string NormalizeSymbol(string symbol)
         {
             if (symbol != null)
@@ -86,7 +91,8 @@ namespace ExchangeSharp
         {
             return new Dictionary<string, object>
             {
-                { "nonce", ((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()).ToString() }
+                { "nonce", ((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()).ToString() },
+                { "recvWindow", RequestWindowMilliseconds }
             };
         }
 
@@ -95,7 +101,7 @@ namespace ExchangeSharp
             /*
               "symbol": "IOTABTC",
               "orderId": 1,
-              "clientOrderId": "abABsrARGZfl5wwdkYrsx1",
+              "clientOrderId": "12345",
               "transactTime": 1510629334993,
               "price": "1.00000000",
               "origQty": "1.00000000",
