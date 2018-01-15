@@ -1,4 +1,4 @@
-I have a [BUG REPORT] or [FEATURE REQUEST] (send questions to email)
+I have a [BUG REPORT] or [FEATURE REQUEST] (send questions to email exchangesharp@digitalruby.com)
 
 Details:
 
