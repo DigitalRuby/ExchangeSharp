@@ -1,4 +1,4 @@
-I have a [BUG REPORT] or [FEATURE REQUEST] or [QUESTION].
+I have a [BUG REPORT] or [FEATURE REQUEST] (send questions to email)
 
 Details:
 
