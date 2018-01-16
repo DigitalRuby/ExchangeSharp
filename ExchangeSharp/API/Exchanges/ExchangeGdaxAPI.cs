@@ -19,7 +19,7 @@ using System.Net;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -193,8 +193,8 @@ namespace ExchangeSharp
                 url = baseUrl;
                 if (sinceDateTime != null)
                 {
-                    url += "&start=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture));
-                    url += "&end=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s", System.Globalization.CultureInfo.InvariantCulture));
+                    url += "&start=" + HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture));
+                    url += "&end=" + HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s", System.Globalization.CultureInfo.InvariantCulture));
                 }
                 tradeChunk = MakeJsonRequest<decimal[][]>(url);
                 if (tradeChunk == null || tradeChunk.Length == 0)

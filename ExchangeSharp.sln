@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+VisualStudioVersion = 15.0.27130.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpConsole", "ExchangeSharpConsole.csproj", "{B2544FEB-77E4-4056-90A5-C8CD09D203C5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharp", "ExchangeSharp\ExchangeSharp.csproj", "{FDDED71D-96A2-4914-BF48-796A63263559}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpForms", "ExchangeSharpForms\ExchangeSharpForms.csproj", "{B46218A9-3B44-457E-B1DD-8BBDF862A569}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
