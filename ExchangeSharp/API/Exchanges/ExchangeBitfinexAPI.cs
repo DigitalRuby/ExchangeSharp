@@ -65,9 +65,8 @@ namespace ExchangeSharp
                 {
                     if (symbol == null || (string)token[1] == "t" + symbol.ToUpperInvariant())
                     {
-                        List<JToken> tradeList;
                         string lookup = ((string)token[1]).Substring(1).ToLowerInvariant();
-                        if (!trades.TryGetValue(lookup, out tradeList))
+                        if (!trades.TryGetValue(lookup, out List<JToken> tradeList))
                         {
                             tradeList = trades[lookup] = new List<JToken>();
                         }
