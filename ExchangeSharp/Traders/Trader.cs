@@ -17,7 +17,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace ExchangeSharp
 {
@@ -54,9 +53,9 @@ namespace ExchangeSharp
 
         public ExchangeTradeInfo TradeInfo { get; private set; }
 
-        protected List<List<KeyValuePair<float, float>>> PlotPoints { get; set; } = new List<List<KeyValuePair<float, float>>>();
-        protected List<KeyValuePair<float, float>> BuyPrices { get; } = new List<KeyValuePair<float, float>>();
-        protected List<KeyValuePair<float, float>> SellPrices { get; } = new List<KeyValuePair<float, float>>();
+        public List<List<KeyValuePair<float, float>>> PlotPoints { get; set; } = new List<List<KeyValuePair<float, float>>>();
+        public List<KeyValuePair<float, float>> BuyPrices { get; } = new List<KeyValuePair<float, float>>();
+        public List<KeyValuePair<float, float>> SellPrices { get; } = new List<KeyValuePair<float, float>>();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected virtual void Initialize(ExchangeTradeInfo info)
@@ -201,14 +200,6 @@ namespace ExchangeSharp
                 return count;
             }
             return 0m;
-        }
-
-        public void Graph()
-        {
-            PlotForm form = new PlotForm();
-            form.WindowState = FormWindowState.Maximized;
-            form.SetPlotPoints(PlotPoints, BuyPrices, SellPrices);
-            form.ShowDialog();
         }
     }
 }

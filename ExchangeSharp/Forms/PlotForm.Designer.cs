@@ -1,4 +1,6 @@
-﻿namespace ExchangeSharp
+﻿#if HAS_WINDOWS_FORMS
+
+namespace ExchangeSharp
 {
     partial class PlotForm
     {
@@ -61,3 +63,5 @@
         private System.Windows.Forms.DataVisualization.Charting.Chart PlotChart;
     }
 }
+
+#endif
