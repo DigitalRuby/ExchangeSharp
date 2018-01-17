@@ -17,7 +17,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 
 namespace ExchangeSharp
 {
@@ -205,10 +205,12 @@ namespace ExchangeSharp
 
         public void Graph()
         {
+#if NET47
             PlotForm form = new PlotForm();
-            form.WindowState = FormWindowState.Maximized;
+            form.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             form.SetPlotPoints(PlotPoints, BuyPrices, SellPrices);
             form.ShowDialog();
+#endif
         }
     }
 }
