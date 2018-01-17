@@ -52,6 +52,10 @@ namespace ExchangeSharp
         public static IExchangeAPI GetExchangeAPI(string exchangeName)
         {
             GetExchangeAPIDictionary().TryGetValue(exchangeName, out IExchangeAPI api);
+            if (api == null)
+            {
+                throw new ArgumentException("No API available with name " + exchangeName);
+            }
             return api;
         }
 
