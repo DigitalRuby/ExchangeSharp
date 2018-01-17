@@ -68,7 +68,6 @@ namespace ExchangeSharpConsoleApp
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
             TestEncryption();
-
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {
