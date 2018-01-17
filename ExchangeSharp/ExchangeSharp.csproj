@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
+	<VersionPrefix>0.1.8.9</VersionPrefix>
+	<VersionSuffix></VersionSuffix>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -14,11 +16,11 @@
   
   <PropertyGroup>
    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+   <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
    <PackageId>DigitalRuby.ExchangeSharp</PackageId>
    <Authors>jjxtra</Authors>
-   <PackageReleaseNotes>Add timestamp to GetCompletedOrderDetails end points</PackageReleaseNotes>
+   <PackageReleaseNotes>.NET standard and .NET 4.7 dual targeting</PackageReleaseNotes>
    <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron</PackageTags>
    <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
    <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
