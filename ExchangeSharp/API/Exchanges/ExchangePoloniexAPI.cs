@@ -370,7 +370,7 @@ namespace ExchangeSharp
         public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken result = MakePrivateAPIRequest(buy ? "buy" : "sell", "currencyPair", symbol, "rate", price, "amount", amount);
+            JToken result = MakePrivateAPIRequest(buy ? "buy" : "sell", "currencyPair", symbol, "rate", price.ToString(CultureInfo.InvariantCulture.NumberFormat), "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat));
             return ParseOrder(result);
         }
 

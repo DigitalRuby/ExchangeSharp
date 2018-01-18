@@ -343,8 +343,8 @@ namespace ExchangeSharp
                 { "type", "limit" },
                 { "side", (buy ? "buy" : "sell") },
                 { "product_id", symbol },
-                { "price", price.ToString(CultureInfo.InvariantCulture) },
-                { "size", amount.ToString(CultureInfo.InvariantCulture) },
+                { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "size", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "time_in_force", "GTC" } // good til cancel
             };
             JObject result = MakeJsonRequest<JObject>("/orders", null, payload, "POST");

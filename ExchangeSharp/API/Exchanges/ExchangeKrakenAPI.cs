@@ -325,8 +325,8 @@ namespace ExchangeSharp
                 { "pair", symbol },
                 { "type", (buy ? "buy" : "sell") },
                 { "ordertype", "limit" },
-                { "price", price.ToString(CultureInfo.InvariantCulture) },
-                { "volume", amount.ToString(CultureInfo.InvariantCulture) },
+                { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "volume", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "nonce", DateTime.UtcNow.Ticks }
             };
 

@@ -241,7 +241,7 @@ namespace ExchangeSharp
                 { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", symbol },
                 { "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
-                { "price", price.ToString() },
+                { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "side", (buy ? "buy" : "sell") },
                 { "type", "exchange limit" }
             };
