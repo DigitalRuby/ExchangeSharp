@@ -339,6 +339,8 @@ namespace ExchangeSharp
             {
                 if (string.IsNullOrWhiteSpace(symbol))
                 {
+                    // HACK: Bitfinex does not provide a way to get all historical order details beyond a few days in one call, so we have to
+                    //  get the historical details one by one for each symbol.
                     var symbols = GetSymbols().Where(s => s.IndexOf("usd", StringComparison.OrdinalIgnoreCase) < 0 && s.IndexOf("btc", StringComparison.OrdinalIgnoreCase) >= 0);
                     orders = GetOrderDetailsInternalV1(symbols, afterDate).ToArray();
                 }
