@@ -258,6 +258,24 @@ namespace ExchangeSharp
         /// <param name="buy">True to buy, false to sell</param>
         /// <returns>Result</returns>
         public Task<ExchangeOrderResult> PlaceOrderAsync(string symbol, decimal amount, decimal price, bool buy) => Task.Factory.StartNew(() => PlaceOrder(symbol, amount, price, buy));
+        
+        /// <summary>
+        /// Place a market order
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="amount">Amount</param>
+        /// <param name="buy">True to buy, false to sell</param>
+        /// <returns>Result</returns>
+        public virtual ExchangeOrderResult PlaceMarketOrder(string symbol, decimal amount, bool buy) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// ASYNC - Place a market order
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="amount">Amount</param>
+        /// <param name="buy">True to buy, false to sell</param>
+        /// <returns>Result</returns>
+        public Task<ExchangeOrderResult> PlaceMarketOrderAsync(string symbol, decimal amount, bool buy) => Task.Factory.StartNew(() => PlaceMarketOrder(symbol, amount, buy));
 
         /// <summary>
         /// Get order details
