@@ -277,6 +277,24 @@ namespace ExchangeSharp
         Task<ExchangeOrderResult> PlaceOrderAsync(string symbol, decimal amount, decimal price, bool buy);
 
         /// <summary>
+        /// Place a market order
+        /// </summary>
+        /// <param name="symbol">Symbol, i.e. btcusd</param>
+        /// <param name="amount">Amount to buy or sell</param>
+        /// <param name="buy">True to buy, false to sell</param>
+        /// <returns>Order result and message string if any</returns>
+        ExchangeOrderResult PlaceMarketOrder(string symbol, decimal amount, bool buy);
+
+        /// <summary>
+        /// ASYNC - Place a market order
+        /// </summary>
+        /// <param name="symbol">Symbol, i.e. btcusd</param>
+        /// <param name="amount">Amount to buy or sell</param>
+        /// <param name="buy">True to buy, false to sell</param>
+        /// <returns>Order result and message string if any</returns>
+        Task<ExchangeOrderResult> PlaceMarketOrderAsync(string symbol, decimal amount, bool buy);
+
+        /// <summary>
         /// Get details of an order
         /// </summary>
         /// <param name="orderId">order id</param>

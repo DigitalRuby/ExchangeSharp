@@ -365,6 +365,21 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
+
+        public override ExchangeOrderResult PlaceMarketOrder(string symbol, decimal amount, bool buy)
+        {
+            symbol = NormalizeSymbol(symbol);
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["symbol"] = symbol;
+            payload["side"] = (buy ? "BUY" : "SELL");
+            payload["type"] = "MARKET";
+            payload["quantity"] = amount;
+            JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "POST");
+            CheckError(token);
+            return ParseOrder(token);
+        }
+
+
         /// <summary>
         /// Binance is really bad here, you have to pass the symbol and the orderId, WTF...
         /// </summary>
