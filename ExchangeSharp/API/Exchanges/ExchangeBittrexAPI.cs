@@ -369,7 +369,7 @@ namespace ExchangeSharp
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
             string orderId = result["uuid"].Value<string>();
-            return GetOrderDetails(orderId);
+            return new ExchangeOrderResult { Amount = amount, IsBuy = buy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
