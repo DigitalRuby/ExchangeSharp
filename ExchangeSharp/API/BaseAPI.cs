@@ -120,6 +120,17 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Load API keys from unsecure strings
+        /// </summary>
+        /// <param name="publicApiKey">Public Api Key</param>
+        /// <param name="privateApiKey">Private Api Key</param>
+        public virtual void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey)
+        {
+            PublicApiKey = publicApiKey.ToSecureString();
+            PrivateApiKey = privateApiKey.ToSecureString();
+        }
+
+        /// <summary>
         /// Make a request to a path on the API
         /// </summary>
         /// <param name="url">Path and query</param>
