@@ -43,7 +43,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Request is valid as long as it is processed within this amount of milliseconds
         /// </summary>
-        public int RequestWindowMilliseconds { get; set; } = 60000;
+        public int RequestWindowMilliseconds { get; set; } = 600000;
 
         public override string NormalizeSymbol(string symbol)
         {
