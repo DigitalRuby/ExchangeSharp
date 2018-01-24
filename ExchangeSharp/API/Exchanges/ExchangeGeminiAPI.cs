@@ -72,14 +72,6 @@ namespace ExchangeSharp
             }
         }
 
-        private Dictionary<string, object> GetNoncePayload()
-        {
-            return new Dictionary<string, object>
-            {
-                { "nonce", DateTime.UtcNow.Ticks }
-            };
-        }
-
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
@@ -237,7 +229,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
-                { "nonce", DateTime.UtcNow.Ticks },
+                { "nonce", GenerateNonce() },
                 { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", symbol },
                 { "amount", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
@@ -257,7 +249,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            JToken result = MakeJsonRequest<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks }, { "order_id", orderId } });
+            JToken result = MakeJsonRequest<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", GenerateNonce() }, { "order_id", orderId } });
             CheckError(result);
             return ParseOrder(result);
         }
@@ -265,7 +257,7 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken result = MakeJsonRequest<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks } });
+            JToken result = MakeJsonRequest<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", GenerateNonce() } });
             CheckError(result);
             if (result is JArray array)
             {
@@ -281,7 +273,7 @@ namespace ExchangeSharp
 
         public override void CancelOrder(string orderId)
         {
-            JObject result = MakeJsonRequest<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", DateTime.UtcNow.Ticks }, { "order_id", orderId } });
+            JObject result = MakeJsonRequest<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
             CheckError(result);
         }
     }

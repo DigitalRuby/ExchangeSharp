@@ -44,14 +44,6 @@ namespace ExchangeSharp
             }
         }
 
-        private Dictionary<string, object> GetNoncePayload()
-        {
-            return new Dictionary<string, object>
-            {
-                { "nonce", DateTime.UtcNow.Ticks }
-            };
-        }
-
         private void CheckError(JToken result)
         {
             if (result != null && !(result is JArray) && result["error"] != null)

@@ -31,6 +31,11 @@ namespace ExchangeSharp
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
         public override string Name => ExchangeName.Bitfinex;
 
+        public ExchangeBitfinexAPI()
+        {
+            NonceStyle = NonceStyle.UnixMilliseconds;
+        }
+
         public override string NormalizeSymbol(string symbol)
         {
             return symbol?.Replace("-", string.Empty).ToUpperInvariant();
@@ -414,12 +419,6 @@ namespace ExchangeSharp
                 }
             }
             return orders.Values.OrderByDescending(o => o.OrderDate);
-        }
-
-        private Dictionary<string, object> GetNoncePayload()
-        {
-            //return new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks.ToString() } };
-            return new Dictionary<string, object> { { "nonce", ((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()).ToString() } };
         }
 
         private void CheckError(JToken result)

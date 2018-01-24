@@ -69,14 +69,6 @@ namespace ExchangeSharp
             return order;
         }
 
-        private Dictionary<string, object> GetNoncePayload()
-        {
-            return new Dictionary<string, object>
-            {
-                { "nonce", DateTime.UtcNow.Ticks }
-            };
-        }
-
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))

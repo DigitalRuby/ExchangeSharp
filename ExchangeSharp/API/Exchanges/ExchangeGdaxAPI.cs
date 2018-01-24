@@ -91,14 +91,6 @@ namespace ExchangeSharp
             return order;
         }
 
-        private Dictionary<string, object> GetTimestampPayload()
-        {
-            return new Dictionary<string, object>
-            {
-                { "nonce", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) }
-            };
-        }
-
         protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
         {
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
@@ -137,6 +129,7 @@ namespace ExchangeSharp
         public ExchangeGdaxAPI()
         {
             RequestContentType = "application/json";
+            NonceStyle = NonceStyle.UnixSeconds;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -307,7 +300,7 @@ namespace ExchangeSharp
         public override Dictionary<string, decimal> GetAmounts()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
+            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 decimal amount = (decimal)token["balance"];
@@ -322,7 +315,7 @@ namespace ExchangeSharp
         public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetTimestampPayload());
+            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 decimal amount = (decimal)token["available"];
@@ -339,7 +332,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
-                { "nonce", CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.UtcNow) },
+                { "nonce",GenerateNonce() },
                 { "type", "limit" },
                 { "side", (buy ? "buy" : "sell") },
                 { "product_id", symbol },
@@ -353,14 +346,14 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
-            JObject obj = MakeJsonRequest<JObject>("/orders/" + orderId, null, GetTimestampPayload(), "GET");
+            JObject obj = MakeJsonRequest<JObject>("/orders/" + orderId, null, GetNoncePayload(), "GET");
             return ParseOrder(obj);
         }
 
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
-            JArray array = MakeJsonRequest<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
+            JArray array = MakeJsonRequest<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 yield return ParseOrder(token);
@@ -370,7 +363,7 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             symbol = NormalizeSymbol(symbol);
-            JArray array = MakeJsonRequest<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetTimestampPayload());
+            JArray array = MakeJsonRequest<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 ExchangeOrderResult result = ParseOrder(token);
@@ -383,7 +376,7 @@ namespace ExchangeSharp
 
         public override void CancelOrder(string orderId)
         {
-            MakeJsonRequest<JArray>("orders/" + orderId, null, GetTimestampPayload(), "DELETE");
+            MakeJsonRequest<JArray>("orders/" + orderId, null, GetNoncePayload(), "DELETE");
         }
     }
 }

@@ -32,11 +32,6 @@ namespace ExchangeSharp
         public string BaseUrlPrivate { get; set; } = "https://www.binance.com/api/v3";
         public override string Name => ExchangeName.Binance;
 
-        /// <summary>
-        /// Request is valid as long as it is processed within this amount of milliseconds
-        /// </summary>
-        public int RequestWindowMilliseconds { get; set; } = 600000;
-
         public override string NormalizeSymbol(string symbol)
         {
             if (symbol != null)
@@ -85,16 +80,6 @@ namespace ExchangeSharp
                 book.Asks.Add(new ExchangeOrderPrice { Price = (decimal)array[0], Amount = (decimal)array[1] });
             }
             return book;
-        }
-
-        private Dictionary<string, object> GetNoncePayload()
-        {
-            return new Dictionary<string, object>
-            {
-                // HACK: Binance often throws a 1000 millisecond offset error, this fixes it
-                { "nonce", (((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()) - 1000) },
-                { "recvWindow", RequestWindowMilliseconds }
-            };
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)
@@ -174,6 +159,13 @@ namespace ExchangeSharp
             return base.ProcessRequestUrl(url, payload);
         }
 
+        public ExchangeBinanceAPI()
+        {
+            // give binance plenty of room to accept requests
+            RequestWindow = TimeSpan.FromMinutes(15.0);
+            NonceStyle = NonceStyle.UnixMilliseconds;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
             if (ReadCache("GetSymbols", out List<string> symbols))
@@ -205,10 +197,6 @@ namespace ExchangeSharp
             return ParseTicker(symbol, obj);
         }
 
-        /// <summary>
-        /// Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
-        /// </summary>
-        /// <returns>Key value pair of symbol and tickers array</returns>
         public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
             string symbol;
@@ -382,11 +370,6 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
-        /// <summary>
-        /// Binance is really bad here, you have to pass the symbol and the orderId, WTF...
-        /// </summary>
-        /// <param name="orderId">Symbol,OrderId</param>
-        /// <returns>Order details</returns>
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
             Dictionary<string, object> payload = GetNoncePayload();

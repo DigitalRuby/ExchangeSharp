@@ -304,7 +304,7 @@ namespace ExchangeSharp
 
         public override Dictionary<string, decimal> GetAmounts()
         {
-            JToken token = MakeJsonRequest<JToken>("/0/private/Balance", null, new Dictionary<string, object> { { "nonce", DateTime.UtcNow.Ticks } });
+            JToken token = MakeJsonRequest<JToken>("/0/private/Balance", null, GetNoncePayload());
             JToken result = CheckError(token);
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty prop in result)
@@ -327,7 +327,7 @@ namespace ExchangeSharp
                 { "ordertype", "limit" },
                 { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "volume", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
-                { "nonce", DateTime.UtcNow.Ticks }
+                { "nonce", GenerateNonce() }
             };
 
             JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);
@@ -351,7 +351,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
-                { "nonce", DateTime.UtcNow.Ticks }
+                { "nonce", GenerateNonce() }
             };
             JObject obj = MakeJsonRequest<JObject>("/0/private/QueryOrders", null, payload);
             JToken result = CheckError(obj);
@@ -397,7 +397,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
-                { "nonce", DateTime.UtcNow.Ticks }
+                { "nonce", GenerateNonce() }
             };
             JObject obj = MakeJsonRequest<JObject>("/0/private/CancelOrder", null, payload);
             CheckError(obj);

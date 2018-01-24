@@ -71,11 +71,32 @@ namespace ExchangeSharp
         TimeSpan RequestTimeout { get; set; }
 
         /// <summary>
+        /// Request window - most services do not use this, but Binance API is an example of one that does
+        /// </summary>
+        TimeSpan RequestWindow { get; set; }
+
+        /// <summary>
+        /// Nonce style
+        /// </summary>
+        NonceStyle NonceStyle { get; }
+
+        /// <summary>
+        /// Cache policy - defaults to no cache, don't change unless you have specific needs
+        /// </summary>
+        System.Net.Cache.RequestCachePolicy CachePolicy { get; set; }
+
+        /// <summary>
+        /// Generate a nonce
+        /// </summary>
+        /// <returns>Nonce</returns>
+        object GenerateNonce();
+
+        /// <summary>
         /// Make a raw request to a path on the API
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// The encoding of payload is exchange dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
@@ -86,7 +107,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// The encoding of payload is exchange dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
@@ -98,7 +119,7 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
@@ -109,7 +130,7 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a double value, set to unix timestamp in seconds.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);

@@ -45,6 +45,27 @@ namespace ExchangeSharp
     }
 
     /// <summary>
+    /// Type of nonce styles
+    /// </summary>
+    public enum NonceStyle
+    {
+        /// <summary>
+        /// Ticks (int64)
+        /// </summary>
+        Ticks,
+
+        /// <summary>
+        /// Milliseconds (int64)
+        /// </summary>
+        UnixMilliseconds,
+
+        /// <summary>
+        /// Seconds (double)
+        /// </summary>
+        UnixSeconds
+    }
+
+    /// <summary>
     /// API base class functionality
     /// </summary>
     public abstract class BaseAPI
@@ -101,11 +122,65 @@ namespace ExchangeSharp
         public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30.0);
 
         /// <summary>
+        /// Request window - most services do not use this, but Binance API is an example of one that does
+        /// </summary>
+        public TimeSpan RequestWindow { get; set; } = TimeSpan.Zero;
+
+        /// <summary>
+        /// Type of nonce
+        /// </summary>
+        public NonceStyle NonceStyle { get; protected set; } = NonceStyle.Ticks;
+
+        /// <summary>
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
         /// </summary>
         public System.Net.Cache.RequestCachePolicy CachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
 
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
+
+        protected Dictionary<string, object> GetNoncePayload(string key = "nonce")
+        {
+            lock (this)
+            {
+                Dictionary<string, object> noncePayload = new Dictionary<string, object>
+                {
+                    ["nonce"] = GenerateNonce()
+                };
+                if (RequestWindow.Ticks > 0)
+                {
+                    noncePayload["recvWindow"] = (long)RequestWindow.TotalMilliseconds;
+                }
+                return noncePayload;
+            }
+        }
+
+        /// <summary>
+        /// Generate a nonce
+        /// </summary>
+        /// <returns>Nonce</returns>
+        public object GenerateNonce()
+        {
+            // exclusive lock, no two nonces must match
+            lock (this)
+            {
+                // ensure no two nonces match by delaying one millisecond
+                System.Threading.Tasks.Task.Delay(1);
+
+                // some API (Binance) have a problem with requests being after server time, subtract of one second fixes it
+                if (NonceStyle == NonceStyle.Ticks)
+                {
+                    return (DateTime.UtcNow.Ticks - 10000000);
+                }
+                else if (NonceStyle == NonceStyle.UnixSeconds)
+                {
+                    return (long)(DateTime.UtcNow.UnixTimestampFromDateTimeSeconds() - 1.0);
+                }
+                else
+                {
+                    return (long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds() - 1000;
+                }
+            }
+        }
 
         /// <summary>
         /// Load API keys from an encrypted file - keys will stay encrypted in memory
@@ -131,7 +206,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the API.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
@@ -193,7 +268,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the API.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
@@ -205,7 +280,7 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the API.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
@@ -220,7 +295,7 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key with a string value, set to unix timestamp in milliseconds, or seconds with decimal depending on the API.</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         public Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null) => Task.Factory.StartNew(() => MakeJsonRequest<T>(url, baseUrl, payload, requestMethod));
