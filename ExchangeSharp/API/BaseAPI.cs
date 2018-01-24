@@ -271,7 +271,7 @@ namespace ExchangeSharp
                 StringBuilder form = new StringBuilder();
                 foreach (KeyValuePair<string, object> keyValue in payload)
                 {
-                    if (keyValue.Key != null && keyValue.Value != null && includeNonce || keyValue.Key != "nonce")
+                    if (keyValue.Key != null && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
                     {
                         form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToString()));
                     }
