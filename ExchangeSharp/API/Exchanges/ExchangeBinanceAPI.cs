@@ -402,57 +402,107 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
+        private IEnumerable<ExchangeOrderResult> GetOpenOrderDetailsForAllSymbols()
+        {
+            // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            Exception ex = null;
+            string failedSymbol = null;
+            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
+            {
+                try
+                {
+                    foreach (ExchangeOrderResult order in GetOpenOrderDetails(s))
+                    {
+                        lock (orders)
+                        {
+                            orders.Add(order);
+                        }
+                    }
+                }
+                catch (Exception _ex)
+                {
+                    failedSymbol = s;
+                    ex = _ex;
+                }
+            });
+
+            if (ex != null)
+            {
+                throw new APIException("Failed to get open orders for symbol " + failedSymbol, ex);
+            }
+
+            // sort timestamp desc
+            orders.Sort((o1, o2) =>
+            {
+                return o2.OrderDate.CompareTo(o1.OrderDate);
+            });
+            foreach (ExchangeOrderResult order in orders)
+            {
+                yield return order;
+            }
+        }
+
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
-                // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
-                List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-                Exception ex = null;
-                string failedSymbol = null;
-                Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
-                {
-                    try
-                    {
-                        foreach (ExchangeOrderResult order in GetOpenOrderDetails(s))
-                        {
-                            lock (orders)
-                            {
-                                orders.Add(order);
-                            }
-                        }
-                    }
-                    catch (Exception _ex)
-                    {
-                        failedSymbol = s;
-                        ex = _ex;
-                    }
-                });
-
-                if (ex != null)
-                {
-                    throw new APIException("Failed to get open orders for symbol " + failedSymbol, ex);
-                }
-
-                // sort timestamp desc
-                orders.Sort((o1, o2) =>
-                {
-                    return o2.OrderDate.CompareTo(o1.OrderDate);
-                });
-                foreach (ExchangeOrderResult order in orders)
+                foreach (ExchangeOrderResult order in GetOpenOrderDetailsForAllSymbols())
                 {
                     yield return order;
                 }
-                yield break;
+            }
+            else
+            {
+                Dictionary<string, object> payload = GetNoncePayload();
+                payload["symbol"] = NormalizeSymbol(symbol);
+                JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
+                CheckError(token);
+                foreach (JToken order in token)
+                {
+                    yield return ParseOrder(order);
+                }
+            }
+        }
+
+        private IEnumerable<ExchangeOrderResult> GetCompletedOrdersForAllSymbols(DateTime? afterDate)
+        {
+            // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            Exception ex = null;
+            string failedSymbol = null;
+            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
+            {
+                try
+                {
+                    foreach (ExchangeOrderResult order in GetCompletedOrderDetails(s, afterDate))
+                    {
+                        lock (orders)
+                        {
+                            orders.Add(order);
+                        }
+                    }
+                }
+                catch (Exception _ex)
+                {
+                    failedSymbol = s;
+                    ex = _ex;
+                }
+            });
+
+            if (ex != null)
+            {
+                throw new APIException("Failed to get completed order details for symbol " + failedSymbol, ex);
             }
 
-            Dictionary<string, object> payload = GetNoncePayload();
-            payload["symbol"] = NormalizeSymbol(symbol);
-            JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
-            CheckError(token);
-            foreach (JToken order in token)
+            // sort timestamp desc
+            orders.Sort((o1, o2) =>
             {
-                yield return ParseOrder(order);
+                return o2.OrderDate.CompareTo(o1.OrderDate);
+            });
+            foreach (ExchangeOrderResult order in orders)
+            {
+                yield return order;
             }
         }
 
@@ -460,57 +510,25 @@ namespace ExchangeSharp
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
-                // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
-                List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-                Exception ex = null;
-                string failedSymbol = null;
-                Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
-                {
-                    try
-                    {
-                        foreach (ExchangeOrderResult order in GetCompletedOrderDetails(s, afterDate))
-                        {
-                            lock (orders)
-                            {
-                                orders.Add(order);
-                            }
-                        }
-                    }
-                    catch (Exception _ex)
-                    {
-                        failedSymbol = s;
-                        ex = _ex;
-                    }
-                });
-
-                if (ex != null)
-                {
-                    throw new APIException("Failed to get completed order details for symbol " + failedSymbol, ex);
-                }
-
-                // sort timestamp desc
-                orders.Sort((o1, o2) =>
-                {
-                    return o2.OrderDate.CompareTo(o1.OrderDate);
-                });
-                foreach (ExchangeOrderResult order in orders)
+                foreach (ExchangeOrderResult order in GetCompletedOrdersForAllSymbols(afterDate))
                 {
                     yield return order;
                 }
-                yield break;
             }
-
-            Dictionary<string, object> payload = GetNoncePayload();
-            payload["symbol"] = NormalizeSymbol(symbol);
-            if (afterDate != null)
+            else
             {
-                payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
-            }
-            JToken token = MakeJsonRequest<JToken>("/allOrders", BaseUrlPrivate, payload);
-            CheckError(token);
-            foreach (JToken order in token)
-            {
-                yield return ParseOrder(order);
+                Dictionary<string, object> payload = GetNoncePayload();
+                payload["symbol"] = NormalizeSymbol(symbol);
+                if (afterDate != null)
+                {
+                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                }
+                JToken token = MakeJsonRequest<JToken>("/allOrders", BaseUrlPrivate, payload);
+                CheckError(token);
+                foreach (JToken order in token)
+                {
+                    yield return ParseOrder(order);
+                }
             }
         }
 
