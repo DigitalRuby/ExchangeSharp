@@ -409,6 +409,7 @@ namespace ExchangeSharp
                 // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
                 List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
                 Exception ex = null;
+                string failedSymbol = null;
                 Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
                 {
                     try
@@ -423,13 +424,14 @@ namespace ExchangeSharp
                     }
                     catch (Exception _ex)
                     {
+                        failedSymbol = s;
                         ex = _ex;
                     }
                 });
 
                 if (ex != null)
                 {
-                    throw ex;
+                    throw new APIException("Failed to get open orders for symbol " + failedSymbol, ex);
                 }
 
                 // sort timestamp desc
@@ -460,6 +462,7 @@ namespace ExchangeSharp
                 // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
                 List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
                 Exception ex = null;
+                string failedSymbol = null;
                 Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
                 {
                     try
@@ -474,13 +477,14 @@ namespace ExchangeSharp
                     }
                     catch (Exception _ex)
                     {
+                        failedSymbol = s;
                         ex = _ex;
                     }
                 });
 
                 if (ex != null)
                 {
-                    throw ex;
+                    throw new APIException("Failed to get completed order details for symbol " + failedSymbol, ex);
                 }
 
                 // sort timestamp desc
