@@ -33,14 +33,6 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Binance;
 
         /// <summary>
-        /// Constructor
-        /// </summary>
-        public ExchangeBinanceAPI()
-        {
-            RateLimit = new RateGate(10, TimeSpan.FromSeconds(10.0));
-        }
-
-        /// <summary>
         /// Request is valid as long as it is processed within this amount of milliseconds
         /// </summary>
         public int RequestWindowMilliseconds { get; set; } = 600000;
@@ -414,8 +406,43 @@ namespace ExchangeSharp
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
-                throw new InvalidOperationException("Binance order details request requires the symbol parameter. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
+                List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+                Exception ex = null;
+                Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
+                {
+                    try
+                    {
+                        foreach (ExchangeOrderResult order in GetOpenOrderDetails(s))
+                        {
+                            lock (orders)
+                            {
+                                orders.Add(order);
+                            }
+                        }
+                    }
+                    catch (Exception _ex)
+                    {
+                        ex = _ex;
+                    }
+                });
+
+                if (ex != null)
+                {
+                    throw ex;
+                }
+
+                // sort timestamp desc
+                orders.Sort((o1, o2) =>
+                {
+                    return o2.OrderDate.CompareTo(o1.OrderDate);
+                });
+                foreach (ExchangeOrderResult order in orders)
+                {
+                    yield return order;
+                }
             }
+
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = NormalizeSymbol(symbol);
             JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
@@ -433,7 +460,6 @@ namespace ExchangeSharp
                 // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
                 List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
                 Exception ex = null;
-
                 Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
                 {
                     try
