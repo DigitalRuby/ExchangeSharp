@@ -33,6 +33,14 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Binance;
 
         /// <summary>
+        /// Constructor
+        /// </summary>
+        public ExchangeBinanceAPI()
+        {
+            RateLimit = new RateGate(10, TimeSpan.FromSeconds(10.0));
+        }
+
+        /// <summary>
         /// Request is valid as long as it is processed within this amount of milliseconds
         /// </summary>
         public int RequestWindowMilliseconds { get; set; } = 60000;
@@ -91,7 +99,8 @@ namespace ExchangeSharp
         {
             return new Dictionary<string, object>
             {
-                { "nonce", ((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()).ToString() },
+                // HACK: Binance often throws a 1000 millisecond offset error, this fixes it
+                { "nonce", (((long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds()) - 1000) },
                 { "recvWindow", RequestWindowMilliseconds }
             };
         }
@@ -175,7 +184,12 @@ namespace ExchangeSharp
 
         public override IEnumerable<string> GetSymbols()
         {
-            List<string> symbols = new List<string>();
+            if (ReadCache("GetSymbols", out List<string> symbols))
+            {
+                return symbols;
+            }
+
+            symbols = new List<string>();
             JToken obj = MakeJsonRequest<JToken>("/ticker/allPrices");
             CheckError(obj);
             foreach (JToken token in obj)
@@ -187,6 +201,7 @@ namespace ExchangeSharp
                     symbols.Add(symbol);
                 }
             }
+            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
             return symbols;
         }
 
@@ -198,10 +213,20 @@ namespace ExchangeSharp
             return ParseTicker(symbol, obj);
         }
 
+        /// <summary>
+        /// Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
+        /// </summary>
+        /// <returns>Key value pair of symbol and tickers array</returns>
         public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
-            // TODO: I put in a support request to add a symbol field to https://www.binance.com/api/v1/ticker/24hr, until then multi tickers in one request is not supported
-            return base.GetTickers();
+            string symbol;
+            JToken obj = MakeJsonRequest<JToken>("/ticker/24hr");
+            CheckError(obj);
+            foreach (JToken child in obj)
+            {
+                symbol = child["symbol"].ToString();
+                yield return new KeyValuePair<string, ExchangeTicker>(symbol, ParseTicker(symbol, child));
+            }
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
@@ -405,8 +430,44 @@ namespace ExchangeSharp
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
-                throw new InvalidOperationException("Binance order details request requires the symbol parameter. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
+                List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+                Exception ex = null;
+
+                Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
+                {
+                    try
+                    {
+                        foreach (ExchangeOrderResult order in GetCompletedOrderDetails(s, afterDate))
+                        {
+                            lock (orders)
+                            {
+                                orders.Add(order);
+                            }
+                        }
+                    }
+                    catch (Exception _ex)
+                    {
+                        ex = _ex;
+                    }
+                });
+
+                if (ex != null)
+                {
+                    throw ex;
+                }
+
+                // sort timestamp desc
+                orders.Sort((o1, o2) =>
+                {
+                    return o2.OrderDate.CompareTo(o1.OrderDate);
+                });
+                foreach (ExchangeOrderResult order in orders)
+                {
+                    yield return order;
+                }
             }
+
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = NormalizeSymbol(symbol);
             if (afterDate != null)
