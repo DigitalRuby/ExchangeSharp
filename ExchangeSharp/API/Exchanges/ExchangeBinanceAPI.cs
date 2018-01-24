@@ -317,9 +317,9 @@ namespace ExchangeSharp
             string url = "/klines?symbol=" + symbol;
             if (startDate != null)
             {
-                url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeSeconds();
+                url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
             }
-            url += "&endTime=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
+            url += "&endTime=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds());
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
             url += "&interval=" + periodString;
             JToken obj = MakeJsonRequest<JToken>(url);
@@ -443,6 +443,7 @@ namespace ExchangeSharp
                 {
                     yield return order;
                 }
+                yield break;
             }
 
             Dictionary<string, object> payload = GetNoncePayload();
@@ -496,6 +497,7 @@ namespace ExchangeSharp
                 {
                     yield return order;
                 }
+                yield break;
             }
 
             Dictionary<string, object> payload = GetNoncePayload();
