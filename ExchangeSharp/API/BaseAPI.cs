@@ -55,14 +55,29 @@ namespace ExchangeSharp
         Ticks,
 
         /// <summary>
+        /// Ticks (string)
+        /// </summary>
+        TicksString,
+
+        /// <summary>
         /// Milliseconds (int64)
         /// </summary>
         UnixMilliseconds,
 
         /// <summary>
+        /// Milliseconds (string)
+        /// </summary>
+        UnixMillisecondsString,
+
+        /// <summary>
         /// Seconds (double)
         /// </summary>
-        UnixSeconds
+        UnixSeconds,
+
+        /// <summary>
+        /// Seconds (string)
+        /// </summary>
+        UnixSecondsString
     }
 
     /// <summary>
@@ -138,6 +153,8 @@ namespace ExchangeSharp
 
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
 
+        private decimal lastNonce;
+
         protected Dictionary<string, object> GetNoncePayload(string key = "nonce")
         {
             lock (this)
@@ -163,22 +180,54 @@ namespace ExchangeSharp
             // exclusive lock, no two nonces must match
             lock (this)
             {
-                // ensure no two nonces match by delaying one millisecond
-                System.Threading.Tasks.Task.Delay(1);
-
                 // some API (Binance) have a problem with requests being after server time, subtract of one second fixes it
-                if (NonceStyle == NonceStyle.Ticks)
+                DateTime now = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1.0));
+                object nonce;
+
+                while (true)
                 {
-                    return (DateTime.UtcNow.Ticks - 10000000);
+                    switch (NonceStyle)
+                    {
+                        case NonceStyle.Ticks:
+                            nonce = now.Ticks;
+                            break;
+
+                        case NonceStyle.TicksString:
+                            nonce = now.Ticks.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            break;
+
+                        case NonceStyle.UnixMilliseconds:
+                            nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
+                            break;
+
+                        case NonceStyle.UnixMillisecondsString:
+                            nonce = ((long)now.UnixTimestampFromDateTimeMilliseconds()).ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            break;
+
+                        case NonceStyle.UnixSeconds:
+                            nonce = now.UnixTimestampFromDateTimeSeconds();
+                            break;
+
+                        case NonceStyle.UnixSecondsString:
+                            nonce = now.UnixTimestampFromDateTimeSeconds().ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            break;
+
+                        default:
+                            throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
+                    }
+
+                    // check for duplicate nonce
+                    decimal convertedNonce = (decimal)Convert.ChangeType(nonce, typeof(decimal));
+                    if (lastNonce != convertedNonce)
+                    {
+                        lastNonce = convertedNonce;
+                        break;
+                    }
+
+                    Task.Delay(1).Wait();
                 }
-                else if (NonceStyle == NonceStyle.UnixSeconds)
-                {
-                    return (long)(DateTime.UtcNow.UnixTimestampFromDateTimeSeconds() - 1.0);
-                }
-                else
-                {
-                    return (long)DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds() - 1000;
-                }
+
+                return nonce;
             }
         }
 

@@ -33,7 +33,7 @@ namespace ExchangeSharp
 
         public ExchangeBitfinexAPI()
         {
-            NonceStyle = NonceStyle.UnixMilliseconds;
+            NonceStyle = NonceStyle.UnixMillisecondsString;
         }
 
         public override string NormalizeSymbol(string symbol)
