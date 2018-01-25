@@ -51,11 +51,10 @@ namespace ExchangeSharp
         /// <returns>Rounded amount</returns>
         /// <remarks>
         /// Less than 1 : 7 decimal places
-        /// Less than 10 : 4 decimal places
-        /// Less than 100 : 2 decimal places
+        /// Less than 10 : 3 decimal places
         /// Everything else : floor, no decimal places
         /// </remarks>
-        public static decimal RoundAmount(Decimal amount)
+        public static decimal RoundAmount(decimal amount)
         {
             if (amount < 1.0m)
             {
@@ -63,11 +62,7 @@ namespace ExchangeSharp
             }
             else if (amount < 10.0m)
             {
-                return Math.Round(amount, 4);
-            }
-            else if (amount < 100.0m)
-            {
-                return Math.Round(amount, 2);
+                return Math.Round(amount, 3);
             }
             return Math.Floor(amount);
         }
