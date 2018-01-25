@@ -389,30 +389,9 @@ namespace ExchangeSharp
         {
             // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Exception ex = null;
-            string failedSymbol = null;
-            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
+            foreach (string symbol in GetSymbols())
             {
-                try
-                {
-                    foreach (ExchangeOrderResult order in GetOpenOrderDetails(s))
-                    {
-                        lock (orders)
-                        {
-                            orders.Add(order);
-                        }
-                    }
-                }
-                catch (Exception _ex)
-                {
-                    failedSymbol = s;
-                    ex = _ex;
-                }
-            });
-
-            if (ex != null)
-            {
-                throw new APIException("Failed to get open orders for symbol " + failedSymbol, ex);
+                orders.AddRange(GetOpenOrderDetails(symbol));
             }
 
             // sort timestamp desc
@@ -452,30 +431,9 @@ namespace ExchangeSharp
         {
             // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Exception ex = null;
-            string failedSymbol = null;
-            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
+            foreach (string symbol in GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0))
             {
-                try
-                {
-                    foreach (ExchangeOrderResult order in GetCompletedOrderDetails(s, afterDate))
-                    {
-                        lock (orders)
-                        {
-                            orders.Add(order);
-                        }
-                    }
-                }
-                catch (Exception _ex)
-                {
-                    failedSymbol = s;
-                    ex = _ex;
-                }
-            });
-
-            if (ex != null)
-            {
-                throw new APIException("Failed to get completed order details for symbol " + failedSymbol, ex);
+                orders.AddRange(GetCompletedOrderDetails(symbol, afterDate));
             }
 
             // sort timestamp desc
@@ -483,6 +441,7 @@ namespace ExchangeSharp
             {
                 return o2.OrderDate.CompareTo(o1.OrderDate);
             });
+
             foreach (ExchangeOrderResult order in orders)
             {
                 yield return order;
