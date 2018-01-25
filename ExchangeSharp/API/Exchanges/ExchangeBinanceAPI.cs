@@ -389,9 +389,30 @@ namespace ExchangeSharp
         {
             // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            foreach (string symbol in GetSymbols())
+            Exception ex = null;
+            string failedSymbol = null;
+            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
             {
-                orders.AddRange(GetOpenOrderDetails(symbol));
+                try
+                {
+                    foreach (ExchangeOrderResult order in GetOpenOrderDetails(s))
+                    {
+                        lock (orders)
+                        {
+                            orders.Add(order);
+                        }
+                    }
+                }
+                catch (Exception _ex)
+                {
+                    failedSymbol = s;
+                    ex = _ex;
+                }
+            });
+
+            if (ex != null)
+            {
+                throw new APIException("Failed to get open orders for symbol " + failedSymbol, ex);
             }
 
             // sort timestamp desc
@@ -431,9 +452,30 @@ namespace ExchangeSharp
         {
             // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            foreach (string symbol in GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0))
+            Exception ex = null;
+            string failedSymbol = null;
+            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
             {
-                orders.AddRange(GetCompletedOrderDetails(symbol, afterDate));
+                try
+                {
+                    foreach (ExchangeOrderResult order in GetCompletedOrderDetails(s, afterDate))
+                    {
+                        lock (orders)
+                        {
+                            orders.Add(order);
+                        }
+                    }
+                }
+                catch (Exception _ex)
+                {
+                    failedSymbol = s;
+                    ex = _ex;
+                }
+            });
+
+            if (ex != null)
+            {
+                throw new APIException("Failed to get completed order details for symbol " + failedSymbol, ex);
             }
 
             // sort timestamp desc
@@ -441,7 +483,6 @@ namespace ExchangeSharp
             {
                 return o2.OrderDate.CompareTo(o1.OrderDate);
             });
-
             foreach (ExchangeOrderResult order in orders)
             {
                 yield return order;
@@ -463,7 +504,8 @@ namespace ExchangeSharp
                 payload["symbol"] = NormalizeSymbol(symbol);
                 if (afterDate != null)
                 {
-                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                    // TODO: timestamp param is causing duplicate request errors which is a bug in the Binance API
+                    // payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
                 }
                 JToken token = MakeJsonRequest<JToken>("/allOrders", BaseUrlPrivate, payload);
                 CheckError(token);
