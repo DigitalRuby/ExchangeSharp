@@ -287,7 +287,7 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                System.Threading.Thread.Sleep(2000);
+                Task.Delay(2000).Wait();
             }
         }
 

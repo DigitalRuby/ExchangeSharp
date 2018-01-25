@@ -212,7 +212,7 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                System.Threading.Thread.Sleep(1000);
+                Task.Delay(1000).Wait();
             }
         }
 

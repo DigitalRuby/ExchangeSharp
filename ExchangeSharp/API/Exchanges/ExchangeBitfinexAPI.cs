@@ -231,7 +231,7 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                System.Threading.Thread.Sleep(5000);
+                Task.Delay(5000).Wait();
             }
         }
 
@@ -417,6 +417,7 @@ namespace ExchangeSharp
                         }
                     }
                 }
+                Task.Delay(1000).Wait();
             }
             return orders.Values.OrderByDescending(o => o.OrderDate);
         }
