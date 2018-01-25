@@ -338,7 +338,11 @@ namespace ExchangeSharp
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
-                balances[(string)balance["asset"]] = (decimal)balance["free"] + (decimal)balance["locked"];
+                decimal amount = (decimal)balance["free"] + (decimal)balance["locked"];
+                if (amount > 0m)
+                {
+                    balances[(string)balance["asset"]] = amount;
+                }
             }
             return balances;
         }
@@ -350,7 +354,11 @@ namespace ExchangeSharp
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
-                balances[(string)balance["asset"]] = (decimal)balance["free"];
+                decimal amount = (decimal)balance["free"];
+                if (amount > 0m)
+                {
+                    balances[(string)balance["asset"]] = amount;
+                }
             }
             return balances;
         }
