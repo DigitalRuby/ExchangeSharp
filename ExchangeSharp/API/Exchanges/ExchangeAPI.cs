@@ -68,7 +68,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get an exchange API given an exchange name (see public constants at top of this file)
+        /// Get an exchange API given an exchange name (see ExchangeName class)
         /// </summary>
         /// <param name="exchangeName">Exchange name</param>
         /// <returns>Exchange API or null if not found</returns>
