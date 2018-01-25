@@ -357,7 +357,8 @@ namespace ExchangeSharp
         public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
         {
             symbol = NormalizeSymbol(symbol);
-            string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" + amount.ToString(CultureInfo.InvariantCulture.NumberFormat) + "&rate=" + price.ToString(CultureInfo.InvariantCulture.NumberFormat);
+            string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
+                RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat) + "&rate=" + price.ToString(CultureInfo.InvariantCulture.NumberFormat);
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
             string orderId = result["uuid"].Value<string>();

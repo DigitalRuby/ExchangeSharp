@@ -45,6 +45,34 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Round an amount appropriate to its quantity
+        /// </summary>
+        /// <param name="amount">Amount</param>
+        /// <returns>Rounded amount</returns>
+        /// <remarks>
+        /// Less than 1 : 7 decimal places
+        /// Less than 10 : 4 decimal places
+        /// Less than 100 : 2 decimal places
+        /// Everything else : floor, no decimal places
+        /// </remarks>
+        public static decimal RoundAmount(Decimal amount)
+        {
+            if (amount < 1.0m)
+            {
+                return Math.Round(amount, 7);
+            }
+            else if (amount < 10.0m)
+            {
+                return Math.Round(amount, 4);
+            }
+            else if (amount < 100.0m)
+            {
+                return Math.Round(amount, 2);
+            }
+            return Math.Floor(amount);
+        }
+
+        /// <summary>
         /// Get an exchange API given an exchange name (see public constants at top of this file)
         /// </summary>
         /// <param name="exchangeName">Exchange name</param>

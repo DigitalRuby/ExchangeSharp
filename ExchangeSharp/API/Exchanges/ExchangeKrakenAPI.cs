@@ -326,7 +326,7 @@ namespace ExchangeSharp
                 { "type", (buy ? "buy" : "sell") },
                 { "ordertype", "limit" },
                 { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
-                { "volume", amount.ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "volume", RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "nonce", GenerateNonce() }
             };
 

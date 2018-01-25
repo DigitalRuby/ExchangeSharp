@@ -362,7 +362,7 @@ namespace ExchangeSharp
             payload["symbol"] = symbol;
             payload["side"] = (buy ? "BUY" : "SELL");
             payload["type"] = "LIMIT";
-            payload["quantity"] = amount;
+            payload["quantity"] = RoundAmount(amount);
             payload["price"] = price;
             payload["timeInForce"] = "GTC";
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "POST");

@@ -309,7 +309,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbolV1(symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["amount"] = amount.ToString(CultureInfo.InvariantCulture.NumberFormat);
+            payload["amount"] = RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat);
             payload["price"] = price.ToString(CultureInfo.InvariantCulture.NumberFormat);
             payload["side"] = (buy ? "buy" : "sell");
             payload["type"] = "exchange limit";
