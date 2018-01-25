@@ -180,12 +180,13 @@ namespace ExchangeSharp
             // exclusive lock, no two nonces must match
             lock (this)
             {
-                // some API (Binance) have a problem with requests being after server time, subtract of one second fixes it
-                DateTime now = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1.0));
                 object nonce;
 
                 while (true)
                 {
+                    // some API (Binance) have a problem with requests being after server time, subtract of one second fixes it
+                    DateTime now = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1.0));
+
                     switch (NonceStyle)
                     {
                         case NonceStyle.Ticks:
