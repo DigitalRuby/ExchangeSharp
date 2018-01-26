@@ -375,9 +375,22 @@ namespace ExchangeSharp
                 symbol = "all";
             }
             JToken result;
-            result = MakePrivateAPIRequest("getOpenOrders", "currencyPair", symbol);
+            result = MakePrivateAPIRequest("returnOpenOrders", "currencyPair", symbol);
             CheckError(result);
-            if (result is JArray array)
+            if (symbol == "all")
+            {
+                foreach (JProperty prop in result)
+                {
+                    if (prop.Value is JArray array)
+                    {
+                        foreach (JToken token in array)
+                        {
+                            yield return ParseOrder(token);
+                        }
+                    }
+                }
+            }
+            else if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
