@@ -34,7 +34,7 @@ namespace ExchangeSharp
         public ExchangeBitfinexAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
-            RateLimit = new RateGate(1, TimeSpan.FromSeconds(3.0));
+            RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
         }
 
         public override string NormalizeSymbol(string symbol)
