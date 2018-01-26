@@ -29,7 +29,7 @@ namespace ExchangeSharp
         private readonly SemaphoreSlim semaphore;
 
         // Times (in millisecond ticks) at which the semaphore should be exited.
-        private readonly ConcurrentQueue<int> exitTimes;
+        private readonly ConcurrentQueue<DateTime> exitTimes = new ConcurrentQueue<DateTime>();
 
         // Timer used to trigger exiting the semaphore.
         private readonly Timer exitTimer;
@@ -41,8 +41,8 @@ namespace ExchangeSharp
         private void ExitTimerCallback(object state)
         {
             // While there are exit times that are passed due still in the queue, exit the semaphore and dequeue the exit time.
-            int exitTime;
-            while (exitTimes.TryPeek(out exitTime) && unchecked(exitTime - Environment.TickCount) <= 0)
+            DateTime exitTime;
+            while (exitTimes.TryPeek(out exitTime) && (exitTime - DateTime.UtcNow).Ticks <= 0)
             {
                 semaphore.Release();
                 exitTimes.TryDequeue(out exitTime);
@@ -50,10 +50,10 @@ namespace ExchangeSharp
 
             // Try to get the next exit time from the queue and compute the time until the next check should take place. If the 
             // queue is empty, then no exit times will occur until at least one time unit has passed.
-            int timeUntilNextCheck;
+            long timeUntilNextCheck;
             if (exitTimes.TryPeek(out exitTime))
             {
-                timeUntilNextCheck = unchecked(exitTime - Environment.TickCount);
+                timeUntilNextCheck = (long)(exitTime - DateTime.UtcNow).TotalMilliseconds;
             }
             else
             {
@@ -120,9 +120,6 @@ namespace ExchangeSharp
             // Create the semaphore, with the number of occurrences as the maximum count.
             semaphore = new SemaphoreSlim(Occurrences, Occurrences);
 
-            // Create a queue to hold the semaphore exit times.
-            exitTimes = new ConcurrentQueue<int>();
-
             // Create a timer to exit the semaphore. Use the time unit as the original
             // interval length because that's the earliest we will need to exit the semaphore.
             exitTimer = new Timer(ExitTimerCallback, null, TimeUnitMilliseconds, -1);
@@ -151,7 +148,7 @@ namespace ExchangeSharp
             // and add it to the queue.
             if (entered)
             {
-                var timeToExit = unchecked(Environment.TickCount + TimeUnitMilliseconds);
+                var timeToExit = (DateTime.UtcNow.AddMilliseconds(TimeUnitMilliseconds));
                 exitTimes.Enqueue(timeToExit);
             }
 
