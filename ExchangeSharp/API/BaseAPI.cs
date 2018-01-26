@@ -147,6 +147,11 @@ namespace ExchangeSharp
         public NonceStyle NonceStyle { get; protected set; } = NonceStyle.Ticks;
 
         /// <summary>
+        /// Offset for nonce calculation, some exchanges like Binance have a problem with requests being in the future, so you can offset the current DateTime with this
+        /// </summary>
+        public TimeSpan NonceOffset { get; set; }
+
+        /// <summary>
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
         /// </summary>
         public System.Net.Cache.RequestCachePolicy CachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
@@ -185,7 +190,8 @@ namespace ExchangeSharp
                 while (true)
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of one second fixes it
-                    DateTime now = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1.0));
+                    DateTime now = DateTime.UtcNow - NonceOffset;
+                    Task.Delay(1).Wait();
 
                     switch (NonceStyle)
                     {
@@ -224,8 +230,6 @@ namespace ExchangeSharp
                         lastNonce = convertedNonce;
                         break;
                     }
-
-                    Task.Delay(1).Wait();
                 }
 
                 return nonce;

@@ -34,6 +34,7 @@ namespace ExchangeSharp
         public ExchangeBitfinexAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
+            RateLimit = new RateGate(1, TimeSpan.FromSeconds(3.0));
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -417,7 +418,6 @@ namespace ExchangeSharp
                         }
                     }
                 }
-                Task.Delay(1000).Wait();
             }
             return orders.Values.OrderByDescending(o => o.OrderDate);
         }
