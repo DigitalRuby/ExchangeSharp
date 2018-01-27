@@ -135,6 +135,16 @@ namespace ExchangeSharp
         public Task<ExchangeTicker> GetTickerAsync(string symbol) => Task.Factory.StartNew(() => GetTicker(symbol));
 
         /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="tickers">Callback for tickers</param>
+        /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
+        public virtual WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>

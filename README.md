@@ -4,7 +4,7 @@ Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 
 The following cryptocurrency exchanges are supported:
 
-- Binance (public, basic private)
+- Binance (public, basic private, public web socket (tickers))
 - Bitfinex (public, basic private)
 - Bithumb (public)
 - Bitstamp (public)
@@ -48,11 +48,30 @@ Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status
 ```
 ---
 
+---
+Web socket example:
+---
+```
+public static void Main(string[] args)
+{
+	// create a web socket connection to Binance. Note you can Dispose the socket anytime to shut it down.
+	// the web socket will handle disconnects and attempt to re-connect automatically.
+    ExchangeBinanceAPI b = new ExchangeBinanceAPI();
+    using (var socket = b.GetTickersWebSocket((tickers) =>
+    {
+        Console.WriteLine("{0} tickers, first: {1}", tickers.Count, tickers.First());
+    }))
+	{
+		Console.WriteLine("Press ENTER to shutdown.");
+		Console.ReadLine();
+	}
+}
+```
+---
+
 I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jjxtra@gmail.com).
 
-If this project has helped you in any way or you need support / questions answered, donations are always appreciated. I maintain this code for free and for the glory of the crypto revolution.
-
-Donation addresses...
+If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
 Paypal: jjxtra@gmail.com (pick the send to friends and family with bank account option to avoid fees)
 

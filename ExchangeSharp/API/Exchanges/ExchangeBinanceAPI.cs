@@ -29,6 +29,7 @@ namespace ExchangeSharp
     public class ExchangeBinanceAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.binance.com/api/v1";
+        public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443/ws";
         public string BaseUrlPrivate { get; set; } = "https://www.binance.com/api/v3";
         public override string Name => ExchangeName.Binance;
 
@@ -90,6 +91,36 @@ namespace ExchangeSharp
                 symbol = child["symbol"].ToString();
                 yield return new KeyValuePair<string, ExchangeTicker>(symbol, ParseTicker(symbol, child));
             }
+        }
+
+        /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="callback">Callback for tickers</param>
+        /// <returns>Task of web socket wrapper - dispose of the wrapper to shutdown the socket</returns>
+        public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            return ConnectWebSocket("/!ticker@arr", (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+                    ExchangeTicker ticker;
+                    foreach (JToken childToken in token)
+                    {
+                        ticker = ParseTickerWebSocket(childToken);
+                        tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.PriceSymbol, ticker));
+                    }
+                    if (tickerList.Count != 0)
+                    {
+                        callback(tickerList);
+                    }
+                }
+                catch
+                {
+                }
+            });
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
@@ -444,6 +475,24 @@ namespace ExchangeSharp
                     QuantityAmount = (decimal)token["quoteVolume"],
                     QuantitySymbol = symbol,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)token["closeTime"])
+                }
+            };
+        }
+
+        private ExchangeTicker ParseTickerWebSocket(JToken token)
+        {
+            return new ExchangeTicker
+            {
+                Ask = (decimal)token["a"],
+                Bid = (decimal)token["b"],
+                Last = (decimal)token["c"],
+                Volume = new ExchangeVolume
+                {
+                    PriceAmount = (decimal)token["v"],
+                    PriceSymbol = token["s"].ToString(),
+                    QuantityAmount = (decimal)token["q"],
+                    QuantitySymbol = token["s"].ToString(),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)token["E"])
                 }
             };
         }

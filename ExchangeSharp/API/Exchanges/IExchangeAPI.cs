@@ -174,6 +174,13 @@ namespace ExchangeSharp
         Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
 
         /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="tickers">Callback for tickers</param>
+        /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
+        WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
+
+        /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="symbol">Symbol</param>

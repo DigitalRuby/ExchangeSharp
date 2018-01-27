@@ -16,8 +16,10 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.WebSockets;
 using System.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -89,6 +91,11 @@ namespace ExchangeSharp
         /// Base URL for the API
         /// </summary>
         public abstract string BaseUrl { get; set; }
+
+        /// <summary>
+        /// Base URL for the API for web sockets
+        /// </summary>
+        public virtual string BaseUrlWebSocket { get; set; }
 
         /// <summary>
         /// Gets the name of the API
@@ -353,6 +360,20 @@ namespace ExchangeSharp
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         public Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null) => Task.Factory.StartNew(() => MakeJsonRequest<T>(url, baseUrl, payload, requestMethod));
+
+        /// <summary>
+        /// Connect a web socket to a path on the API and start listening
+        /// </summary>
+        /// <param name="url">The sub url for the web socket, or null for none</param>
+        /// <param name="messageCallback">Callback for messages</param>
+        /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
+        public WebSocketWrapper ConnectWebSocket(string url, System.Action<string, WebSocketWrapper> messageCallback)
+        {
+            string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
+            WebSocketWrapper socket = new WebSocketWrapper(fullUrl, messageCallback, TimeSpan.FromSeconds(30.0), true);
+            socket.Connect();
+            return socket;
+        }
 
         /// <summary>
         /// Whether the API can make authenticated (private) API requests
