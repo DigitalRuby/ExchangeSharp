@@ -28,8 +28,10 @@ namespace ExchangeSharp
     public class ExchangeBitfinexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
-        public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
+        public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
         public override string Name => ExchangeName.Bitfinex;
+
+        public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
 
         public ExchangeBitfinexAPI()
         {
@@ -81,39 +83,6 @@ namespace ExchangeSharp
                 }
             }
             return ParseOrderV2(trades);
-        }
-
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                request.Method = "POST";
-                request.ContentType = request.Accept = "application/json";
-
-                if (request.RequestUri.AbsolutePath.StartsWith("/v2"))
-                {
-                    string nonce = payload["nonce"].ToString();
-                    payload.Remove("nonce");
-                    string json = JsonConvert.SerializeObject(payload);
-                    string toSign = "/api" + request.RequestUri.PathAndQuery + nonce + json;
-                    string hexSha384 = CryptoUtility.SHA384Sign(toSign, PrivateApiKey.ToUnsecureString());
-                    request.Headers["bfx-nonce"] = nonce;
-                    request.Headers["bfx-apikey"] = PublicApiKey.ToUnsecureString();
-                    request.Headers["bfx-signature"] = hexSha384;
-                    WriteFormToRequest(request, json);
-                }
-                else
-                {
-                    // bitfinex v1 doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
-                    payload.Add("request", request.RequestUri.AbsolutePath);
-                    string json = JsonConvert.SerializeObject(payload);
-                    string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
-                    string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
-                    request.Headers["X-BFX-PAYLOAD"] = json64;
-                    request.Headers["X-BFX-SIGNATURE"] = hexSha384;
-                    request.Headers["X-BFX-APIKEY"] = PublicApiKey.ToUnsecureString();
-                }
-            }
         }
 
         public override IEnumerable<string> GetSymbols()
@@ -173,6 +142,54 @@ namespace ExchangeSharp
                 }
             }
             return tickers;
+        }
+
+        /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="callback">Callback for tickers</param>
+        /// <returns>Task of web socket wrapper - dispose of the wrapper to shutdown the socket</returns>
+        public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    if (token is JArray array)
+                    {
+                        if (array.Count > 10)
+                        {
+                            List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+                            if (channelIdToSymbol.TryGetValue((int)array[0], out string symbol))
+                            {
+                                ExchangeTicker ticker = ParseTickerWebSocket(symbol, array);
+                                if (ticker != null)
+                                {
+                                    callback(new KeyValuePair<string, ExchangeTicker>[] { new KeyValuePair<string, ExchangeTicker>(symbol, ticker) });
+                                }
+                            }
+                        }
+                    }
+                    else if (token["event"].ToString() == "subscribed" && token["channel"].ToString() == "ticker")
+                    {
+                        // {"event":"subscribed","channel":"ticker","chanId":1,"pair":"BTCUSD"}
+                        int channelId = (int)token["chanId"];
+                        channelIdToSymbol[channelId] = token["pair"].ToString();
+                    }
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                var symbols = GetSymbols();
+                foreach (var symbol in symbols)
+                {
+                    _socket.SendMessage("{\"event\":\"subscribe\",\"channel\":\"ticker\",\"pair\":\"" + symbol + "\"}");
+                }
+            });
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
@@ -370,6 +387,39 @@ namespace ExchangeSharp
             CheckError(result);
         }
 
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            if (CanMakeAuthenticatedRequest(payload))
+            {
+                request.Method = "POST";
+                request.ContentType = request.Accept = "application/json";
+
+                if (request.RequestUri.AbsolutePath.StartsWith("/v2"))
+                {
+                    string nonce = payload["nonce"].ToString();
+                    payload.Remove("nonce");
+                    string json = JsonConvert.SerializeObject(payload);
+                    string toSign = "/api" + request.RequestUri.PathAndQuery + nonce + json;
+                    string hexSha384 = CryptoUtility.SHA384Sign(toSign, PrivateApiKey.ToUnsecureString());
+                    request.Headers["bfx-nonce"] = nonce;
+                    request.Headers["bfx-apikey"] = PublicApiKey.ToUnsecureString();
+                    request.Headers["bfx-signature"] = hexSha384;
+                    WriteFormToRequest(request, json);
+                }
+                else
+                {
+                    // bitfinex v1 doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
+                    payload.Add("request", request.RequestUri.AbsolutePath);
+                    string json = JsonConvert.SerializeObject(payload);
+                    string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
+                    string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
+                    request.Headers["X-BFX-PAYLOAD"] = json64;
+                    request.Headers["X-BFX-SIGNATURE"] = hexSha384;
+                    request.Headers["X-BFX-APIKEY"] = PublicApiKey.ToUnsecureString();
+                }
+            }
+        }
+
         private IEnumerable<ExchangeOrderResult> GetOrderDetailsInternal(string url, string symbol = null)
         {
             symbol = NormalizeSymbolV1(symbol);
@@ -509,6 +559,26 @@ namespace ExchangeSharp
                 OrderId = (string)trade["order_id"],
                 Result = ExchangeAPIOrderResult.Filled,
                 Symbol = symbol
+            };
+        }
+
+        private ExchangeTicker ParseTickerWebSocket(string symbol, JToken token)
+        {
+            decimal last = (decimal)token[7];
+            decimal volume = (decimal)token[8];
+            return new ExchangeTicker
+            {
+                Ask = (decimal)token[3],
+                Bid = (decimal)token[1],
+                Last = last,
+                Volume = new ExchangeVolume
+                {
+                    PriceAmount = volume,
+                    PriceSymbol = symbol,
+                    QuantityAmount = volume * last,
+                    QuantitySymbol = symbol,
+                    Timestamp = DateTime.UtcNow
+                }
             };
         }
     }

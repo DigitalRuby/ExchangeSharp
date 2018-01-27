@@ -1,4 +1,18 @@
-﻿using System;
+﻿/*
+MIT LICENSE
+
+Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+using System;
+using System.Collections.Concurrent;
+using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -8,39 +22,40 @@ namespace ExchangeSharp
 {
     public class WebSocketWrapper : IDisposable
     {
-        private const int ReceiveChunkSize = 8192;
-        private const int SendChunkSize = 1024;
+        private const int receiveChunkSize = 8192;
 
         private ClientWebSocket _ws;
         private readonly Uri _uri;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken _cancellationToken;
+        private readonly BlockingCollection<string> _messageQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
 
         private Action<string, WebSocketWrapper> _onMessage;
         private Action<WebSocketWrapper> _onConnected;
         private Action<WebSocketWrapper> _onDisconnected;
-        private bool _autoReconnect;
+        private bool _disposed;
 
         /// <summary>
-        /// Constructor
+        /// Constructor, also begins listening and processing messages immediately
         /// </summary>
         /// <param name="uri">Uri to connect to</param>
         /// <param name="onMessage">Message callback</param>
-        /// <param name="keepAlive">Keep alive time, 30 secnods is a good default</param>
-        /// <param name="autoReconnect">Whether to attempt to auto-reconnect if disconnected</param>
+        /// <param name="keepAlive">Keep alive time, default is 30 seconds</param>
         /// <param name="onConnect">Connect callback</param>
         /// <param name="onDisconnect">Disconnect callback</param>
-        public WebSocketWrapper(string uri, Action<string, WebSocketWrapper> onMessage, TimeSpan keepAlive, bool autoReconnect = true,
+        public WebSocketWrapper(string uri, Action<string, WebSocketWrapper> onMessage, TimeSpan? keepAlive = null,
             Action<WebSocketWrapper> onConnect = null, Action<WebSocketWrapper> onDisconnect = null)
         {
             _ws = new ClientWebSocket();
-            _ws.Options.KeepAliveInterval = keepAlive;
+            _ws.Options.KeepAliveInterval = (keepAlive ?? TimeSpan.FromSeconds(30.0));
             _uri = new Uri(uri);
             _cancellationToken = _cancellationTokenSource.Token;
-            _autoReconnect = autoReconnect;
             _onMessage = onMessage;
             _onConnected = onConnect;
             _onDisconnected = onDisconnect;
+
+            Task.Factory.StartNew(MessageWorkerThread);
+            Task.Factory.StartNew(ListenWorkerThread);
         }
 
         /// <summary>
@@ -50,25 +65,12 @@ namespace ExchangeSharp
         {
             try
             {
-                _autoReconnect = false;
                 _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).Wait();
             }
             catch
             {
             }
-        }
-
-        /// <summary>
-        /// Begins connecting to the web socket server and starts listening. Returns immediately and does not wait for the connection to finish connecting.
-        /// </summary>
-        /// <returns>Task</returns>
-        public void Connect()
-        {
-            _ws.ConnectAsync(_uri, _cancellationToken).ContinueWith((task) =>
-            {
-                CallOnConnected();
-                Task.Factory.StartNew(ListenWorkerThread);
-            });
+            _disposed = true;
         }
 
         /// <summary>
@@ -88,105 +90,94 @@ namespace ExchangeSharp
             }
 
             var messageBuffer = Encoding.UTF8.GetBytes(message);
-            var messagesCount = (int)Math.Ceiling((double)messageBuffer.Length / SendChunkSize);
-
-            for (var i = 0; i < messagesCount; i++)
-            {
-                var offset = (SendChunkSize * i);
-                var count = SendChunkSize;
-                var lastMessage = ((i + 1) == messagesCount);
-
-                if ((count * (i + 1)) > messageBuffer.Length)
-                {
-                    count = messageBuffer.Length - offset;
-                }
-
-                await _ws.SendAsync(new ArraySegment<byte>(messageBuffer, offset, count), WebSocketMessageType.Text, lastMessage, _cancellationToken);
-            }
+            ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(messageBuffer);
+            await _ws.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, _cancellationToken);
         }
 
         private void ListenWorkerThread()
         {
-            var buffer = new byte[ReceiveChunkSize];
-            bool wasClosed = false;
+            ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
+            bool wasClosed = true;
             TimeSpan keepAlive = _ws.Options.KeepAliveInterval;
-            while (_autoReconnect)
+            MemoryStream stream = new MemoryStream();
+
+            while (!_disposed)
             {
                 try
                 {
                     if (wasClosed)
                     {
+                        // re-open the socket
                         wasClosed = false;
                         _ws = new ClientWebSocket();
                         _ws.ConnectAsync(_uri, CancellationToken.None).Wait();
+                        RunInTask(() => this?._onConnected(this));
                     }
 
                     while (_ws.State == WebSocketState.Open)
                     {
                         Task<WebSocketReceiveResult> result;
-                        StringBuilder stringResult = new StringBuilder();
-
                         do
                         {
-                            result = _ws.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationToken);
+                            result = _ws.ReceiveAsync(receiveBuffer, _cancellationToken);
                             result.Wait();
                             if (result.Result.MessageType == WebSocketMessageType.Close)
                             {
                                 _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).Wait();
-                                CallOnDisconnected();
+                                RunInTask(() => this?._onDisconnected(this));
                             }
                             else
                             {
-                                var str = Encoding.UTF8.GetString(buffer, 0, result.Result.Count);
-                                stringResult.Append(str);
+                                stream.Write(receiveBuffer.Array, 0, result.Result.Count);
                             }
 
                         }
                         while (!result.Result.EndOfMessage);
-                        if (stringResult.Length != 0)
+                        if (stream.Length != 0)
                         {
-                            CallOnMessage(stringResult);
+                            string messageString = Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
+                            stream.SetLength(0);
+                            _messageQueue.Add(messageString);
                         }
                     }
                 }
                 catch
                 {
-                    CallOnDisconnected();
-                    if (_autoReconnect)
+                    RunInTask(() => this?._onDisconnected(this));
+                    if (!_disposed)
                     {
-                        // wait one second before attempting reconnect
-                        Task.Delay(1000).Wait();
+                        // wait one half second before attempting reconnect
+                        Task.Delay(500).Wait();
                     }
                 }
                 finally
                 {
                     wasClosed = true;
-                    _ws.Dispose();
+                    try
+                    {
+                        _ws.Dispose();
+                    }
+                    catch
+                    {
+                    }
                 }
             }
         }
 
-        private void CallOnMessage(StringBuilder stringResult)
+        private void MessageWorkerThread()
         {
-            if (_onMessage != null)
+            while (!_disposed)
             {
-                RunInTask(() => _onMessage(stringResult.ToString(), this));
-            }
-        }
-
-        private void CallOnDisconnected()
-        {
-            if (_onDisconnected != null)
-            {
-                RunInTask(() => _onDisconnected(this));
-            }
-        }
-
-        private void CallOnConnected()
-        {
-            if (_onConnected != null)
-            {
-                RunInTask(() => _onConnected(this));
+                if (_messageQueue.TryTake(out string message, 100))
+                {
+                    try
+                    {
+                        this?._onMessage(message, this);
+                    }
+                    catch
+                    {
+                    }
+                }
             }
         }
 

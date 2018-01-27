@@ -29,7 +29,7 @@ namespace ExchangeSharp
     public class ExchangeBinanceAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.binance.com/api/v1";
-        public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443/ws";
+        public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://www.binance.com/api/v3";
         public override string Name => ExchangeName.Binance;
 
@@ -100,14 +100,14 @@ namespace ExchangeSharp
         /// <returns>Task of web socket wrapper - dispose of the wrapper to shutdown the socket</returns>
         public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            return ConnectWebSocket("/!ticker@arr", (msg, _socket) =>
+            return ConnectWebSocket("/stream?streams=!ticker@arr", (msg, _socket) =>
             {
                 try
                 {
                     JToken token = JToken.Parse(msg);
                     List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
                     ExchangeTicker ticker;
-                    foreach (JToken childToken in token)
+                    foreach (JToken childToken in token["data"])
                     {
                         ticker = ParseTickerWebSocket(childToken);
                         tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.PriceSymbol, ticker));

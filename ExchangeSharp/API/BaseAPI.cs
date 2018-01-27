@@ -88,6 +88,11 @@ namespace ExchangeSharp
     public abstract class BaseAPI
     {
         /// <summary>
+        /// User agent for requests
+        /// </summary>
+        public const string RequestUserAgent = "ExchangeSharp (https://github.com/jjxtra/ExchangeSharp)";
+
+        /// <summary>
         /// Base URL for the API
         /// </summary>
         public abstract string BaseUrl { get; set; }
@@ -132,11 +137,6 @@ namespace ExchangeSharp
         /// Content type for requests
         /// </summary>
         public string RequestContentType { get; set; } = "text/plain";
-
-        /// <summary>
-        /// User agent for requests
-        /// </summary>
-        public string RequestUserAgent { get; set; } = "ExchangeSharp (https://github.com/jjxtra/ExchangeSharp)";
 
         /// <summary>
         /// Timeout for requests
@@ -366,13 +366,12 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">The sub url for the web socket, or null for none</param>
         /// <param name="messageCallback">Callback for messages</param>
+        /// <param name="connectCallback"Connect callback
         /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-        public WebSocketWrapper ConnectWebSocket(string url, System.Action<string, WebSocketWrapper> messageCallback)
+        public WebSocketWrapper ConnectWebSocket(string url, System.Action<string, WebSocketWrapper> messageCallback, System.Action<WebSocketWrapper> connectCallback = null)
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
-            WebSocketWrapper socket = new WebSocketWrapper(fullUrl, messageCallback, TimeSpan.FromSeconds(30.0), true);
-            socket.Connect();
-            return socket;
+            return new WebSocketWrapper(fullUrl, messageCallback, TimeSpan.FromSeconds(30.0), connectCallback);
         }
 
         /// <summary>
