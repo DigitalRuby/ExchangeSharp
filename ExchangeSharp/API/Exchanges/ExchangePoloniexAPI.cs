@@ -71,6 +71,7 @@ namespace ExchangeSharp
         private ExchangeOrderResult ParseOrder(JToken result)
         {
             //result = JToken.Parse("{\"orderNumber\":31226040,\"resultingTrades\":[{\"amount\":\"338.8732\",\"date\":\"2014-10-18 23:03:21\",\"rate\":\"0.00000173\",\"total\":\"0.00058625\",\"tradeID\":\"16164\",\"type\":\"buy\"}]}");
+            // open order: { "orderNumber": "45549304213", "type": "sell", "rate": "0.01000000", "startingAmount": "1497.74185318", "amount": "1497.74185318", "total": "14.97741853", "date": "2018-01-28 17:07:39", "margin": 0 }
             ExchangeOrderResult order = new ExchangeOrderResult();
             order.OrderId = result["orderNumber"].ToString();
             JToken trades = result["resultingTrades"];
@@ -94,6 +95,29 @@ namespace ExchangeSharp
                         }
                     }
                     order.AveragePrice /= tradeCount;
+                }
+            }
+            else
+            {
+                if (result["rate"] != null)
+                {
+                    order.AveragePrice = (decimal)result["rate"];
+                }
+                if (result["startingAmount"] != null)
+                {
+                    order.Amount = (decimal)result["startingAmount"];
+                }
+                if (result["amount"] != null)
+                {
+                    order.AmountFilled = (decimal)result["amount"] - order.Amount;
+                }
+                if (result["type"] != null)
+                {
+                    order.IsBuy = (result["type"].ToString() != "sell");
+                }
+                if (result["date"] != null)
+                {
+                    order.OrderDate = (DateTime)result["date"];
                 }
             }
             return order;
