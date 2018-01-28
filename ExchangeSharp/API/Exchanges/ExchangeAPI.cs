@@ -45,29 +45,6 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Round an amount appropriate to its quantity
-        /// </summary>
-        /// <param name="amount">Amount</param>
-        /// <returns>Rounded amount</returns>
-        /// <remarks>
-        /// Less than 1 : 7 decimal places
-        /// Less than 10 : 3 decimal places
-        /// Everything else : floor, no decimal places
-        /// </remarks>
-        public static decimal RoundAmount(decimal amount)
-        {
-            if (amount < 1.0m)
-            {
-                return Math.Round(amount, 7);
-            }
-            else if (amount < 10.0m)
-            {
-                return Math.Round(amount, 3);
-            }
-            return Math.Floor(amount);
-        }
-
-        /// <summary>
         /// Get an exchange API given an exchange name (see ExchangeName class)
         /// </summary>
         /// <param name="exchangeName">Exchange name</param>
@@ -273,24 +250,18 @@ namespace ExchangeSharp
         public Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync() => Task.Factory.StartNew<Dictionary<string, decimal>>(() => GetAmountsAvailableToTrade());
 
         /// <summary>
-        /// Place a limit order
+        /// Place an order
         /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="amount">Amount</param>
-        /// <param name="price">Price</param>
-        /// <param name="buy">True to buy, false to sell</param>
+        /// <param name="order">The order request</param>
         /// <returns>Result</returns>
-        public virtual ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy) { throw new NotImplementedException(); }
+        public virtual ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order) { throw new NotImplementedException(); }
 
         /// <summary>
-        /// ASYNC - Place a limit order
+        /// ASYNC - Place an order
         /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="amount">Amount</param>
-        /// <param name="price">Price</param>
-        /// <param name="buy">True to buy, false to sell</param>
+        /// <param name="order">The order request</param>
         /// <returns>Result</returns>
-        public Task<ExchangeOrderResult> PlaceOrderAsync(string symbol, decimal amount, decimal price, bool buy) => Task.Factory.StartNew(() => PlaceOrder(symbol, amount, price, buy));
+        public Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order) => Task.Factory.StartNew(() => PlaceOrder(order));
 
         /// <summary>
         /// Get order details

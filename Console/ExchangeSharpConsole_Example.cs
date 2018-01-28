@@ -28,7 +28,13 @@ namespace ExchangeSharpConsoleApp
             api.LoadAPIKeys("keys.bin");
 
             /// place limit order for 0.01 bitcoin at ticker.Ask USD
-            ExchangeOrderResult result = api.PlaceOrder("XXBTZUSD", 0.01m, ticker.Ask, true);
+            ExchangeOrderResult result = api.PlaceOrder(new ExchangeOrderRequest
+            {
+                Amount = 0.01m,
+                IsBuy = true,
+                Price = ticker.Ask,
+                Symbol = "XXBTZUSD"
+            });
 
             // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
             //  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.

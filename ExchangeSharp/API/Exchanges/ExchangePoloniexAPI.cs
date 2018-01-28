@@ -362,11 +362,11 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            symbol = NormalizeSymbol(symbol);
-            JToken result = MakePrivateAPIRequest(buy ? "buy" : "sell", "currencyPair", symbol, "rate",
-                price.ToString(CultureInfo.InvariantCulture.NumberFormat), "amount", RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat));
+            string symbol = NormalizeSymbol(order.Symbol);
+            JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", "currencyPair", symbol, "rate",
+                order.Price.ToString(CultureInfo.InvariantCulture.NumberFormat), "amount", order.RoundAmount().ToString(CultureInfo.InvariantCulture.NumberFormat));
             return ParseOrder(result);
         }
 

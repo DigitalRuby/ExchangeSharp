@@ -224,17 +224,17 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            symbol = NormalizeSymbol(symbol);
+            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce", GenerateNonce() },
                 { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", symbol },
-                { "amount", RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat) },
-                { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
-                { "side", (buy ? "buy" : "sell") },
+                { "amount", order.RoundAmount().ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "price", order.Price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "side", (order.IsBuy ? "buy" : "sell") },
                 { "type", "exchange limit" }
             };
             JToken obj = MakeJsonRequest<JToken>("/order/new", null, payload);

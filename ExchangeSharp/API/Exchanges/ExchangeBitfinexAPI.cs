@@ -322,14 +322,14 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            symbol = NormalizeSymbolV1(symbol);
+            string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["amount"] = RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat);
-            payload["price"] = price.ToString(CultureInfo.InvariantCulture.NumberFormat);
-            payload["side"] = (buy ? "buy" : "sell");
+            payload["amount"] = order.RoundAmount().ToString(CultureInfo.InvariantCulture.NumberFormat);
+            payload["price"] = order.Price.ToString(CultureInfo.InvariantCulture.NumberFormat);
+            payload["side"] = (order.IsBuy ? "buy" : "sell");
             payload["type"] = "exchange limit";
             JToken obj = MakeJsonRequest<JToken>("/order/new", BaseUrlV1, payload);
             CheckError(obj);

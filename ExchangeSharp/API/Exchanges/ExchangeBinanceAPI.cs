@@ -277,15 +277,15 @@ namespace ExchangeSharp
             return balances;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            symbol = NormalizeSymbol(symbol);
+            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["side"] = (buy ? "BUY" : "SELL");
+            payload["side"] = (order.IsBuy ? "BUY" : "SELL");
             payload["type"] = "LIMIT";
-            payload["quantity"] = RoundAmount(amount);
-            payload["price"] = price;
+            payload["quantity"] = order.RoundAmount();
+            payload["price"] = order.Price;
             payload["timeInForce"] = "GTC";
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "POST");
             CheckError(token);

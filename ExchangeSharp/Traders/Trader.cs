@@ -159,7 +159,14 @@ namespace ExchangeSharp
                 actualBuyPrice += (actualBuyPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    TradeInfo.ExchangeInfo.API.PlaceOrder(TradeInfo.Symbol, count, actualBuyPrice, true);
+                    TradeInfo.ExchangeInfo.API.PlaceOrder(new ExchangeOrderRequest
+                    {
+                        Amount = count,
+                        IsBuy = true,
+                        Price = actualBuyPrice,
+                        ShouldRoundAmount = false,
+                        Symbol = TradeInfo.Symbol
+                    });
                 }
                 else
                 {
@@ -186,7 +193,14 @@ namespace ExchangeSharp
                 actualSellPrice -= (actualSellPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    TradeInfo.ExchangeInfo.API.PlaceOrder(TradeInfo.Symbol, count, actualSellPrice, false);
+                    TradeInfo.ExchangeInfo.API.PlaceOrder(new ExchangeOrderRequest
+                    {
+                        Amount = count,
+                        IsBuy = false,
+                        Price = actualSellPrice,
+                        ShouldRoundAmount = false,
+                        Symbol = TradeInfo.Symbol
+                    });
                 }
                 else
                 {

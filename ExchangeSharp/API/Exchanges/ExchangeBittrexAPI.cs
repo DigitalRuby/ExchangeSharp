@@ -354,15 +354,16 @@ namespace ExchangeSharp
             return currencies;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            symbol = NormalizeSymbol(symbol);
-            string url = (buy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
-                RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat) + "&rate=" + price.ToString(CultureInfo.InvariantCulture.NumberFormat);
+            string symbol = NormalizeSymbol(order.Symbol);
+            decimal amount = order.RoundAmount();
+            string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
+                amount.ToString(CultureInfo.InvariantCulture.NumberFormat) + "&rate=" + order.Price.ToString(CultureInfo.InvariantCulture.NumberFormat);
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
             string orderId = result["uuid"].Value<string>();
-            return new ExchangeOrderResult { Amount = amount, IsBuy = buy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
+            return new ExchangeOrderResult { Amount = amount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)

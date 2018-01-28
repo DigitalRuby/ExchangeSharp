@@ -335,5 +335,28 @@ namespace ExchangeSharp
             writer.Flush();
             File.WriteAllBytes(path, ProtectedData.Protect(memory.ToArray(), null, DataProtectionScope.CurrentUser));
         }
+
+        /// <summary>
+        /// Round an amount appropriate to its quantity
+        /// </summary>
+        /// <param name="amount">Amount</param>
+        /// <returns>Rounded amount</returns>
+        /// <remarks>
+        /// Less than 1 : 7 decimal places
+        /// Less than 10 : 3 decimal places
+        /// Everything else : floor, no decimal places
+        /// </remarks>
+        public static decimal RoundAmount(decimal amount)
+        {
+            if (amount < 1.0m)
+            {
+                return Math.Round(amount, 7);
+            }
+            else if (amount < 10.0m)
+            {
+                return Math.Round(amount, 3);
+            }
+            return Math.Floor(amount);
+        }
     }
 }

@@ -318,15 +318,16 @@ namespace ExchangeSharp
             return balances;
         }
 
-        public override ExchangeOrderResult PlaceOrder(string symbol, decimal amount, decimal price, bool buy)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
+            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "pair", symbol },
-                { "type", (buy ? "buy" : "sell") },
+                { "type", (order.IsBuy ? "buy" : "sell") },
                 { "ordertype", "limit" },
-                { "price", price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
-                { "volume", RoundAmount(amount).ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "price", order.Price.ToString(CultureInfo.InvariantCulture.NumberFormat) },
+                { "volume", order.RoundAmount().ToString(CultureInfo.InvariantCulture.NumberFormat) },
                 { "nonce", GenerateNonce() }
             };
 
