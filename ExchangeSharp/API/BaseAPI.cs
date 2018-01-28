@@ -167,20 +167,12 @@ namespace ExchangeSharp
 
         private decimal lastNonce;
 
-        protected Dictionary<string, object> GetNoncePayload(string key = "nonce")
+        /// <summary>
+        /// Static constructor
+        /// </summary>
+        static BaseAPI()
         {
-            lock (this)
-            {
-                Dictionary<string, object> noncePayload = new Dictionary<string, object>
-                {
-                    ["nonce"] = GenerateNonce()
-                };
-                if (RequestWindow.Ticks > 0)
-                {
-                    noncePayload["recvWindow"] = (long)RequestWindow.TotalMilliseconds;
-                }
-                return noncePayload;
-            }
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
         }
 
         /// <summary>
@@ -522,6 +514,22 @@ namespace ExchangeSharp
             lock (cache)
             {
                 cache[key] = new KeyValuePair<DateTime, object>(DateTime.UtcNow + expiration, value);
+            }
+        }
+
+        protected Dictionary<string, object> GetNoncePayload(string key = "nonce")
+        {
+            lock (this)
+            {
+                Dictionary<string, object> noncePayload = new Dictionary<string, object>
+                {
+                    ["nonce"] = GenerateNonce()
+                };
+                if (RequestWindow.Ticks > 0)
+                {
+                    noncePayload["recvWindow"] = (long)RequestWindow.TotalMilliseconds;
+                }
+                return noncePayload;
             }
         }
     }

@@ -74,24 +74,27 @@ namespace ExchangeSharp
             ExchangeOrderResult order = new ExchangeOrderResult();
             order.OrderId = result["orderNumber"].ToString();
             JToken trades = result["resultingTrades"];
-            decimal tradeCount = (decimal)trades.Children().Count();
-            if (tradeCount != 0m)
+            if (trades != null && trades.Children().Count() != 0)
             {
-                foreach (JToken token in trades)
+                decimal tradeCount = (decimal)trades.Children().Count();
+                if (tradeCount != 0m)
                 {
-                    order.Amount += (decimal)token["amount"];
-                    order.AmountFilled = order.Amount;
-                    order.AveragePrice += (decimal)token["rate"];
-                    if ((string)token["type"] == "buy")
+                    foreach (JToken token in trades)
                     {
-                        order.IsBuy = true;
+                        order.Amount += (decimal)token["amount"];
+                        order.AmountFilled = order.Amount;
+                        order.AveragePrice += (decimal)token["rate"];
+                        if ((string)token["type"] == "buy")
+                        {
+                            order.IsBuy = true;
+                        }
+                        if (order.OrderDate == DateTime.MinValue)
+                        {
+                            order.OrderDate = (DateTime)token["date"];
+                        }
                     }
-                    if (order.OrderDate == DateTime.MinValue)
-                    {
-                        order.OrderDate = (DateTime)token["date"];
-                    }
+                    order.AveragePrice /= tradeCount;
                 }
-                order.AveragePrice /= tradeCount;
             }
             return order;
         }
