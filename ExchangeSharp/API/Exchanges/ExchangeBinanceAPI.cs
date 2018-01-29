@@ -96,10 +96,14 @@ namespace ExchangeSharp
         /// <summary>
         /// Get all tickers via web socket
         /// </summary>
-        /// <param name="callback">Callback for tickers</param>
-        /// <returns>Task of web socket wrapper - dispose of the wrapper to shutdown the socket</returns>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket</returns>
         public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
+            if (callback == null)
+            {
+                return null;
+            }
             return ConnectWebSocket("/stream?streams=!ticker@arr", (msg, _socket) =>
             {
                 try

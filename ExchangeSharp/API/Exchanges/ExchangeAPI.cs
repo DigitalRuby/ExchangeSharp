@@ -114,8 +114,8 @@ namespace ExchangeSharp
         /// <summary>
         /// Get all tickers via web socket
         /// </summary>
-        /// <param name="tickers">Callback for tickers</param>
-        /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
+        /// <param name="tickers">Callback</param>
+        /// <returns>Web socket</returns>
         public virtual WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
         {
             throw new NotImplementedException();
@@ -298,6 +298,13 @@ namespace ExchangeSharp
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
         public virtual IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Get the details of all completed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket</returns>
+        public virtual WebSocketWrapper GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get the details of all completed orders

@@ -61,7 +61,7 @@ public static void Main(string[] args)
 {
 	// create a web socket connection to Binance. Note you can Dispose the socket anytime to shut it down.
 	// the web socket will handle disconnects and attempt to re-connect automatically.
-    ExchangeBinanceAPI b = new ExchangeBinanceAPI();
+	ExchangeBinanceAPI b = new ExchangeBinanceAPI();
     using (var socket = b.GetTickersWebSocket((tickers) =>
     {
         Console.WriteLine("{0} tickers, first: {1}", tickers.Count, tickers.First());

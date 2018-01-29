@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -29,7 +30,7 @@ namespace ExchangeSharp
         private readonly SemaphoreSlim semaphore;
 
         // Times (in millisecond ticks) at which the semaphore should be exited.
-        private readonly ConcurrentQueue<DateTime> exitTimes = new ConcurrentQueue<DateTime>();
+        private readonly ConcurrentQueue<long> exitTimes = new ConcurrentQueue<long>();
 
         // Timer used to trigger exiting the semaphore.
         private readonly Timer exitTimer;
@@ -44,8 +45,8 @@ namespace ExchangeSharp
         private void ExitTimerCallback(object state)
         {
             // While there are exit times that are passed due still in the queue, exit the semaphore and dequeue the exit time.
-            DateTime exitTime;
-            while (exitTimes.TryPeek(out exitTime) && (exitTime - DateTime.UtcNow).Ticks <= 0)
+            long exitTime;
+            while (exitTimes.TryPeek(out exitTime) && (exitTime - Stopwatch.GetTimestamp()) <= 0)
             {
                 semaphore.Release();
                 exitTimes.TryDequeue(out exitTime);
@@ -53,18 +54,26 @@ namespace ExchangeSharp
 
             // Try to get the next exit time from the queue and compute the time until the next check should take place. If the 
             // queue is empty, then no exit times will occur until at least one time unit has passed.
-            TimeSpan timeUntilNextCheck;
+            long timeUntilNextCheck;
             if (exitTimes.TryPeek(out exitTime))
             {
-                timeUntilNextCheck = (exitTime - DateTime.UtcNow);
+                timeUntilNextCheck = (exitTime - Stopwatch.GetTimestamp());
+                if (timeUntilNextCheck < 10000)
+                {
+                    timeUntilNextCheck = 10000;
+                }
+                else if (timeUntilNextCheck > TimeUnit.Ticks)
+                {
+                    timeUntilNextCheck = TimeUnit.Ticks;
+                }
             }
             else
             {
-                timeUntilNextCheck = TimeUnit;
+                timeUntilNextCheck = TimeUnit.Ticks;
             }
 
             // Set the timer.
-            exitTimer.Change((long)timeUntilNextCheck.TotalMilliseconds, -1);
+            exitTimer.Change(timeUntilNextCheck / 10000, -1);
         }
 
         private void CheckDisposed()
@@ -149,8 +158,7 @@ namespace ExchangeSharp
             // and add it to the queue.
             if (entered)
             {
-                var timeToExit = DateTime.UtcNow + TimeUnit;
-                exitTimes.Enqueue(timeToExit);
+                exitTimes.Enqueue(Stopwatch.GetTimestamp() + TimeUnit.Ticks);
             }
 
             return entered;

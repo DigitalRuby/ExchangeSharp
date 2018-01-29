@@ -147,10 +147,14 @@ namespace ExchangeSharp
         /// <summary>
         /// Get all tickers via web socket
         /// </summary>
-        /// <param name="callback">Callback for tickers</param>
-        /// <returns>Task of web socket wrapper - dispose of the wrapper to shutdown the socket</returns>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket</returns>
         public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
+            if (callback == null)
+            {
+                return null;
+            }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -379,6 +383,51 @@ namespace ExchangeSharp
             return orders;
         }
 
+        /// <summary>
+        /// Get the details of all completed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket</returns>
+        public override WebSocketWrapper GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToString() == "os")
+                    {
+                        foreach (JToken orderToken in array[2])
+                        {
+                            callback.Invoke(ParseOrderWebSocket(orderToken));
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                object nonce = GenerateNonce();
+                string authPayload = "AUTH" + nonce;
+                string signature = CryptoUtility.SHA384Sign(authPayload, PrivateApiKey.ToUnsecureString());
+                Dictionary<string, object> payload = new Dictionary<string, object>
+                {
+                    { "apiKey", PublicApiKey.ToUnsecureString() },
+                    { "event", "auth" },
+                    { "authPayload", authPayload },
+                    { "authSig", signature }
+                };
+                string payloadJSON = GetJsonForPayload(payload);
+                _socket.SendMessage(payloadJSON);
+            });
+        }
+
         public override void CancelOrder(string orderId)
         {
             Dictionary<string, object> payload = GetNoncePayload();
@@ -496,6 +545,39 @@ namespace ExchangeSharp
                 Symbol = order["symbol"].Value<string>(),
                 IsBuy = order["side"].Value<string>() == "buy"
             };
+        }
+
+        private ExchangeOrderResult ParseOrderWebSocket(JToken order)
+        {
+            /*
+            [ 0, "os", [ [
+                "<ORD_ID>",
+                "<ORD_PAIR>",
+                "<ORD_AMOUNT>",
+                "<ORD_AMOUNT_ORIG>",
+                "<ORD_TYPE>",
+                "<ORD_STATUS>",
+                "<ORD_PRICE>",
+                "<ORD_PRICE_AVG>",
+                "<ORD_CREATED_AT>",
+                "<ORD_NOTIFY>",
+                 "<ORD_HIDDEN>",
+                "<ORD_OCO>"
+            ] ] ];
+            */
+
+            decimal amount = order[2].Value<decimal>();
+            return new ExchangeOrderResult
+            {
+                Amount = amount,
+                AmountFilled = amount,
+                AveragePrice = order[7].Value<decimal>(),
+                IsBuy = (amount > 0m),
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)order[8]),
+                OrderId = order[0].Value<long>().ToString(CultureInfo.InvariantCulture.NumberFormat),
+                Result = ExchangeAPIOrderResult.Filled,
+                Symbol = order[1].ToString()
+            };               
         }
 
         private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
