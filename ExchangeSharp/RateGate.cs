@@ -58,6 +58,8 @@ namespace ExchangeSharp
             if (exitTimes.TryPeek(out exitTime))
             {
                 timeUntilNextCheck = (exitTime - Stopwatch.GetTimestamp());
+
+                // ensure the next time check is within the time unit
                 if (timeUntilNextCheck < 10000)
                 {
                     timeUntilNextCheck = 10000;
@@ -72,7 +74,7 @@ namespace ExchangeSharp
                 timeUntilNextCheck = TimeUnit.Ticks;
             }
 
-            // Set the timer.
+            // Set the timer in milliseconds
             exitTimer.Change(timeUntilNextCheck / 10000, -1);
         }
 
