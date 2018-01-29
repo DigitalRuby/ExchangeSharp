@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>Exchange Sharp - C# API for cryptocurrency, stock and other exchanges</Title>
-    <PackageVersion>0.2.1.0</PackageVersion>
+    <PackageVersion>0.2.2.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various exchanges for stocks and cryptocurrency. Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Gemini, GDAX, Kraken and Poloniex are supported.</Description>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
@@ -27,7 +27,7 @@
    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
    <PackageId>DigitalRuby.ExchangeSharp</PackageId>
    <Authors>jjxtra</Authors>
-   <PackageReleaseNotes>Change place order to take a class, this will allow easier addition of different order types in the future</PackageReleaseNotes>
+   <PackageReleaseNotes>Fix bug in rate limiting, add order details web socket method to Bitfinex</PackageReleaseNotes>
    <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
    <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
    <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>

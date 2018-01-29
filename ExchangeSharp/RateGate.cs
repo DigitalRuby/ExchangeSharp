@@ -29,7 +29,7 @@ namespace ExchangeSharp
         // Semaphore used to count and limit the number of occurrences per unit time.
         private readonly SemaphoreSlim semaphore;
 
-        // Times (in millisecond ticks) at which the semaphore should be exited.
+        // Times (in ticks, where 1 tick = 10000 milliseconds) at which the semaphore should be exited.
         private readonly ConcurrentQueue<long> exitTimes = new ConcurrentQueue<long>();
 
         // Timer used to trigger exiting the semaphore.
@@ -75,7 +75,8 @@ namespace ExchangeSharp
             }
 
             // Set the timer in milliseconds
-            exitTimer.Change(timeUntilNextCheck / 10000, -1);
+            long ms = timeUntilNextCheck / 10000;
+            exitTimer.Change(ms, -1);
         }
 
         private void CheckDisposed()
