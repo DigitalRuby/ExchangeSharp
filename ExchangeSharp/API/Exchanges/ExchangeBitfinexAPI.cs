@@ -144,11 +144,6 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        /// <summary>
-        /// Get all tickers via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <returns>Web socket</returns>
         public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
@@ -383,11 +378,6 @@ namespace ExchangeSharp
             return orders;
         }
 
-        /// <summary>
-        /// Get the details of all completed orders via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <returns>Web socket</returns>
         public override WebSocketWrapper GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback)
         {
             if (callback == null)

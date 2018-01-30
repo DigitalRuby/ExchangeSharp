@@ -12,6 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 using ExchangeSharp;
 
 namespace ExchangeSharpConsoleApp
@@ -44,6 +46,20 @@ namespace ExchangeSharpConsoleApp
             result = api.GetOrderDetails(result.OrderId);
 
             Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+        }
+
+        public static void RunExampleWebSocket()
+        {
+            var api = new ExchangePoloniexAPI();
+            api.GetTickersWebSocket((t) =>
+            {
+                // depending on the exchange, the (t) parameter (a collection of tickers) may have one ticker or all of them
+                foreach (var ticker in t)
+                {
+                    Console.WriteLine(ticker);
+                }
+            });
+            Console.ReadLine();
         }
 
         public static void RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)

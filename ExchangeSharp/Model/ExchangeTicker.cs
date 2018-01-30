@@ -27,6 +27,11 @@ namespace ExchangeSharp
     public class ExchangeTicker
     {
         /// <summary>
+        /// An exchange specific id if known, otherwise null
+        /// </summary>
+        public string Id { get; set; }
+
+        /// <summary>
         /// The bid is the price to sell at
         /// </summary>
         public decimal Bid { get; set; }

@@ -82,6 +82,10 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunExample(dict);
                 }
+                else if (dict.ContainsKey("example-websocket"))
+                {
+                    RunExampleWebSocket();
+                }
                 else if (dict.ContainsKey("keys"))
                 {
                     RunProcessEncryptedAPIKeys(dict);

@@ -29,6 +29,7 @@ namespace ExchangeSharp
     public class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
+        public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
         public override string Name => ExchangeName.Poloniex;
 
         private void CheckError(JObject json)
@@ -150,6 +151,35 @@ namespace ExchangeSharp
             orders.AddRange(orderLookup.Values);
         }
 
+        private ExchangeTicker ParseTickerWebSocket(string symbol, JToken token)
+        {
+            /*
+            last: args[1],
+            lowestAsk: args[2],
+            highestBid: args[3],
+            percentChange: args[4],
+            baseVolume: args[5],
+            quoteVolume: args[6],
+            isFrozen: args[7],
+            high24hr: args[8],
+            low24hr: args[9]
+            */
+            return new ExchangeTicker
+            {
+                Ask = (decimal)token[2],
+                Bid = (decimal)token[3],
+                Last = (decimal)token[1],
+                Volume = new ExchangeVolume
+                {
+                    PriceAmount = (decimal)token[5],
+                    PriceSymbol = symbol,
+                    QuantityAmount = (decimal)token[6],
+                    QuantitySymbol = symbol,
+                    Timestamp = DateTime.UtcNow
+                }
+            };
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
@@ -211,6 +241,7 @@ namespace ExchangeSharp
                 {
                     Ask = (decimal)values["lowestAsk"],
                     Bid = (decimal)values["highestBid"],
+                    Id = values["id"].ToString(),
                     Last = (decimal)values["last"],
                     Volume = new ExchangeVolume
                     {
@@ -223,6 +254,45 @@ namespace ExchangeSharp
                 }));
             }
             return tickers;
+        }
+
+        public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+            Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    if (token[0].Value<int>() == 1002)
+                    {
+                        if (token is JArray outterArray && outterArray.Count > 2 && outterArray[2] is JArray array && array.Count > 9 &&
+                            idsToSymbols.TryGetValue(array[0].Value<string>(), out string symbol))
+                        {
+                            callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
+                            {
+                                new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerWebSocket(symbol, array))
+                            });
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                var tickers = GetTickers();
+                foreach (var ticker in tickers)
+                {
+                    idsToSymbols[ticker.Value.Id] = ticker.Key;
+                }
+                // subscribe to ticker channel
+                _socket.SendMessage("{\"command\":\"subscribe\",\"channel\":1002}");
+            });
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)

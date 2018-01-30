@@ -93,11 +93,6 @@ namespace ExchangeSharp
             }
         }
 
-        /// <summary>
-        /// Get all tickers via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <returns>Web socket</returns>
         public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)

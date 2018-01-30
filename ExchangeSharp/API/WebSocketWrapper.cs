@@ -28,11 +28,12 @@ namespace ExchangeSharp
         private readonly Uri _uri;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken _cancellationToken;
-        private readonly BlockingCollection<string> _messageQueue = new BlockingCollection<string>(new ConcurrentQueue<string>());
+        private readonly BlockingCollection<object> _messageQueue = new BlockingCollection<object>(new ConcurrentQueue<object>());
 
-        private Action<string, WebSocketWrapper> _onMessage;
-        private Action<WebSocketWrapper> _onConnected;
-        private Action<WebSocketWrapper> _onDisconnected;
+        private System.Action<string, WebSocketWrapper> _onMessage;
+        private System.Action<WebSocketWrapper> _onConnected;
+        private System.Action<WebSocketWrapper> _onDisconnected;
+        private TimeSpan _connectInterval;
         private bool _disposed;
 
         /// <summary>
@@ -41,10 +42,13 @@ namespace ExchangeSharp
         /// <param name="uri">Uri to connect to</param>
         /// <param name="onMessage">Message callback</param>
         /// <param name="keepAlive">Keep alive time, default is 30 seconds</param>
-        /// <param name="onConnect">Connect callback</param>
+        /// <param name="onConnect">Connect callback, will get called on connection and every connectInterval (default 1 hour). This is a great place
+        /// to do setup, such as creating lookup dictionaries, etc. This method will re-execute until it executes without exceptions thrown.</param>
         /// <param name="onDisconnect">Disconnect callback</param>
+        /// <param name="connectInterval">How often to call the onConnect action (default is 1 hour)</param>
         public WebSocketWrapper(string uri, Action<string, WebSocketWrapper> onMessage, TimeSpan? keepAlive = null,
-            Action<WebSocketWrapper> onConnect = null, Action<WebSocketWrapper> onDisconnect = null)
+            Action<WebSocketWrapper> onConnect = null, Action<WebSocketWrapper> onDisconnect = null,
+            TimeSpan? connectInterval = null)
         {
             _ws = new ClientWebSocket();
             _ws.Options.KeepAliveInterval = (keepAlive ?? TimeSpan.FromSeconds(30.0));
@@ -53,6 +57,7 @@ namespace ExchangeSharp
             _onMessage = onMessage;
             _onConnected = onConnect;
             _onDisconnected = onDisconnect;
+            _connectInterval = (connectInterval ?? TimeSpan.FromHours(1.0));
 
             Task.Factory.StartNew(MessageWorkerThread);
             Task.Factory.StartNew(ListenWorkerThread);
@@ -84,14 +89,46 @@ namespace ExchangeSharp
 
         private async Task SendMessageAsync(string message)
         {
-            if (_ws.State != WebSocketState.Open)
-            {
-                throw new APIException("Connection is not open.");
-            }
-
-            var messageBuffer = Encoding.UTF8.GetBytes(message);
-            ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(messageBuffer);
+            ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
             await _ws.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, _cancellationToken);
+        }
+
+        private void QueueAction(System.Action<WebSocketWrapper> action)
+        {
+            if (action != null)
+            {
+                _messageQueue.Add((System.Action)(() =>
+                {
+                    try
+                    {
+                        action(this);
+                    }
+                    catch
+                    {
+                    }
+                }));
+            }
+        }
+
+        private void QueueActionWithNoExceptions(System.Action<WebSocketWrapper> action)
+        {
+            if (action != null)
+            {
+                _messageQueue.Add((System.Action)(() =>
+                {
+                    while (true)
+                    {
+                        try
+                        {
+                            action.Invoke(this);
+                            break;
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }));
+            }
         }
 
         private void ListenWorkerThread()
@@ -111,7 +148,7 @@ namespace ExchangeSharp
                         wasClosed = false;
                         _ws = new ClientWebSocket();
                         _ws.ConnectAsync(_uri, CancellationToken.None).Wait();
-                        RunInTask(() => this?._onConnected(this));
+                        QueueActionWithNoExceptions(_onConnected);
                     }
 
                     while (_ws.State == WebSocketState.Open)
@@ -124,7 +161,7 @@ namespace ExchangeSharp
                             if (result.Result.MessageType == WebSocketMessageType.Close)
                             {
                                 _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).Wait();
-                                RunInTask(() => this?._onDisconnected(this));
+                                QueueAction(_onDisconnected);
                             }
                             else
                             {
@@ -143,7 +180,7 @@ namespace ExchangeSharp
                 }
                 catch
                 {
-                    RunInTask(() => this?._onDisconnected(this));
+                    QueueAction(_onDisconnected);
                     if (!_disposed)
                     {
                         // wait one half second before attempting reconnect
@@ -166,33 +203,33 @@ namespace ExchangeSharp
 
         private void MessageWorkerThread()
         {
+            DateTime lastCheck = DateTime.UtcNow;
+
             while (!_disposed)
             {
-                if (_messageQueue.TryTake(out string message, 100))
+                if (_messageQueue.TryTake(out object message, 100))
                 {
                     try
                     {
-                        this?._onMessage(message, this);
+                        if (message is System.Action action)
+                        {
+                            action();
+                        }
+                        else if (message is string messageString)
+                        {
+                            this._onMessage?.Invoke(messageString, this);
+                        }
                     }
                     catch
                     {
                     }
                 }
+                if (_connectInterval.Ticks > 0 && (DateTime.UtcNow - lastCheck) >= _connectInterval)
+                {
+                    lastCheck = DateTime.UtcNow;
+                    QueueActionWithNoExceptions(_onConnected);
+                }
             }
-        }
-
-        private static Task RunInTask(Action action)
-        {
-            return Task.Factory.StartNew(() =>
-            {
-                try
-                {
-                    action();
-                }
-                catch
-                {
-                }
-            });
         }
     }
 }
