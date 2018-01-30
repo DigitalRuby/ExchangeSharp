@@ -147,16 +147,16 @@ namespace ExchangeSharp
                 symbol = (string)ticker["MarketName"];
                 ExchangeTicker tickerObj = new ExchangeTicker
                 {
-                    Ask = (decimal)ticker["Ask"],
-                    Bid = (decimal)ticker["Bid"],
-                    Last = (decimal)ticker["Last"],
+                    Ask = ticker["Ask"].Value<decimal?>() ?? 0m,
+                    Bid = ticker["Bid"].Value<decimal?>() ?? 0m,
+                    Last = ticker["Last"].Value<decimal?>() ?? 0m,
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = (decimal)ticker["BaseVolume"],
+                        PriceAmount = ticker["BaseVolume"].Value<decimal?>() ?? 0m,
                         PriceSymbol = symbol,
-                        QuantityAmount = (decimal)ticker["Volume"],
+                        QuantityAmount = ticker["Volume"].Value<decimal?>() ?? 0m,
                         QuantitySymbol = symbol,
-                        Timestamp = (DateTime)ticker["TimeStamp"]
+                        Timestamp = ticker["TimeStamp"].Value<DateTime?>() ?? DateTime.UtcNow
                     }
                 };
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
