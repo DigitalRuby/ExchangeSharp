@@ -1,3 +1,5 @@
+![alt text](logo.png "Exchange Sharp Logo"){width="500pt"}
+
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
 
 Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
