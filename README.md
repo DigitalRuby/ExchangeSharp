@@ -1,4 +1,4 @@
-<img src='logo.png' style='width:300pt;' />
+<img src='logo.png' width='600' />
 
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
 
