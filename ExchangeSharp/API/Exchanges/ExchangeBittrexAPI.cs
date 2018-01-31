@@ -29,8 +29,9 @@ namespace ExchangeSharp
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
-        public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
+        public override string BaseUrlWebSocket { get; set; } = "wss://socket.bittrex.com/signalr";
         public override string Name => ExchangeName.Bittrex;
+        public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
         private JToken CheckError(JToken obj)
         {
@@ -162,6 +163,34 @@ namespace ExchangeSharp
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
             }
             return tickerList;
+        }
+
+        public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+            Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                var tickers = GetTickers();
+                foreach (var ticker in tickers)
+                {
+                    idsToSymbols[ticker.Value.Id] = ticker.Key;
+                }
+                // subscribe to ticker channel
+                //_socket.SendMessage("{\"command\":\"subscribe\",\"channel\":1002}");
+            });
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
