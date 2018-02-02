@@ -163,13 +163,13 @@ namespace ExchangeSharp
         public override ExchangeTicker GetTicker(string symbol)
         {
             Dictionary<string, string> ticker = MakeJsonRequest<Dictionary<string, string>>("/products/" + symbol + "/ticker");
-            decimal volume = decimal.Parse(ticker["volume"]);
+            decimal volume = Convert.ToDecimal(ticker["volume"], System.Globalization.CultureInfo.InvariantCulture);
             DateTime timestamp = DateTime.Parse(ticker["time"]);
-            decimal price = decimal.Parse(ticker["price"]);
+            decimal price = Convert.ToDecimal(ticker["price"], System.Globalization.CultureInfo.InvariantCulture);
             return new ExchangeTicker
             {
-                Ask = decimal.Parse(ticker["ask"]),
-                Bid = decimal.Parse(ticker["bid"]),
+                Ask = Convert.ToDecimal(ticker["ask"], System.Globalization.CultureInfo.InvariantCulture),
+                Bid = Convert.ToDecimal(ticker["bid"], System.Globalization.CultureInfo.InvariantCulture),
                 Last = price,
                 Volume = new ExchangeVolume { PriceAmount = volume, PriceSymbol = symbol, QuantityAmount = volume * price, QuantitySymbol = symbol, Timestamp = timestamp }
             };
