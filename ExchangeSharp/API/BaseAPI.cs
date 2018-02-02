@@ -517,7 +517,12 @@ namespace ExchangeSharp
             }
         }
 
-        protected Dictionary<string, object> GetNoncePayload(string key = "nonce")
+        /// <summary>
+        /// Get a dictionary with a nonce key and value of the required nonce type
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <returns>Dictionary with nonce</returns>
+        protected Dictionary<string, object> GetNoncePayload()
         {
             lock (this)
             {
