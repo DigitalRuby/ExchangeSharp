@@ -137,18 +137,6 @@ namespace ExchangeSharp
             return symbol?.Replace('_', '-').ToUpperInvariant();
         }
 
-        public override void LoadAPIKeys(string encryptedFile)
-        {
-            SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
-            if (strings.Length != 3)
-            {
-                throw new InvalidOperationException("Encrypted keys file should have a public and private key and pass phrase");
-            }
-            PublicApiKey = strings[0];
-            PrivateApiKey = strings[1];
-            Passphrase = strings[2];
-        }
-
         public override IEnumerable<string> GetSymbols()
         {
             Dictionary<string, string>[] symbols = MakeJsonRequest<Dictionary<string, string>[]>("/products");

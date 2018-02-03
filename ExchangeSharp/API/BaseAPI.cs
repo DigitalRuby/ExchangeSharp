@@ -239,12 +239,12 @@ namespace ExchangeSharp
         /// Load API keys from an encrypted file - keys will stay encrypted in memory
         /// </summary>
         /// <param name="encryptedFile">Encrypted file to load keys from</param>
-        public virtual void LoadAPIKeys(string encryptedFile)
+        public void LoadAPIKeys(string encryptedFile)
         {
             SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
             if (strings.Length < 2)
             {
-                throw new InvalidOperationException("Encrypted keys file should have a public and private key, and an optional pass phrase");
+                throw new InvalidOperationException("Encrypted keys file should have at least a public and private key, and an optional pass phrase");
             }
             PublicApiKey = strings[0];
             PrivateApiKey = strings[1];
@@ -252,6 +252,19 @@ namespace ExchangeSharp
             {
                 Passphrase = strings[3];
             }
+        }
+
+        /// <summary>
+        /// Load API keys from unsecure strings
+        /// </summary>
+        /// <param name="publicApiKey">Public Api Key</param>
+        /// <param name="privateApiKey">Private Api Key</param>
+        /// <param name="passPhrase">Pass phrase, null for none</param>
+        public void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null)
+        {
+            PublicApiKey = publicApiKey.ToSecureString();
+            PrivateApiKey = privateApiKey.ToSecureString();
+            Passphrase = passPhrase?.ToSecureString();
         }
 
         /// <summary>
