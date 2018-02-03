@@ -37,7 +37,7 @@ namespace ExchangeSharp
             JToken token = MakeJsonRequest<JToken>(subUrl);
             if (!(token is JArray) && token["error"] != null)
             {
-                throw new APIException(token["error"].ToString());
+                throw new APIException(token["error"].ToStringInvariant());
             }
             return token;
         }
@@ -51,7 +51,7 @@ namespace ExchangeSharp
         {
             foreach (JToken token in MakeBitstampRequest("/trading-pairs-info"))
             {
-                yield return (string)token["url_symbol"];
+                yield return token["url_symbol"].ToStringInvariant();
             }
         }
 
@@ -62,16 +62,16 @@ namespace ExchangeSharp
             JToken token = MakeBitstampRequest("/ticker/" + symbol);
             return new ExchangeTicker
             {
-                Ask = (decimal)token["ask"],
-                Bid = (decimal)token["bid"],
-                Last = (decimal)token["last"],
+                Ask = token["ask"].ConvertInvariant<decimal>(),
+                Bid = token["bid"].ConvertInvariant<decimal>(),
+                Last = token["last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = (decimal)token["volume"],
+                    PriceAmount = token["volume"].ConvertInvariant<decimal>(),
                     PriceSymbol = symbol,
-                    QuantityAmount = (decimal)token["volume"] * (decimal)token["last"],
+                    QuantityAmount = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
                     QuantitySymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)token["timestamp"])
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["timestamp"].ConvertInvariant<long>())
                 }
             };
         }
@@ -83,11 +83,11 @@ namespace ExchangeSharp
             ExchangeOrderBook book = new ExchangeOrderBook();
             foreach (JArray ask in token["asks"])
             {
-                book.Asks.Add(new ExchangeOrderPrice { Amount = (decimal)ask[1], Price = (decimal)ask[0] });
+                book.Asks.Add(new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() });
             }
             foreach (JArray bid in token["bids"])
             {
-                book.Bids.Add(new ExchangeOrderPrice { Amount = (decimal)bid[1], Price = (decimal)bid[0] });
+                book.Bids.Add(new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() });
             }
             return book;
         }
@@ -101,11 +101,11 @@ namespace ExchangeSharp
             {
                 yield return new ExchangeTrade
                 {
-                    Amount = (decimal)trade["amount"],
-                    Id = (long)trade["tid"],
-                    IsBuy = (string)trade["type"] == "0",
-                    Price = (decimal)trade["price"],
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)trade["date"])
+                    Amount = trade["amount"].ConvertInvariant<decimal>(),
+                    Id = trade["tid"].ConvertInvariant<long>(),
+                    IsBuy = trade["type"].ToStringInvariant() == "0",
+                    Price = trade["price"].ConvertInvariant<decimal>(),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(trade["date"].ConvertInvariant<long>())
                 };
             }
         }

@@ -152,8 +152,10 @@ namespace ExchangeSharp
     {
         public static void ShowPlotForm(this Trader trader)
         {
-            PlotForm form = new PlotForm();
-            form.WindowState = FormWindowState.Maximized;
+            PlotForm form = new PlotForm
+            {
+                WindowState = FormWindowState.Maximized
+            };
             form.SetPlotPoints(trader.PlotPoints, trader.BuyPrices, trader.SellPrices);
             form.ShowDialog();
         }

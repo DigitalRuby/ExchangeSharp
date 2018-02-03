@@ -199,7 +199,7 @@ namespace ExchangeSharp
                             break;
 
                         case NonceStyle.TicksString:
-                            nonce = now.Ticks.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            nonce = now.Ticks.ToStringInvariant();
                             break;
 
                         case NonceStyle.UnixMilliseconds:
@@ -207,7 +207,7 @@ namespace ExchangeSharp
                             break;
 
                         case NonceStyle.UnixMillisecondsString:
-                            nonce = ((long)now.UnixTimestampFromDateTimeMilliseconds()).ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            nonce = ((long)now.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
                             break;
 
                         case NonceStyle.UnixSeconds:
@@ -215,7 +215,7 @@ namespace ExchangeSharp
                             break;
 
                         case NonceStyle.UnixSecondsString:
-                            nonce = now.UnixTimestampFromDateTimeSeconds().ToString(CultureInfo.InvariantCulture.NumberFormat);
+                            nonce = now.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
                             break;
 
                         default:
@@ -223,7 +223,7 @@ namespace ExchangeSharp
                     }
 
                     // check for duplicate nonce
-                    decimal convertedNonce = (decimal)Convert.ChangeType(nonce, typeof(decimal));
+                    decimal convertedNonce = nonce.ConvertInvariant<decimal>();
                     if (lastNonce != convertedNonce)
                     {
                         lastNonce = convertedNonce;
@@ -291,6 +291,7 @@ namespace ExchangeSharp
             string fullUrl = (baseUrl ?? BaseUrl) + url;
             Uri uri = ProcessRequestUrl(new UriBuilder(fullUrl), payload);
             HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
+            request.Headers["Accept-Language"] = "en-us; q=1.0;";
             request.Method = method ?? RequestMethod;
             request.ContentType = RequestContentType;
             request.UserAgent = RequestUserAgent;
@@ -434,7 +435,7 @@ namespace ExchangeSharp
                 {
                     if (keyValue.Key != null && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
                     {
-                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToString()));
+                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToStringInvariant()));
                     }
                 }
                 if (form.Length != 0)

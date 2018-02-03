@@ -154,9 +154,9 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
+            TestExchanges();
             TestRateGate();
             TestEncryption();
-            TestExchanges();
         }
     }
 }

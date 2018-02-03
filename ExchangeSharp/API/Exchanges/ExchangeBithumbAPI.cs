@@ -63,9 +63,9 @@ namespace ExchangeSharp
 
         private void CheckError(JToken result)
         {
-            if (result != null && !(result is JArray) && result["status"] != null && result["status"].Value<string>() != "0000")
+            if (result != null && !(result is JArray) && result["status"] != null && result["status"].ToStringInvariant() != "0000")
             {
-                throw new APIException(result["status"].Value<string>() + ": " + result["message"].Value<string>());
+                throw new APIException(result["status"].ToStringInvariant() + ": " + result["message"].ToStringInvariant());
             }
         }
         
@@ -81,16 +81,16 @@ namespace ExchangeSharp
         {
             return new ExchangeTicker
             {
-                Ask = (decimal)data["sell_price"],
-                Bid = (decimal)data["buy_price"],
-                Last = (decimal)data["buy_price"], // Silly Bithumb doesn't provide the last actual trade value in the ticker,
+                Ask = data["sell_price"].ConvertInvariant<decimal>(),
+                Bid = data["buy_price"].ConvertInvariant<decimal>(),
+                Last = data["buy_price"].ConvertInvariant<decimal>(), // Silly Bithumb doesn't provide the last actual trade value in the ticker,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = (decimal)data["average_price"],
+                    PriceAmount = data["average_price"].ConvertInvariant<decimal>(),
                     PriceSymbol = "KRW",
-                    QuantityAmount = (decimal)data["units_traded"],
+                    QuantityAmount = data["units_traded"].ConvertInvariant<decimal>(),
                     QuantitySymbol = symbol,
-                    Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)data["date"])
+                    Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>())
                 }
             };
         }
@@ -100,11 +100,11 @@ namespace ExchangeSharp
             ExchangeOrderBook book = new ExchangeOrderBook();
             foreach (JToken token in data["bids"])
             {
-                book.Bids.Add(new ExchangeOrderPrice { Amount = (decimal)token["quantity"], Price = (decimal)token["price"] });
+                book.Bids.Add(new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() });
             }
             foreach (JToken token in data["asks"])
             {
-                book.Asks.Add(new ExchangeOrderPrice { Amount = (decimal)token["quantity"], Price = (decimal)token["price"] });
+                book.Asks.Add(new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() });
             }
             return book;
         }
@@ -135,7 +135,7 @@ namespace ExchangeSharp
             string symbol = "all";
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
-            DateTime date = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((long)data["date"]);
+            DateTime date = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>());
             foreach (JProperty token in data)
             {
                 if (token.Name != "date")
@@ -174,11 +174,11 @@ namespace ExchangeSharp
             {
                 yield return new ExchangeTrade
                 {
-                    Amount = (decimal)token["units_traded"],
-                    Price = (decimal)token["price"],
+                    Amount = token["units_traded"].ConvertInvariant<decimal>(),
+                    Price = token["price"].ConvertInvariant<decimal>(),
                     Id = -1,
-                    IsBuy = (string)token["type"] == "bid",
-                    Timestamp = (DateTime)token["transaction_date"]
+                    IsBuy = token["type"].ToStringInvariant() == "bid",
+                    Timestamp = token["transaction_date"].ConvertInvariant<DateTime>()
                 };
             }
         }

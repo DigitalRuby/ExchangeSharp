@@ -35,9 +35,9 @@ namespace ExchangeSharp
 
         private JToken CheckError(JToken obj)
         {
-            if (obj["success"] == null || !obj["success"].Value<bool>())
+            if (obj["success"] == null || !obj["success"].ConvertInvariant<bool>())
             {
-                throw new APIException(obj["message"].Value<string>());
+                throw new APIException(obj["message"].ToStringInvariant());
             }
             JToken token = obj["result"];
             if (token == null)
@@ -50,21 +50,21 @@ namespace ExchangeSharp
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             ExchangeOrderResult order = new ExchangeOrderResult();
-            decimal amount = token.Value<decimal>("Quantity");
-            decimal remaining = token.Value<decimal>("QuantityRemaining");
+            decimal amount = token["Quantity"].ConvertInvariant<decimal>();
+            decimal remaining = token["QuantityRemaining"].ConvertInvariant<decimal>();
             decimal amountFilled = amount - remaining;
             order.Amount = amount;
             order.AmountFilled = amountFilled;
-            order.AveragePrice = token["PricePerUnit"] == null ? token["Price"].Value<decimal>() : token.Value<decimal>("PricePerUnit");
+            order.AveragePrice = token["PricePerUnit"].ConvertInvariant<decimal>(token["Price"].ConvertInvariant<decimal>());
             order.Message = string.Empty;
-            order.OrderId = token.Value<string>("OrderUuid");
+            order.OrderId = token["OrderUuid"].ToStringInvariant();
             order.Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially));
-            order.OrderDate = token["Opened"] == null ? token["TimeStamp"].Value<DateTime>() : token["Opened"].Value<DateTime>();
-            order.Symbol = token["Exchange"].Value<string>();
-            string type = (string)token["OrderType"];
+            order.OrderDate = token["Opened"].ConvertInvariant<DateTime>(token["TimeStamp"].ConvertInvariant<DateTime>());
+            order.Symbol = token["Exchange"].ToStringInvariant();
+            string type = token["OrderType"].ToStringInvariant();
             if (string.IsNullOrWhiteSpace(type))
             {
-                type = (string)token["Type"] ?? string.Empty;
+                type = token["Type"].ToStringInvariant();
             }
             order.IsBuy = type.IndexOf("BUY", StringComparison.OrdinalIgnoreCase) >= 0;
             return order;
@@ -76,7 +76,7 @@ namespace ExchangeSharp
             {
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
-                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToString() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
+                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
                 return url.Uri;
             }
             return url.Uri;
@@ -106,7 +106,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    symbols.Add(token["MarketName"].Value<string>());
+                    symbols.Add(token["MarketName"].ToStringInvariant());
                 }
             }
             return symbols;
@@ -121,16 +121,16 @@ namespace ExchangeSharp
             {
                 return new ExchangeTicker
                 {
-                    Ask = ticker["Ask"].Value<decimal>(),
-                    Bid = ticker["Bid"].Value<decimal>(),
-                    Last = ticker["Last"].Value<decimal>(),
+                    Ask = ticker["Ask"].ConvertInvariant<decimal>(),
+                    Bid = ticker["Bid"].ConvertInvariant<decimal>(),
+                    Last = ticker["Last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = ticker["Volume"].Value<decimal>(),
+                        PriceAmount = ticker["Volume"].ConvertInvariant<decimal>(),
                         PriceSymbol = symbol,
-                        QuantityAmount = ticker["BaseVolume"].Value<decimal>(),
+                        QuantityAmount = ticker["BaseVolume"].ConvertInvariant<decimal>(),
                         QuantitySymbol = symbol,
-                        Timestamp = ticker["TimeStamp"].Value<DateTime>()
+                        Timestamp = ticker["TimeStamp"].ConvertInvariant<DateTime>()
                     }
                 };
             }
@@ -145,19 +145,19 @@ namespace ExchangeSharp
             List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
             foreach (JToken ticker in tickers)
             {
-                symbol = (string)ticker["MarketName"];
+                symbol = ticker["MarketName"].ToStringInvariant();
                 ExchangeTicker tickerObj = new ExchangeTicker
                 {
-                    Ask = ticker["Ask"].Value<decimal?>() ?? 0m,
-                    Bid = ticker["Bid"].Value<decimal?>() ?? 0m,
-                    Last = ticker["Last"].Value<decimal?>() ?? 0m,
+                    Ask = ticker["Ask"].ConvertInvariant<decimal>(),
+                    Bid = ticker["Bid"].ConvertInvariant<decimal>(),
+                    Last = ticker["Last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = ticker["BaseVolume"].Value<decimal?>() ?? 0m,
+                        PriceAmount = ticker["BaseVolume"].ConvertInvariant<decimal>(),
                         PriceSymbol = symbol,
-                        QuantityAmount = ticker["Volume"].Value<decimal?>() ?? 0m,
+                        QuantityAmount = ticker["Volume"].ConvertInvariant<decimal>(),
                         QuantitySymbol = symbol,
-                        Timestamp = ticker["TimeStamp"].Value<DateTime?>() ?? DateTime.UtcNow
+                        Timestamp = ticker["TimeStamp"].ConvertInvariant<DateTime>(DateTime.UtcNow)
                     }
                 };
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
@@ -202,13 +202,13 @@ namespace ExchangeSharp
             JToken bids = book["buy"];
             foreach (JToken token in bids)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<decimal>(), Price = token["Rate"].Value<decimal>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
                 orders.Bids.Add(order);
             }
             JToken asks = book["sell"];
             foreach (JToken token in asks)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].Value<decimal>(), Price = token["Rate"].Value<decimal>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
                 orders.Asks.Add(order);
             }
             return orders;
@@ -238,16 +238,16 @@ namespace ExchangeSharp
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = array.Last["T"].Value<DateTime>();
+                    sinceDateTime = array.Last["T"].ConvertInvariant<DateTime>();
                 }
                 foreach (JToken trade in array)
                 {
                     // {"O":0.00106302,"H":0.00106302,"L":0.00106302,"C":0.00106302,"V":80.58638589,"T":"2017-08-18T17:48:00","BV":0.08566493}
                     trades.Add(new ExchangeTrade
                     {
-                        Amount = trade["V"].Value<decimal>(),
-                        Price = trade["C"].Value<decimal>(),
-                        Timestamp = trade["T"].Value<DateTime>(),
+                        Amount = trade["V"].ConvertInvariant<decimal>(),
+                        Price = trade["C"].ConvertInvariant<decimal>(),
+                        Timestamp = trade["T"].ConvertInvariant<DateTime>(),
                         Id = -1,
                         IsBuy = true
                     });
@@ -278,11 +278,11 @@ namespace ExchangeSharp
                 {
                     yield return new ExchangeTrade
                     {
-                        Amount = token.Value<decimal>("Quantity"),
-                        IsBuy = token.Value<string>("OrderType").Equals("BUY", StringComparison.OrdinalIgnoreCase),
-                        Price = token.Value<decimal>("Price"),
-                        Timestamp = token.Value<DateTime>("TimeStamp"),
-                        Id = token.Value<long>("Id")
+                        Amount = token["Quantity"].ConvertInvariant<decimal>(),
+                        IsBuy = token["OrderType"].ToStringUpperInvariant() == "BUY",
+                        Price = token["Price"].ConvertInvariant<decimal>(),
+                        Timestamp = token["TimeStamp"].ConvertInvariant<DateTime>(),
+                        Id = token["Id"].ConvertInvariant<long>()
                     };
                 }
             }
@@ -324,16 +324,16 @@ namespace ExchangeSharp
                 {
                     MarketCandle candle = new MarketCandle
                     {
-                        ClosePrice = (decimal)jsonCandle["C"],
+                        ClosePrice = jsonCandle["C"].ConvertInvariant<decimal>(),
                         ExchangeName = Name,
-                        HighPrice = (decimal)jsonCandle["H"],
-                        LowPrice = (decimal)jsonCandle["L"],
+                        HighPrice = jsonCandle["H"].ConvertInvariant<decimal>(),
+                        LowPrice = jsonCandle["L"].ConvertInvariant<decimal>(),
                         Name = symbol,
-                        OpenPrice = (decimal)jsonCandle["O"],
+                        OpenPrice = jsonCandle["O"].ConvertInvariant<decimal>(),
                         PeriodSeconds = periodSeconds,
-                        Timestamp = (DateTime)jsonCandle["T"],
-                        VolumePrice = (double)jsonCandle["BV"],
-                        VolumeQuantity = (double)jsonCandle["V"]
+                        Timestamp = jsonCandle["T"].ConvertInvariant<DateTime>(),
+                        VolumePrice = jsonCandle["BV"].ConvertInvariant<double>(),
+                        VolumeQuantity = jsonCandle["V"].ConvertInvariant<double>()
                     };
                     if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                     {
@@ -353,10 +353,10 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    decimal amount = token["Balance"].Value<decimal>();
+                    decimal amount = token["Balance"].ConvertInvariant<decimal>();
                     if (amount > 0m)
                     {
-                        currencies.Add(token["Currency"].Value<string>(), amount);
+                        currencies.Add(token["Currency"].ToStringInvariant(), amount);
                     }
                 }
             }
@@ -373,10 +373,10 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    decimal amount = token["Available"].Value<decimal>();
+                    decimal amount = token["Available"].ConvertInvariant<decimal>();
                     if (amount > 0m)
                     {
-                        currencies.Add(token["Currency"].Value<string>(), amount);
+                        currencies.Add(token["Currency"].ToStringInvariant(), amount);
                     }
                 }
             }
@@ -388,10 +388,10 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbol(order.Symbol);
             decimal amount = order.RoundAmount();
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
-                amount.ToString(CultureInfo.InvariantCulture.NumberFormat) + "&rate=" + order.Price.ToString(CultureInfo.InvariantCulture.NumberFormat);
+                amount.ToStringInvariant() + "&rate=" + order.Price.ToStringInvariant();
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
-            string orderId = result["uuid"].Value<string>();
+            string orderId = result["uuid"].ToStringInvariant();
             return new ExchangeOrderResult { Amount = amount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
 

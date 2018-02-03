@@ -67,14 +67,14 @@ namespace ExchangeSharp
                     {
                         ExchangeName = exchange,
                         Name = marketName,
-                        ClosePrice = (decimal)array[4],
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)array[0]),
-                        HighPrice = (decimal)array[2],
-                        LowPrice = (decimal)array[3],
-                        OpenPrice = (decimal)array[1],
-                        PeriodSeconds = int.Parse(prop.Name),
-                        VolumePrice = (double)array[5],
-                        VolumeQuantity = (double)array[5] * (double)array[4]
+                        ClosePrice = array[4].ConvertInvariant<decimal>(),
+                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[0].ConvertInvariant<long>()),
+                        HighPrice = array[2].ConvertInvariant<decimal>(),
+                        LowPrice = array[3].ConvertInvariant<decimal>(),
+                        OpenPrice = array[1].ConvertInvariant<decimal>(),
+                        PeriodSeconds = prop.Name.ConvertInvariant<int>(),
+                        VolumePrice = array[5].ConvertInvariant<double>(),
+                        VolumeQuantity = array[5].ConvertInvariant<double>() * array[4].ConvertInvariant<double>()
                     };
                 }
             }
@@ -98,12 +98,12 @@ namespace ExchangeSharp
                 {
                     ExchangeName = pieces[0],
                     Name = pieces[1],
-                    HighPrice = (decimal)prop.Value["price"]["high"],
-                    LastPrice = (decimal)prop.Value["price"]["last"],
-                    LowPrice = (decimal)prop.Value["price"]["low"],
-                    PriceChangeAmount = (decimal)prop.Value["price"]["change"]["absolute"],
-                    PriceChangePercent = (float)prop.Value["price"]["change"]["percentage"],
-                    Volume = (double)prop.Value["volume"]
+                    HighPrice = prop.Value["price"]["high"].ConvertInvariant<decimal>(),
+                    LastPrice = prop.Value["price"]["last"].ConvertInvariant<decimal>(),
+                    LowPrice = prop.Value["price"]["low"].ConvertInvariant<decimal>(),
+                    PriceChangeAmount = prop.Value["price"]["change"]["absolute"].ConvertInvariant<decimal>(),
+                    PriceChangePercent = prop.Value["price"]["change"]["percentage"].ConvertInvariant<float>(),
+                    Volume = prop.Value["volume"].ConvertInvariant<double>()
                 };
             }
         }
