@@ -54,29 +54,28 @@ namespace ExchangeSharp
 
             // Try to get the next exit time from the queue and compute the time until the next check should take place. If the 
             // queue is empty, then no exit times will occur until at least one time unit has passed.
-            long timeUntilNextCheck;
+            TimeSpan timeUntilNextCheck;
             if (exitTimes.TryPeek(out exitTime))
             {
-                timeUntilNextCheck = (exitTime - Stopwatch.GetTimestamp());
+                timeUntilNextCheck = TimeSpan.FromTicks(exitTime - Stopwatch.GetTimestamp());
 
                 // ensure the next time check is within the time unit
-                if (timeUntilNextCheck < 10000)
+                if (timeUntilNextCheck.Ticks < 1)
                 {
-                    timeUntilNextCheck = 10000;
+                    timeUntilNextCheck = TimeSpan.FromTicks(1);
                 }
-                else if (timeUntilNextCheck > TimeUnit.Ticks)
+                else if (timeUntilNextCheck > TimeUnit)
                 {
-                    timeUntilNextCheck = TimeUnit.Ticks;
+                    timeUntilNextCheck = TimeUnit;
                 }
             }
             else
             {
-                timeUntilNextCheck = TimeUnit.Ticks;
+                timeUntilNextCheck = TimeUnit;
             }
 
             // Set the timer in milliseconds
-            long ms = timeUntilNextCheck / 10000;
-            exitTimer.Change(ms, -1);
+            exitTimer.Change(timeUntilNextCheck, TimeSpan.FromTicks(-1));
         }
 
         private void CheckDisposed()
@@ -135,7 +134,7 @@ namespace ExchangeSharp
 
             // Create a timer to exit the semaphore. Use the time unit as the original
             // interval length because that's the earliest we will need to exit the semaphore.
-            exitTimer = new Timer(ExitTimerCallback, null, (long)TimeUnit.TotalMilliseconds, -1);
+            exitTimer = new Timer(ExitTimerCallback, null, TimeUnit, TimeSpan.FromTicks(-1));
         }
 
         /// <summary>

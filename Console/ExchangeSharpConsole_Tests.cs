@@ -12,7 +12,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+
 using ExchangeSharp;
 
 namespace ExchangeSharpConsoleApp
@@ -44,6 +46,25 @@ namespace ExchangeSharpConsoleApp
             return api.NormalizeSymbol("BTC-USD");
         }
 
+        private static void TestRateGate()
+        {
+            RateGate gate = new RateGate(1, TimeSpan.FromMilliseconds(50));
+            if (!gate.WaitToProceed(1))
+            {
+                throw new ApplicationException("Rate gate should have allowed immediate access for the first attempt");
+            }
+            Stopwatch timer = Stopwatch.StartNew();
+            gate.WaitToProceed();
+            gate.WaitToProceed();
+            gate.WaitToProceed();
+            gate.WaitToProceed();
+            timer.Stop();
+            if (timer.Elapsed.TotalMilliseconds > 300.0)
+            {
+                throw new APIException("Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+            }
+        }
+
         private static void TestEncryption()
         {
             byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
@@ -65,9 +86,8 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
-        public static void RunPerformTests(Dictionary<string, string> dict)
+        private static void TestExchanges()
         {
-            TestEncryption();
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {
@@ -115,6 +135,13 @@ namespace ExchangeSharpConsoleApp
                     Console.WriteLine("Request failed, api: {0}, error: {1}", api, ex.Message);
                 }
             }
+        }
+
+        public static void RunPerformTests(Dictionary<string, string> dict)
+        {
+            TestRateGate();
+            TestEncryption();
+            TestExchanges();
         }
     }
 }
