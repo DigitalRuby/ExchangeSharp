@@ -48,20 +48,35 @@ namespace ExchangeSharpConsoleApp
 
         private static void TestRateGate()
         {
-            RateGate gate = new RateGate(1, TimeSpan.FromMilliseconds(50));
-            if (!gate.WaitToProceed(1))
+            int timesPerPeriod = 1;
+            int ms = 500;
+            int loops = 10;
+            double msMax = (double)ms * 1.1;
+            double msMin = (double)ms * 0.9;
+            RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
+            if (!gate.WaitToProceed(0))
             {
-                throw new ApplicationException("Rate gate should have allowed immediate access for the first attempt");
+                throw new APIException("Rate gate should have allowed immediate access to first attempt");
             }
-            Stopwatch timer = Stopwatch.StartNew();
-            gate.WaitToProceed();
-            gate.WaitToProceed();
-            gate.WaitToProceed();
-            gate.WaitToProceed();
-            timer.Stop();
-            if (timer.Elapsed.TotalMilliseconds > 300.0)
+            for (int i = 0; i < loops; i++)
             {
-                throw new APIException("Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                Stopwatch timer = Stopwatch.StartNew();
+                gate.WaitToProceed();
+                timer.Stop();
+
+                if (i > 0)
+                {
+                    // check for too much elapsed time with a little fudge
+                    if (timer.Elapsed.TotalMilliseconds > msMax)
+                    {
+                        throw new APIException("Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                    }
+                    // check for too little elapsed time with a little fudge
+                    else if (timer.Elapsed.TotalMilliseconds < msMin)
+                    {
+                        throw new APIException("Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                    }
+                }
             }
         }
 
