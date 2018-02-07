@@ -12,11 +12,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharpConsoleApp
 {
-	public static class ExchangeSharpConsoleMain
+    using System;
+    using System.Collections.Generic;
+
+    using ExchangeSharp;
+
+    public static class ExchangeSharpConsoleMain
     {
         public static int Main(string[] args)
         {
-            return ExchangeSharpConsole.ConsoleMain(args);
+            ////return ExchangeSharpConsole.ConsoleMain(args);
+
+            var bittrex = new ExchangeBittrexAPI();
+            bittrex.GetTickersWebSocket(PrintTickersInfo);
+            Console.ReadLine();
+            return 0;
+        }
+
+        private static void PrintTickersInfo(IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> obj)
+        {
+            foreach (KeyValuePair<string, ExchangeTicker> kvp in obj)
+            {
+                Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+            }
         }
     }
 }
