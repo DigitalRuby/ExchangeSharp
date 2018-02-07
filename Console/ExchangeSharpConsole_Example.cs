@@ -51,7 +51,7 @@ namespace ExchangeSharpConsoleApp
         public static void RunExampleWebSocket()
         {
             var api = new ExchangePoloniexAPI();
-            api.GetTickersWebSocket((t) =>
+            var wss = api.GetTickersWebSocket((t) =>
             {
                 // depending on the exchange, the (t) parameter (a collection of tickers) may have one ticker or all of them
                 foreach (var ticker in t)
@@ -60,6 +60,7 @@ namespace ExchangeSharpConsoleApp
                 }
             });
             Console.ReadLine();
+            wss.Dispose();
         }
 
         public static void RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)

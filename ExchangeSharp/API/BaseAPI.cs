@@ -368,7 +368,7 @@ namespace ExchangeSharp
         public Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null) => Task.Factory.StartNew(() => MakeJsonRequest<T>(url, baseUrl, payload, requestMethod));
 
         /// <summary>
-        /// Connect a web socket to a path on the API and start listening
+        /// Connect a web socket to a path on the API and start listening, not all exchanges support this
         /// </summary>
         /// <param name="url">The sub url for the web socket, or null for none</param>
         /// <param name="messageCallback">Callback for messages</param>

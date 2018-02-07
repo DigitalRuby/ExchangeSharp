@@ -177,8 +177,8 @@ namespace ExchangeSharp
         /// Get all tickers via web socket
         /// </summary>
         /// <param name="tickers">Callback</param>
-        /// <returns>Web socket</returns>
-        WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
 
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -338,8 +338,8 @@ namespace ExchangeSharp
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
-        /// <returns>Web socket</returns>
-        WebSocketWrapper GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback);
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback);
 
         /// <summary>
         /// ASYNC - Get the details of all completed orders
