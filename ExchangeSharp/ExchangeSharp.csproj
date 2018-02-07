@@ -41,10 +41,8 @@
 
   <ItemGroup>
     <PackageReference Include="Bittrex.Net" Version="1.3.8" />
-    <PackageReference Include="CloudFlareUtilities" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.4.0" />
-    <PackageReference Include="System.Net.Http" Version="4.3.3" />
   </ItemGroup>
 
   <ItemGroup>
