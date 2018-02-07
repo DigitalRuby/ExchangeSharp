@@ -39,7 +39,7 @@ namespace ExchangeSharpConsoleApp
             {
                 return api.NormalizeSymbol("BTC-LTC");
             }
-            else if (api is ExchangeBinanceAPI)
+            else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI)
             {
                 return api.NormalizeSymbol("ETH-BTC");
             }

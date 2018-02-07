@@ -14,6 +14,7 @@ The following cryptocurrency exchanges are supported:
 - Gemini (public REST, basic private REST)
 - GDAX (public REST, basic private REST)
 - Kraken (public REST, basic private REST)
+- Okex (basic public REST)
 - Poloniex (public REST, basic private REST, public web socket (tickers))
 
 The following cryptocurrency services are supported:
