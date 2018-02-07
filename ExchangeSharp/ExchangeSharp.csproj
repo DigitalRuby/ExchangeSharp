@@ -20,38 +20,41 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  
+
   <PropertyGroup>
-   <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-   <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-   <PackageId>DigitalRuby.ExchangeSharp</PackageId>
-   <Authors>jjxtra</Authors>
-   <PackageReleaseNotes>Improve rate gate performance and accuracy, and add unit tests for rate gate</PackageReleaseNotes>
-   <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
-   <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
-   <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
-   <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
-   <RepositoryType>git</RepositoryType>
-  </PropertyGroup> 
-  
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageId>DigitalRuby.ExchangeSharp</PackageId>
+    <Authors>jjxtra</Authors>
+    <PackageReleaseNotes>Improve rate gate performance and accuracy, and add unit tests for rate gate</PackageReleaseNotes>
+    <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
+    <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(TargetFramework)' == 'net47'">
     <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Bittrex.Net" Version="1.3.8" />
+    <PackageReference Include="CloudFlareUtilities" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-	<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.4.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.4.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.3" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
-  
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
     <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
-	<Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
   </ItemGroup>
 
 </Project>

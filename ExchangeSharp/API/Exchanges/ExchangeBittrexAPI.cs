@@ -10,28 +10,47 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using Bittrex.Net;
+using Bittrex.Net.Objects;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
-        public override string BaseUrlWebSocket { get; set; } = "wss://socket.bittrex.com/signalr";
         public override string Name => ExchangeName.Bittrex;
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
+
+        private BittrexSocketClient socketClient;
+        private readonly object socketClientLock = new object();
+
+        /// <summary>
+        /// Gets the singleton BittrexSocketClient
+        /// </summary>
+        private BittrexSocketClient SocketClient
+        {
+            get
+            {
+                if (this.socketClient == null)
+                {
+                    lock (this.socketClientLock)
+                    {
+                        if (this.socketClient == null)
+                        {
+                            this.socketClient = new BittrexSocketClient();
+                        }
+                    }
+                }
+
+                return this.socketClient;
+            }
+        }
 
         private JToken CheckError(JToken obj)
         {
@@ -165,32 +184,49 @@ namespace ExchangeSharp
             return tickerList;
         }
 
-        public override WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        /// <summary>
+        /// Attach Bittrex AllMarketDeltaStream websocket stream to tickers processor
+        /// </summary>
+        /// <param name="callback">What action to take on the collection of changed tickers.</param>
+        /// <returns>Null always</returns>
+        public override WebSocketWrapper GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
                 return null;
             }
-            Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
-            {
-                try
-                {
-                    JToken token = JToken.Parse(msg);
-                }
-                catch
-                {
-                }
-            }, (_socket) =>
-            {
-                var tickers = GetTickers();
-                foreach (var ticker in tickers)
-                {
-                    idsToSymbols[ticker.Value.Id] = ticker.Key;
-                }
-                // subscribe to ticker channel
-                //_socket.SendMessage("{\"command\":\"subscribe\",\"channel\":1002}");
-            });
+
+            this.SocketClient.SubscribeToAllMarketDeltaStream(
+                                                              summaries =>
+                                                              {
+                                                                  // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
+                                                                  var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
+                                                                  foreach (BittrexMarketSummary market in summaries)
+                                                                  {
+                                                                      var ticker = new ExchangeTicker
+                                                                                   {
+                                                                                       Ask = market.Ask,
+                                                                                       Bid = market.Bid,
+                                                                                       Last = market.Last.GetValueOrDefault(),
+                                                                                       Volume = new ExchangeVolume
+                                                                                                {
+                                                                                                    PriceAmount = market.BaseVolume.GetValueOrDefault(),
+                                                                                                    PriceSymbol = market.MarketName,
+                                                                                                    QuantityAmount = market.Volume.GetValueOrDefault(),
+                                                                                                    QuantitySymbol = market.MarketName,
+                                                                                                    Timestamp = market.TimeStamp
+                                                                                                }
+                                                                                   };
+                                                                      freshTickers[market.MarketName] = ticker;
+                                                                  }
+
+                                                                  callback(freshTickers);
+                                                              });
+
+            // signalR socket can't be easily shoehorned into a WebSocketWrapper
+            // In the future the SocketClient's proxy.Invoke method into WebSocketWrapper's SendMessage(string message)
+            // Alternatively we could return an IDisposable
+            return null;
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
