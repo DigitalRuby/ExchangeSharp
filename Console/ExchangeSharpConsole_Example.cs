@@ -63,6 +63,22 @@ namespace ExchangeSharpConsoleApp
             wss.Dispose();
         }
 
+        private static void RunBittrexWebSocket()
+        {
+            var bittrex = new ExchangeBittrexAPI();
+            IDisposable bitSocket = bittrex.GetTickersWebSocket(freshTickers =>
+            {
+                foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                {
+                    Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                }
+            });
+
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
+            bitSocket.Dispose();
+        }
+
         public static void RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "path", "mode");
