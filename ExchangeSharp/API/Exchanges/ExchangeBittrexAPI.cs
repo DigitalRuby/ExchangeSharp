@@ -225,7 +225,7 @@ namespace ExchangeSharp
 
             // signalR socket can't be easily shoehorned into a WebSocketWrapper.
             // As an option, we could extract an IWebSocketWrapper interface containing only SendMessage(string) 
-			// and wrap SocketClient's proxy.Invoke method into an IWebSocketWrapper's SendMessage.
+            // and wrap SocketClient's proxy.Invoke method into an IWebSocketWrapper's SendMessage.
             // Alternatively we could return an IDisposable.
             return null;
         }
