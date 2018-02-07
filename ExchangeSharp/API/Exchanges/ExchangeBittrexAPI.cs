@@ -186,9 +186,14 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Attach Bittrex AllMarketDeltaStream websocket stream to tickers processor
+        /// This is a delta stream, sending only the changes since the last tick.
         /// </summary>
         /// <param name="callback">What action to take on the collection of changed tickers.</param>
-        /// <returns>The BittrexSocketClient</returns>
+        /// <returns>
+        /// The BittrexSocketClient
+        /// Note that this socketclient handles all subscriptions. 
+        /// To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
+        /// </returns>
         public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             // Eat the streamId and rely on .Dispose to clean up all streams
@@ -196,11 +201,16 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Gets the tickers web socketx.
+        /// Attach Bittrex AllMarketDeltaStream websocket stream to tickers processor.
+        /// This is a delta stream, sending only the changes since the last tick.
         /// </summary>
         /// <param name="callback">The callback.</param>
         /// <param name="streamId">The stream identifier which can be used to dispose this stream without killing all other socket subscriptions.</param>
-        /// <returns>The BittrexSocketClient</returns>
+        /// <returns>
+        /// The BittrexSocketClient
+        /// Note that this socketclient handles all subscriptions. 
+        /// To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
+        /// </returns>
         public IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, out int streamId)
         {
             streamId = -1;
@@ -217,20 +227,21 @@ namespace ExchangeSharp
                                                                   var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
                                                                   foreach (BittrexMarketSummary market in summaries)
                                                                   {
+                                                                      decimal quantityAmount = market.Volume.ConvertInvariant<decimal>();
                                                                       var ticker = new ExchangeTicker
-                                                                                   {
-                                                                                       Ask = market.Ask,
-                                                                                       Bid = market.Bid,
-                                                                                       Last = market.Last.GetValueOrDefault(),
-                                                                                       Volume = new ExchangeVolume
-                                                                                                {
-                                                                                                    PriceAmount = market.BaseVolume.GetValueOrDefault(),
-                                                                                                    PriceSymbol = market.MarketName,
-                                                                                                    QuantityAmount = market.Volume.GetValueOrDefault(),
-                                                                                                    QuantitySymbol = market.MarketName,
-                                                                                                    Timestamp = market.TimeStamp
-                                                                                                }
-                                                                                   };
+                                                                      {
+                                                                          Ask = market.Ask,
+                                                                          Bid = market.Bid,
+                                                                          Last = market.Last.ConvertInvariant<decimal>(),
+                                                                          Volume = new ExchangeVolume
+                                                                          {
+                                                                              QuantityAmount = quantityAmount,
+                                                                              QuantitySymbol = market.MarketName,
+                                                                              PriceAmount = market.BaseVolume.ConvertInvariant(quantityAmount),
+                                                                              PriceSymbol = market.MarketName,
+                                                                              Timestamp = market.TimeStamp
+                                                                          }
+                                                                      };
                                                                       freshTickers[market.MarketName] = ticker;
                                                                   }
 
@@ -242,8 +253,6 @@ namespace ExchangeSharp
                 streamId = result.Result;
             }
 
-            // Note that this socketclient handles all subscriptions. 
-            // To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
             return this.SocketClient;
         }
 
