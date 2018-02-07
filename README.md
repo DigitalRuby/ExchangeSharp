@@ -6,15 +6,15 @@ Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 
 The following cryptocurrency exchanges are supported:
 
-- Binance (public, basic private, public web socket (tickers))
-- Bitfinex (public, basic private)
-- Bithumb (public)
-- Bitstamp (public)
-- Bittrex (public, basic private)
-- Gemini (public, basic private)
-- GDAX (public, basic private)
-- Kraken (public, basic private)
-- Poloniex (public, basic private)
+- Binance (public REST, basic private REST, public web socket (tickers))
+- Bitfinex (public REST, basic private REST, public web socket (tickers), private web socket (orders))
+- Bithumb (public REST)
+- Bitstamp (public REST)
+- Bittrex (public REST, basic private REST)
+- Gemini (public REST, basic private REST)
+- GDAX (public REST, basic private REST)
+- Kraken (public REST, basic private REST)
+- Poloniex (public REST, basic private REST, public web socket (tickers))
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
