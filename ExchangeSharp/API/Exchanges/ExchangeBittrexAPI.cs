@@ -188,15 +188,29 @@ namespace ExchangeSharp
         /// Attach Bittrex AllMarketDeltaStream websocket stream to tickers processor
         /// </summary>
         /// <param name="callback">What action to take on the collection of changed tickers.</param>
-        /// <returns>Null always</returns>
+        /// <returns>The BittrexSocketClient</returns>
         public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
+            // Eat the streamId and rely on .Dispose to clean up all streams
+            return this.GetTickersWebSocket(callback, out int streamId);
+        }
+
+        /// <summary>
+        /// Gets the tickers web socketx.
+        /// </summary>
+        /// <param name="callback">The callback.</param>
+        /// <param name="streamId">The stream identifier which can be used to dispose this stream without killing all other socket subscriptions.</param>
+        /// <returns>The BittrexSocketClient</returns>
+        public IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, out int streamId)
+        {
+            streamId = -1;
+
             if (callback == null)
             {
                 return null;
             }
 
-            this.SocketClient.SubscribeToAllMarketDeltaStream(
+            BittrexApiResult<int> result = this.SocketClient.SubscribeToAllMarketDeltaStream(
                                                               summaries =>
                                                               {
                                                                   // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
@@ -223,11 +237,14 @@ namespace ExchangeSharp
                                                                   callback(freshTickers);
                                                               });
 
-            // signalR socket can't be easily shoehorned into a WebSocketWrapper.
-            // As an option, we could extract an IWebSocketWrapper interface containing only SendMessage(string) 
-            // and wrap SocketClient's proxy.Invoke method into an IWebSocketWrapper's SendMessage.
-            // Alternatively we could return an IDisposable.
-            return null;
+            if (result.Success)
+            {
+                streamId = result.Result;
+            }
+
+            // Note that this socketclient handles all subscriptions. 
+            // To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
+            return this.SocketClient;
         }
 
         public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
