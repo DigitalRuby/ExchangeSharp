@@ -115,8 +115,8 @@ namespace ExchangeSharp
         /// Get all tickers via web socket
         /// </summary>
         /// <param name="tickers">Callback</param>
-        /// <returns>Web socket</returns>
-        public virtual WebSocketWrapper GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
         {
             throw new NotImplementedException();
         }
@@ -303,8 +303,8 @@ namespace ExchangeSharp
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
-        /// <returns>Web socket</returns>
-        public virtual WebSocketWrapper GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback) { throw new NotImplementedException(); }
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get the details of all completed orders

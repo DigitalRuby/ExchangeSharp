@@ -189,7 +189,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">What action to take on the collection of changed tickers.</param>
         /// <returns>Null always</returns>
-        public override WebSocketWrapper GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
