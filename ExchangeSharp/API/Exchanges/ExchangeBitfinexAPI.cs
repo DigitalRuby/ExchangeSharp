@@ -328,7 +328,7 @@ namespace ExchangeSharp
             payload["symbol"] = symbol;
             payload["amount"] = order.RoundAmount().ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
-            payload["type"] = (order.OrderType == OrderType.Limit) ? "EXCHANGE LIMIT" : order.OrderType.ToString().ToUpperInvariant();
+            payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
             if (order.OrderType != OrderType.Market)
             {
                 payload["price"] = order.Price.ToStringInvariant();
