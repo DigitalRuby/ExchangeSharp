@@ -48,7 +48,7 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
 
-        public static void RunExampleWebSocket()
+        public static void RunPoloniexWebSocket()
         {
             var api = new ExchangePoloniexAPI();
             var wss = api.GetTickersWebSocket((t) =>
@@ -59,7 +59,8 @@ namespace ExchangeSharpConsoleApp
                     Console.WriteLine(ticker);
                 }
             });
-            Console.ReadLine();
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
             wss.Dispose();
         }
 
