@@ -394,7 +394,7 @@ namespace ExchangeSharp
         public bool ShouldRoundAmount { get; set; } = true;
 
         /// <summary>
-        /// The type of order - please use market orders with caution and not all exchanges support market orders
+        /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
         /// </summary>
         public OrderType OrderType { get; set; } = OrderType.Limit;
 
