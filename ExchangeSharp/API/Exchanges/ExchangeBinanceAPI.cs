@@ -282,10 +282,14 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
             payload["side"] = (order.IsBuy ? "BUY" : "SELL");
-            payload["type"] = "LIMIT";
+            payload["type"] = order.OrderType.ToString();
             payload["quantity"] = order.RoundAmount();
-            payload["price"] = order.Price;
             payload["timeInForce"] = "GTC";
+            if (order.OrderType != OrderType.Market)
+            {
+                payload["price"] = order.Price;
+            }
+
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "POST");
             CheckError(token);
             return ParseOrder(token);

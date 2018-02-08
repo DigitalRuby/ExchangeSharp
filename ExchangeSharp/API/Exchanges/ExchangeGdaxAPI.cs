@@ -321,13 +321,18 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce",GenerateNonce() },
-                { "type", "limit" },
+                { "type", order.OrderType.ToString() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "product_id", symbol },
-                { "price", order.Price.ToStringInvariant() },
                 { "size", order.RoundAmount().ToStringInvariant() },
                 { "time_in_force", "GTC" } // good til cancel
             };
+
+            if (order.OrderType != OrderType.Market)
+            {
+                payload.Add("price", order.Price.ToStringInvariant());
+            }
+
             JObject result = MakeJsonRequest<JObject>("/orders", null, payload, "POST");
             return ParseOrder(result);
         }

@@ -327,9 +327,13 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
             payload["amount"] = order.RoundAmount().ToStringInvariant();
-            payload["price"] = order.Price.ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
-            payload["type"] = "exchange limit";
+            payload["type"] = (order.OrderType == OrderType.Limit) ? "exchange limit": order.OrderType.ToString();
+            if (order.OrderType != OrderType.Market)
+            {
+                payload["price"] = order.Price.ToStringInvariant();
+            }
+
             JToken obj = MakeJsonRequest<JToken>("/order/new", BaseUrlV1, payload);
             CheckError(obj);
             return ParseOrder(obj);

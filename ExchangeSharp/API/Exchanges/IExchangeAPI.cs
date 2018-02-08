@@ -413,6 +413,7 @@ namespace ExchangeSharp
     /// </summary>
     public enum OrderType
     {
-        Limit
+        Limit,
+        Market
     }
 }

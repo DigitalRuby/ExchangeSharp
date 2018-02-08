@@ -226,6 +226,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
+            if (order.OrderType == OrderType.Market)
+            {
+                throw new NotSupportedException();
+            }
+
             string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
             {

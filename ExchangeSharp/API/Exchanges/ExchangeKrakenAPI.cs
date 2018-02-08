@@ -325,11 +325,15 @@ namespace ExchangeSharp
             {
                 { "pair", symbol },
                 { "type", (order.IsBuy ? "buy" : "sell") },
-                { "ordertype", "limit" },
-                { "price", order.Price.ToStringInvariant() },
+                { "ordertype", order.OrderType.ToString()},
                 { "volume", order.RoundAmount().ToStringInvariant() },
                 { "nonce", GenerateNonce() }
             };
+
+            if (order.OrderType != OrderType.Market)
+            {
+                payload.Add("price", order.Price.ToStringInvariant());
+            }
 
             JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);
             JToken token = CheckError(obj);
