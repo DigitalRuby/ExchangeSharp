@@ -325,7 +325,7 @@ namespace ExchangeSharp
             {
                 { "pair", symbol },
                 { "type", (order.IsBuy ? "buy" : "sell") },
-                { "ordertype", order.OrderType.ToString()},
+                { "ordertype", order.OrderType.ToString().ToLowerInvariant() },
                 { "volume", order.RoundAmount().ToStringInvariant() },
                 { "nonce", GenerateNonce() }
             };
