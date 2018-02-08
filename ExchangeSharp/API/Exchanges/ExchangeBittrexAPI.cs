@@ -211,7 +211,7 @@ namespace ExchangeSharp
         /// Note that this socketclient handles all subscriptions. 
         /// To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
         /// </returns>
-        public IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, out int streamId)
+        public BittrexSocketClient GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, out int streamId)
         {
             streamId = -1;
 
@@ -220,34 +220,35 @@ namespace ExchangeSharp
                 return null;
             }
 
-            BittrexApiResult<int> result = this.SocketClient.SubscribeToAllMarketDeltaStream(
-                                                              summaries =>
-                                                              {
-                                                                  // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
-                                                                  var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
-                                                                  foreach (BittrexMarketSummary market in summaries)
-                                                                  {
-                                                                      decimal quantityAmount = market.Volume.ConvertInvariant<decimal>();
-                                                                      var ticker = new ExchangeTicker
-                                                                      {
-                                                                          Ask = market.Ask,
-                                                                          Bid = market.Bid,
-                                                                          Last = market.Last.ConvertInvariant<decimal>(),
-                                                                          Volume = new ExchangeVolume
-                                                                          {
-                                                                              QuantityAmount = quantityAmount,
-                                                                              QuantitySymbol = market.MarketName,
-                                                                              PriceAmount = market.BaseVolume.ConvertInvariant(quantityAmount),
-                                                                              PriceSymbol = market.MarketName,
-                                                                              Timestamp = market.TimeStamp
-                                                                          }
-                                                                      };
-                                                                      freshTickers[market.MarketName] = ticker;
-                                                                  }
-
-                                                                  callback(freshTickers);
-                                                              });
-
+            BittrexApiResult<int> result = this.SocketClient.SubscribeToAllMarketDeltaStream
+            (
+                summaries =>
+                {
+                    // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
+                    var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
+                    foreach (BittrexMarketSummary market in summaries)
+                    {
+                        decimal quantityAmount = market.Volume.ConvertInvariant<decimal>();
+                        decimal last = market.Last.ConvertInvariant<decimal>();
+                        var ticker = new ExchangeTicker
+                        {
+                            Ask = market.Ask,
+                            Bid = market.Bid,
+                            Last = last,
+                            Volume = new ExchangeVolume
+                            {
+                                QuantityAmount = quantityAmount,
+                                QuantitySymbol = market.MarketName,
+                                PriceAmount = market.BaseVolume.ConvertInvariant(quantityAmount * last),
+                                PriceSymbol = market.MarketName,
+                                Timestamp = market.TimeStamp
+                            }
+                        };
+                        freshTickers[market.MarketName] = ticker;
+                    }
+                    callback(freshTickers);
+                }
+            );
             if (result.Success)
             {
                 streamId = result.Result;
