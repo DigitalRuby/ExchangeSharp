@@ -8,7 +8,9 @@
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/jjxtra/ExchangeSharp.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fjjxtra%2FExchangeSharp)
 
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
+
 [![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
+
 [![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)](https://en.cryptobadges.io/donate/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)
 
 <div style="position: absolute; top: 62pt; left: 165pt;">
@@ -106,7 +108,9 @@ I do cryptocurrency consulting, please don't hesitate to contact me if you have 
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
+
 [![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
+
 [![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)](https://en.cryptobadges.io/donate/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)
 
 <div>
