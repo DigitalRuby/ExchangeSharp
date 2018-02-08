@@ -394,7 +394,7 @@ namespace ExchangeSharp
         public bool ShouldRoundAmount { get; set; } = true;
 
         /// <summary>
-        /// The type of order - only limit is supported for now
+        /// The type of order - please be use market orders with caution and not all exchanges support market orders
         /// </summary>
         public OrderType OrderType { get; set; } = OrderType.Limit;
 
@@ -413,7 +413,14 @@ namespace ExchangeSharp
     /// </summary>
     public enum OrderType
     {
+        /// <summary>
+        /// A limit order, the order will not buy or sell beyond the price you specify
+        /// </summary>
         Limit,
+        
+        /// <summary>
+        /// A market order, you will buy or sell the full amount - use with caution as this will give you a terrible deal if the order book is thin
+        /// </summary>
         Market
     }
 }
