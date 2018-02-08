@@ -1,10 +1,28 @@
 <img src='logo.png' width='600' />
+<br/><br/>
 
 [![GitHub issues](https://img.shields.io/github/issues/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/issues)
 [![GitHub forks](https://img.shields.io/github/forks/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/network)
 [![GitHub stars](https://img.shields.io/github/stars/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/stargazers)
 [![GitHub license](https://img.shields.io/github/license/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE.txt)
 [![Twitter](https://img.shields.io/twitter/url/https/github.com/jjxtra/ExchangeSharp.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fjjxtra%2FExchangeSharp)
+
+[![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
+[![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)](https://en.cryptobadges.io/donate/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)
+
+<div style="position: absolute; top: 62pt; left: 165pt;">
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<div style="float: left;">
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="L67Q4KQN5DHLY">
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal">
+</div>
+<div>
+<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+</div>
+</form>
+</div>
 
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
 
@@ -87,12 +105,22 @@ I do cryptocurrency consulting, please don't hesitate to contact me if you have 
 
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
-Paypal: jjxtra@gmail.com (pick the send to friends and family with bank account option to avoid fees)
+[![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
+[![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)](https://en.cryptobadges.io/donate/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)
 
-Bitcoin: 1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG  
-Ethereum: 0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433  
-Litecoin: LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i  
-Vertcoin: Vcu6Fqh8MGiLEyyifNSCgoCuQShTijzwFx  
+<div>
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<div>
+<input type="hidden" name="cmd" value="_s-xclick">
+<input type="hidden" name="hosted_button_id" value="L67Q4KQN5DHLY">
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal">
+</div>
+<div>
+<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+</div>
+</form>
+</div>
 
 Thanks for visiting!
 
