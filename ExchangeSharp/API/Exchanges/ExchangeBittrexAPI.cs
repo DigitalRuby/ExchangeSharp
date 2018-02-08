@@ -449,6 +449,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
+            if (order.OrderType == OrderType.Market)
+            {
+                throw new NotSupportedException();
+            }
+
             string symbol = NormalizeSymbol(order.Symbol);
             decimal amount = order.RoundAmount();
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
