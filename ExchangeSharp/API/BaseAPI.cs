@@ -303,7 +303,7 @@ namespace ExchangeSharp
             request.ContentType = RequestContentType;
             request.UserAgent = RequestUserAgent;
             request.CachePolicy = CachePolicy;
-            request.Timeout = (int)RequestTimeout.TotalMilliseconds;
+            request.Timeout = request.ReadWriteTimeout = request.ContinueTimeout = (int)RequestTimeout.TotalMilliseconds;
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             ProcessRequest(request, payload);
             HttpWebResponse response;
