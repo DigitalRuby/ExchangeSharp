@@ -504,16 +504,10 @@ namespace ExchangeSharp
 
         public override WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            Dictionary<string, object> payload = GetNoncePayload();
-            payload["currency"] = NormalizeSymbol(withdrawalRequest.Asset);
-            payload["address"] = withdrawalRequest.ToAddress;
-            payload["paymentid"] = withdrawalRequest.AddressTag;
-            payload["quantity"] = withdrawalRequest.Amount;
-
             // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
 
             string url = $"/account/withdraw&currency={NormalizeSymbol(withdrawalRequest.Asset)}&amount={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}&paymentid={withdrawalRequest.AddressTag}";
-            JToken response = MakeJsonRequest<JToken>(url, null, payload);
+            JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
             JToken result = CheckError(response);
 
             WithdrawalResponse withdrawalResponse = new WithdrawalResponse
