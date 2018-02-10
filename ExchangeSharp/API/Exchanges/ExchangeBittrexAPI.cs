@@ -18,7 +18,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web;
-using ExchangeSharp.Model;
 
 namespace ExchangeSharp
 {
