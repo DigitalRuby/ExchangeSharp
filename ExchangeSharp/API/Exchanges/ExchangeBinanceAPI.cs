@@ -314,9 +314,9 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = GetNoncePayload();
             if (!string.IsNullOrWhiteSpace(symbol))
-	    {
+	        {
                 payload["symbol"] = NormalizeSymbol(symbol);
-	    }
+	        }
             JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
             CheckError(token);
             foreach (JToken order in token)
