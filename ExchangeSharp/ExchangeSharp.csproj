@@ -4,11 +4,11 @@
     <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>Exchange Sharp - C# API for cryptocurrency, stock and other exchanges</Title>
-    <PackageVersion>0.2.4.0</PackageVersion>
+    <PackageVersion>0.2.5.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various exchanges for stocks and cryptocurrency. Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Gemini, GDAX, Kraken and Poloniex are supported. Web sockets are also supported and being enhanced.</Description>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Bittrex web socket initial support with tickers</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix for ExchangeAPI type initializer exception when certain security protocols are not supported</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
     <PackageTags>C# API bitcoin btc exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
   </PropertyGroup>
@@ -27,7 +27,7 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Authors>jjxtra</Authors>
-    <PackageReleaseNotes>Bittrex web socket initial support with tickers</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix for ExchangeAPI type initializer exception when certain security protocols are not supported</PackageReleaseNotes>
     <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
     <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
