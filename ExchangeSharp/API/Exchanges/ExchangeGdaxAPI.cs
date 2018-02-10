@@ -324,12 +324,12 @@ namespace ExchangeSharp
                 { "type", order.OrderType.ToString().ToLowerInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "product_id", symbol },
-                { "size", order.RoundAmount().ToStringInvariant() },
-                { "time_in_force", "GTC" } // good til cancel
+                { "size", order.RoundAmount().ToStringInvariant() }
             };
 
             if (order.OrderType != OrderType.Market)
             {
+                payload["time_in_force"] = "GTC"; // good til cancel
                 payload.Add("price", order.Price.ToStringInvariant());
             }
 
