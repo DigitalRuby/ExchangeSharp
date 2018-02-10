@@ -284,9 +284,9 @@ namespace ExchangeSharp
             payload["side"] = (order.IsBuy ? "BUY" : "SELL");
             payload["type"] = order.OrderType.ToString().ToUpperInvariant();
             payload["quantity"] = order.RoundAmount();
-            payload["timeInForce"] = "GTC";
             if (order.OrderType != OrderType.Market)
             {
+                payload["timeInForce"] = "GTC";
                 payload["price"] = order.Price;
             }
 
