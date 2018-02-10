@@ -39,7 +39,7 @@ namespace ExchangeSharp
         FilledPartially,
 
         /// <summary>
-        /// Order is pending or open but no Amount has been filled yet
+        /// Order is pending or open but no amount has been filled yet
         /// </summary>
         Pending,
 
@@ -75,7 +75,7 @@ namespace ExchangeSharp
         public string Message { get; set; }
 
         /// <summary>
-        /// Original order Amount
+        /// Original order amount
         /// </summary>
         public decimal Amount { get; set; }
 

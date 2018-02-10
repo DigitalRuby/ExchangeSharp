@@ -15,6 +15,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace ExchangeSharp
 {
     /// <summary>
@@ -218,27 +221,27 @@ namespace ExchangeSharp
         public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate));
 
         /// <summary>
-        /// Get total amounts, symbol / Amount dictionary
+        /// Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
         public virtual Dictionary<string, decimal> GetAmounts() { throw new NotSupportedException(); }
 
         /// <summary>
-        /// ASYNC - Get total amounts, symbol / Amount dictionary
+        /// ASYNC - Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
         public Task<Dictionary<string, decimal>> GetAmountsAsync() => Task.Factory.StartNew(() => GetAmounts());
 
         /// <summary>
-        /// Get amounts available to trade, symbol / Amount dictionary
+        /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
-        /// <returns>Symbol / Amount dictionary</returns>
+        /// <returns>Symbol / amount dictionary</returns>
         public virtual Dictionary<string, decimal> GetAmountsAvailableToTrade() { return GetAmounts(); }
 
         /// <summary>
-        /// ASYNC - Get amounts available to trade, symbol / Amount dictionary
+        /// ASYNC - Get amounts available to trade, symbol / amount dictionary
         /// </summary>
-        /// <returns>Symbol / Amount dictionary</returns>
+        /// <returns>Symbol / amount dictionary</returns>
         public Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync() => Task.Factory.StartNew<Dictionary<string, decimal>>(() => GetAmountsAvailableToTrade());
 
         /// <summary>

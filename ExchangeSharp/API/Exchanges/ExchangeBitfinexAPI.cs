@@ -289,7 +289,7 @@ namespace ExchangeSharp
             {
                 if (token["type"].ToStringInvariant() == "exchange")
                 {
-                    decimal amount = token["Amount"].ConvertInvariant<decimal>();
+                    decimal amount = token["amount"].ConvertInvariant<decimal>();
                     if (amount > 0m)
                     {
                         lookup[token["currency"].ToStringInvariant()] = amount;
@@ -323,7 +323,8 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["Amount"] = order.RoundAmount().ToStringInvariant();
+            payload["amount"] = order.RoundAmount().ToStringInvariant();
+            payload["price"] = order.Price.ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
             payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
             if (order.OrderType != OrderType.Market)
@@ -612,7 +613,7 @@ namespace ExchangeSharp
             /*
             [{
               "price":"246.94",
-              "Amount":"1.0",
+              "amount":"1.0",
               "timestamp":"1444141857.0",
               "exchange":"",
               "type":"Buy",
@@ -624,8 +625,8 @@ namespace ExchangeSharp
             */
             return new ExchangeOrderResult
             {
-                Amount = trade["Amount"].ConvertInvariant<decimal>(),
-                AmountFilled = trade["Amount"].ConvertInvariant<decimal>(),
+                Amount = trade["amount"].ConvertInvariant<decimal>(),
+                AmountFilled = trade["amount"].ConvertInvariant<decimal>(),
                 AveragePrice = trade["price"].ConvertInvariant<decimal>(),
                 IsBuy = trade["type"].ToStringUpperInvariant() == "BUY",
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(trade["timestamp"].ConvertInvariant<double>()),

@@ -12,6 +12,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
@@ -43,7 +46,7 @@ namespace ExchangeSharp
         public double BuyFalseReverseThresholdPercent { get; set; } // how low the price and go from BuyReverseThresholdPercent to tell the trader the price is continuing to drop and buy more
         public double SellReverseThresholdPercent { get; set; } // how low the price mus go down from a SellThreshold to do a sell, this tries to predict when a peak is ending
         public decimal FeePercentage { get; set; } = 0.0025m; // fee percent * price of a trade = fee for the trade
-        public decimal OrderPriceDifferentialPercentage { get; set; } = 0.001m; // lower sell orders and increase buy orders by this Amount to ensure they get filled
+        public decimal OrderPriceDifferentialPercentage { get; set; } = 0.001m; // lower sell orders and increase buy orders by this amount to ensure they get filled
         public bool ProductionMode { get; set; } // default is false, no trades or API calls
 
         public ExchangeTradeInfo TradeInfo { get; private set; }

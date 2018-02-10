@@ -17,6 +17,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Web;
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
