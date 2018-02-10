@@ -310,66 +310,18 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
-        private IEnumerable<ExchangeOrderResult> GetOpenOrderDetailsForAllSymbols()
-        {
-            // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Exception ex = null;
-            string failedSymbol = null;
-            Parallel.ForEach(GetSymbols().Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), (s) =>
-            {
-                try
-                {
-                    foreach (ExchangeOrderResult order in GetOpenOrderDetails(s))
-                    {
-                        lock (orders)
-                        {
-                            orders.Add(order);
-                        }
-                    }
-                }
-                catch (Exception _ex)
-                {
-                    failedSymbol = s;
-                    ex = _ex;
-                }
-            });
-
-            if (ex != null)
-            {
-                throw new APIException("Failed to get open orders for symbol " + failedSymbol, ex);
-            }
-
-            // sort timestamp desc
-            orders.Sort((o1, o2) =>
-            {
-                return o2.OrderDate.CompareTo(o1.OrderDate);
-            });
-            foreach (ExchangeOrderResult order in orders)
-            {
-                yield return order;
-            }
-        }
-
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
-            if (string.IsNullOrWhiteSpace(symbol))
-            {
-                foreach (ExchangeOrderResult order in GetOpenOrderDetailsForAllSymbols())
-                {
-                    yield return order;
-                }
-            }
-            else
-            {
-                Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = GetNoncePayload();
+            if (!string.IsNullOrWhiteSpace(symbol))
+	    {
                 payload["symbol"] = NormalizeSymbol(symbol);
-                JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
-                CheckError(token);
-                foreach (JToken order in token)
-                {
-                    yield return ParseOrder(order);
-                }
+	    }
+            JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
+            CheckError(token);
+            foreach (JToken order in token)
+            {
+                yield return ParseOrder(order);
             }
         }
 
