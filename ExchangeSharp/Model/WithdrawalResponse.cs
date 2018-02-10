@@ -3,8 +3,8 @@
     public class WithdrawalResponse
     {
 
-        public string msg;
+        public string Msg;
         public bool success;
-        public string id;
+        public string Id;
     }
 }

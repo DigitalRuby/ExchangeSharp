@@ -31,12 +31,12 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.GDAX;
 
         /// <summary>
-        /// The response will also contain a CB-AFTER header which will return the cursor id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.
+        /// The response will also contain a CB-AFTER header which will return the cursor Id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.
         /// </summary>
         private string cursorAfter;
 
         /// <summary>
-        /// The response will contain a CB-BEFORE header which will return the cursor id to use in your next request for the page before the current one. The page before is a newer page and not one that happened before in chronological time.
+        /// The response will contain a CB-BEFORE header which will return the cursor Id to use in your next request for the page before the current one. The page before is a newer page and not one that happened before in chronological time.
         /// </summary>
         private string cursorBefore;
 
@@ -54,7 +54,7 @@ namespace ExchangeSharp
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ConvertInvariant<DateTime>(),
                 Symbol = result["product_id"].ToStringInvariant(),
-                OrderId = result["id"].ToStringInvariant()
+                OrderId = result["Id"].ToStringInvariant()
             };
             switch (result["status"].ToStringInvariant())
             {
@@ -143,7 +143,7 @@ namespace ExchangeSharp
             List<string> symbolList = new List<string>();
             foreach (Dictionary<string, string> symbol in symbols)
             {
-                symbolList.Add(symbol["id"]);
+                symbolList.Add(symbol["Id"]);
             }
             return symbolList.ToArray();
         }
@@ -246,7 +246,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
         {
-            // /products/<product-id>/candles
+            // /products/<product-Id>/candles
             // https://api.gdax.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
             List<MarketCandle> candles = new List<MarketCandle>();
             symbol = NormalizeSymbol(symbol);

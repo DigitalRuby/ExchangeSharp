@@ -56,7 +56,7 @@ namespace ExchangeSharp
                 AmountFilled = amountFilled,
                 AveragePrice = result["price"].ConvertInvariant<decimal>(),
                 Message = string.Empty,
-                OrderId = result["id"].ToStringInvariant(),
+                OrderId = result["Id"].ToStringInvariant(),
                 Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["timestampms"].ConvertInvariant<double>()),
                 Symbol = result["symbol"].ToStringInvariant(),

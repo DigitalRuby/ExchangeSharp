@@ -60,7 +60,7 @@ namespace ExchangeSharp
     public class ExchangeOrderResult
     {
         /// <summary>
-        /// Order id
+        /// Order Id
         /// </summary>
         public string OrderId { get; set; }
 
@@ -105,14 +105,14 @@ namespace ExchangeSharp
         public bool IsBuy { get; set; }
 
         /// <summary>
-        /// Append another order to this order - order id and type must match
+        /// Append another order to this order - order Id and type must match
         /// </summary>
         /// <param name="other">Order to append</param>
         public void AppendOrderWithOrder(ExchangeOrderResult other)
         {
             if (OrderId != null && Symbol != null && (OrderId != other.OrderId || IsBuy != other.IsBuy || Symbol != other.Symbol))
             {
-                throw new InvalidOperationException("Appending orders requires order id, symbol and is buy to match");
+                throw new InvalidOperationException("Appending orders requires order Id, symbol and is buy to match");
             }
 
             decimal tradeSum = Amount + other.Amount;

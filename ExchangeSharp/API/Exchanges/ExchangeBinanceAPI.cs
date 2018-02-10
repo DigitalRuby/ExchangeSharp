@@ -31,6 +31,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://www.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://www.binance.com/api/v3";
+        public string WithdrawalUrlPrivate { get; set; } = "https://www.binance.com/wapi/v3/";
         public override string Name => ExchangeName.Binance;
 
         public override string NormalizeSymbol(string symbol)
@@ -297,7 +298,7 @@ namespace ExchangeSharp
             string[] pieces = orderId.Split(',');
             if (pieces.Length != 2)
             {
-                throw new InvalidOperationException("Binance single order details request requires the symbol and order id. The order id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Binance single order details request requires the symbol and order Id. The order Id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
             }
             payload["symbol"] = pieces[0];
             payload["orderId"] = pieces[1];
@@ -443,7 +444,7 @@ namespace ExchangeSharp
             string[] pieces = orderId.Split(',');
             if (pieces.Length != 2)
             {
-                throw new InvalidOperationException("Binance cancel order request requires the order id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Binance cancel order request requires the order Id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
             }
             payload["symbol"] = pieces[0];
             payload["orderId"] = pieces[1];
@@ -451,11 +452,39 @@ namespace ExchangeSharp
             CheckError(token);
         }
 
+
+        public override WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = withdrawalRequest.Asset;
+            payload["toAddress"] = withdrawalRequest.ToAddress;
+            payload["addressTag"] = withdrawalRequest.AddressTag;
+            payload["amount"] = withdrawalRequest.Amount;
+            payload["name"] = withdrawalRequest.Name;
+
+
+            JToken response = MakeJsonRequest<JToken>("/wapi/v3/withdraw", WithdrawalUrlPrivate, payload);
+
+            CheckError(response);
+            WithdrawalResponse withdrawalResponse = new WithdrawalResponse
+            {
+                Id = response["Id"].ToStringInvariant(),
+                Msg = response["Msg"].ToStringInvariant(),
+            };
+
+            if (bool.TryParse(response["success"].ToStringInvariant(), out var success))
+            {
+                withdrawalResponse.success = success;
+            }
+
+            return withdrawalResponse;
+        }
+
         private void CheckError(JToken result)
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
             {
-                throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
+                throw new APIException(result["code"].ToStringInvariant() + ": " + (result["Msg"] != null ? result["Msg"].ToStringInvariant() : "Unknown Error"));
             }
         }
 

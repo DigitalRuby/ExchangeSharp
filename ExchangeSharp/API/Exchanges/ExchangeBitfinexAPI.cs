@@ -529,7 +529,7 @@ namespace ExchangeSharp
                 AmountFilled = amountFilled,
                 AveragePrice = order["avg_execution_price"].ConvertInvariant<decimal>(order["price"].ConvertInvariant<decimal>()),
                 Message = string.Empty,
-                OrderId = order["id"].ToStringInvariant(),
+                OrderId = order["Id"].ToStringInvariant(),
                 Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["timestamp"].ConvertInvariant<double>()),
                 Symbol = order["symbol"].ToStringInvariant(),
@@ -575,10 +575,10 @@ namespace ExchangeSharp
 
             /*
             [
-            ID	integer	Trade database id
+            ID	integer	Trade database Id
             PAIR	string	Pair (BTCUSD, …)
             MTS_CREATE	integer	Execution timestamp
-            ORDER_ID	integer	Order id
+            ORDER_ID	integer	Order Id
             EXEC_AMOUNT	float	Positive means buy, negative means sell
             EXEC_PRICE	float	Execution price
             ORDER_TYPE	string	Order type

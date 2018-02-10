@@ -268,7 +268,7 @@ namespace ExchangeSharp
         public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
         {
             // https://api.kraken.com/0/public/OHLC
-            // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given id(optional.exclusive)
+            // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given Id(optional.exclusive)
             // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)
             symbol = NormalizeSymbol(symbol);
             startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));

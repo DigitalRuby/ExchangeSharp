@@ -27,7 +27,7 @@ namespace ExchangeSharp
     public class ExchangeTicker
     {
         /// <summary>
-        /// An exchange specific id if known, otherwise null
+        /// An exchange specific Id if known, otherwise null
         /// </summary>
         public string Id { get; set; }
 

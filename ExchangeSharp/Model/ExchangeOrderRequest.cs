@@ -27,7 +27,7 @@
         public bool IsBuy { get; set; }
 
         /// <summary>
-        /// Whether the amount should be rounded - set to false if you know the exact amount, otherwise leave
+        /// Whether the Amount should be rounded - set to false if you know the exact Amount, otherwise leave
         /// as true so that the exchange does not reject the order due to too many decimal places.
         /// </summary>
         public bool ShouldRoundAmount { get; set; } = true;
@@ -38,9 +38,9 @@
         public OrderType OrderType { get; set; } = OrderType.Limit;
 
         /// <summary>
-        /// Return a rounded amount if needed
+        /// Return a rounded Amount if needed
         /// </summary>
-        /// <returns>Rounded amount or amount if no rounding is needed</returns>
+        /// <returns>Rounded Amount or Amount if no rounding is needed</returns>
         public decimal RoundAmount()
         {
             return (ShouldRoundAmount ? CryptoUtility.RoundAmount(Amount) : Amount);

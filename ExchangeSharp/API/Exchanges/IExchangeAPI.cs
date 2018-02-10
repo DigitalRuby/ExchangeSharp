@@ -302,14 +302,14 @@ namespace ExchangeSharp
         /// <summary>
         /// Get details of an order
         /// </summary>
-        /// <param name="orderId">order id</param>
+        /// <param name="orderId">order Id</param>
         /// <returns>Order details</returns>
         ExchangeOrderResult GetOrderDetails(string orderId);
 
         /// <summary>
         /// ASYNC - Get details of an order
         /// </summary>
-        /// <param name="orderId">order id</param>
+        /// <param name="orderId">order Id</param>
         /// <returns>Order details</returns>
         Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId);
 
@@ -352,13 +352,13 @@ namespace ExchangeSharp
         /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
-        /// <param name="orderId">Order id of the order to cancel</param>
+        /// <param name="orderId">Order Id of the order to cancel</param>
         void CancelOrder(string orderId);
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if failure
         /// </summary>
-        /// <param name="orderId">Order id of the order to cancel</param>
+        /// <param name="orderId">Order Id of the order to cancel</param>
         Task CancelOrderAsync(string orderId);
     }
 

@@ -245,7 +245,7 @@ namespace ExchangeSharp
                 {
                     Ask = values["lowestAsk"].ConvertInvariant<decimal>(),
                     Bid = values["highestBid"].ConvertInvariant<decimal>(),
-                    Id = values["id"].ToStringInvariant(),
+                    Id = values["Id"].ToStringInvariant(),
                     Last = values["last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume
                     {
