@@ -330,7 +330,7 @@ namespace ExchangeSharp
             if (order.OrderType != OrderType.Market)
             {
                 payload["time_in_force"] = "GTC"; // good til cancel
-                payload.Add("price", order.Price.ToStringInvariant());
+                payload["price"] = order.Price.ToStringInvariant();
             }
 
             JObject result = MakeJsonRequest<JObject>("/orders", null, payload, "POST");
