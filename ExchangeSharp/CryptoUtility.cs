@@ -65,7 +65,7 @@ namespace ExchangeSharp
         /// <returns>Converted value or defaultValue if not found in token</returns>
         public static T ConvertInvariant<T>(this object obj, T defaultValue = default(T))
         {
-            if (obj == null)
+            if (obj == null || ((obj is JValue value) && value.Value == null))
             {
                 return defaultValue;
             }
