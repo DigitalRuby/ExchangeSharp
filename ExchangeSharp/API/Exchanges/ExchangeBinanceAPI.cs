@@ -297,7 +297,7 @@ namespace ExchangeSharp
             string[] pieces = orderId.Split(',');
             if (pieces.Length != 2)
             {
-                throw new InvalidOperationException("Binance single order details request requires the symbol and order Id. The order Id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Binance single order details request requires the symbol and order id. The order id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
             }
             payload["symbol"] = pieces[0];
             payload["orderId"] = pieces[1];
@@ -395,7 +395,7 @@ namespace ExchangeSharp
             string[] pieces = orderId.Split(',');
             if (pieces.Length != 2)
             {
-                throw new InvalidOperationException("Binance cancel order request requires the order Id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Binance cancel order request requires the order id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
             }
             payload["symbol"] = pieces[0];
             payload["orderId"] = pieces[1];
@@ -435,7 +435,7 @@ namespace ExchangeSharp
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
             {
-                throw new APIException(result["code"].ToStringInvariant() + ": " + (result["Msg"] != null ? result["Msg"].ToStringInvariant() : "Unknown Error"));
+                throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
             }
         }
 

@@ -30,7 +30,7 @@ namespace ExchangeSharp
         public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// Trade Id
+        /// Trade id
         /// </summary>
         public long Id { get; set; }
 

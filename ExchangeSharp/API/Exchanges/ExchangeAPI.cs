@@ -258,14 +258,14 @@ namespace ExchangeSharp
         /// <summary>
         /// Get order details
         /// </summary>
-        /// <param name="orderId">Order Id to get details for</param>
+        /// <param name="orderId">Order id to get details for</param>
         /// <returns>Order details</returns>
         public virtual ExchangeOrderResult GetOrderDetails(string orderId) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get order details
         /// </summary>
-        /// <param name="orderId">Order Id to get details for</param>
+        /// <param name="orderId">Order id to get details for</param>
         /// <returns>Order details</returns>
         public Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId) => Task.Factory.StartNew(() => GetOrderDetails(orderId));
 
@@ -308,13 +308,13 @@ namespace ExchangeSharp
         /// <summary>
         /// Cancel an order, an exception is thrown if error
         /// </summary>
-        /// <param name="orderId">Order Id of the order to cancel</param>
+        /// <param name="orderId">Order id of the order to cancel</param>
         public virtual void CancelOrder(string orderId) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if error
         /// </summary>
-        /// <param name="orderId">Order Id of the order to cancel</param>
+        /// <param name="orderId">Order id of the order to cancel</param>
         public Task CancelOrderAsync(string orderId) => Task.Factory.StartNew(() => CancelOrder(orderId));
 
         /// <summary>

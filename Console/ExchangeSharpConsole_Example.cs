@@ -45,7 +45,7 @@ namespace ExchangeSharpConsoleApp
             System.Threading.Thread.Sleep(500);
             result = api.GetOrderDetails(result.OrderId);
 
-            Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order Id is {2}.", ticker.Ask, result.Result, result.OrderId);
+            Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
 
         public static void RunPoloniexWebSocket()
