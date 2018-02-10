@@ -499,7 +499,7 @@ namespace ExchangeSharp
         {
             // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
 
-            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&amount={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
+            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
                 url += $"&paymentid{withdrawalRequest.AddressTag}";
