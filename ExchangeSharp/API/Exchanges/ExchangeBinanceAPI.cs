@@ -20,7 +20,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-
+using ExchangeSharp.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

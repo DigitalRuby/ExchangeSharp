@@ -115,10 +115,10 @@ namespace ExchangeSharp
             JToken trades = MakeRequestOkex(ref symbol, "/trades.do?symbol=$SYMBOL$");
             foreach (JToken trade in trades)
             {
-                // [ { "date": "1367130137", "date_ms": "1367130137000", "price": 787.71, "amount": 0.003, "tid": "230433", "type": "sell" } ]
+                // [ { "date": "1367130137", "date_ms": "1367130137000", "price": 787.71, "Amount": 0.003, "tid": "230433", "type": "sell" } ]
                 yield return new ExchangeTrade
                 {
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
+                    Amount = trade["Amount"].ConvertInvariant<decimal>(),
                     Price = trade["price"].ConvertInvariant<decimal>(),
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(trade["date_ms"].ConvertInvariant<long>()),
                     Id = trade["tid"].ConvertInvariant<long>(),

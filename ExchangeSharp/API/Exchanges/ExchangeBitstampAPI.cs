@@ -94,14 +94,14 @@ namespace ExchangeSharp
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
-            // [{"date": "1513387997", "tid": "33734815", "price": "0.01724547", "type": "1", "amount": "5.56481714"}]
+            // [{"date": "1513387997", "tid": "33734815", "price": "0.01724547", "type": "1", "Amount": "5.56481714"}]
             symbol = NormalizeSymbol(symbol);
             JToken token = MakeBitstampRequest("/transactions/" + symbol);
             foreach (JToken trade in token)
             {
                 yield return new ExchangeTrade
                 {
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
+                    Amount = trade["Amount"].ConvertInvariant<decimal>(),
                     Id = trade["tid"].ConvertInvariant<long>(),
                     IsBuy = trade["type"].ToStringInvariant() == "0",
                     Price = trade["price"].ConvertInvariant<decimal>(),

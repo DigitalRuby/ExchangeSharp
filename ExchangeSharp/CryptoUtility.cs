@@ -385,10 +385,10 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Round an amount appropriate to its quantity
+        /// Round an Amount appropriate to its quantity
         /// </summary>
         /// <param name="amount">Amount</param>
-        /// <returns>Rounded amount</returns>
+        /// <returns>Rounded Amount</returns>
         /// <remarks>
         /// Less than 1 : 7 decimal places
         /// Less than 10 : 3 decimal places

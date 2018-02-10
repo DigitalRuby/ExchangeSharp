@@ -19,7 +19,7 @@ using System.Net;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
-
+using ExchangeSharp.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -292,7 +292,7 @@ namespace ExchangeSharp
             {
                 if (token["type"].ToStringInvariant() == "exchange")
                 {
-                    decimal amount = token["amount"].ConvertInvariant<decimal>();
+                    decimal amount = token["Amount"].ConvertInvariant<decimal>();
                     if (amount > 0m)
                     {
                         lookup[token["currency"].ToStringInvariant()] = amount;
@@ -326,7 +326,7 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["amount"] = order.RoundAmount().ToStringInvariant();
+            payload["Amount"] = order.RoundAmount().ToStringInvariant();
             payload["price"] = order.Price.ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
             payload["type"] = "exchange limit";
@@ -611,7 +611,7 @@ namespace ExchangeSharp
             /*
             [{
               "price":"246.94",
-              "amount":"1.0",
+              "Amount":"1.0",
               "timestamp":"1444141857.0",
               "exchange":"",
               "type":"Buy",
@@ -623,8 +623,8 @@ namespace ExchangeSharp
             */
             return new ExchangeOrderResult
             {
-                Amount = trade["amount"].ConvertInvariant<decimal>(),
-                AmountFilled = trade["amount"].ConvertInvariant<decimal>(),
+                Amount = trade["Amount"].ConvertInvariant<decimal>(),
+                AmountFilled = trade["Amount"].ConvertInvariant<decimal>(),
                 AveragePrice = trade["price"].ConvertInvariant<decimal>(),
                 IsBuy = trade["type"].ToStringUpperInvariant() == "BUY",
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(trade["timestamp"].ConvertInvariant<double>()),

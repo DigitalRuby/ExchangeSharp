@@ -32,7 +32,7 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("test - Run integrations test code against exchanges.");
             Console.WriteLine(" test currently has no additional arguments.");
             Console.WriteLine();
-            Console.WriteLine("export - export exchange data. CSV files have millisecond timestamp, price and amount columns. The export will also convert the CSV to bin files. This can take a long time depending on your sinceDateTime parameter.");
+            Console.WriteLine("export - export exchange data. CSV files have millisecond timestamp, price and Amount columns. The export will also convert the CSV to bin files. This can take a long time depending on your sinceDateTime parameter.");
             Console.WriteLine(" Please note that not all exchanges will let you do this and may ban your IP if you try to grab to much data at once. I've added sensible sleep statements to limit request rates.");
             Console.WriteLine(" export exchange=gemini symbol=btcusd path=../../data/gemini sinceDateTime=20150101");
             Console.WriteLine();

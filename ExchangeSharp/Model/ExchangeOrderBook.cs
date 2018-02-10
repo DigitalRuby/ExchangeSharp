@@ -127,11 +127,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get the price necessary to buy at to acquire an equivelant amount of currency from the order book, i.e. amount of 2 BTC could acquire x amount of other currency by buying at a certain BTC price.
+        /// Get the price necessary to buy at to acquire an equivelant Amount of currency from the order book, i.e. Amount of 2 BTC could acquire x Amount of other currency by buying at a certain BTC price.
         /// You would place a limit buy order for buyAmount of alt coin at buyPrice.
         /// </summary>
-        /// <param name="amount">Amount of currency to trade, i.e. you have 0.1 BTC and want to buy an equivelant amount of alt coins</param>
-        /// <param name="buyAmount">The amount of new currency that will be acquired</param>
+        /// <param name="amount">Amount of currency to trade, i.e. you have 0.1 BTC and want to buy an equivelant Amount of alt coins</param>
+        /// <param name="buyAmount">The Amount of new currency that will be acquired</param>
         /// <param name="buyPrice">The price necessary to buy at to acquire buyAmount of currency</param>
         public void GetPriceToBuy(decimal amount, out decimal buyAmount, out decimal buyPrice)
         {
@@ -151,10 +151,10 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get the price necessary to sell amount currency. You would place a limit sell order for amount at the returned price to sell all of the amount.
+        /// Get the price necessary to sell Amount currency. You would place a limit sell order for Amount at the returned price to sell all of the Amount.
         /// </summary>
         /// <param name="amount">Amount to sell</param>
-        /// <returns>The price necessary to sell at to sell amount currency</returns>
+        /// <returns>The price necessary to sell at to sell Amount currency</returns>
         public decimal GetPriceToSell(decimal amount)
         {
             ExchangeOrderPrice bid;

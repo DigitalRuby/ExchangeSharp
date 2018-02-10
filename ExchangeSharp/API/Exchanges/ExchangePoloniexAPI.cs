@@ -20,7 +20,7 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-
+using ExchangeSharp.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -71,8 +71,8 @@ namespace ExchangeSharp
 
         private ExchangeOrderResult ParseOrder(JToken result)
         {
-            //result = JToken.Parse("{\"orderNumber\":31226040,\"resultingTrades\":[{\"amount\":\"338.8732\",\"date\":\"2014-10-18 23:03:21\",\"rate\":\"0.00000173\",\"total\":\"0.00058625\",\"tradeID\":\"16164\",\"type\":\"buy\"}]}");
-            // open order: { "orderNumber": "45549304213", "type": "sell", "rate": "0.01000000", "startingAmount": "1497.74185318", "amount": "1497.74185318", "total": "14.97741853", "date": "2018-01-28 17:07:39", "margin": 0 }
+            //result = JToken.Parse("{\"orderNumber\":31226040,\"resultingTrades\":[{\"Amount\":\"338.8732\",\"date\":\"2014-10-18 23:03:21\",\"rate\":\"0.00000173\",\"total\":\"0.00058625\",\"tradeID\":\"16164\",\"type\":\"buy\"}]}");
+            // open order: { "orderNumber": "45549304213", "type": "sell", "rate": "0.01000000", "startingAmount": "1497.74185318", "Amount": "1497.74185318", "total": "14.97741853", "date": "2018-01-28 17:07:39", "margin": 0 }
             ExchangeOrderResult order = new ExchangeOrderResult
             {
                 OrderId = result["orderNumber"].ToStringInvariant()
@@ -85,7 +85,7 @@ namespace ExchangeSharp
                 {
                     foreach (JToken token in trades)
                     {
-                        order.Amount += token["amount"].ConvertInvariant<decimal>();
+                        order.Amount += token["Amount"].ConvertInvariant<decimal>();
                         order.AmountFilled = order.Amount;
                         order.AveragePrice += token["rate"].ConvertInvariant<decimal>();
                         if (token["type"].ToStringInvariant() == "buy")
@@ -110,9 +110,9 @@ namespace ExchangeSharp
                 {
                     order.Amount = result["startingAmount"].ConvertInvariant<decimal>();
                 }
-                if (result["amount"] != null)
+                if (result["Amount"] != null)
                 {
-                    order.AmountFilled = result["amount"].ConvertInvariant<decimal>() - order.Amount;
+                    order.AmountFilled = result["Amount"].ConvertInvariant<decimal>() - order.Amount;
                 }
                 if (result["type"] != null)
                 {
@@ -131,10 +131,10 @@ namespace ExchangeSharp
             Dictionary<string, ExchangeOrderResult> orderLookup = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken token in trades)
             {
-                // { "globalTradeID": 25129732, "tradeID": "6325758", "date": "2016-04-05 08:08:40", "rate": "0.02565498", "amount": "0.10000000", "total": "0.00256549", "fee": "0.00200000", "orderNumber": "34225313575", "type": "sell", "category": "exchange" }
+                // { "globalTradeID": 25129732, "tradeID": "6325758", "date": "2016-04-05 08:08:40", "rate": "0.02565498", "Amount": "0.10000000", "total": "0.00256549", "fee": "0.00200000", "orderNumber": "34225313575", "type": "sell", "category": "exchange" }
                 ExchangeOrderResult subOrder = new ExchangeOrderResult
                 {
-                    Amount = token["amount"].ConvertInvariant<decimal>()
+                    Amount = token["Amount"].ConvertInvariant<decimal>()
                 };
                 subOrder.AmountFilled = subOrder.Amount;
                 subOrder.AveragePrice = token["rate"].ConvertInvariant<decimal>();
@@ -340,7 +340,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
-            // [{"globalTradeID":245321705,"tradeID":11501281,"date":"2017-10-20 17:39:17","type":"buy","rate":"0.01022188","amount":"0.00954454","total":"0.00009756"},...]
+            // [{"globalTradeID":245321705,"tradeID":11501281,"date":"2017-10-20 17:39:17","type":"buy","rate":"0.01022188","Amount":"0.00954454","total":"0.00009756"},...]
             // https://poloniex.com/public?command=returnTradeHistory&currencyPair=BTC_LTC&start=1410158341&end=1410499372
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/public?command=returnTradeHistory&currencyPair=" + symbol;
@@ -371,7 +371,7 @@ namespace ExchangeSharp
                     timestamp = DateTime.Parse(dt).ToUniversalTime();
                     trades.Add(new ExchangeTrade
                     {
-                        Amount = child["amount"].ConvertInvariant<decimal>(),
+                        Amount = child["Amount"].ConvertInvariant<decimal>(),
                         Price = child["rate"].ConvertInvariant<decimal>(),
                         Timestamp = timestamp,
                         Id = child["globalTradeID"].ConvertInvariant<long>(),
@@ -464,7 +464,7 @@ namespace ExchangeSharp
         {
             string symbol = NormalizeSymbol(order.Symbol);
             JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", "currencyPair", symbol, "rate",
-                order.Price.ToStringInvariant(), "amount", order.RoundAmount().ToStringInvariant());
+                order.Price.ToStringInvariant(), "Amount", order.RoundAmount().ToStringInvariant());
             return ParseOrder(result);
         }
 
