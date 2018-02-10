@@ -1,4 +1,4 @@
-﻿namespace ExchangeSharp.Model
+﻿namespace ExchangeSharp
 {
     /// <summary>
     /// Order request details
