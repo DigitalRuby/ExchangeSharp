@@ -420,13 +420,13 @@ namespace ExchangeSharp
             CheckError(response);
             WithdrawalResponse withdrawalResponse = new WithdrawalResponse
             {
-                Id = response["Id"].ToStringInvariant(),
-                Msg = response["Msg"].ToStringInvariant(),
+                Id = response["id"].ToStringInvariant(),
+                Msg = response["msg"].ToStringInvariant(),
             };
 
-            if (bool.TryParse(response["Success"].ToStringInvariant(), out var success))
+            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
             {
-                withdrawalResponse.Success = success;
+                throw new APIException(response["msg"].ToStringInvariant());
             }
 
             return withdrawalResponse;
