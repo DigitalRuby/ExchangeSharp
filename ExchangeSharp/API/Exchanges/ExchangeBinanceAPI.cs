@@ -472,9 +472,9 @@ namespace ExchangeSharp
                 Msg = response["Msg"].ToStringInvariant(),
             };
 
-            if (bool.TryParse(response["success"].ToStringInvariant(), out var success))
+            if (bool.TryParse(response["Success"].ToStringInvariant(), out var success))
             {
-                withdrawalResponse.success = success;
+                withdrawalResponse.Success = success;
             }
 
             return withdrawalResponse;

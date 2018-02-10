@@ -532,9 +532,9 @@ namespace ExchangeSharp
         {
             JToken token = MakePrivateAPIRequest("cancelOrder", "orderNumber", long.Parse(orderId));
             CheckError(token);
-            if (token["success"] == null || token["success"].ConvertInvariant<int>() != 1)
+            if (token["Success"] == null || token["Success"].ConvertInvariant<int>() != 1)
             {
-                throw new APIException("Failed to cancel order, success was not 1");
+                throw new APIException("Failed to cancel order, Success was not 1");
             }
         }
     }

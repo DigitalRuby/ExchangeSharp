@@ -55,7 +55,7 @@ namespace ExchangeSharp
 
         private JToken CheckError(JToken obj)
         {
-            if (obj["success"] == null || !obj["success"].ConvertInvariant<bool>())
+            if (obj["Success"] == null || !obj["Success"].ConvertInvariant<bool>())
             {
                 throw new APIException(obj["message"].ToStringInvariant());
             }
@@ -356,7 +356,7 @@ namespace ExchangeSharp
         public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
         {
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
-            // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
+            // "{"Success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
             string periodString;
             switch (periodSeconds)
             {
@@ -500,6 +500,34 @@ namespace ExchangeSharp
                     yield return order;
                 }
             }
+        }
+
+        public override WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["currency"] = NormalizeSymbol(withdrawalRequest.Asset);
+            payload["address"] = withdrawalRequest.ToAddress;
+            payload["paymentid"] = withdrawalRequest.AddressTag;
+            payload["quantity"] = withdrawalRequest.Amount;
+
+            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
+
+            string url = $"/account/withdraw&currency={NormalizeSymbol(withdrawalRequest.Asset)}&amount={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}&paymentid={withdrawalRequest.AddressTag}";
+            JToken response = MakeJsonRequest<JToken>(url, null, payload);
+            JToken result = CheckError(response);
+
+            WithdrawalResponse withdrawalResponse = new WithdrawalResponse
+            {
+                Id = result["result"]["uuid"].ToStringInvariant(),
+                Msg = result["Msg"].ToStringInvariant(),
+            };
+
+            if (bool.TryParse(result["Success"].ToStringInvariant(), out var success))
+            {
+                withdrawalResponse.Success = success;
+            }
+
+            return withdrawalResponse;
         }
 
         public override void CancelOrder(string orderId)

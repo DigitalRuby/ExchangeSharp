@@ -24,7 +24,7 @@
         /// </value>
         public string AddressTag { get; set; }
         /// <summary>
-        /// Gets or sets the Amount.
+        /// Gets or sets the Amount. Secondary address identifier for coins like XRP,XMR etc
         /// </summary>
         /// <value>
         /// The Amount.
