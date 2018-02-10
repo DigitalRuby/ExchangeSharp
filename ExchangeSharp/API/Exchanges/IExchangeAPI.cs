@@ -259,25 +259,25 @@ namespace ExchangeSharp
         Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
-        /// Get total amounts, symbol / Amount dictionary
+        /// Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
         Dictionary<string, decimal> GetAmounts();
 
         /// <summary>
-        /// ASYNC - Get total amounts, symbol / Amount dictionary
+        /// ASYNC - Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
         Task<Dictionary<string, decimal>> GetAmountsAsync();
 
         /// <summary>
-        /// Get amounts available to trade, symbol / Amount dictionary
+        /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
         Dictionary<string, decimal> GetAmountsAvailableToTrade();
 
         /// <summary>
-        /// ASYNC - Get amounts available to trade, symbol / Amount dictionary
+        /// ASYNC - Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
         Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync();
@@ -360,7 +360,7 @@ namespace ExchangeSharp
     }
 
     /// <summary>
-        /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
+    /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
     /// Types of orders
     /// </summary>
     public enum OrderType

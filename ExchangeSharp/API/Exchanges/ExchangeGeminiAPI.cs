@@ -127,13 +127,13 @@ namespace ExchangeSharp
             JToken bids = obj["bids"];
             foreach (JToken token in bids)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Amount"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["amount"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
                 orders.Bids.Add(order);
             }
             JToken asks = obj["asks"];
             foreach (JToken token in asks)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Amount"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
+                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["amount"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
                 orders.Asks.Add(order);
             }
             return orders;
@@ -166,7 +166,7 @@ namespace ExchangeSharp
                 {
                     trades.Add(new ExchangeTrade
                     {
-                        Amount = token["Amount"].ConvertInvariant<decimal>(),
+                        Amount = token["amount"].ConvertInvariant<decimal>(),
                         Price = token["price"].ConvertInvariant<decimal>(),
                         Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestampms"].ConvertInvariant<long>()),
                         Id = token["tid"].ConvertInvariant<long>(),
@@ -193,7 +193,7 @@ namespace ExchangeSharp
             JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>("/balances", null, GetNoncePayload());
             CheckError(obj);
             var q = from JToken token in obj
-                    select new { Currency = token["currency"].ToStringInvariant(), Available = token["Amount"].ConvertInvariant<decimal>() };
+                    select new { Currency = token["currency"].ToStringInvariant(), Available = token["amount"].ConvertInvariant<decimal>() };
             foreach (var kv in q)
             {
                 if (kv.Available > 0m)
@@ -234,7 +234,7 @@ namespace ExchangeSharp
                 { "nonce", GenerateNonce() },
                 { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", symbol },
-                { "Amount", order.RoundAmount().ToStringInvariant() },
+                { "amount", order.RoundAmount().ToStringInvariant() },
                 { "price", order.Price.ToStringInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "type", "exchange limit" }
