@@ -363,10 +363,19 @@ namespace ExchangeSharp
     }
 
     /// <summary>
+        /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
     /// Types of orders
     /// </summary>
     public enum OrderType
     {
-        Limit
+        /// <summary>
+        /// A limit order, the order will not buy or sell beyond the price you specify
+        /// </summary>
+        Limit,
+        
+        /// <summary>
+        /// A market order, you will buy or sell the full amount - use with caution as this will give you a terrible deal if the order book is thin
+        /// </summary>
+        Market
     }
 }

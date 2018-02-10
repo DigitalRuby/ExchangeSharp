@@ -1,5 +1,19 @@
 <img src='logo.png' width='600' />
 
+[![GitHub issues](https://img.shields.io/github/issues/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/issues)
+[![GitHub forks](https://img.shields.io/github/forks/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/network)
+[![GitHub stars](https://img.shields.io/github/stars/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/stargazers)
+[![GitHub license](https://img.shields.io/github/license/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE.txt)
+[![Twitter](https://img.shields.io/twitter/url/https/github.com/jjxtra/ExchangeSharp.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fjjxtra%2FExchangeSharp)
+
+[![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
+
+[![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
+
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)](https://en.cryptobadges.io/donate/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
+
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
 
 Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
@@ -10,7 +24,7 @@ The following cryptocurrency exchanges are supported:
 - Bitfinex (public REST, basic private REST, public web socket (tickers), private web socket (orders))
 - Bithumb (public REST)
 - Bitstamp (public REST)
-- Bittrex (public REST, basic private REST)
+- Bittrex (public REST, basic private REST, public web socket (tickers))
 - Gemini (public REST, basic private REST)
 - GDAX (public REST, basic private REST)
 - Kraken (public REST, basic private REST)
@@ -81,12 +95,13 @@ I do cryptocurrency consulting, please don't hesitate to contact me if you have 
 
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
-Paypal: jjxtra@gmail.com (pick the send to friends and family with bank account option to avoid fees)
+[![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
 
-Bitcoin: 1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG  
-Ethereum: 0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433  
-Litecoin: LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i  
-Vertcoin: Vcu6Fqh8MGiLEyyifNSCgoCuQShTijzwFx  
+[![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
+
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)](https://en.cryptobadges.io/donate/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
 Thanks for visiting!
 

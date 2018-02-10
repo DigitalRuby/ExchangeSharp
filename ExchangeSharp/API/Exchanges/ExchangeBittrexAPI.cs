@@ -97,7 +97,6 @@ namespace ExchangeSharp
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
                 url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
-                return url.Uri;
             }
             return url.Uri;
         }
@@ -185,16 +184,6 @@ namespace ExchangeSharp
             return tickerList;
         }
 
-        /// <summary>
-        /// Attach Bittrex AllMarketDeltaStream websocket stream to tickers processor
-        /// This is a delta stream, sending only the changes since the last tick.
-        /// </summary>
-        /// <param name="callback">What action to take on the collection of changed tickers.</param>
-        /// <returns>
-        /// The BittrexSocketClient
-        /// Note that this socketclient handles all subscriptions. 
-        /// To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
-        /// </returns>
         public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             // Eat the streamId and rely on .Dispose to clean up all streams
@@ -240,7 +229,7 @@ namespace ExchangeSharp
                             {
                                 QuantityAmount = quantityAmount,
                                 QuantitySymbol = market.MarketName,
-                                PriceAmount = market.BaseVolume.ConvertInvariant(quantityAmount * last),
+                                PriceAmount = market.BaseVolume.ConvertInvariant<decimal>(quantityAmount * last),
                                 PriceSymbol = market.MarketName,
                                 Timestamp = market.TimeStamp
                             }
@@ -450,6 +439,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
+            if (order.OrderType == OrderType.Market)
+            {
+                throw new NotSupportedException();
+            }
+
             string symbol = NormalizeSymbol(order.Symbol);
             decimal amount = order.RoundAmount();
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +

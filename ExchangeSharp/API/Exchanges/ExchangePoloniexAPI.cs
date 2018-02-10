@@ -462,6 +462,11 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
+            if (order.OrderType == OrderType.Market)
+            {
+                throw new NotSupportedException();
+            }
+
             string symbol = NormalizeSymbol(order.Symbol);
             JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", "currencyPair", symbol, "rate",
                 order.Price.ToStringInvariant(), "Amount", order.RoundAmount().ToStringInvariant());

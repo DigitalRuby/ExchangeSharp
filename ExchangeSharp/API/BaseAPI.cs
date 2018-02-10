@@ -172,7 +172,14 @@ namespace ExchangeSharp
         /// </summary>
         static BaseAPI()
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
+            try
+            {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
+            }
+            catch
+            {
+
+            }
         }
 
         /// <summary>
@@ -296,7 +303,7 @@ namespace ExchangeSharp
             request.ContentType = RequestContentType;
             request.UserAgent = RequestUserAgent;
             request.CachePolicy = CachePolicy;
-            request.Timeout = (int)RequestTimeout.TotalMilliseconds;
+            request.Timeout = request.ReadWriteTimeout = request.ContinueTimeout = (int)RequestTimeout.TotalMilliseconds;
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             ProcessRequest(request, payload);
             HttpWebResponse response;

@@ -82,13 +82,13 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunExample(dict);
                 }
-                else if (dict.ContainsKey("example-websocket"))
-                {
-                    RunExampleWebSocket();
-                }
                 else if (dict.ContainsKey("keys"))
                 {
                     RunProcessEncryptedAPIKeys(dict);
+                }
+                else if (dict.ContainsKey("poloniex-websocket"))
+                {
+                    RunPoloniexWebSocket();
                 }
                 else if (dict.ContainsKey("bittrex-websocket"))
                 {
