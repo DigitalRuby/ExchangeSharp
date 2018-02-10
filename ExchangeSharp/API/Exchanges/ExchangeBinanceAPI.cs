@@ -28,9 +28,9 @@ namespace ExchangeSharp
 {
     public class ExchangeBinanceAPI : ExchangeAPI
     {
-        public override string BaseUrl { get; set; } = "https://www.binance.com/api/v1";
+        public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
-        public string BaseUrlPrivate { get; set; } = "https://www.binance.com/api/v3";
+        public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
         public override string Name => ExchangeName.Binance;
 
         public override string NormalizeSymbol(string symbol)
