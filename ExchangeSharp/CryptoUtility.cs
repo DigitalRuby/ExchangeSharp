@@ -69,7 +69,12 @@ namespace ExchangeSharp
             {
                 return defaultValue;
             }
-            return (T)System.Convert.ChangeType(obj, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
+            JValue jValue = obj as JValue;
+            if (jValue != null && jValue.Value == null)
+            {
+                return defaultValue;
+            }
+            return (T)System.Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public static string NormalizeSymbol(string symbol)
