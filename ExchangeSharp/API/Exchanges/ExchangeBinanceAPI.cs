@@ -12,12 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -31,6 +27,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
+        public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
         public override string NormalizeSymbol(string symbol)
@@ -405,6 +402,42 @@ namespace ExchangeSharp
             payload["orderId"] = pieces[1];
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
             CheckError(token);
+        }
+
+
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = withdrawalRequest.Asset;
+            payload["address"] = withdrawalRequest.ToAddress;
+            payload["amount"] = withdrawalRequest.Amount;
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            {
+                payload["name"] = withdrawalRequest.Name;
+            }
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                payload["addressTag"] = withdrawalRequest.AddressTag;
+            }
+
+            // yes, .html ...
+            JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
+
+            CheckError(response);
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
+            {
+                Id = response["id"].ToStringInvariant(),
+                Message = response["msg"].ToStringInvariant(),
+            };
+
+            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException(response["msg"].ToStringInvariant());
+            }
+
+            return withdrawalResponse;
         }
 
         private void CheckError(JToken result)
