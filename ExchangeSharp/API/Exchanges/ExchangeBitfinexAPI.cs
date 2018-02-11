@@ -324,7 +324,6 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
             payload["amount"] = order.RoundAmount().ToStringInvariant();
-            payload["price"] = order.Price.ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
             payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
             if (order.OrderType != OrderType.Market)
