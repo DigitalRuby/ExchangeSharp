@@ -27,7 +27,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
-        public string WithdrawalUrlPrivate { get; set; } = "https://www.binance.com/wapi/v3/";
+        public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
         public override string NormalizeSymbol(string symbol)
@@ -409,13 +409,21 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["asset"] = withdrawalRequest.Asset;
-            payload["toAddress"] = withdrawalRequest.ToAddress;
-            payload["addressTag"] = withdrawalRequest.AddressTag;
+            payload["address"] = withdrawalRequest.ToAddress;
             payload["amount"] = withdrawalRequest.Amount;
-            payload["name"] = withdrawalRequest.Name;
 
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            {
+                payload["name"] = withdrawalRequest.Name;
+            }
 
-            JToken response = MakeJsonRequest<JToken>("/wapi/v3/withdraw", WithdrawalUrlPrivate, payload);
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                payload["addressTag"] = withdrawalRequest.AddressTag;
+            }
+
+            // yes, .html ...
+            JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
 
             CheckError(response);
             WithdrawalResponse withdrawalResponse = new WithdrawalResponse
