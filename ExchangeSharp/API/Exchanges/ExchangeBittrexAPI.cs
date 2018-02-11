@@ -510,8 +510,8 @@ namespace ExchangeSharp
 
             WithdrawalResponse withdrawalResponse = new WithdrawalResponse
             {
-                Id = result["result"]["uuid"].ToStringInvariant(),
-                Msg = result["Msg"].ToStringInvariant(),
+                Id = result["uuid"].ToStringInvariant(),
+                Msg = result["msg"].ToStringInvariant()
             };
 
             return withdrawalResponse;
