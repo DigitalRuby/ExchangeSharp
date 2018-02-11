@@ -12,12 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -324,6 +319,18 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         public Task CancelOrderAsync(string orderId) => Task.Factory.StartNew(() => CancelOrder(orderId));
+
+        /// <summary>
+        /// A withdrawal request.
+        /// </summary>
+        /// <param name="withdrawalRequest">The withdrawal request.</param>
+        public virtual WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+
+        /// <summary>
+        /// Asynchronous withdraws.
+        /// </summary>
+        /// <param name="withdrawalRequest">The withdrawal request.</param>
+        public Task WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => Task.Factory.StartNew(() => Withdraw(withdrawalRequest));
     }
 
     /// <summary>

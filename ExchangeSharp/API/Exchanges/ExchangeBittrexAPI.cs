@@ -495,6 +495,28 @@ namespace ExchangeSharp
             }
         }
 
+        public override WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
+
+            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                url += $"&paymentid{withdrawalRequest.AddressTag}";
+            }
+
+            JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
+            JToken result = CheckError(response);
+
+            WithdrawalResponse withdrawalResponse = new WithdrawalResponse
+            {
+                Id = result["uuid"].ToStringInvariant(),
+                Msg = result["msg"].ToStringInvariant()
+            };
+
+            return withdrawalResponse;
+        }
+
         public override void CancelOrder(string orderId)
         {
             JObject obj = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
