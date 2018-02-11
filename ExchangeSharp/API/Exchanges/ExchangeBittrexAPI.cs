@@ -495,7 +495,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
 
@@ -508,10 +508,10 @@ namespace ExchangeSharp
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
             JToken result = CheckError(response);
 
-            WithdrawalResponse withdrawalResponse = new WithdrawalResponse
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = result["uuid"].ToStringInvariant(),
-                Msg = result["msg"].ToStringInvariant()
+                Message = result["msg"].ToStringInvariant()
             };
 
             return withdrawalResponse;

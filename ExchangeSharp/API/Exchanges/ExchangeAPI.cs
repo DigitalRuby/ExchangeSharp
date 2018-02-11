@@ -324,7 +324,7 @@ namespace ExchangeSharp
         /// A withdrawal request.
         /// </summary>
         /// <param name="withdrawalRequest">The withdrawal request.</param>
-        public virtual WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+        public virtual ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
 
         /// <summary>
         /// Asynchronous withdraws.

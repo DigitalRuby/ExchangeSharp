@@ -12,26 +12,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    public class ExchangeWithdrawalRequest
+    public class ExchangeWithdrawalResponse
     {
-        /// <summary>Gets or sets the asset.</summary>
-        /// <value>The asset.</value>
-        public string Asset { get; set; }
+        /// <summary>The message of the transacion.</summary>
+        public string Message;
 
-        /// <summary>Gets or sets to address.</summary>
-        /// <value>To address.</value>
-        public string ToAddress { get; set; }
-
-        /// <summary>Gets or sets the address tag.</summary>
-        /// <value>The address tag.</value>
-        public string AddressTag { get; set; }
-
-        /// <summary>Gets or sets the Amount. Secondary address identifier for coins like XRP,XMR etc</summary>
-        /// <value>The Amount.</value>
-        public decimal Amount { get; set; }
-
-        /// <summary>Description of the address</summary>
-        /// <value>The name.</value>
-        public string Name { get; set; }
+        /// <summary>The identifier for the transaction.</summary>
+        public string Id;
     }
 }

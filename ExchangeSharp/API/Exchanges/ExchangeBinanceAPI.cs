@@ -405,7 +405,7 @@ namespace ExchangeSharp
         }
 
 
-        public override WithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["asset"] = withdrawalRequest.Asset;
@@ -426,10 +426,10 @@ namespace ExchangeSharp
             JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
 
             CheckError(response);
-            WithdrawalResponse withdrawalResponse = new WithdrawalResponse
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = response["id"].ToStringInvariant(),
-                Msg = response["msg"].ToStringInvariant(),
+                Message = response["msg"].ToStringInvariant(),
             };
 
             if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
