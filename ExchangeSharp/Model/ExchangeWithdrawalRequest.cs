@@ -2,40 +2,24 @@
 {
     public class ExchangeWithdrawalRequest
     {
-        /// <summary>
-        /// Gets or sets the asset.
-        /// </summary>
-        /// <value>
-        /// The asset.
-        /// </value>
+        /// <summary>Gets or sets the asset.</summary>
+        /// <value>The asset.</value>
         public string Asset { get; set; }
-        /// <summary>
-        /// Gets or sets to address.
-        /// </summary>
-        /// <value>
-        /// To address.
-        /// </value>
+
+        /// <summary>Gets or sets to address.</summary>
+        /// <value>To address.</value>
         public string ToAddress { get; set; }
-        /// <summary>
-        /// Gets or sets the address tag.
-        /// </summary>
-        /// <value>
-        /// The address tag.
-        /// </value>
+
+        /// <summary>Gets or sets the address tag.</summary>
+        /// <value>The address tag.</value>
         public string AddressTag { get; set; }
-        /// <summary>
-        /// Gets or sets the Amount. Secondary address identifier for coins like XRP,XMR etc
-        /// </summary>
-        /// <value>
-        /// The Amount.
-        /// </value>
+
+        /// <summary>Gets or sets the Amount. Secondary address identifier for coins like XRP,XMR etc</summary>
+        /// <value>The Amount.</value>
         public decimal Amount { get; set; }
-        /// <summary>
-        /// Description of the address
-        /// </summary>
-        /// <value>
-        /// The name.
-        /// </value>
+
+        /// <summary>Description of the address</summary>
+        /// <value>The name.</value>
         public string Name { get; set; }
     }
 }
