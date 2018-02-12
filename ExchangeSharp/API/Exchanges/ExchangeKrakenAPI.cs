@@ -261,8 +261,13 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
+            if (limit != null)
+            {
+                throw new APIException("Limit parameter not supported");
+            }
+
             // https://api.kraken.com/0/public/OHLC
             // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given id(optional.exclusive)
             // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)

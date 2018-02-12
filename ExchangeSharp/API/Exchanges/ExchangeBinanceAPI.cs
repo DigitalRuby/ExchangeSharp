@@ -202,7 +202,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /* [
             [
@@ -225,8 +225,12 @@ namespace ExchangeSharp
             if (startDate != null)
             {
                 url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                url += "&endTime=" + ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds())).ToStringInvariant();
             }
-            url += "&endTime=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            if (limit != null)
+            {
+                url += "&limit=" + (limit.Value.ToStringInvariant());
+            }
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
             url += "&interval=" + periodString;
             JToken obj = MakeJsonRequest<JToken>(url);

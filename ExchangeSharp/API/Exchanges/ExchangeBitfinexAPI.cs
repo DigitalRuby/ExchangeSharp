@@ -249,15 +249,23 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             // https://api.bitfinex.com/v2/candles/trade:1d:btcusd/hist?start=ms_start&end=ms_end
             symbol = NormalizeSymbol(symbol);
-            endDate = endDate ?? DateTime.UtcNow;
-            startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds).Replace("d", "D"); // WTF Bitfinex, capital D???
-            string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1&start=" +
-                (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds() + "&end=" + (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds();
+            string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1";
+            if (startDate != null || endDate != null)
+            {
+                endDate = endDate ?? DateTime.UtcNow;
+                startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
+                url += "&start=" + ((long)startDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+                url += "&end=" + ((long)endDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+            }
+            if (limit != null)
+            {
+                url += "&limit=" + (limit.Value.ToStringInvariant());
+            }
             JToken token = MakeJsonRequest<JToken>(url);
             CheckError(token);
 

@@ -204,21 +204,23 @@ namespace ExchangeSharp
         /// Get candles (open, high, low, close)
         /// </summary>
         /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodsSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <param name="startDate">Optional start date to get candles for</param>
         /// <param name="endDate">Optional end date to get candles for</param>
+        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) { throw new NotSupportedException(); }
+        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) { throw new NotSupportedException(); }
 
         /// <summary>
         /// ASYNC - Get candles (open, high, low, close)
         /// </summary>
         /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodsSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <param name="startDate">Optional start date to get candles for</param>
         /// <param name="endDate">Optional end date to get candles for</param>
+        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate));
+        public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate, limit));
 
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
