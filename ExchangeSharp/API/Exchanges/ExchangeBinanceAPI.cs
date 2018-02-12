@@ -144,16 +144,20 @@ namespace ExchangeSharp
             string baseUrl = "/aggTrades?symbol=" + symbol;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            DateTime cutoff = DateTime.UtcNow;
+            DateTime cutoff;
+            if (sinceDateTime == null)
+            {
+                cutoff = DateTime.UtcNow;
+            }
+            else
+            {
+                cutoff = sinceDateTime.Value;
+                sinceDateTime = DateTime.UtcNow;
+            }
+            url = baseUrl;
 
             while (true)
             {
-                url = baseUrl;
-                if (sinceDateTime != null)
-                {
-                    url += "&startTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) +
-                        "&endTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value + TimeSpan.FromHours(1.0));
-                }
                 JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>(url);
                 if (obj == null || obj.Count == 0)
                 {
@@ -161,11 +165,16 @@ namespace ExchangeSharp
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.Last["T"].ConvertInvariant<long>());
-                    if (sinceDateTime.Value > cutoff)
+                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["T"].ConvertInvariant<long>());
+                    if (sinceDateTime.Value < cutoff)
                     {
                         sinceDateTime = null;
                     }
+                }
+                if (sinceDateTime != null)
+                {
+                    url = baseUrl + "&startTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value - TimeSpan.FromHours(1.0))).ToStringInvariant() +
+                        "&endTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value)).ToStringInvariant();
                 }
                 foreach (JToken token in obj)
                 {
