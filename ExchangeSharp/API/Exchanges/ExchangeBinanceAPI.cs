@@ -152,7 +152,7 @@ namespace ExchangeSharp
                 if (sinceDateTime != null)
                 {
                     url += "&startTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) +
-                        "&endTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value + TimeSpan.FromDays(1.0));
+                        "&endTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value + TimeSpan.FromHours(1.0));
                 }
                 JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>(url);
                 if (obj == null || obj.Count == 0)
