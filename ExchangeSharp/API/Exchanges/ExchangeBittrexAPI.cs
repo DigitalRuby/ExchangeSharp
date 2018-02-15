@@ -341,8 +341,13 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
+            if (limit != null)
+            {
+                throw new APIException("Limit parameter not supported");
+            }
+
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
             // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
             string periodString;
@@ -493,6 +498,28 @@ namespace ExchangeSharp
                     yield return order;
                 }
             }
+        }
+
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
+
+            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                url += $"&paymentid{withdrawalRequest.AddressTag}";
+            }
+
+            JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
+            JToken result = CheckError(response);
+
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
+            {
+                Id = result["uuid"].ToStringInvariant(),
+                Message = result["msg"].ToStringInvariant()
+            };
+
+            return withdrawalResponse;
         }
 
         public override void CancelOrder(string orderId)

@@ -12,12 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -31,6 +27,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
+        public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
         public override string NormalizeSymbol(string symbol)
@@ -45,9 +42,9 @@ namespace ExchangeSharp
         public ExchangeBinanceAPI()
         {
             // give binance plenty of room to accept requests
-            RequestWindow = TimeSpan.FromDays(1.0);
+            RequestWindow = TimeSpan.FromMinutes(15.0);
             NonceStyle = NonceStyle.UnixMilliseconds;
-            NonceOffset = TimeSpan.FromSeconds(1.0);
+            NonceOffset = TimeSpan.FromSeconds(10.0);
         }
 
         public override IEnumerable<string> GetSymbols()
@@ -147,16 +144,20 @@ namespace ExchangeSharp
             string baseUrl = "/aggTrades?symbol=" + symbol;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            DateTime cutoff = DateTime.UtcNow;
+            DateTime cutoff;
+            if (sinceDateTime == null)
+            {
+                cutoff = DateTime.UtcNow;
+            }
+            else
+            {
+                cutoff = sinceDateTime.Value;
+                sinceDateTime = DateTime.UtcNow;
+            }
+            url = baseUrl;
 
             while (true)
             {
-                url = baseUrl;
-                if (sinceDateTime != null)
-                {
-                    url += "&startTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) +
-                        "&endTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value + TimeSpan.FromDays(1.0));
-                }
                 JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>(url);
                 if (obj == null || obj.Count == 0)
                 {
@@ -164,11 +165,16 @@ namespace ExchangeSharp
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.Last["T"].ConvertInvariant<long>());
-                    if (sinceDateTime.Value > cutoff)
+                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["T"].ConvertInvariant<long>());
+                    if (sinceDateTime.Value < cutoff)
                     {
                         sinceDateTime = null;
                     }
+                }
+                if (sinceDateTime != null)
+                {
+                    url = baseUrl + "&startTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value - TimeSpan.FromHours(1.0))).ToStringInvariant() +
+                        "&endTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value)).ToStringInvariant();
                 }
                 foreach (JToken token in obj)
                 {
@@ -196,7 +202,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /* [
             [
@@ -219,8 +225,12 @@ namespace ExchangeSharp
             if (startDate != null)
             {
                 url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                url += "&endTime=" + ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds())).ToStringInvariant();
             }
-            url += "&endTime=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            if (limit != null)
+            {
+                url += "&limit=" + (limit.Value.ToStringInvariant());
+            }
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
             url += "&interval=" + periodString;
             JToken obj = MakeJsonRequest<JToken>(url);
@@ -405,6 +415,42 @@ namespace ExchangeSharp
             payload["orderId"] = pieces[1];
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
             CheckError(token);
+        }
+
+
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = withdrawalRequest.Asset;
+            payload["address"] = withdrawalRequest.ToAddress;
+            payload["amount"] = withdrawalRequest.Amount;
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            {
+                payload["name"] = withdrawalRequest.Name;
+            }
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                payload["addressTag"] = withdrawalRequest.AddressTag;
+            }
+
+            // yes, .html ...
+            JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
+
+            CheckError(response);
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
+            {
+                Id = response["id"].ToStringInvariant(),
+                Message = response["msg"].ToStringInvariant(),
+            };
+
+            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException(response["msg"].ToStringInvariant());
+            }
+
+            return withdrawalResponse;
         }
 
         private void CheckError(JToken result)

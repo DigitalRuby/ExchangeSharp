@@ -106,5 +106,5 @@ If you want help with your project, have questions that need answering or this p
 Thanks for visiting!
 
 Jeff Johnson  
-jjxtra@gmail.com  
+jeff@digitalruby.com  
 http://www.digitalruby.com  
