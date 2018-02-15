@@ -81,7 +81,8 @@ namespace ExchangeSharp
                     {
                         order.Amount += token["amount"].ConvertInvariant<decimal>();
                         order.AmountFilled = order.Amount;
-                        order.AveragePrice += token["rate"].ConvertInvariant<decimal>();
+                        order.Price += token["rate"].ConvertInvariant<decimal>();
+                        // TODO: implement AveragePrice - should be calculated from resultingTrades?
                         if (token["type"].ToStringInvariant() == "buy")
                         {
                             order.IsBuy = true;
@@ -98,7 +99,7 @@ namespace ExchangeSharp
             {
                 if (result["rate"] != null)
                 {
-                    order.AveragePrice = result["rate"].ConvertInvariant<decimal>();
+                    order.Price = result["rate"].ConvertInvariant<decimal>();
                 }
                 if (result["startingAmount"] != null)
                 {

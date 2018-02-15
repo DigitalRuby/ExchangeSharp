@@ -39,11 +39,13 @@ namespace ExchangeSharp
             decimal executedValue = result["executed_value"].ConvertInvariant<decimal>();
             decimal amountFilled = result["filled_size"].ConvertInvariant<decimal>();
             decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
+            decimal price = result["price"].ConvertInvariant<decimal>();
             decimal averagePrice = (executedValue <= 0m ? 0m : executedValue / amountFilled);
             ExchangeOrderResult order = new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
+                Price = price,
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ConvertInvariant<DateTime>(),

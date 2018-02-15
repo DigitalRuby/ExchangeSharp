@@ -532,10 +532,12 @@ namespace ExchangeSharp
         {
             decimal amount = order["original_amount"].ConvertInvariant<decimal>();
             decimal amountFilled = order["executed_amount"].ConvertInvariant<decimal>();
+            decimal price = order["price"].ConvertInvariant<decimal>();
             return new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
+                Price = price,
                 AveragePrice = order["avg_execution_price"].ConvertInvariant<decimal>(order["price"].ConvertInvariant<decimal>()),
                 Message = string.Empty,
                 OrderId = order["id"].ToStringInvariant(),
@@ -570,6 +572,7 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amount,
+                Price = order[6].ConvertInvariant<decimal>(),
                 AveragePrice = order[7].ConvertInvariant<decimal>(),
                 IsBuy = (amount > 0m),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order[8].ConvertInvariant<long>()),
@@ -605,6 +608,7 @@ namespace ExchangeSharp
                 {
                     ExchangeOrderResult append = new ExchangeOrderResult { Symbol = kv.Key, OrderId = trade[3].ToStringInvariant() };
                     append.Amount = append.AmountFilled = Math.Abs(trade[4].ConvertInvariant<decimal>());
+                    append.Price = trade[7].ConvertInvariant<decimal>();
                     append.AveragePrice = trade[5].ConvertInvariant<decimal>();
                     append.IsBuy = trade[4].ConvertInvariant<decimal>() >= 0m;
                     append.OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(trade[2].ConvertInvariant<long>());

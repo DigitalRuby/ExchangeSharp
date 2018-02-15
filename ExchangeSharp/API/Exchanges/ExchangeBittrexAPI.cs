@@ -74,6 +74,7 @@ namespace ExchangeSharp
             decimal amountFilled = amount - remaining;
             order.Amount = amount;
             order.AmountFilled = amountFilled;
+            order.Price = token["Price"].ConvertInvariant<decimal>();
             order.AveragePrice = token["PricePerUnit"].ConvertInvariant<decimal>(token["Price"].ConvertInvariant<decimal>());
             order.Message = string.Empty;
             order.OrderId = token["OrderUuid"].ToStringInvariant();
