@@ -91,7 +91,7 @@ public static void Main(string[] args)
 ```
 ---
 
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jjxtra@gmail.com).
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jeff@digitalruby.com).
 
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
