@@ -155,7 +155,7 @@ namespace ExchangeSharp
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
             JToken result = CheckError(json);
-            return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
+            return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
         public override ExchangeTicker GetTicker(string symbol)
