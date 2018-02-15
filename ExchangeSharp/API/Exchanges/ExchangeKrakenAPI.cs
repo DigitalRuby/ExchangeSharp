@@ -155,19 +155,7 @@ namespace ExchangeSharp
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
             JToken result = CheckError(json);
-            return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
-        }
-
-        /// <summary> Kraken doesn't support get all tickers so we will request each ticker individually.</summary>
-        /// <returns>Key value pair of symbol and tickers array</returns>
-        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
-        {
-            var symbols = GetSymbols().Where(x => !x.Contains(".d")); // remove delisted tickers
-
-            foreach (string symbol in symbols)
-            {
-                yield return new KeyValuePair<string, ExchangeTicker>(symbol, GetTicker(symbol));
-            }
+            return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
         public override ExchangeTicker GetTicker(string symbol)
