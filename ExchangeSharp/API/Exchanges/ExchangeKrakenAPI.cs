@@ -158,9 +158,7 @@ namespace ExchangeSharp
             return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
         }
 
-        /// <summary>
-        /// Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
-        /// </summary>
+        /// <summary> Kraken doesn't support get all tickers so we will request each ticker individually.</summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
         public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
         {
