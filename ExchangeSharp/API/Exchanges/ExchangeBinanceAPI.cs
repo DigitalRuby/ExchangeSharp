@@ -532,12 +532,12 @@ namespace ExchangeSharp
                 Amount = token["origQty"].ConvertInvariant<decimal>(),
                 AmountFilled = token["executedQty"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
-                // TODO: AveragePrice should be calculated by 'fills'
                 IsBuy = token["side"].ToStringInvariant() == "BUY",
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>(token["transactTime"].ConvertInvariant<long>())),
                 OrderId = token["orderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant()
             };
+            result.AveragePrice = (result.AmountFilled <= 0m ? 0m : result.Price / result.AmountFilled);
             switch (token["status"].ToStringInvariant())
             {
                 case "NEW":

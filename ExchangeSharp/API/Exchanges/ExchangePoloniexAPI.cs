@@ -81,8 +81,7 @@ namespace ExchangeSharp
                     {
                         order.Amount += token["amount"].ConvertInvariant<decimal>();
                         order.AmountFilled = order.Amount;
-                        order.Price += token["rate"].ConvertInvariant<decimal>();
-                        // TODO: implement AveragePrice - should be calculated from resultingTrades?
+                        order.AveragePrice += token["rate"].ConvertInvariant<decimal>();
                         if (token["type"].ToStringInvariant() == "buy")
                         {
                             order.IsBuy = true;
@@ -93,6 +92,9 @@ namespace ExchangeSharp
                         }
                     }
                     order.AveragePrice /= tradeCount;
+
+                    // Poloniex does not provide a way to get the original price
+                    order.Price = order.AveragePrice;
                 }
             }
             else
