@@ -51,7 +51,8 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                AveragePrice = result["price"].ConvertInvariant<decimal>(),
+                Price = result["price"].ConvertInvariant<decimal>(),
+                AveragePrice = result["avg_execution_price"].ConvertInvariant<decimal>(),
                 Message = string.Empty,
                 OrderId = result["id"].ToStringInvariant(),
                 Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
