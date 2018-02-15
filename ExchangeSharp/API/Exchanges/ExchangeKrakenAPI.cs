@@ -158,6 +158,20 @@ namespace ExchangeSharp
             return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
         }
 
+        /// <summary>
+        /// Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
+        /// </summary>
+        /// <returns>Key value pair of symbol and tickers array</returns>
+        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        {
+            var symbols = GetSymbols().Where(x => !x.Contains(".d")); // remove delisted tickers
+
+            foreach (string symbol in symbols)
+            {
+                yield return new KeyValuePair<string, ExchangeTicker>(symbol, GetTicker(symbol));
+            }
+        }
+
         public override ExchangeTicker GetTicker(string symbol)
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
