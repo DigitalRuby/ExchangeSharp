@@ -19,6 +19,8 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using System.Linq;
+
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
@@ -55,34 +57,34 @@ namespace ExchangeSharp
             switch (result["status"].ToStringInvariant())
             {
                 case "pending":
-                    order.Result = ExchangeAPIOrderResult.Pending;
-                    break;
+                order.Result = ExchangeAPIOrderResult.Pending;
+                break;
                 case "active":
                 case "open":
-                    if (order.Amount == order.AmountFilled)
-                    {
-                        order.Result = ExchangeAPIOrderResult.Filled;
-                    }
-                    else if (order.AmountFilled > 0.0m)
-                    {
-                        order.Result = ExchangeAPIOrderResult.FilledPartially;
-                    }
-                    else
-                    {
-                        order.Result = ExchangeAPIOrderResult.Pending;
-                    }
-                    break;
+                if (order.Amount == order.AmountFilled)
+                {
+                    order.Result = ExchangeAPIOrderResult.Filled;
+                }
+                else if (order.AmountFilled > 0.0m)
+                {
+                    order.Result = ExchangeAPIOrderResult.FilledPartially;
+                }
+                else
+                {
+                    order.Result = ExchangeAPIOrderResult.Pending;
+                }
+                break;
                 case "done":
                 case "settled":
-                    order.Result = ExchangeAPIOrderResult.Filled;
-                    break;
+                order.Result = ExchangeAPIOrderResult.Filled;
+                break;
                 case "cancelled":
                 case "canceled":
-                    order.Result = ExchangeAPIOrderResult.Canceled;
-                    break;
+                order.Result = ExchangeAPIOrderResult.Canceled;
+                break;
                 default:
-                    order.Result = ExchangeAPIOrderResult.Unknown;
-                    break;
+                order.Result = ExchangeAPIOrderResult.Unknown;
+                break;
             }
             return order;
         }
@@ -133,15 +135,28 @@ namespace ExchangeSharp
             return symbol?.Replace('_', '-').ToUpperInvariant();
         }
 
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            var markets = new List<ExchangeMarket>();
+            JToken products = MakeJsonRequest<JToken>("/products");
+            foreach (JToken product in products)
+            {
+                var market = new ExchangeMarket();
+                market.MarketName = product["id"].ToStringUpperInvariant();
+                market.BaseCurrency = product["quote_currency"].ToStringUpperInvariant();
+                market.MarketCurrency = product["base_currency"].ToStringUpperInvariant();
+                market.IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase);
+                market.MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>();
+
+                markets.Add(market);
+            }
+
+            return markets;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
-            Dictionary<string, string>[] symbols = MakeJsonRequest<Dictionary<string, string>[]>("/products");
-            List<string> symbolList = new List<string>();
-            foreach (Dictionary<string, string> symbol in symbols)
-            {
-                symbolList.Add(symbol["id"]);
-            }
-            return symbolList.ToArray();
+            return this.GetSymbolsMetadata().Select(market => market.MarketName);
         }
 
         public override ExchangeTicker GetTicker(string symbol)
