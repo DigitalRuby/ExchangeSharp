@@ -35,10 +35,16 @@ namespace ExchangeSharp
             if (symbol != null)
             {
                 //Binance use reversed symbol -> Normal symbol is e.g. BTC-XPM - this is xpmbtc in Binance
-                symbol = symbol.Replace("_", "-");
-                Char delimiter = '-';
-                string[] symbolArray = symbol.Split(delimiter);
-                symbol = symbolArray[1] + "-" + symbolArray[0];
+                if (symbol.Contains("_"))
+                {
+                    symbol = symbol.Replace("_", "-");
+                }
+                if (symbol.Contains("-"))
+                {
+                    Char delimiter = '-';
+                    string[] symbolArray = symbol.Split(delimiter);
+                    symbol = symbolArray[1] + "-" + symbolArray[0];
+                }
                 symbol = symbol.Replace("-", string.Empty).ToUpperInvariant();
             }
             return symbol;
