@@ -214,6 +214,44 @@ namespace ExchangeSharp
             return symbols;
         }
 
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            //https://poloniex.com/public?command=returnOrderBook&currencyPair=all&depth=0
+            /*
+             *       "BTC_CLAM": {
+        "asks": [],
+        "bids": [],
+        "isFrozen": "0",
+        "seq": 37268918
+    }, ...
+             */
+
+            var markets = new List<ExchangeMarket>();
+            Dictionary<string, JToken> lookup = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnOrderBook&currencyPair=all&depth=0");
+            foreach (var kvp in lookup)
+            {
+                var market = new ExchangeMarket { MarketName = kvp.Key, IsActive = false };
+
+                string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
+                if (string.Equals(isFrozen, "0"))
+                {
+                    market.IsActive = true;
+                }
+
+                string[] pairs = kvp.Key.Split('_');
+                if (pairs.Length == 2)
+                {
+                    market.BaseCurrency = pairs[0];
+                    market.MarketCurrency = pairs[1];
+                }
+
+                // TODO: Not sure how to find min order amount
+                markets.Add(market);
+            }
+
+            return markets;
+        }
+
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
