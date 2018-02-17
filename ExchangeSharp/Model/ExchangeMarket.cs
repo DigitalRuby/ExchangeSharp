@@ -14,10 +14,16 @@ namespace ExchangeSharp
 {
     public class ExchangeMarket
     {
+        /// <summary>Gets or sets the name of the market.</summary>
         public string MarketName { get; set; }
 
+        /// <summary>A value indicating whether the market is active.</summary>
         public bool IsActive { get; set; }
 
+        /// <summary>
+        /// The minimum size of the trade in the unit of "MarketCurrency".
+        /// For example, in DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE
+        /// </summary>
         public decimal MinTradeSize { get; set; }
 
         /// <summary>In a pair like ZRX/BTC, BTC is the base currency.</summary>
