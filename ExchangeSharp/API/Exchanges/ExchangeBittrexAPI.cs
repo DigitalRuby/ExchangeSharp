@@ -21,6 +21,8 @@ using System.Web;
 
 namespace ExchangeSharp
 {
+    using System.Linq;
+
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
@@ -116,19 +118,35 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override IEnumerable<string> GetSymbols()
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
         {
-            List<string> symbols = new List<string>();
+            var markets = new List<ExchangeMarket>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
             JToken result = CheckError(obj);
             if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
-                    symbols.Add(token["MarketName"].ToStringInvariant());
+                    var market = new ExchangeMarket
+                    {
+                        MarketName = token["MarketName"].ToStringInvariant(),
+                        IsActive = token["IsActive"].ConvertInvariant<bool>(),
+                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>()
+                    };
+                    markets.Add(market);
                 }
             }
-            return symbols;
+
+            return markets;
+        }
+
+        public override IEnumerable<string> GetSymbols()
+        {
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -362,15 +380,15 @@ namespace ExchangeSharp
                 case 259200: periodString = "threeDay"; break;
                 case 604800: periodString = "week"; break;
                 default:
-                    if (periodSeconds > 604800)
-                    {
-                        periodString = "month";
-                    }
-                    else
-                    {
-                        throw new ArgumentOutOfRangeException("Period seconds must be 60,300,1800,3600,86400, 259200 or 604800");
-                    }
-                    break;
+                if (periodSeconds > 604800)
+                {
+                    periodString = "month";
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException("Period seconds must be 60,300,1800,3600,86400, 259200 or 604800");
+                }
+                break;
             }
             symbol = NormalizeSymbol(symbol);
             endDate = endDate ?? DateTime.UtcNow;

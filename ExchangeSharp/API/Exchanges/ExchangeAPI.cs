@@ -93,6 +93,18 @@ namespace ExchangeSharp
         public Task<IEnumerable<string>> GetSymbolsAsync() => Task.Factory.StartNew(() => GetSymbols());
 
         /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public virtual IEnumerable<ExchangeMarket> GetSymbolsMetadata() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync() => Task.Factory.StartNew(() => GetSymbolsMetadata());
+
+        /// <summary>
         /// Get exchange ticker
         /// </summary>
         /// <param name="symbol">Symbol to get ticker for</param>

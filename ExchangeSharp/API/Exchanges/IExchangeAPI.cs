@@ -146,6 +146,18 @@ namespace ExchangeSharp
         Task<IEnumerable<string>> GetSymbolsAsync();
 
         /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        IEnumerable<ExchangeMarket> GetSymbolsMetadata();
+
+        /// <summary>
+        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync();
+
+        /// <summary>
         /// Get latest ticker
         /// </summary>
         /// <param name="symbol">Symbol</param>
