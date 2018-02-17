@@ -133,9 +133,11 @@ namespace ExchangeSharp
                 {
                     var market = new ExchangeMarket
                     {
-                        MarketName = token["MarketName"].ToStringInvariant(),
+                        MarketName = token["MarketName"].ToStringUpperInvariant(),
                         IsActive = token["IsActive"].ConvertInvariant<bool>(),
-                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>()
+                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+                        BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
+                        MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant()
                     };
                     markets.Add(market);
                 }
