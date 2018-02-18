@@ -49,6 +49,7 @@ ExchangeTicker ticker = api.GetTicker("XXBTZUSD");
 Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
 // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
+// *** On non-Windows platforms, you must secure access to the file itself as the keys will not be encrypted, on Windows the protected data API is used ***
 api.LoadAPIKeys("keys.bin");
 
 /// place limit order for 0.01 bitcoin at ticker.Ask USD
