@@ -80,6 +80,17 @@ namespace ExchangeSharp
             return symbol?.Replace("_", "-").Replace("/", "-").ToLowerInvariant();
         }
 
+        /// <summary>Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
+        /// <returns>Collection of Currencies</returns>
+        public IEnumerable<string> GetCurrencies()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
+        /// <returns>Collection of Currencies</returns>
+        public Task<IEnumerable<string>> GetCurrenciesAsync() => Task.Factory.StartNew(() => GetCurrencies());
+
         /// <summary>
         /// Get exchange symbols
         /// </summary>
