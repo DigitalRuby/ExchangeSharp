@@ -118,6 +118,30 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            var currencies = new List<ExchangeCurrency>();
+            JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
+            JToken result = CheckError(obj);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    var coin = new ExchangeCurrency
+                    {
+                        Name = token["Currency"].ToStringUpperInvariant(),
+                        FullName = token["CurrencyLong"].ToStringInvariant(),
+                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                        Notes = token["Notice"].ToStringInvariant()
+                    };
+                    currencies.Add(coin);
+                }
+            }
+
+            return currencies;
+        }
+
         /// <summary>
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
@@ -145,6 +169,7 @@ namespace ExchangeSharp
 
             return markets;
         }
+
 
         public override IEnumerable<string> GetSymbols()
         {
