@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -27,6 +28,7 @@ namespace ExchangeSharp
         public decimal ItemCount { get; protected set; }
         public decimal Profit { get; protected set; }
         public decimal Spend { get; protected set; }
+        public decimal Earned { get; protected set; }
         public decimal StartCashFlow { get; protected set; }
 
 #if DEBUG
@@ -81,12 +83,13 @@ namespace ExchangeSharp
             if (ProductionMode)
             {
                 var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTrade();
-                dict.TryGetValue("BTC", out decimal itemCount);
-                dict.TryGetValue("USD", out decimal cashFlow);
+                string[] tradeSymbols = TradeInfo.Symbol.Split('_');
+                dict.TryGetValue(tradeSymbols[1], out decimal itemCount);
+                dict.TryGetValue(tradeSymbols[0], out decimal cashFlow);
                 ItemCount = itemCount;
                 CashFlow = cashFlow;
             }
-            Profit = (CashFlow - StartCashFlow) + (ItemCount * (decimal)TradeInfo.Trade.Price);
+            Profit = (decimal)SellPrices.Sum(o => o.Value) - (decimal)BuyPrices.Sum(o => o.Value) + (ItemCount * (decimal)TradeInfo.Trade.Price);
         }
 
         protected void SetPlotListCount(int count)
@@ -153,7 +156,7 @@ namespace ExchangeSharp
             if (CashFlow >= ((decimal)TradeInfo.Trade.Price * count))
             {
                 // buy one
-                decimal actualBuyPrice = ((decimal)TradeInfo.Trade.Price * count);
+                decimal actualBuyPrice = ((decimal)TradeInfo.Trade.Price);
                 actualBuyPrice += (actualBuyPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
@@ -171,10 +174,10 @@ namespace ExchangeSharp
                     actualBuyPrice += (actualBuyPrice * FeePercentage);
                     CashFlow -= actualBuyPrice;
                     ItemCount += count;
-                    Spend += actualBuyPrice;
                     BuyPrices.Add(new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price));
                 }
                 Buys++;
+                Spend += actualBuyPrice * count;
                 UpdateAmounts();
                 return count;
             }
@@ -187,7 +190,7 @@ namespace ExchangeSharp
             count = (count <= 0m ? SellUnits : count);
             if (ItemCount >= count)
             {
-                decimal actualSellPrice = ((decimal)TradeInfo.Trade.Price * count);
+                decimal actualSellPrice = ((decimal)TradeInfo.Trade.Price);
                 actualSellPrice -= (actualSellPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
@@ -208,6 +211,7 @@ namespace ExchangeSharp
                     SellPrices.Add(new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price));
                 }
                 Sells++;
+                Earned += actualSellPrice * count;
                 UpdateAmounts();
                 return count;
             }
