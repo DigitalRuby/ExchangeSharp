@@ -11,7 +11,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -89,7 +88,7 @@ namespace ExchangeSharp
                 ItemCount = itemCount;
                 CashFlow = cashFlow;
             }
-            Profit = (decimal)SellPrices.Sum(o => o.Value) - (decimal)BuyPrices.Sum(o => o.Value) + (ItemCount * (decimal)TradeInfo.Trade.Price);
+            Profit = Earned - Spend + (ItemCount * (decimal)TradeInfo.Trade.Price);
         }
 
         protected void SetPlotListCount(int count)
