@@ -121,7 +121,7 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeCurrency> GetCurrencies()
         {
             var currencies = new List<ExchangeCurrency>();
-            JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
+            JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
             JToken result = CheckError(obj);
             if (result is JArray array)
             {
