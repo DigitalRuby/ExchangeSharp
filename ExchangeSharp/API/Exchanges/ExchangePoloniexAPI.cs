@@ -203,6 +203,39 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant().Replace('-', '_');
         }
 
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            /*
+             * {"1CR":{"id":1,"name":"1CRedit","txFee":"0.01000000","minConf":3,"depositAddress":null,"disabled":0,"delisted":1,"frozen":0},
+             *  "XC":{"id":230,"name":"XCurrency","txFee":"0.01000000","minConf":12,"depositAddress":null,"disabled":1,"delisted":1,"frozen":0},
+             *   ... }
+             */
+            var currencies = new List<ExchangeCurrency>();
+            Dictionary<string, JToken> currencyMap = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnCurrencies");
+            foreach (var kvp in currencyMap)
+            {
+                var currency = new ExchangeCurrency
+                {
+                    Name = kvp.Key,
+                    FullName = kvp.Value["name"].ToStringInvariant(),
+                    IsEnabled = true,
+                    TxFee = kvp.Value["txFee"].ConvertInvariant<decimal>()
+                };
+
+                string disabled = kvp.Value["disabled"].ToStringInvariant();
+                string delisted = kvp.Value["delisted"].ToStringInvariant();
+                string frozen = kvp.Value["frozen"].ToStringInvariant();
+                if (string.Equals(disabled, "1") || string.Equals(delisted, "1") || string.Equals(frozen, "1"))
+                {
+                    currency.IsEnabled = false;
+                }
+
+                currencies.Add(currency);
+            }
+
+            return currencies;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();

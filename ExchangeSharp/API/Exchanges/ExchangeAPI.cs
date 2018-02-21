@@ -89,7 +89,7 @@ namespace ExchangeSharp
 
         /// <summary>ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
         /// <returns>Collection of Currencies</returns>
-        public virtual Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(() => GetCurrencies());
+        public Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
 
         /// <summary>
         /// Get exchange symbols
@@ -113,7 +113,7 @@ namespace ExchangeSharp
         /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
         /// <returns>Collection of ExchangeMarkets</returns>
-        public Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync() => Task.Factory.StartNew(() => GetSymbolsMetadata());
+        public Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync() => Task.Factory.StartNew(this.GetSymbolsMetadata);
 
         /// <summary>
         /// Get exchange ticker
