@@ -57,34 +57,34 @@ namespace ExchangeSharp
             switch (result["status"].ToStringInvariant())
             {
                 case "pending":
-                order.Result = ExchangeAPIOrderResult.Pending;
-                break;
+                    order.Result = ExchangeAPIOrderResult.Pending;
+                    break;
                 case "active":
                 case "open":
-                if (order.Amount == order.AmountFilled)
-                {
-                    order.Result = ExchangeAPIOrderResult.Filled;
-                }
-                else if (order.AmountFilled > 0.0m)
-                {
-                    order.Result = ExchangeAPIOrderResult.FilledPartially;
-                }
-                else
-                {
-                    order.Result = ExchangeAPIOrderResult.Pending;
-                }
-                break;
+                    if (order.Amount == order.AmountFilled)
+                    {
+                        order.Result = ExchangeAPIOrderResult.Filled;
+                    }
+                    else if (order.AmountFilled > 0.0m)
+                    {
+                        order.Result = ExchangeAPIOrderResult.FilledPartially;
+                    }
+                    else
+                    {
+                        order.Result = ExchangeAPIOrderResult.Pending;
+                    }
+                    break;
                 case "done":
                 case "settled":
-                order.Result = ExchangeAPIOrderResult.Filled;
-                break;
+                    order.Result = ExchangeAPIOrderResult.Filled;
+                    break;
                 case "cancelled":
                 case "canceled":
-                order.Result = ExchangeAPIOrderResult.Canceled;
-                break;
+                    order.Result = ExchangeAPIOrderResult.Canceled;
+                    break;
                 default:
-                order.Result = ExchangeAPIOrderResult.Unknown;
-                break;
+                    order.Result = ExchangeAPIOrderResult.Unknown;
+                    break;
             }
             return order;
         }
@@ -157,6 +157,23 @@ namespace ExchangeSharp
         public override IEnumerable<string> GetSymbols()
         {
             return this.GetSymbolsMetadata().Select(market => market.MarketName);
+        }
+
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            var currencies = new List<ExchangeCurrency>();
+            JToken products = MakeJsonRequest<JToken>("/currencies");
+            foreach (JToken product in products)
+            {
+                var currency = new ExchangeCurrency();
+                currency.Name = product["id"].ToStringUpperInvariant();
+                currency.FullName = product["name"].ToStringInvariant();
+                currency.IsEnabled = true;
+
+                currencies.Add(currency);
+            }
+
+            return currencies;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
