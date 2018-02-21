@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -84,17 +85,50 @@ namespace ExchangeSharp
 
         public override IEnumerable<string> GetSymbols()
         {
-            if (ReadCache("GetSymbols", out string[] symbols))
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
+        }
+
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            if (ReadCache("GetSymbols", out List<ExchangeMarket> cachedMarkets))
             {
-                return symbols;
+                return cachedMarkets;
             }
-            symbols = MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
-            for (int i = 0; i < symbols.Length; i++)
+
+            var markets = new List<ExchangeMarket>();
+
+            JToken allPairs = MakeJsonRequest<JToken>("/symbols_details", BaseUrlV1);
+            Match m;
+
+            foreach (JToken pair in allPairs)
             {
-                symbols[i] = NormalizeSymbol(symbols[i]);
+                var market = new ExchangeMarket();
+                market.MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant());
+                market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
+                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
+                if (m.Success)
+                {
+                    market.MarketCurrency = m.Value;
+                    market.BaseCurrency = market.MarketName.Substring(m.Length);
+                }
+                else
+                {
+                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|EUR)$");
+                    if (m.Success)
+                    {
+                        market.MarketCurrency = market.MarketName.Substring(0, m.Index);
+                        market.BaseCurrency = m.Value;
+                    }
+                    else
+                    {
+                        throw new System.IO.InvalidDataException("Unexpected market name: " + market.MarketName);
+                    }                    
+                }
+                markets.Add(market);
             }
-            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
-            return symbols;
+
+            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
+            return markets;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -579,7 +613,7 @@ namespace ExchangeSharp
                 OrderId = order[0].ToStringInvariant(),
                 Result = ExchangeAPIOrderResult.Filled,
                 Symbol = order[1].ToStringInvariant()
-            };               
+            };
         }
 
         private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)

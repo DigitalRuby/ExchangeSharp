@@ -21,6 +21,8 @@ using System.Web;
 
 namespace ExchangeSharp
 {
+    using System.Linq;
+
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
@@ -116,19 +118,62 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override IEnumerable<string> GetSymbols()
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
         {
-            List<string> symbols = new List<string>();
+            var currencies = new List<ExchangeCurrency>();
+            JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
+            JToken result = CheckError(obj);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    var coin = new ExchangeCurrency
+                    {
+                        Name = token["Currency"].ToStringUpperInvariant(),
+                        FullName = token["CurrencyLong"].ToStringInvariant(),
+                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                        Notes = token["Notice"].ToStringInvariant()
+                    };
+                    currencies.Add(coin);
+                }
+            }
+
+            return currencies;
+        }
+
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            var markets = new List<ExchangeMarket>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
             JToken result = CheckError(obj);
             if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
-                    symbols.Add(token["MarketName"].ToStringInvariant());
+                    var market = new ExchangeMarket
+                    {
+                        MarketName = token["MarketName"].ToStringUpperInvariant(),
+                        IsActive = token["IsActive"].ConvertInvariant<bool>(),
+                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+                        BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
+                        MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant()
+                    };
+                    markets.Add(market);
                 }
             }
-            return symbols;
+
+            return markets;
+        }
+
+
+        public override IEnumerable<string> GetSymbols()
+        {
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
         }
 
         public override ExchangeTicker GetTicker(string symbol)

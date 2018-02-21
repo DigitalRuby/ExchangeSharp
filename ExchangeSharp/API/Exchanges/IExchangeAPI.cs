@@ -134,6 +134,18 @@ namespace ExchangeSharp
         Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
 
         /// <summary>
+        /// Gets currencies and related data such as IsEnabled and TxFee (if available)
+        /// </summary>
+        /// <returns>Collection of Currencies</returns>
+        IEnumerable<ExchangeCurrency> GetCurrencies();
+
+        /// <summary>
+        /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
+        /// </summary>
+        /// <returns>Collection of Currencies</returns>
+        Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync();
+
+        /// <summary>
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
@@ -144,6 +156,18 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Symbols</returns>
         Task<IEnumerable<string>> GetSymbolsAsync();
+
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        IEnumerable<ExchangeMarket> GetSymbolsMetadata();
+
+        /// <summary>
+        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync();
 
         /// <summary>
         /// Get latest ticker

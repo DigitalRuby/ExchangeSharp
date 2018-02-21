@@ -99,6 +99,13 @@ namespace ExchangeSharpConsoleApp
             {
                 throw new ApplicationException("AES encryption test fail");
             }
+
+            byte[] protectedData = DataProtector.Protect(salt);
+            byte[] unprotectedData = DataProtector.Unprotect(protectedData);
+            if (!unprotectedData.SequenceEqual(salt))
+            {
+                throw new ApplicationException("Protected data API fail");
+            }
         }
 
         private static void TestExchanges()
@@ -113,20 +120,25 @@ namespace ExchangeSharpConsoleApp
 
                     IReadOnlyCollection<string> symbols = api.GetSymbols().ToArray();
                     Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
+                    Console.WriteLine($"API {api.Name} GetSymbols OK (default: {symbol}; {symbols.Count} symbols)");
 
                     ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
                     Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                    Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
 
                     var book = api.GetOrderBook(symbol);
                     Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks[0].Amount > 0m &&
                         book.Asks[0].Price > 0m && book.Bids[0].Amount > 0m && book.Bids[0].Price > 0m);
+                    Console.WriteLine($"API {api.Name} GetOrderBook OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
 
                     trades = api.GetRecentTrades(symbol).ToArray();
                     Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                    Console.WriteLine($"API {api.Name} GetRecentTrades OK ({trades.Length} trades)");
 
                     var ticker = api.GetTicker(symbol);
                     Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
                         ticker.Volume != null && ticker.Volume.PriceAmount > 0m && ticker.Volume.QuantityAmount > 0m);
+                    Console.WriteLine($"API {api.Name} GetTicker OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
 
                     try
                     {
@@ -135,14 +147,16 @@ namespace ExchangeSharpConsoleApp
                             candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
                             !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].VolumePrice > 0.0 &&
                             candles[0].VolumeQuantity > 0.0 && candles[0].WeightedAverage >= 0m);
+
+                        Console.WriteLine($"API {api.Name} GetCandles OK ({candles.Length})");
                     }
                     catch (NotSupportedException)
                     {
-
+                        Console.WriteLine($"API {api.Name} GetCandles not supported");
                     }
                     catch (NotImplementedException)
                     {
-
+                        Console.WriteLine($"API {api.Name} GetCandles not implemented");
                     }
                 }
                 catch (Exception ex)
@@ -154,9 +168,9 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
-            TestExchanges();
-            TestRateGate();
             TestEncryption();
+            TestRateGate();
+            TestExchanges();
         }
     }
 }

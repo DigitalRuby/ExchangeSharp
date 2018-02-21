@@ -203,6 +203,39 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant().Replace('-', '_');
         }
 
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            /*
+             * {"1CR":{"id":1,"name":"1CRedit","txFee":"0.01000000","minConf":3,"depositAddress":null,"disabled":0,"delisted":1,"frozen":0},
+             *  "XC":{"id":230,"name":"XCurrency","txFee":"0.01000000","minConf":12,"depositAddress":null,"disabled":1,"delisted":1,"frozen":0},
+             *   ... }
+             */
+            var currencies = new List<ExchangeCurrency>();
+            Dictionary<string, JToken> currencyMap = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnCurrencies");
+            foreach (var kvp in currencyMap)
+            {
+                var currency = new ExchangeCurrency
+                {
+                    Name = kvp.Key,
+                    FullName = kvp.Value["name"].ToStringInvariant(),
+                    IsEnabled = true,
+                    TxFee = kvp.Value["txFee"].ConvertInvariant<decimal>()
+                };
+
+                string disabled = kvp.Value["disabled"].ToStringInvariant();
+                string delisted = kvp.Value["delisted"].ToStringInvariant();
+                string frozen = kvp.Value["frozen"].ToStringInvariant();
+                if (string.Equals(disabled, "1") || string.Equals(delisted, "1") || string.Equals(frozen, "1"))
+                {
+                    currency.IsEnabled = false;
+                }
+
+                currencies.Add(currency);
+            }
+
+            return currencies;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
@@ -212,6 +245,44 @@ namespace ExchangeSharp
                 symbols.Add(kv.Key);
             }
             return symbols;
+        }
+
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            //https://poloniex.com/public?command=returnOrderBook&currencyPair=all&depth=0
+            /*
+             *       "BTC_CLAM": {
+        "asks": [],
+        "bids": [],
+        "isFrozen": "0",
+        "seq": 37268918
+    }, ...
+             */
+
+            var markets = new List<ExchangeMarket>();
+            Dictionary<string, JToken> lookup = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnOrderBook&currencyPair=all&depth=0");
+            foreach (var kvp in lookup)
+            {
+                var market = new ExchangeMarket { MarketName = kvp.Key, IsActive = false };
+
+                string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
+                if (string.Equals(isFrozen, "0"))
+                {
+                    market.IsActive = true;
+                }
+
+                string[] pairs = kvp.Key.Split('_');
+                if (pairs.Length == 2)
+                {
+                    market.BaseCurrency = pairs[0];
+                    market.MarketCurrency = pairs[1];
+                }
+
+                // TODO: Not sure how to find min order amount
+                markets.Add(market);
+            }
+
+            return markets;
         }
 
         public override ExchangeTicker GetTicker(string symbol)

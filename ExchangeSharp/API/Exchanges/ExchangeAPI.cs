@@ -80,6 +80,17 @@ namespace ExchangeSharp
             return symbol?.Replace("_", "-").Replace("/", "-").ToLowerInvariant();
         }
 
+        /// <summary>Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
+        /// <returns>Collection of Currencies</returns>
+        public virtual IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
+        /// <returns>Collection of Currencies</returns>
+        public Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
+
         /// <summary>
         /// Get exchange symbols
         /// </summary>
@@ -91,6 +102,18 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Array of symbols</returns>
         public Task<IEnumerable<string>> GetSymbolsAsync() => Task.Factory.StartNew(() => GetSymbols());
+
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public virtual IEnumerable<ExchangeMarket> GetSymbolsMetadata() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync() => Task.Factory.StartNew(this.GetSymbolsMetadata);
 
         /// <summary>
         /// Get exchange ticker
