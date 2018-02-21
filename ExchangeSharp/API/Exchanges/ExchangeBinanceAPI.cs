@@ -535,10 +535,10 @@ namespace ExchangeSharp
                     case "POST_TRADING":
                         isActive = true;
                         break;
-                    /* case "END_OF_DAY":
-                        case "HALT":
-                        case "AUCTION_MATCH":
-                        case "BREAK": */
+                        /* case "END_OF_DAY":
+                            case "HALT":
+                            case "AUCTION_MATCH":
+                            case "BREAK": */
                 }
             }
 
@@ -633,27 +633,27 @@ namespace ExchangeSharp
             switch (token["status"].ToStringInvariant())
             {
                 case "NEW":
-                result.Result = ExchangeAPIOrderResult.Pending;
-                break;
+                    result.Result = ExchangeAPIOrderResult.Pending;
+                    break;
 
                 case "PARTIALLY_FILLED":
-                result.Result = ExchangeAPIOrderResult.FilledPartially;
-                break;
+                    result.Result = ExchangeAPIOrderResult.FilledPartially;
+                    break;
 
                 case "FILLED":
-                result.Result = ExchangeAPIOrderResult.Filled;
-                break;
+                    result.Result = ExchangeAPIOrderResult.Filled;
+                    break;
 
                 case "CANCELED":
                 case "PENDING_CANCEL":
                 case "EXPIRED":
                 case "REJECTED":
-                result.Result = ExchangeAPIOrderResult.Canceled;
-                break;
+                    result.Result = ExchangeAPIOrderResult.Canceled;
+                    break;
 
                 default:
-                result.Result = ExchangeAPIOrderResult.Error;
-                break;
+                    result.Result = ExchangeAPIOrderResult.Error;
+                    break;
             }
             return result;
         }

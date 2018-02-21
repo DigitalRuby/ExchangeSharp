@@ -407,15 +407,15 @@ namespace ExchangeSharp
                 case 259200: periodString = "threeDay"; break;
                 case 604800: periodString = "week"; break;
                 default:
-                if (periodSeconds > 604800)
-                {
-                    periodString = "month";
-                }
-                else
-                {
-                    throw new ArgumentOutOfRangeException("Period seconds must be 60,300,1800,3600,86400, 259200 or 604800");
-                }
-                break;
+                    if (periodSeconds > 604800)
+                    {
+                        periodString = "month";
+                    }
+                    else
+                    {
+                        throw new ArgumentOutOfRangeException("Period seconds must be 60,300,1800,3600,86400, 259200 or 604800");
+                    }
+                    break;
             }
             symbol = NormalizeSymbol(symbol);
             endDate = endDate ?? DateTime.UtcNow;
