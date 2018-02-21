@@ -135,12 +135,6 @@ namespace ExchangeSharp
             return markets;
         }
 
-        public override IEnumerable<ExchangeCurrency> GetCurrencies()
-        {
-            Console.WriteLine("Binance does not provide data about its currencies via the API.");
-            return new ExchangeCurrency[0];
-        }
-
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);

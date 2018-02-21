@@ -31,5 +31,10 @@ namespace ExchangeSharp
 
         /// <summary>In a pair like ZRX/BTC, ZRX is the market currency.</summary>
         public string MarketCurrency { get; set; }
+
+        public override string ToString()
+        {
+            return $"{MarketName}, {MarketCurrency}-{BaseCurrency}";
+        }
     }
 }

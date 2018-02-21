@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -97,37 +98,37 @@ namespace ExchangeSharp
             var markets = new List<ExchangeMarket>();
 
             JToken allPairs = MakeJsonRequest<JToken>("/symbols_details", BaseUrlV1);
+            Match m;
 
             foreach (JToken pair in allPairs)
             {
                 var market = new ExchangeMarket();
-                market.MarketName = pair["pair"].ToStringUpperInvariant();
+                market.MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant());
                 market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
-
-                if (market.MarketName.Length == 6)
+                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
+                if (m.Success)
                 {
-                    string marketCurrency = market.MarketName.Substring(0, 3);
-                    string baseCurrency = market.MarketName.Substring(3);
-
-                    market.MarketCurrency = marketCurrency;
-                    market.BaseCurrency = baseCurrency;
+                    market.MarketCurrency = m.Value;
+                    market.BaseCurrency = market.MarketName.Substring(m.Length);
                 }
                 else
                 {
-                    Console.WriteLine("Unexpected market name length. Need smarter logic to determine base/market currency. Market name: " + market.MarketName);
+                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|EUR)$");
+                    if (m.Success)
+                    {
+                        market.MarketCurrency = market.MarketName.Substring(0, m.Index);
+                        market.BaseCurrency = m.Value;
+                    }
+                    else
+                    {
+                        throw new System.IO.InvalidDataException("Unexpected market name: " + market.MarketName);
+                    }                    
                 }
-
                 markets.Add(market);
             }
 
             WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
             return markets;
-        }
-
-        public override IEnumerable<ExchangeCurrency> GetCurrencies()
-        {
-            Console.WriteLine("Bitfinex does not provide data about its currencies via the API.");
-            return new ExchangeCurrency[0];
         }
 
         public override ExchangeTicker GetTicker(string symbol)
