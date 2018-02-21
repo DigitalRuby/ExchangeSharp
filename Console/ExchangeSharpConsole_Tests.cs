@@ -99,6 +99,13 @@ namespace ExchangeSharpConsoleApp
             {
                 throw new ApplicationException("AES encryption test fail");
             }
+
+            byte[] protectedData = DataProtector.Protect(salt);
+            byte[] unprotectedData = DataProtector.Unprotect(protectedData);
+            if (!unprotectedData.SequenceEqual(salt))
+            {
+                throw new ApplicationException("Protected data API fail");
+            }
         }
 
         private static void TestExchanges()
@@ -154,9 +161,9 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
-            TestExchanges();
-            TestRateGate();
             TestEncryption();
+            TestRateGate();
+            TestExchanges();
         }
     }
 }
