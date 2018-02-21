@@ -84,17 +84,50 @@ namespace ExchangeSharp
 
         public override IEnumerable<string> GetSymbols()
         {
-            if (ReadCache("GetSymbols", out string[] symbols))
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
+        }
+
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            if (ReadCache("GetSymbols", out List<ExchangeMarket> cachedMarkets))
             {
-                return symbols;
+                return cachedMarkets;
             }
-            symbols = MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
-            for (int i = 0; i < symbols.Length; i++)
+
+            var markets = new List<ExchangeMarket>();
+
+            JToken allPairs = MakeJsonRequest<JToken>("/symbols_details", BaseUrlV1);
+
+            foreach (JToken pair in allPairs)
             {
-                symbols[i] = NormalizeSymbol(symbols[i]);
+                var market = new ExchangeMarket();
+                market.MarketName = pair["pair"].ToStringUpperInvariant();
+                market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
+
+                if (market.MarketName.Length == 6)
+                {
+                    string marketCurrency = market.MarketName.Substring(0, 3);
+                    string baseCurrency = market.MarketName.Substring(3);
+
+                    market.MarketCurrency = marketCurrency;
+                    market.BaseCurrency = baseCurrency;
+                }
+                else
+                {
+                    Console.WriteLine("Unexpected market name length. Need smarter logic to determine base/market currency. Market name: " + market.MarketName);
+                }
+
+                markets.Add(market);
             }
-            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
-            return symbols;
+
+            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
+            return markets;
+        }
+
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            Console.WriteLine("Bitfinex does not provide data about its currencies via the API.");
+            return new ExchangeCurrency[0];
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -579,7 +612,7 @@ namespace ExchangeSharp
                 OrderId = order[0].ToStringInvariant(),
                 Result = ExchangeAPIOrderResult.Filled,
                 Symbol = order[1].ToStringInvariant()
-            };               
+            };
         }
 
         private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)

@@ -70,6 +70,77 @@ namespace ExchangeSharp
             return symbols;
         }
 
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            /*
+             *         {
+            "symbol": "QTUMETH",
+            "status": "TRADING",
+            "baseAsset": "QTUM",
+            "baseAssetPrecision": 8,
+            "quoteAsset": "ETH",
+            "quotePrecision": 8,
+            "orderTypes": [
+                "LIMIT",
+                "LIMIT_MAKER",
+                "MARKET",
+                "STOP_LOSS_LIMIT",
+                "TAKE_PROFIT_LIMIT"
+            ],
+            "icebergAllowed": true,
+            "filters": [
+                {
+                    "filterType": "PRICE_FILTER",
+                    "minPrice": "0.00000100",
+                    "maxPrice": "100000.00000000",
+                    "tickSize": "0.00000100"
+                },
+                {
+                    "filterType": "LOT_SIZE",
+                    "minQty": "0.01000000",
+                    "maxQty": "90000000.00000000",
+                    "stepSize": "0.01000000"
+                },
+                {
+                    "filterType": "MIN_NOTIONAL",
+                    "minNotional": "0.01000000"
+                }
+            ]
+        },
+             */
+
+            var markets = new List<ExchangeMarket>();
+            JToken obj = MakeJsonRequest<JToken>("/exchangeInfo");
+            CheckError(obj);
+            JToken allSymbols = obj["symbols"];
+            foreach (JToken symbol in allSymbols)
+            {
+                var market = new ExchangeMarket();
+                market.MarketName = symbol["symbol"].ToStringUpperInvariant();
+                market.IsActive = this.ParseMarketStatus(symbol["status"].ToStringUpperInvariant());
+                market.BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant();
+                market.MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant();
+
+                // "LOT_SIZE"
+                JToken filters = symbol["filters"];
+                JToken lotSizeFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "LOT_SIZE"));
+                if (lotSizeFilter != null)
+                {
+                    market.MinTradeSize = lotSizeFilter["minQty"].ConvertInvariant<decimal>();
+                }
+
+                markets.Add(market);
+            }
+
+            return markets;
+        }
+
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            Console.WriteLine("Binance does not provide data about its currencies via the API.");
+            return new ExchangeCurrency[0];
+        }
+
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
@@ -324,9 +395,9 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = GetNoncePayload();
             if (!string.IsNullOrWhiteSpace(symbol))
-	        {
+            {
                 payload["symbol"] = NormalizeSymbol(symbol);
-	        }
+            }
             JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
             CheckError(token);
             foreach (JToken order in token)
@@ -417,7 +488,6 @@ namespace ExchangeSharp
             CheckError(token);
         }
 
-
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             Dictionary<string, object> payload = GetNoncePayload();
@@ -451,6 +521,28 @@ namespace ExchangeSharp
             }
 
             return withdrawalResponse;
+        }
+
+        private bool ParseMarketStatus(string status)
+        {
+            bool isActive = false;
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                switch (status)
+                {
+                    case "TRADING":
+                    case "PRE_TRADING":
+                    case "POST_TRADING":
+                        isActive = true;
+                        break;
+                        /* case "END_OF_DAY":
+                            case "HALT":
+                            case "AUCTION_MATCH":
+                            case "BREAK": */
+                }
+            }
+
+            return isActive;
         }
 
         private void CheckError(JToken result)

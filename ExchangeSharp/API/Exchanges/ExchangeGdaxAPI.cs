@@ -19,6 +19,8 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using System.Linq;
+
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
@@ -133,15 +135,45 @@ namespace ExchangeSharp
             return symbol?.Replace('_', '-').ToUpperInvariant();
         }
 
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            var markets = new List<ExchangeMarket>();
+            JToken products = MakeJsonRequest<JToken>("/products");
+            foreach (JToken product in products)
+            {
+                var market = new ExchangeMarket();
+                market.MarketName = product["id"].ToStringUpperInvariant();
+                market.BaseCurrency = product["quote_currency"].ToStringUpperInvariant();
+                market.MarketCurrency = product["base_currency"].ToStringUpperInvariant();
+                market.IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase);
+                market.MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>();
+
+                markets.Add(market);
+            }
+
+            return markets;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
-            Dictionary<string, string>[] symbols = MakeJsonRequest<Dictionary<string, string>[]>("/products");
-            List<string> symbolList = new List<string>();
-            foreach (Dictionary<string, string> symbol in symbols)
+            return this.GetSymbolsMetadata().Select(market => market.MarketName);
+        }
+
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            var currencies = new List<ExchangeCurrency>();
+            JToken products = MakeJsonRequest<JToken>("/currencies");
+            foreach (JToken product in products)
             {
-                symbolList.Add(symbol["id"]);
+                var currency = new ExchangeCurrency();
+                currency.Name = product["id"].ToStringUpperInvariant();
+                currency.FullName = product["name"].ToStringInvariant();
+                currency.IsEnabled = true;
+
+                currencies.Add(currency);
             }
-            return symbolList.ToArray();
+
+            return currencies;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
