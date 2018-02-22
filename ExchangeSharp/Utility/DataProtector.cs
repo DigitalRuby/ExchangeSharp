@@ -5,6 +5,9 @@ using System.Text;
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// Allows protecting data using encryption tied to the local user account
+    /// </summary>
     public static class DataProtector
     {
         #region Windows
@@ -112,24 +115,38 @@ namespace ExchangeSharp
 
         #endregion Windows
 
+        /// <summary>
+        /// Protected data using local user account
+        /// </summary>
+        /// <param name="data">Data to protect</param>
+        /// <returns>Protected data</returns>
         public static byte[] Protect(byte[] data)
         {
-            if (!CryptoUtility.IsWindows)
+            if (CryptoUtility.IsWindows)
             {
-                return data;
+                return CryptOperationWindows(true, data);
             }
-
-            return CryptOperationWindows(true, data);
+            else
+            {
+                return ManagedProtection.Protect(data, null, ManagedProtection.DataProtectionScope.CurrentUser);
+            }
         }
 
+        /// <summary>
+        /// Unprotects data using local user account
+        /// </summary>
+        /// <param name="data">Data to unprotect</param>
+        /// <returns>Unprotected data</returns>
         public static byte[] Unprotect(byte[] data)
         {
-            if (!CryptoUtility.IsWindows)
+            if (CryptoUtility.IsWindows)
             {
-                return data;
+                return CryptOperationWindows(false, data);
             }
-
-            return CryptOperationWindows(false, data);
+            else
+            {
+                return ManagedProtection.Unprotect(data, null, ManagedProtection.DataProtectionScope.CurrentUser);
+            }            
         }
     }
 }
