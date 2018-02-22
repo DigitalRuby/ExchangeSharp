@@ -279,9 +279,9 @@ namespace ExchangeSharp
                     {
                         lock (user_lock)
                         {
-                            CspParameters csp = new CspParameters();
-                            csp.KeyContainerName = "DAPI";
-                            user = new RSACryptoServiceProvider(1536, csp);
+                            // CspParameters csp = new CspParameters();
+                            // csp.KeyContainerName = "DAPI";
+                            user = new RSACryptoServiceProvider(1536);
                         }
                     }
                     return user;
