@@ -281,13 +281,16 @@ namespace ExchangeSharp
                         {
                             if (CryptoUtility.IsMono)
                             {
+                                // mono, non-Windows
                                 CspParameters csp = new CspParameters();
                                 csp.KeyContainerName = "DAPI";
                                 user = new RSACryptoServiceProvider(1536, csp);
                             }
                             else
                             {
-                                user = new RSACryptoServiceProvider(1536);
+                                // .net core, non-Windows
+                                user = RSA.Create();
+                                user.KeySize = 1536;
                             }
                         }
                     }
@@ -299,6 +302,7 @@ namespace ExchangeSharp
                         {
                             if (CryptoUtility.IsMono)
                             {
+                                // mono, non-Windows
                                 CspParameters csp = new CspParameters();
                                 csp.KeyContainerName = "DAPI";
                                 csp.Flags = CspProviderFlags.UseMachineKeyStore;
@@ -306,7 +310,9 @@ namespace ExchangeSharp
                             }
                             else
                             {
-                                machine = new RSACryptoServiceProvider(1536);
+                                // .net core, non-Windows
+                                machine = RSA.Create();
+                                machine.KeySize = 1536;
                             }
                         }
                     }
