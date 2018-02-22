@@ -279,9 +279,16 @@ namespace ExchangeSharp
                     {
                         lock (user_lock)
                         {
-                            CspParameters csp = new CspParameters();
-                            csp.KeyContainerName = "DAPI";
-                            user = new RSACryptoServiceProvider(1536, csp);
+                            if (CryptoUtility.IsMono)
+                            {
+                                CspParameters csp = new CspParameters();
+                                csp.KeyContainerName = "DAPI";
+                                user = new RSACryptoServiceProvider(1536, csp);
+                            }
+                            else
+                            {
+                                user = new RSACryptoServiceProvider(1536);
+                            }
                         }
                     }
                     return user;
@@ -290,10 +297,17 @@ namespace ExchangeSharp
                     {
                         lock (machine_lock)
                         {
-                            CspParameters csp = new CspParameters();
-                            csp.KeyContainerName = "DAPI";
-                            csp.Flags = CspProviderFlags.UseMachineKeyStore;
-                            machine = new RSACryptoServiceProvider(1536, csp);
+                            if (CryptoUtility.IsMono)
+                            {
+                                CspParameters csp = new CspParameters();
+                                csp.KeyContainerName = "DAPI";
+                                csp.Flags = CspProviderFlags.UseMachineKeyStore;
+                                machine = new RSACryptoServiceProvider(1536, csp);
+                            }
+                            else
+                            {
+                                machine = new RSACryptoServiceProvider(1536);
+                            }
                         }
                     }
                     return machine;
