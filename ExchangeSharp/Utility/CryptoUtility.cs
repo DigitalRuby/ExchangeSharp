@@ -32,6 +32,7 @@ namespace ExchangeSharp
         static CryptoUtility()
         {
             IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            IsMono = (Type.GetType("Mono.Runtime") != null);
         }
 
         /// <summary>
@@ -423,5 +424,6 @@ namespace ExchangeSharp
         }
 
         public static bool IsWindows { get; private set; }
+        public static bool IsMono { get; private set; }
     }
 }
