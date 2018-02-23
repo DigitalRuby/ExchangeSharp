@@ -90,37 +90,29 @@ namespace ExchangeSharp
         private static byte[] CryptOperationWindows(bool protect, byte[] data, byte[] optionalEntropy, DataProtectionScope scope)
         {
             GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            GCHandle handleEntropy = (optionalEntropy != null && optionalEntropy.Length != 0 ? GCHandle.Alloc(optionalEntropy, GCHandleType.Pinned) : new GCHandle());
             try
             {
-                DATA_BLOB blob = new DATA_BLOB { cbData = data.Length, pbData = handle.AddrOfPinnedObject() };
-                DATA_BLOB entropy = new DATA_BLOB();
+                DATA_BLOB dataIn = new DATA_BLOB
+                {
+                    cbData = data.Length,
+                    pbData = handle.AddrOfPinnedObject()
+                };
+                DATA_BLOB entropy = new DATA_BLOB
+                {
+                    cbData = (optionalEntropy == null ? 0 : optionalEntropy.Length),
+                    pbData = (handleEntropy.IsAllocated ? handleEntropy.AddrOfPinnedObject() : IntPtr.Zero)
+                };
                 DATA_BLOB dataOut = new DATA_BLOB();
                 CRYPTPROTECT_PROMPTSTRUCT prompt = new CRYPTPROTECT_PROMPTSTRUCT();
-
-                if (optionalEntropy != null && optionalEntropy.Length != 0)
+                CryptProtectFlags flags = (scope == DataProtectionScope.CurrentUser ? CryptProtectFlags.CRYPTPROTECT_NONE : CryptProtectFlags.CRYPTPROTECT_LOCAL_MACHINE);
+                if (protect)
                 {
-                    entropy.pbData = Marshal.AllocHGlobal(optionalEntropy.Length);
-                    entropy.cbData = optionalEntropy.Length;
-                    Marshal.Copy(optionalEntropy, 0, entropy.pbData, optionalEntropy.Length);
+                    CryptProtectData(ref dataIn, null, ref entropy, IntPtr.Zero, ref prompt, flags, ref dataOut);
                 }
-                try
+                else
                 {
-                    CryptProtectFlags flags = (scope == DataProtectionScope.CurrentUser ? CryptProtectFlags.CRYPTPROTECT_NONE : CryptProtectFlags.CRYPTPROTECT_LOCAL_MACHINE);
-                    if (protect)
-                    {
-                        CryptProtectData(ref blob, null, ref entropy, IntPtr.Zero, ref prompt, flags, ref dataOut);
-                    }
-                    else
-                    {
-                        CryptUnprotectData(ref blob, null, ref entropy, IntPtr.Zero, ref prompt, flags, ref dataOut);
-                    }
-                }
-                finally
-                {
-                    if (optionalEntropy != null && optionalEntropy.Length != 0)
-                    {
-                        Marshal.FreeHGlobal(entropy.pbData);
-                    }
+                    CryptUnprotectData(ref dataIn, null, ref entropy, IntPtr.Zero, ref prompt, flags, ref dataOut);
                 }
                 if (dataOut.cbData == 0)
                 {
@@ -134,6 +126,10 @@ namespace ExchangeSharp
             finally
             {
                 handle.Free();
+                if (handleEntropy.IsAllocated)
+                {
+                    handleEntropy.Free();
+                }
             }
         }
 
