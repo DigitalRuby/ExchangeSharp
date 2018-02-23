@@ -179,21 +179,26 @@ namespace ExchangeSharp
 
             static ManagedProtection()
             {
-                if (CryptoUtility.IsMono)
+                try
                 {
                     CspParameters csp = new CspParameters();
                     csp.KeyContainerName = "DAPI";
                     user = new RSACryptoServiceProvider(1536, csp);
-
-                    csp = new CspParameters();
+                }
+                catch
+                {
+                    user = RSA.Create();
+                    user.KeySize = 1536;
+                }
+                try
+                {
+                    CspParameters csp = new CspParameters();
                     csp.KeyContainerName = "DAPI";
                     csp.Flags = CspProviderFlags.UseMachineKeyStore;
                     machine = new RSACryptoServiceProvider(1536, csp);
                 }
-                else
+                catch
                 {
-                    user = RSA.Create();
-                    user.KeySize = 1536;
                     machine = RSA.Create();
                     machine.KeySize = 1536;
                 }
