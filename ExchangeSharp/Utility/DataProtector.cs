@@ -174,6 +174,31 @@ namespace ExchangeSharp
         // * SHA256 digest to ensure integrity
         internal static class ManagedProtection
         {
+            private static readonly RSA user;
+            private static readonly RSA machine;
+
+            static ManagedProtection()
+            {
+                if (CryptoUtility.IsMono)
+                {
+                    CspParameters csp = new CspParameters();
+                    csp.KeyContainerName = "DAPI";
+                    user = new RSACryptoServiceProvider(1536, csp);
+
+                    csp = new CspParameters();
+                    csp.KeyContainerName = "DAPI";
+                    csp.Flags = CspProviderFlags.UseMachineKeyStore;
+                    machine = new RSACryptoServiceProvider(1536, csp);
+                }
+                else
+                {
+                    user = RSA.Create();
+                    user.KeySize = 1536;
+                    machine = RSA.Create();
+                    machine.KeySize = 1536;
+                }
+            }
+
             // FIXME	[KeyContainerPermission (SecurityAction.Assert, KeyContainerName = "DAPI",
             //			Flags = KeyContainerPermissionFlags.Open | KeyContainerPermissionFlags.Create)]
             public static byte[] Protect(byte[] userData, byte[] optionalEntropy, DataProtectionScope scope)
@@ -390,56 +415,16 @@ namespace ExchangeSharp
                 return decdata;
             }
 
-            // private stuff
-
-            private static RSA user;
-            private static RSA machine;
-            private readonly static object user_lock = new object();
-            private readonly static object machine_lock = new object();
-
             private static RSA GetKey(DataProtectionScope scope)
             {
                 switch (scope)
                 {
                     case DataProtectionScope.CurrentUser:
-                        if (user == null)
-                        {
-                            lock (user_lock)
-                            {
-                                if (CryptoUtility.IsMono)
-                                {
-                                    CspParameters csp = new CspParameters();
-                                    csp.KeyContainerName = "DAPI";
-                                    user = new RSACryptoServiceProvider(1536, csp);
-                                }
-                                else
-                                {
-                                    user = RSA.Create();
-                                    user.KeySize = 1536;
-                                }
-                            }
-                        }
                         return user;
+
                     case DataProtectionScope.LocalMachine:
-                        if (machine == null)
-                        {
-                            lock (machine_lock)
-                            {
-                                if (CryptoUtility.IsMono)
-                                {
-                                    CspParameters csp = new CspParameters();
-                                    csp.KeyContainerName = "DAPI";
-                                    csp.Flags = CspProviderFlags.UseMachineKeyStore;
-                                    machine = new RSACryptoServiceProvider(1536, csp);
-                                }
-                                else
-                                {
-                                    machine = RSA.Create();
-                                    machine.KeySize = 1536;
-                                }
-                            }
-                        }
                         return machine;
+
                     default:
                         throw new CryptographicException("Invalid scope.");
                 }
