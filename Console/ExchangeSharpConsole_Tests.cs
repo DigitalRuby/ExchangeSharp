@@ -80,7 +80,7 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
-        private static void TestEncryption()
+        private static void TestAESEncryption()
         {
             byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
             byte[] data = new byte[255];
@@ -105,6 +105,39 @@ namespace ExchangeSharpConsoleApp
             if (!unprotectedData.SequenceEqual(salt))
             {
                 throw new ApplicationException("Protected data API fail");
+            }
+        }
+
+        private static void TestKeyStore() {
+            try {
+                // store keys
+                var path = "keystore.test.bin";
+                if (!CryptoUtility.IsWindows) {
+                    path = "/tmp/" + path;
+                }
+                
+                var publicKey  = "public key test aa45c0"; 
+                var privateKey = "private key test bb270a";
+
+                var keys = new string[] {
+                    publicKey,
+                    privateKey
+                };
+
+                CryptoUtility.SaveUnprotectedStringsToFile(path, keys);
+
+                // read keys
+                var keysRead = CryptoUtility.LoadProtectedStringsFromFile(path);
+                var publicKeyRead = CryptoUtility.SecureStringToString(keysRead[0]);
+                var privateKeyRead = CryptoUtility.SecureStringToString(keysRead[1]);
+
+                if(privateKeyRead != privateKey || publicKeyRead != publicKey) {
+                    Console.WriteLine("TestKeyStore failed (mismatch)");
+                } else {
+                    Console.WriteLine("TestKeyStore OK");
+                }
+            } catch (Exception ex) {
+                Console.WriteLine($"TestKeyStore failed ({ex.GetType().Name}: {ex.Message})");
             }
         }
 
@@ -168,7 +201,8 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
-            TestEncryption();
+            TestAESEncryption();
+            TestKeyStore();
             TestRateGate();
             TestExchanges();
         }
