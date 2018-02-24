@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ExchangeSharp\ExchangeSharp.csproj" />
+    <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj" />
   </ItemGroup>
 
 </Project>

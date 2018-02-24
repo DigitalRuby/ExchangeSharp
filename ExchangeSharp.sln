@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharp", "ExchangeSharp\ExchangeSharp.csproj", "{B4ADDAEF-95BF-4FDA-8B2F-8B899EDA3F45}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpConsole", "ExchangeSharpConsole\ExchangeSharpConsole\ExchangeSharpConsole.csproj", "{F72D854A-0A55-4014-8002-4B9AA286C3EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpConsole", "ExchangeSharpConsole\ExchangeSharpConsole.csproj", "{D7F9477D-8A6C-4FEE-826E-FE29C42CB5B9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{B4ADDAEF-95BF-4FDA-8B2F-8B899EDA3F45}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4ADDAEF-95BF-4FDA-8B2F-8B899EDA3F45}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4ADDAEF-95BF-4FDA-8B2F-8B899EDA3F45}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F72D854A-0A55-4014-8002-4B9AA286C3EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F72D854A-0A55-4014-8002-4B9AA286C3EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F72D854A-0A55-4014-8002-4B9AA286C3EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F72D854A-0A55-4014-8002-4B9AA286C3EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7F9477D-8A6C-4FEE-826E-FE29C42CB5B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7F9477D-8A6C-4FEE-826E-FE29C42CB5B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7F9477D-8A6C-4FEE-826E-FE29C42CB5B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7F9477D-8A6C-4FEE-826E-FE29C42CB5B9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
