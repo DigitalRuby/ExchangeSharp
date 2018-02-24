@@ -13,7 +13,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Security;
 
 using ExchangeSharp;
 
@@ -108,35 +110,34 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
-        private static void TestKeyStore() {
-            try {
+        private static void TestKeyStore()
+        {
+            try
+            {
                 // store keys
-                var path = "keystore.test.bin";
-                if (!CryptoUtility.IsWindows) {
-                    path = "/tmp/" + path;
-                }
-                
-                var publicKey  = "public key test aa45c0"; 
-                var privateKey = "private key test bb270a";
-
-                var keys = new string[] {
-                    publicKey,
-                    privateKey
-                };
+                string path = Path.Combine(Path.GetTempPath(), "keystore.test.bin");
+                string publicKey  = "public key test aa45c0";
+                string privateKey = "private key test bb270a";
+                string[] keys = new string[] { publicKey, privateKey };
 
                 CryptoUtility.SaveUnprotectedStringsToFile(path, keys);
 
                 // read keys
-                var keysRead = CryptoUtility.LoadProtectedStringsFromFile(path);
-                var publicKeyRead = CryptoUtility.SecureStringToString(keysRead[0]);
-                var privateKeyRead = CryptoUtility.SecureStringToString(keysRead[1]);
+                SecureString[] keysRead = CryptoUtility.LoadProtectedStringsFromFile(path);
+                string publicKeyRead = CryptoUtility.SecureStringToString(keysRead[0]);
+                string privateKeyRead = CryptoUtility.SecureStringToString(keysRead[1]);
 
-                if(privateKeyRead != privateKey || publicKeyRead != publicKey) {
+                if (privateKeyRead != privateKey || publicKeyRead != publicKey)
+                {
                     Console.WriteLine("TestKeyStore failed (mismatch)");
-                } else {
+                }
+                else
+                {
                     Console.WriteLine("TestKeyStore OK");
                 }
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Console.WriteLine($"TestKeyStore failed ({ex.GetType().Name}: {ex.Message})");
             }
         }
