@@ -7,6 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharp", "ExchangeSh
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpConsole", "ExchangeSharpConsole\ExchangeSharpConsole.csproj", "{D7F9477D-8A6C-4FEE-826E-FE29C42CB5B9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{1AA29282-C764-47CA-83AB-A6017E941D76}"
+	ProjectSection(SolutionItems) = preProject
+		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
+		CONTRIBUTING.md = CONTRIBUTING.md
+		ISSUE_TEMPLATE.md = ISSUE_TEMPLATE.md
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
