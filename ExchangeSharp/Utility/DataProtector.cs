@@ -176,7 +176,7 @@ namespace ExchangeSharp
         {
             private static readonly RSA user;
             private static readonly RSA machine;
-
+            
             static ManagedProtection()
             {
                 try
@@ -187,8 +187,7 @@ namespace ExchangeSharp
                 }
                 catch
                 {
-                    user = RSA.Create();
-                    user.KeySize = 1536;
+                    user = RSAFromFile(DataProtectionScope.CurrentUser);
                 }
                 try
                 {
@@ -199,8 +198,7 @@ namespace ExchangeSharp
                 }
                 catch
                 {
-                    machine = RSA.Create();
-                    machine.KeySize = 1536;
+                    machine = RSAFromFile(DataProtectionScope.LocalMachine);
                 }
             }
 
@@ -453,6 +451,35 @@ namespace ExchangeSharp
             /// </summary>
             CurrentUser
         };
+
+        /// <summary>
+        /// Store an encrypted key file for user or machine level usage
+        /// </summary>
+        /// <param name="scope">Scope</param>
+        /// <returns>RSA key</returns>
+        public static RSA RSAFromFile(DataProtectionScope scope)
+        {
+            byte[] esp = new byte[] { 69, 155, 31, 254, 7, 18, 99, 187 };
+            byte[] esl = new byte[] { 101, 5, 79, 221, 48, 42, 26, 123 };
+            string xmlFile = (scope == DataProtectionScope.CurrentUser ? Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "esku_123_abc.bin") :
+                Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "eskm_123_abc.bin"));
+            RSACryptoServiceProvider rsa;
+            if (File.Exists(xmlFile))
+            {
+                byte[] xmlBytes = File.ReadAllBytes(xmlFile);
+                xmlBytes = CryptoUtility.AesDecryption(xmlBytes, esp, esl);
+                rsa = new RSACryptoServiceProvider();
+                rsa.FromXmlString(System.Text.Encoding.ASCII.GetString(xmlBytes));
+            }
+            else
+            {
+                rsa = new RSACryptoServiceProvider(4096);
+                byte[] xmlBytes = System.Text.Encoding.ASCII.GetBytes(rsa.ToXmlString(true));
+                xmlBytes = CryptoUtility.AesEncryption(xmlBytes, esp, esl);
+                File.WriteAllBytes(xmlFile, xmlBytes);
+            }
+            return rsa;
+        }
 
         /// <summary>
         /// Protected data using local user account

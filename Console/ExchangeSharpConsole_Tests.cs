@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security;
+using System.Security.Cryptography;
 
 using ExchangeSharp;
 
@@ -142,6 +143,24 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
+        private static void TestRSAFromFile()
+        {
+            byte[] originalValue = new byte[256];
+            new System.Random().NextBytes(originalValue);
+
+            for (int i = 0; i < 4; i++)
+            {
+                DataProtector.DataProtectionScope scope = (i < 2 ? DataProtector.DataProtectionScope.CurrentUser : DataProtector.DataProtectionScope.LocalMachine);
+                RSA rsa = DataProtector.RSAFromFile(scope);
+                byte[] encrypted = rsa.Encrypt(originalValue, RSAEncryptionPadding.Pkcs1);
+                byte[] decrypted = rsa.Decrypt(encrypted, RSAEncryptionPadding.Pkcs1);
+                if (!originalValue.SequenceEqual(decrypted))
+                {
+                    Console.WriteLine("TestRSAFromFile failure, original value not equal to decrypted value, scope: {0}", scope);
+                }
+            }
+        }
+
         private static void TestExchanges()
         {
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
@@ -202,6 +221,7 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
+            TestRSAFromFile();
             TestAESEncryption();
             TestKeyStore();
             TestRateGate();
