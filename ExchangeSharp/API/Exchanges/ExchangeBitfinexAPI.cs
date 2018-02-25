@@ -103,6 +103,7 @@ namespace ExchangeSharp
             foreach (JToken pair in allPairs)
             {
                 var market = new ExchangeMarket();
+                market.IsActive = true;
                 market.MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant());
                 market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
