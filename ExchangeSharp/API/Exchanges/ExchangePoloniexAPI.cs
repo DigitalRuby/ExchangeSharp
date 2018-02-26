@@ -615,5 +615,26 @@ namespace ExchangeSharp
                 throw new APIException("Failed to cancel order, success was not 1");
             }
         }
+
+        public override ExchangeDepositDetailsResponse GetDepositAddress(string symbol)
+        {
+            symbol = NormalizeSymbol(symbol);
+            JToken result = MakePrivateAPIRequest("returnDepositAddresses");
+
+            var depositAddresses = new Dictionary<string, ExchangeDepositDetailsResponse>();
+
+            foreach (JProperty prop in result)
+            {
+                var details = new ExchangeDepositDetailsResponse
+                {
+                    Address = prop["Name"].ConvertInvariant<string>(),
+                    Symbol = prop["Value"].ConvertInvariant<string>()
+                };
+            }
+
+            CheckError(result);
+
+            return null;
+        }
     }
 }

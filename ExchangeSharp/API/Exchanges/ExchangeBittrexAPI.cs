@@ -580,6 +580,8 @@ namespace ExchangeSharp
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
             JToken result = CheckError(response);
 
+            // NOTE API 1.1 does not include the the static wallet address for currencies with memos such as XRP & NXT (API 2.0 does!)
+
             ExchangeDepositDetailsResponse depositDetailsResponseResponse = new ExchangeDepositDetailsResponse
             {
                 Symbol = result["Currency"].ToStringInvariant(),
