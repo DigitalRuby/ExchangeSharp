@@ -573,5 +573,21 @@ namespace ExchangeSharp
             JObject obj = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
             CheckError(obj);
         }
+
+        public override ExchangeDepositDetailsResponse GetDepositAddress(string symbol)
+        {
+            string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
+            JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
+            JToken result = CheckError(response);
+
+            ExchangeDepositDetailsResponse depositDetailsResponseResponse = new ExchangeDepositDetailsResponse
+            {
+                Symbol = result["Currency"].ToStringInvariant(),
+                Address = result["Address"].ToStringInvariant(),
+                Memo = result["Memo"].ToStringInvariant()
+            };
+
+            return depositDetailsResponseResponse;
+        }
     }
 }

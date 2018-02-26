@@ -675,5 +675,31 @@ namespace ExchangeSharp
             }
             return base.ProcessRequestUrl(url, payload);
         }
+
+
+        public override ExchangeDepositDetails GetDepositAddress(string symbol)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = NormalizeSymbol(symbol);
+
+            // yes, .html ...
+            JToken response = MakeJsonRequest<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload, "GET");
+
+            CheckError(response);
+
+            ExchangeDepositDetails depositDetailsResponse = new ExchangeDepositDetails
+            {
+                Symbol = response["asset"].ToStringInvariant(),
+                Address = response["address"].ToStringInvariant(),
+                Memo = response["addressTag"].ToStringInvariant()
+            };
+
+            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException(response["msg"].ToStringInvariant());
+            }
+
+            return depositDetailsResponse;
+        }
     }
 }
