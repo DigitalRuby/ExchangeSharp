@@ -470,6 +470,59 @@ namespace ExchangeSharp
             CheckError(result);
         }
 
+        public override ExchangeDepositDetails GetDepositAddress(string symbol)
+        {
+            symbol = GetFullNameFromSymbol(symbol);
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["method"] = symbol; // symbol probably wrong -- needs to be full name of coin: bitcoin/litecoin/ethereum
+            payload["wallet_name"] = "exchange";
+            payload["renew"] = 0;
+            JToken result = MakeJsonRequest<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
+            CheckError(result);
+
+            var details = new ExchangeDepositDetails
+            {
+                Symbol = result["currency"].ToStringInvariant(),
+
+            };
+
+            if (result["address_pool"] != null)
+            {
+                details.Address = result["address_pool"].ToStringInvariant();
+                details.Memo = result["address"].ToStringLowerInvariant();
+            }
+            else
+            {
+                details.Address = result["address"].ToStringInvariant();
+            }
+
+            return details;
+        }
+
+        private string GetFullNameFromSymbol(string symbol)
+        {
+            // lookup table for symbol to full name because for some reason bittrex requires the full coin name.
+            this.FullNameLookup.TryGetValue(symbol, out var result);
+
+            return result;
+        }
+
+        public Dictionary<string,string> FullNameLookup = new Dictionary<string, string>
+        {
+            ["BTC"] = "bitcoin" ,
+            ["AID"] = "AidCoin",
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+            ["BTC"] = "bitcoin" ,
+           
+
+        };
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
