@@ -677,7 +677,7 @@ namespace ExchangeSharp
         }
 
 
-        public override ExchangeDepositDetailsResponse GetDepositAddress(string symbol)
+        public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["asset"] = NormalizeSymbol(symbol);
@@ -687,7 +687,7 @@ namespace ExchangeSharp
 
             CheckError(response);
 
-            ExchangeDepositDetailsResponse depositDetailsResponseResponse = new ExchangeDepositDetailsResponse
+            ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
                 Symbol = response["asset"].ToStringInvariant(),
                 Address = response["address"].ToStringInvariant(),
@@ -699,7 +699,7 @@ namespace ExchangeSharp
                 throw new APIException(response["msg"].ToStringInvariant());
             }
 
-            return depositDetailsResponseResponse;
+            return depositDetails;
         }
     }
 }

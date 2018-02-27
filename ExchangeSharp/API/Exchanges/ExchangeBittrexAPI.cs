@@ -574,7 +574,7 @@ namespace ExchangeSharp
             CheckError(obj);
         }
 
-        public override ExchangeDepositDetailsResponse GetDepositAddress(string symbol)
+        public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
             string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
@@ -582,14 +582,14 @@ namespace ExchangeSharp
 
             // NOTE API 1.1 does not include the the static wallet address for currencies with memos such as XRP & NXT (API 2.0 does!)
 
-            ExchangeDepositDetailsResponse depositDetailsResponseResponse = new ExchangeDepositDetailsResponse
+            ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
                 Symbol = result["Currency"].ToStringInvariant(),
                 Address = result["Address"].ToStringInvariant(),
                 Memo = result["Memo"].ToStringInvariant()
             };
 
-            return depositDetailsResponseResponse;
+            return depositDetails;
         }
     }
 }

@@ -616,25 +616,46 @@ namespace ExchangeSharp
             }
         }
 
-        public override ExchangeDepositDetailsResponse GetDepositAddress(string symbol)
+        public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             JToken result = MakePrivateAPIRequest("returnDepositAddresses");
-
-            var depositAddresses = new Dictionary<string, ExchangeDepositDetailsResponse>();
-
-            foreach (JProperty prop in result)
-            {
-                var details = new ExchangeDepositDetailsResponse
-                {
-                    Address = prop["Name"].ConvertInvariant<string>(),
-                    Symbol = prop["Value"].ConvertInvariant<string>()
-                };
-            }
-
             CheckError(result);
 
-            return null;
+            var depositAddresses = new Dictionary<string, ExchangeDepositDetails>();
+
+            foreach (JProperty token in result)
+            {
+                var details = new ExchangeDepositDetails
+                {
+                    Address = token.Value.ToStringInvariant(),
+                    Symbol = token.Name
+                };
+
+                depositAddresses[details.Symbol] = details;
+            }
+
+
+            if (!depositAddresses.TryGetValue(symbol, out var depositDetails))
+            {
+                depositDetails = this.CreateDepositAddress(symbol);
+            }
+
+            return depositDetails;
+        }
+
+        private ExchangeDepositDetails CreateDepositAddress(string symbol)
+        {
+            JToken result = MakePrivateAPIRequest("generateNewAddress", "currency", symbol);
+            CheckError(result);
+            var details = new ExchangeDepositDetails
+            {
+                Symbol = symbol,
+                Address = result["response"].ToStringInvariant(),
+                //                Memo = 
+            };
+
+            return details;
         }
     }
 }
