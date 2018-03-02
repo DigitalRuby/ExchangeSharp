@@ -29,6 +29,13 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Bittrex;
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
+        /// <summary>
+        /// Some currencies require two pieces to make a deposit: a base address and a memo. 
+        /// Capture the base address for coins with this requirement.
+        /// </summary>
+        private Dictionary<string, string> baseAddresses;
+        private readonly object baseAddressesLock = new object();
+
         private BittrexSocketClient socketClient;
         private readonly object socketClientLock = new object();
 
@@ -121,21 +128,34 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeCurrency> GetCurrencies()
         {
             var currencies = new List<ExchangeCurrency>();
-            JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
-            JToken result = CheckError(obj);
-            if (result is JArray array)
+
+            lock (this.baseAddressesLock)
             {
-                foreach (JToken token in array)
+                JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
+                JToken result = CheckError(obj);
+                if (result is JArray array)
                 {
-                    var coin = new ExchangeCurrency
+                    this.baseAddresses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (JToken token in array)
                     {
-                        Name = token["Currency"].ToStringUpperInvariant(),
-                        FullName = token["CurrencyLong"].ToStringInvariant(),
-                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
-                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
-                        Notes = token["Notice"].ToStringInvariant()
-                    };
-                    currencies.Add(coin);
+                        var coin = new ExchangeCurrency
+                        {
+                            Name = token["Currency"].ToStringUpperInvariant(),
+                            FullName = token["CurrencyLong"].ToStringInvariant(),
+                            TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                            IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                            Notes = token["Notice"].ToStringInvariant()
+                        };
+
+                        string baseAddress = token["BaseAddress"].ToStringInvariant();
+                        if (!string.IsNullOrWhiteSpace(baseAddress))
+                        {
+                            this.baseAddresses[coin.Name] = baseAddress;
+                        }
+
+                        currencies.Add(coin);
+                    }
                 }
             }
 
@@ -163,6 +183,7 @@ namespace ExchangeSharp
                         BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
                         MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant()
                     };
+
                     markets.Add(market);
                 }
             }
@@ -576,18 +597,40 @@ namespace ExchangeSharp
 
         public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
+            // TODO: If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
+
+            if (this.baseAddresses == null)
+            {
+                lock (this.baseAddressesLock)
+                {
+                    if (this.baseAddresses == null)
+                    {
+                        // populate base addresses
+                        this.GetCurrencies();
+                    }
+                }
+            }
+
             string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
             JToken result = CheckError(response);
 
             // NOTE API 1.1 does not include the the static wallet address for currencies with memos such as XRP & NXT (API 2.0 does!)
-
+            // We are getting the static addresses via the GetCurrencies() api.
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
                 Symbol = result["Currency"].ToStringInvariant(),
-                Address = result["Address"].ToStringInvariant(),
-                Memo = result["Memo"].ToStringInvariant()
             };
+
+            if (this.baseAddresses.TryGetValue(depositDetails.Symbol, out string baseAddr))
+            {
+                depositDetails.Address = baseAddr;
+                depositDetails.Memo = result["Address"].ToStringInvariant();
+            }
+            else
+            {
+                depositDetails.Address = result["Address"].ToStringInvariant();
+            }
 
             return depositDetails;
         }
