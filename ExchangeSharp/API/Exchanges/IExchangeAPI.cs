@@ -137,13 +137,13 @@ namespace ExchangeSharp
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        IEnumerable<ExchangeCurrency> GetCurrencies();
+        Dictionary<string, ExchangeCurrency> GetCurrencies();
 
         /// <summary>
         /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync();
+        Task<Dictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
 
         /// <summary>
         /// Get symbols for the exchange

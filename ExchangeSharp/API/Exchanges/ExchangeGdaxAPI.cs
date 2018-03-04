@@ -159,9 +159,9 @@ namespace ExchangeSharp
             return this.GetSymbolsMetadata().Select(market => market.MarketName);
         }
 
-        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        public override Dictionary<string, ExchangeCurrency> GetCurrencies()
         {
-            var currencies = new List<ExchangeCurrency>();
+            var currencies = new Dictionary<string, ExchangeCurrency>();
             JToken products = MakeJsonRequest<JToken>("/currencies");
             foreach (JToken product in products)
             {
@@ -170,7 +170,7 @@ namespace ExchangeSharp
                 currency.FullName = product["name"].ToStringInvariant();
                 currency.IsEnabled = true;
 
-                currencies.Add(currency);
+                currencies[currency.Name] = currency;
             }
 
             return currencies;

@@ -29,15 +29,43 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Bittrex;
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
-        /// <summary>
-        /// Some currencies require two pieces to make a deposit: a base address and a memo. 
-        /// Capture the base address for coins with this requirement.
-        /// </summary>
-        private Dictionary<string, string> baseAddresses;
-        private readonly object baseAddressesLock = new object();
-
         private BittrexSocketClient socketClient;
         private readonly object socketClientLock = new object();
+
+        public HashSet<string> TwoFieldDepositCoinTypes { get; }
+
+        public HashSet<string> OneFieldDepositCoinTypes { get; }
+
+        public ExchangeBittrexAPI()
+        {
+            this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            this.TwoFieldDepositCoinTypes.Add("NXT");
+            this.TwoFieldDepositCoinTypes.Add("NXT_MS");
+            this.TwoFieldDepositCoinTypes.Add("CRYPTO_NOTE_PAYMENTID");
+            this.TwoFieldDepositCoinTypes.Add("BITSHAREX");
+            this.TwoFieldDepositCoinTypes.Add("RIPPLE");
+            this.TwoFieldDepositCoinTypes.Add("NEM");
+            this.TwoFieldDepositCoinTypes.Add("LUMEN");
+            this.TwoFieldDepositCoinTypes.Add("STEEM");
+
+            this.OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            this.OneFieldDepositCoinTypes.Add("BITCOIN");
+            this.OneFieldDepositCoinTypes.Add("BITCOINEX");
+            this.OneFieldDepositCoinTypes.Add("COUNTERPARTY");
+            this.OneFieldDepositCoinTypes.Add("BITCOIN_STEALTH");
+            this.OneFieldDepositCoinTypes.Add("ETH_CONTRACT");
+            this.OneFieldDepositCoinTypes.Add("ETH");
+            this.OneFieldDepositCoinTypes.Add("OMNI");
+            this.OneFieldDepositCoinTypes.Add("FACTOM");
+            this.OneFieldDepositCoinTypes.Add("BITCOIN_PERCENTAGE_FEE");
+            this.OneFieldDepositCoinTypes.Add("LISK");
+            this.OneFieldDepositCoinTypes.Add("WAVES");
+            this.OneFieldDepositCoinTypes.Add("ANTSHARES");
+            this.OneFieldDepositCoinTypes.Add("WAVES_ASSET");
+            this.OneFieldDepositCoinTypes.Add("BYTEBALL");
+            this.OneFieldDepositCoinTypes.Add("SIA");
+            this.OneFieldDepositCoinTypes.Add("ADA");
+        }
 
         /// <summary>
         /// Gets the singleton BittrexSocketClient
@@ -125,37 +153,28 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        public override Dictionary<string, ExchangeCurrency> GetCurrencies()
         {
-            var currencies = new List<ExchangeCurrency>();
+            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
 
-            lock (this.baseAddressesLock)
+            JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
+            JToken result = CheckError(obj);
+            if (result is JArray array)
             {
-                JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
-                JToken result = CheckError(obj);
-                if (result is JArray array)
+                foreach (JToken token in array)
                 {
-                    this.baseAddresses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                    foreach (JToken token in array)
+                    var coin = new ExchangeCurrency
                     {
-                        var coin = new ExchangeCurrency
-                        {
-                            Name = token["Currency"].ToStringUpperInvariant(),
-                            FullName = token["CurrencyLong"].ToStringInvariant(),
-                            TxFee = token["TxFee"].ConvertInvariant<decimal>(),
-                            IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
-                            Notes = token["Notice"].ToStringInvariant()
-                        };
+                        Name = token["Currency"].ToStringUpperInvariant(),
+                        FullName = token["CurrencyLong"].ToStringInvariant(),
+                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                        Notes = token["Notice"].ToStringInvariant(),
+                        CoinType = token["CoinType"].ToStringInvariant(),
+                        BaseAddress = token["BaseAddress"].ToStringInvariant()
+                    };
 
-                        string baseAddress = token["BaseAddress"].ToStringInvariant();
-                        if (!string.IsNullOrWhiteSpace(baseAddress))
-                        {
-                            this.baseAddresses[coin.Name] = baseAddress;
-                        }
-
-                        currencies.Add(coin);
-                    }
+                    currencies[coin.Name] = coin;
                 }
             }
 
@@ -595,21 +614,17 @@ namespace ExchangeSharp
             CheckError(obj);
         }
 
+        /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for.</param>
+        /// <returns>
+        /// Deposit address details (including memo if applicable, such as with XRP)
+        /// </returns>
         public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
-            // TODO: If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
-
-            if (this.baseAddresses == null)
-            {
-                lock (this.baseAddressesLock)
-                {
-                    if (this.baseAddresses == null)
-                    {
-                        // populate base addresses
-                        this.GetCurrencies();
-                    }
-                }
-            }
+            Dictionary<string, ExchangeCurrency> updatedCurrencies = this.GetCurrencies();
 
             string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
@@ -622,14 +637,25 @@ namespace ExchangeSharp
                 Symbol = result["Currency"].ToStringInvariant(),
             };
 
-            if (this.baseAddresses.TryGetValue(depositDetails.Symbol, out string baseAddr))
+            if (!updatedCurrencies.TryGetValue(depositDetails.Symbol, out ExchangeCurrency coin))
             {
-                depositDetails.Address = baseAddr;
+                Console.WriteLine($"Unable to find {depositDetails.Symbol} in existing list of coins.");
+                return null;
+            }
+
+            if (this.TwoFieldDepositCoinTypes.Contains(coin.CoinType))
+            {
+                depositDetails.Address = coin.BaseAddress;
                 depositDetails.Memo = result["Address"].ToStringInvariant();
+            }
+            else if (this.OneFieldDepositCoinTypes.Contains(coin.CoinType))
+            {
+                depositDetails.Address = result["Address"].ToStringInvariant();
             }
             else
             {
-                depositDetails.Address = result["Address"].ToStringInvariant();
+                Console.WriteLine($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
+                return null;
             }
 
             return depositDetails;
