@@ -40,6 +40,13 @@ Please send pull requests if you have made a change that you feel is worthwhile.
 
 Nuget package: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
 
+**Building**  
+```
+Windows: Open ExchangeSharp.sln in Visual Studio and build/run  
+Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.0
+Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.0 -c Release -r ubuntu.16.10-x64
+```
+
 ---
 Simple example:
 ---

@@ -30,7 +30,6 @@ namespace ExchangeSharp
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
         private BittrexSocketClient socketClient;
-        private readonly object socketClientLock = new object();
 
         public HashSet<string> TwoFieldDepositCoinTypes { get; }
 
@@ -68,7 +67,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Gets the singleton BittrexSocketClient
+        /// Gets the BittrexSocketClient for this API
         /// </summary>
         private BittrexSocketClient SocketClient
         {
@@ -76,7 +75,7 @@ namespace ExchangeSharp
             {
                 if (this.socketClient == null)
                 {
-                    lock (this.socketClientLock)
+                    lock (this)
                     {
                         if (this.socketClient == null)
                         {

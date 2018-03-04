@@ -13,7 +13,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Security;
+using System.Security.Cryptography;
 
 using ExchangeSharp;
 
@@ -48,63 +51,138 @@ namespace ExchangeSharpConsoleApp
 
         private static void TestRateGate()
         {
-            int timesPerPeriod = 1;
-            int ms = 500;
-            int loops = 10;
-            double msMax = (double)ms * 1.1;
-            double msMin = (double)ms * 0.9;
-            RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
-            if (!gate.WaitToProceed(0))
+            try
             {
-                throw new APIException("Rate gate should have allowed immediate access to first attempt");
-            }
-            for (int i = 0; i < loops; i++)
-            {
-                Stopwatch timer = Stopwatch.StartNew();
-                gate.WaitToProceed();
-                timer.Stop();
-
-                if (i > 0)
+                int timesPerPeriod = 1;
+                int ms = 500;
+                int loops = 10;
+                double msMax = (double)ms * 1.1;
+                double msMin = (double)ms * 0.9;
+                RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
+                if (!gate.WaitToProceed(0))
                 {
-                    // check for too much elapsed time with a little fudge
-                    if (timer.Elapsed.TotalMilliseconds > msMax)
+                    throw new APIException("Rate gate should have allowed immediate access to first attempt");
+                }
+                for (int i = 0; i < loops; i++)
+                {
+                    Stopwatch timer = Stopwatch.StartNew();
+                    gate.WaitToProceed();
+                    timer.Stop();
+
+                    if (i > 0)
                     {
-                        throw new APIException("Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
-                    }
-                    // check for too little elapsed time with a little fudge
-                    else if (timer.Elapsed.TotalMilliseconds < msMin)
-                    {
-                        throw new APIException("Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                        // check for too much elapsed time with a little fudge
+                        if (timer.Elapsed.TotalMilliseconds > msMax)
+                        {
+                            throw new APIException("Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                        }
+                        // check for too little elapsed time with a little fudge
+                        else if (timer.Elapsed.TotalMilliseconds < msMin)
+                        {
+                            throw new APIException("Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                        }
                     }
                 }
+                Console.WriteLine("TestRateGate OK");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("TestRateGate fail: {0}", ex);
             }
         }
 
-        private static void TestEncryption()
+        private static void TestAESEncryption()
         {
-            byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
-            byte[] data = new byte[255];
-            for (int i = 0; i < data.Length; i++)
+            try
             {
-                data[i] = (byte)i;
-            }
-            byte[] password = new byte[16];
-            for (int i = password.Length - 1; i >= 0; i--)
-            {
-                password[i] = (byte)i;
-            }
-            byte[] encrypted = CryptoUtility.AesEncryption(data, password, salt);
-            byte[] decrypted = CryptoUtility.AesDecryption(encrypted, password, salt);
-            if (!decrypted.SequenceEqual(data))
-            {
-                throw new ApplicationException("AES encryption test fail");
-            }
+                byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
+                byte[] data = new byte[255];
+                for (int i = 0; i < data.Length; i++)
+                {
+                    data[i] = (byte)i;
+                }
+                byte[] password = new byte[16];
+                for (int i = password.Length - 1; i >= 0; i--)
+                {
+                    password[i] = (byte)i;
+                }
+                byte[] encrypted = CryptoUtility.AesEncryption(data, password, salt);
+                byte[] decrypted = CryptoUtility.AesDecryption(encrypted, password, salt);
+                if (!decrypted.SequenceEqual(data))
+                {
+                    throw new ApplicationException("AES encryption test fail");
+                }
 
-            byte[] protectedData = DataProtector.Protect(salt);
-            byte[] unprotectedData = DataProtector.Unprotect(protectedData);
-            if (!unprotectedData.SequenceEqual(salt))
+                byte[] protectedData = DataProtector.Protect(salt);
+                byte[] unprotectedData = DataProtector.Unprotect(protectedData);
+                if (!unprotectedData.SequenceEqual(salt))
+                {
+                    throw new ApplicationException("Protected data API fail");
+                }
+                Console.WriteLine("TestAESEncryption OK");
+            }
+            catch (Exception ex)
             {
-                throw new ApplicationException("Protected data API fail");
+                Console.WriteLine("TestAESEncryption failed: {0}", ex);
+            }
+        }
+
+        private static void TestKeyStore()
+        {
+            try
+            {
+                // store keys
+                string path = Path.Combine(Path.GetTempPath(), "keystore.test.bin");
+                string publicKey  = "public key test aa45c0";
+                string privateKey = "private key test bb270a";
+                string[] keys = new string[] { publicKey, privateKey };
+
+                CryptoUtility.SaveUnprotectedStringsToFile(path, keys);
+
+                // read keys
+                SecureString[] keysRead = CryptoUtility.LoadProtectedStringsFromFile(path);
+                string publicKeyRead = CryptoUtility.SecureStringToString(keysRead[0]);
+                string privateKeyRead = CryptoUtility.SecureStringToString(keysRead[1]);
+
+                if (privateKeyRead != privateKey || publicKeyRead != publicKey)
+                {
+                    throw new InvalidDataException("TestKeyStore failed (mismatch)");
+                }
+                else
+                {
+                    Console.WriteLine("TestKeyStore OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"TestKeyStore failed ({ex.GetType().Name}: {ex.Message})");
+            }
+        }
+
+        private static void TestRSAFromFile()
+        {
+            try
+            {
+                byte[] originalValue = new byte[256];
+                new System.Random().NextBytes(originalValue);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    DataProtector.DataProtectionScope scope = (i < 2 ? DataProtector.DataProtectionScope.CurrentUser : DataProtector.DataProtectionScope.LocalMachine);
+                    RSA rsa = DataProtector.RSAFromFile(scope);
+                    byte[] encrypted = rsa.Encrypt(originalValue, RSAEncryptionPadding.Pkcs1);
+                    byte[] decrypted = rsa.Decrypt(encrypted, RSAEncryptionPadding.Pkcs1);
+                    if (!originalValue.SequenceEqual(decrypted))
+                    {
+                        throw new InvalidDataException("TestRSAFromFile failure, original value not equal to decrypted value, scope: " + scope);
+                    }
+                }
+
+                Console.WriteLine("TestRSAFromFile OK");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("TestRSAFromFile failed: {0}", ex);
             }
         }
 
@@ -168,7 +246,9 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
-            TestEncryption();
+            TestRSAFromFile();
+            TestAESEncryption();
+            TestKeyStore();
             TestRateGate();
             TestExchanges();
         }

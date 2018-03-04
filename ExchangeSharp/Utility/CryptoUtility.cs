@@ -32,6 +32,7 @@ namespace ExchangeSharp
         static CryptoUtility()
         {
             IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            IsMono = (Type.GetType("Mono.Runtime") != null);
         }
 
         /// <summary>
@@ -246,7 +247,7 @@ namespace ExchangeSharp
             var key = new Rfc2898DeriveBytes(password, salt, 1024);
             AES.Key = key.GetBytes(AES.KeySize / 8);
             AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CFB;
+            AES.Mode = CipherMode.CBC;
             encrypted.Write(salt, 0, salt.Length);
             var cs = new CryptoStream(encrypted, AES.CreateEncryptor(), CryptoStreamMode.Write);
             cs.Write(input, 0, input.Length);
@@ -270,7 +271,7 @@ namespace ExchangeSharp
             var key = new Rfc2898DeriveBytes(password, salt, 1024);
             AES.Key = key.GetBytes(AES.KeySize / 8);
             AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CFB;
+            AES.Mode = CipherMode.CBC;
             MemoryStream encrypted = new MemoryStream(input);
             byte[] saltMatch = new byte[salt.Length];
             if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
@@ -423,5 +424,6 @@ namespace ExchangeSharp
         }
 
         public static bool IsWindows { get; private set; }
+        public static bool IsMono { get; private set; }
     }
 }

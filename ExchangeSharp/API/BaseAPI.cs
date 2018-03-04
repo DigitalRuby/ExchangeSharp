@@ -174,7 +174,13 @@ namespace ExchangeSharp
         {
             try
             {
+
+#pragma warning disable CS0618
+
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3;
+
+#pragma warning restore CS0618
+
             }
             catch
             {
