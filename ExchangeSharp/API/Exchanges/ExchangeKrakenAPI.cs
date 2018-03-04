@@ -12,16 +12,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -102,6 +98,47 @@ namespace ExchangeSharp
             return json["result"];
         }
 
+        private ExchangeOrderResult ParseOrder(string orderId, JToken order)
+        {
+            ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
+
+            switch (order["status"].ToStringInvariant())
+            {
+                case "pending": orderResult.Result = ExchangeAPIOrderResult.Pending; break;
+                case "open": orderResult.Result = ExchangeAPIOrderResult.FilledPartially; break;
+                case "closed": orderResult.Result = ExchangeAPIOrderResult.Filled; break;
+                case "canceled": case "expired": orderResult.Result = ExchangeAPIOrderResult.Canceled; break;
+                default: orderResult.Result = ExchangeAPIOrderResult.Error; break;
+            }
+            orderResult.Message = (orderResult.Message ?? order["reason"].ToStringInvariant());
+            orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["opentm"].ConvertInvariant<double>());
+            orderResult.Symbol = order["descr"]["pair"].ToStringInvariant();
+            orderResult.IsBuy = (order["descr"]["type"].ToStringInvariant() == "buy");
+            orderResult.Amount = order["vol"].ConvertInvariant<decimal>();
+            orderResult.AmountFilled = order["vol_exec"].ConvertInvariant<decimal>();
+            orderResult.Price = order["descr"]["price"].ConvertInvariant<decimal>();
+            orderResult.AveragePrice = order["price"].ConvertInvariant<decimal>();
+
+            return orderResult;
+        }
+
+        private IEnumerable<ExchangeOrderResult> QueryOrders(string symbol, string path)
+        {
+            JObject json = MakeJsonRequest<JObject>(path, null, GetNoncePayload());
+            JToken result = CheckError(json);
+            result = result["open"];
+
+            symbol = NormalizeSymbol(symbol);
+
+            foreach (JProperty order in result)
+            {
+                if (symbol == null || order.Value["descr"]["pair"].ToStringInvariant() == symbol)
+                {
+                    yield return ParseOrder(order.Name, order.Value);
+                }
+            }
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
@@ -159,7 +196,7 @@ namespace ExchangeSharp
         {
             JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
             JToken result = CheckError(json);
-            return (from prop in result.Children<JProperty>() select prop.Name).ToArray();
+            return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -265,8 +302,13 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
+            if (limit != null)
+            {
+                throw new APIException("Limit parameter not supported");
+            }
+
             // https://api.kraken.com/0/public/OHLC
             // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given id(optional.exclusive)
             // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)
@@ -368,35 +410,23 @@ namespace ExchangeSharp
                 orderResult.Message = "Unknown Error";
                 return orderResult;
             }
-            result = result[orderId];
-            switch (result["status"].ToStringInvariant())
-            {
-                case "pending": orderResult.Result = ExchangeAPIOrderResult.Pending; break;
-                case "open": orderResult.Result = ExchangeAPIOrderResult.FilledPartially; break;
-                case "closed": orderResult.Result = ExchangeAPIOrderResult.Filled; break;
-                case "canceled": case "expired": orderResult.Result = ExchangeAPIOrderResult.Canceled; break;
-                default: orderResult.Result = ExchangeAPIOrderResult.Error; break;
-            }
-            orderResult.Message = (orderResult.Message ?? result["reason"].ToStringInvariant());
-            orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(result["opentm"].ConvertInvariant<double>());
-            orderResult.Symbol = result["descr"]["pair"].ToStringInvariant();
-            orderResult.IsBuy = (result["descr"]["type"].ToStringInvariant() == "buy");
-            orderResult.Amount = result["vol"].ConvertInvariant<decimal>();
-            orderResult.AmountFilled = result["vol_exec"].ConvertInvariant<decimal>();
-            orderResult.AveragePrice = result["price"].ConvertInvariant<decimal>();
-            return orderResult;
+            
+            return ParseOrder(orderId, result[orderId]); ;
         }
 
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
-            // TODO: Implement
-            return base.GetOpenOrderDetails(symbol);
+            return QueryOrders(symbol, "/0/private/OpenOrders");
         }
 
         public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
-            // TODO: Implement
-            return base.GetCompletedOrderDetails(symbol);
+            string path = "/0/private/ClosedOrders";
+            if (afterDate != null)
+            {
+                path += "?start=" + ((long)afterDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+            }
+            return QueryOrders(symbol, path);
         }
 
         public override void CancelOrder(string orderId)

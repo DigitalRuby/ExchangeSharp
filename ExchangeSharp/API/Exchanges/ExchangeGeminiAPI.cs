@@ -12,11 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -54,7 +51,8 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                AveragePrice = result["price"].ConvertInvariant<decimal>(),
+                Price = result["price"].ConvertInvariant<decimal>(),
+                AveragePrice = result["avg_execution_price"].ConvertInvariant<decimal>(),
                 Message = string.Empty,
                 OrderId = result["id"].ToStringInvariant(),
                 Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),

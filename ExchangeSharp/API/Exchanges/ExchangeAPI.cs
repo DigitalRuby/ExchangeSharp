@@ -12,12 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -85,6 +80,17 @@ namespace ExchangeSharp
             return symbol?.Replace("_", "-").Replace("/", "-").ToLowerInvariant();
         }
 
+        /// <summary>Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
+        /// <returns>Collection of Currencies</returns>
+        public virtual IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
+        /// <returns>Collection of Currencies</returns>
+        public Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
+
         /// <summary>
         /// Get exchange symbols
         /// </summary>
@@ -96,6 +102,18 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Array of symbols</returns>
         public Task<IEnumerable<string>> GetSymbolsAsync() => Task.Factory.StartNew(() => GetSymbols());
+
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public virtual IEnumerable<ExchangeMarket> GetSymbolsMetadata() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync() => Task.Factory.StartNew(this.GetSymbolsMetadata);
 
         /// <summary>
         /// Get exchange ticker
@@ -209,21 +227,23 @@ namespace ExchangeSharp
         /// Get candles (open, high, low, close)
         /// </summary>
         /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodsSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <param name="startDate">Optional start date to get candles for</param>
         /// <param name="endDate">Optional end date to get candles for</param>
+        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) { throw new NotSupportedException(); }
+        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) { throw new NotSupportedException(); }
 
         /// <summary>
         /// ASYNC - Get candles (open, high, low, close)
         /// </summary>
         /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodsSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <param name="startDate">Optional start date to get candles for</param>
         /// <param name="endDate">Optional end date to get candles for</param>
+        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate));
+        public Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => Task.Factory.StartNew(() => GetCandles(symbol, periodSeconds, startDate, endDate, limit));
 
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
@@ -324,6 +344,18 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         public Task CancelOrderAsync(string orderId) => Task.Factory.StartNew(() => CancelOrder(orderId));
+
+        /// <summary>
+        /// A withdrawal request.
+        /// </summary>
+        /// <param name="withdrawalRequest">The withdrawal request.</param>
+        public virtual ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+
+        /// <summary>
+        /// Asynchronous withdraws.
+        /// </summary>
+        /// <param name="withdrawalRequest">The withdrawal request.</param>
+        public Task WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => Task.Factory.StartNew(() => Withdraw(withdrawalRequest));
     }
 
     /// <summary>

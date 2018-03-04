@@ -27,6 +27,15 @@ namespace ExchangeSharp
     public static class CryptoUtility
     {
         /// <summary>
+        /// Static constructor
+        /// </summary>
+        static CryptoUtility()
+        {
+            IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            IsMono = (Type.GetType("Mono.Runtime") != null);
+        }
+
+        /// <summary>
         /// Convert an object to string using invariant culture
         /// </summary>
         /// <param name="obj">Object</param>
@@ -238,7 +247,7 @@ namespace ExchangeSharp
             var key = new Rfc2898DeriveBytes(password, salt, 1024);
             AES.Key = key.GetBytes(AES.KeySize / 8);
             AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CFB;
+            AES.Mode = CipherMode.CBC;
             encrypted.Write(salt, 0, salt.Length);
             var cs = new CryptoStream(encrypted, AES.CreateEncryptor(), CryptoStreamMode.Write);
             cs.Write(input, 0, input.Length);
@@ -262,7 +271,7 @@ namespace ExchangeSharp
             var key = new Rfc2898DeriveBytes(password, salt, 1024);
             AES.Key = key.GetBytes(AES.KeySize / 8);
             AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CFB;
+            AES.Mode = CipherMode.CBC;
             MemoryStream encrypted = new MemoryStream(input);
             byte[] saltMatch = new byte[salt.Length];
             if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
@@ -318,6 +327,7 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Load protected data as strings from file. Call this function in your production environment, loading in a securely encrypted file which will stay encrypted in memory.
+        /// On non-Windows platforms, the file is plain text and must be secured using file permissions.
         /// </summary>
         /// <param name="path">Path to load from</param>
         /// <returns>Protected data</returns>
@@ -326,7 +336,7 @@ namespace ExchangeSharp
             byte[] bytes = File.ReadAllBytes(path);
 
             // while unprotectedBytes is populated, app is vulnerable - we clear this array ASAP to remove sensitive data from memory
-            byte[] unprotectedBytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
+            byte[] unprotectedBytes = DataProtector.Unprotect(bytes);
 
             MemoryStream memory = new MemoryStream(unprotectedBytes);
             BinaryReader reader = new BinaryReader(memory, Encoding.UTF8);
@@ -356,6 +366,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Save unprotected data as strings to a file, where it will be encrypted for the current user account. Call this method offline with the data you need to secure.
         /// Call CryptoUtility.LoadProtectedStringsFromFile to later load these strings from the file.
+        /// On non-Windows platforms, the file is plain text and must be secured using file permissions.
         /// </summary>
         /// <param name="path">Path to save to</param>
         /// <param name="strings">Strings to save.</param>
@@ -386,7 +397,7 @@ namespace ExchangeSharp
                 }
             }
             writer.Flush();
-            File.WriteAllBytes(path, ProtectedData.Protect(memory.ToArray(), null, DataProtectionScope.CurrentUser));
+            File.WriteAllBytes(path, DataProtector.Protect(memory.ToArray()));
         }
 
         /// <summary>
@@ -411,5 +422,8 @@ namespace ExchangeSharp
             }
             return Math.Floor(amount);
         }
+
+        public static bool IsWindows { get; private set; }
+        public static bool IsMono { get; private set; }
     }
 }

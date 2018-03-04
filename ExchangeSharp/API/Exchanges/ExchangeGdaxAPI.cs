@@ -12,19 +12,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using System.Linq;
+
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
@@ -45,11 +41,13 @@ namespace ExchangeSharp
             decimal executedValue = result["executed_value"].ConvertInvariant<decimal>();
             decimal amountFilled = result["filled_size"].ConvertInvariant<decimal>();
             decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
-            decimal averagePrice = (executedValue <= 0m ? 0m : executedValue / amountFilled);
+            decimal price = result["price"].ConvertInvariant<decimal>();
+            decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
             ExchangeOrderResult order = new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
+                Price = price,
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ConvertInvariant<DateTime>(),
@@ -137,15 +135,45 @@ namespace ExchangeSharp
             return symbol?.Replace('_', '-').ToUpperInvariant();
         }
 
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            var markets = new List<ExchangeMarket>();
+            JToken products = MakeJsonRequest<JToken>("/products");
+            foreach (JToken product in products)
+            {
+                var market = new ExchangeMarket();
+                market.MarketName = product["id"].ToStringUpperInvariant();
+                market.BaseCurrency = product["quote_currency"].ToStringUpperInvariant();
+                market.MarketCurrency = product["base_currency"].ToStringUpperInvariant();
+                market.IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase);
+                market.MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>();
+
+                markets.Add(market);
+            }
+
+            return markets;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
-            Dictionary<string, string>[] symbols = MakeJsonRequest<Dictionary<string, string>[]>("/products");
-            List<string> symbolList = new List<string>();
-            foreach (Dictionary<string, string> symbol in symbols)
+            return this.GetSymbolsMetadata().Select(market => market.MarketName);
+        }
+
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            var currencies = new List<ExchangeCurrency>();
+            JToken products = MakeJsonRequest<JToken>("/currencies");
+            foreach (JToken product in products)
             {
-                symbolList.Add(symbol["id"]);
+                var currency = new ExchangeCurrency();
+                currency.Name = product["id"].ToStringUpperInvariant();
+                currency.FullName = product["name"].ToStringInvariant();
+                currency.IsEnabled = true;
+
+                currencies.Add(currency);
             }
-            return symbolList.ToArray();
+
+            return currencies;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -244,8 +272,13 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
+            if (limit != null)
+            {
+                throw new APIException("Limit parameter not supported");
+            }
+
             // /products/<product-id>/candles
             // https://api.gdax.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
             List<MarketCandle> candles = new List<MarketCandle>();
@@ -324,13 +357,13 @@ namespace ExchangeSharp
                 { "type", order.OrderType.ToString().ToLowerInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "product_id", symbol },
-                { "size", order.RoundAmount().ToStringInvariant() },
-                { "time_in_force", "GTC" } // good til cancel
+                { "size", order.RoundAmount().ToStringInvariant() }
             };
 
             if (order.OrderType != OrderType.Market)
             {
-                payload.Add("price", order.Price.ToStringInvariant());
+                payload["time_in_force"] = "GTC"; // good til cancel
+                payload["price"] = order.Price.ToStringInvariant();
             }
 
             JObject result = MakeJsonRequest<JObject>("/orders", null, payload, "POST");

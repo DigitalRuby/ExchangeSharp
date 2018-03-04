@@ -12,12 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -31,6 +27,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
+        public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
         public override string NormalizeSymbol(string symbol)
@@ -45,9 +42,9 @@ namespace ExchangeSharp
         public ExchangeBinanceAPI()
         {
             // give binance plenty of room to accept requests
-            RequestWindow = TimeSpan.FromDays(1.0);
+            RequestWindow = TimeSpan.FromMinutes(15.0);
             NonceStyle = NonceStyle.UnixMilliseconds;
-            NonceOffset = TimeSpan.FromSeconds(1.0);
+            NonceOffset = TimeSpan.FromSeconds(10.0);
         }
 
         public override IEnumerable<string> GetSymbols()
@@ -71,6 +68,71 @@ namespace ExchangeSharp
             }
             WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
             return symbols;
+        }
+
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            /*
+             *         {
+            "symbol": "QTUMETH",
+            "status": "TRADING",
+            "baseAsset": "QTUM",
+            "baseAssetPrecision": 8,
+            "quoteAsset": "ETH",
+            "quotePrecision": 8,
+            "orderTypes": [
+                "LIMIT",
+                "LIMIT_MAKER",
+                "MARKET",
+                "STOP_LOSS_LIMIT",
+                "TAKE_PROFIT_LIMIT"
+            ],
+            "icebergAllowed": true,
+            "filters": [
+                {
+                    "filterType": "PRICE_FILTER",
+                    "minPrice": "0.00000100",
+                    "maxPrice": "100000.00000000",
+                    "tickSize": "0.00000100"
+                },
+                {
+                    "filterType": "LOT_SIZE",
+                    "minQty": "0.01000000",
+                    "maxQty": "90000000.00000000",
+                    "stepSize": "0.01000000"
+                },
+                {
+                    "filterType": "MIN_NOTIONAL",
+                    "minNotional": "0.01000000"
+                }
+            ]
+        },
+             */
+
+            var markets = new List<ExchangeMarket>();
+            JToken obj = MakeJsonRequest<JToken>("/exchangeInfo");
+            CheckError(obj);
+            JToken allSymbols = obj["symbols"];
+            foreach (JToken symbol in allSymbols)
+            {
+                var market = new ExchangeMarket();
+                market.MarketName = symbol["symbol"].ToStringUpperInvariant();
+                market.IsActive = this.ParseMarketStatus(symbol["status"].ToStringUpperInvariant());
+                market.BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant();
+                market.MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant();
+
+                // "LOT_SIZE"
+                JToken filters = symbol["filters"];
+                JToken lotSizeFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "LOT_SIZE"));
+                if (lotSizeFilter != null)
+                {
+                    market.MinTradeSize = lotSizeFilter["minQty"].ConvertInvariant<decimal>();
+                }
+
+                markets.Add(market);
+            }
+
+            return markets;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -147,16 +209,20 @@ namespace ExchangeSharp
             string baseUrl = "/aggTrades?symbol=" + symbol;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            DateTime cutoff = DateTime.UtcNow;
+            DateTime cutoff;
+            if (sinceDateTime == null)
+            {
+                cutoff = DateTime.UtcNow;
+            }
+            else
+            {
+                cutoff = sinceDateTime.Value;
+                sinceDateTime = DateTime.UtcNow;
+            }
+            url = baseUrl;
 
             while (true)
             {
-                url = baseUrl;
-                if (sinceDateTime != null)
-                {
-                    url += "&startTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) +
-                        "&endTime=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value + TimeSpan.FromDays(1.0));
-                }
                 JArray obj = MakeJsonRequest<Newtonsoft.Json.Linq.JArray>(url);
                 if (obj == null || obj.Count == 0)
                 {
@@ -164,11 +230,16 @@ namespace ExchangeSharp
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.Last["T"].ConvertInvariant<long>());
-                    if (sinceDateTime.Value > cutoff)
+                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["T"].ConvertInvariant<long>());
+                    if (sinceDateTime.Value < cutoff)
                     {
                         sinceDateTime = null;
                     }
+                }
+                if (sinceDateTime != null)
+                {
+                    url = baseUrl + "&startTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value - TimeSpan.FromHours(1.0))).ToStringInvariant() +
+                        "&endTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value)).ToStringInvariant();
                 }
                 foreach (JToken token in obj)
                 {
@@ -196,7 +267,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /* [
             [
@@ -219,8 +290,12 @@ namespace ExchangeSharp
             if (startDate != null)
             {
                 url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                url += "&endTime=" + ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds())).ToStringInvariant();
             }
-            url += "&endTime=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            if (limit != null)
+            {
+                url += "&limit=" + (limit.Value.ToStringInvariant());
+            }
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
             url += "&interval=" + periodString;
             JToken obj = MakeJsonRequest<JToken>(url);
@@ -284,9 +359,9 @@ namespace ExchangeSharp
             payload["side"] = (order.IsBuy ? "BUY" : "SELL");
             payload["type"] = order.OrderType.ToString().ToUpperInvariant();
             payload["quantity"] = order.RoundAmount();
-            payload["timeInForce"] = "GTC";
             if (order.OrderType != OrderType.Market)
             {
+                payload["timeInForce"] = "GTC";
                 payload["price"] = order.Price;
             }
 
@@ -314,9 +389,9 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = GetNoncePayload();
             if (!string.IsNullOrWhiteSpace(symbol))
-	        {
+            {
                 payload["symbol"] = NormalizeSymbol(symbol);
-	        }
+            }
             JToken token = MakeJsonRequest<JToken>("/openOrders", BaseUrlPrivate, payload);
             CheckError(token);
             foreach (JToken order in token)
@@ -407,6 +482,63 @@ namespace ExchangeSharp
             CheckError(token);
         }
 
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = withdrawalRequest.Asset;
+            payload["address"] = withdrawalRequest.ToAddress;
+            payload["amount"] = withdrawalRequest.Amount;
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            {
+                payload["name"] = withdrawalRequest.Name;
+            }
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                payload["addressTag"] = withdrawalRequest.AddressTag;
+            }
+
+            // yes, .html ...
+            JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
+
+            CheckError(response);
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
+            {
+                Id = response["id"].ToStringInvariant(),
+                Message = response["msg"].ToStringInvariant(),
+            };
+
+            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException(response["msg"].ToStringInvariant());
+            }
+
+            return withdrawalResponse;
+        }
+
+        private bool ParseMarketStatus(string status)
+        {
+            bool isActive = false;
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                switch (status)
+                {
+                    case "TRADING":
+                    case "PRE_TRADING":
+                    case "POST_TRADING":
+                        isActive = true;
+                        break;
+                        /* case "END_OF_DAY":
+                            case "HALT":
+                            case "AUCTION_MATCH":
+                            case "BREAK": */
+                }
+            }
+
+            return isActive;
+        }
+
         private void CheckError(JToken result)
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
@@ -485,12 +617,13 @@ namespace ExchangeSharp
             {
                 Amount = token["origQty"].ConvertInvariant<decimal>(),
                 AmountFilled = token["executedQty"].ConvertInvariant<decimal>(),
-                AveragePrice = token["price"].ConvertInvariant<decimal>(),
+                Price = token["price"].ConvertInvariant<decimal>(),
                 IsBuy = token["side"].ToStringInvariant() == "BUY",
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>(token["transactTime"].ConvertInvariant<long>())),
                 OrderId = token["orderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant()
             };
+            result.AveragePrice = result.Price;
             switch (token["status"].ToStringInvariant())
             {
                 case "NEW":

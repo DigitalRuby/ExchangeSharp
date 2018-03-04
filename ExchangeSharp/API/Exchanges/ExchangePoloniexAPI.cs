@@ -12,16 +12,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -98,13 +92,16 @@ namespace ExchangeSharp
                         }
                     }
                     order.AveragePrice /= tradeCount;
+
+                    // Poloniex does not provide a way to get the original price
+                    order.Price = order.AveragePrice;
                 }
             }
             else
             {
                 if (result["rate"] != null)
                 {
-                    order.AveragePrice = result["rate"].ConvertInvariant<decimal>();
+                    order.Price = result["rate"].ConvertInvariant<decimal>();
                 }
                 if (result["startingAmount"] != null)
                 {
@@ -206,6 +203,39 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant().Replace('-', '_');
         }
 
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        {
+            /*
+             * {"1CR":{"id":1,"name":"1CRedit","txFee":"0.01000000","minConf":3,"depositAddress":null,"disabled":0,"delisted":1,"frozen":0},
+             *  "XC":{"id":230,"name":"XCurrency","txFee":"0.01000000","minConf":12,"depositAddress":null,"disabled":1,"delisted":1,"frozen":0},
+             *   ... }
+             */
+            var currencies = new List<ExchangeCurrency>();
+            Dictionary<string, JToken> currencyMap = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnCurrencies");
+            foreach (var kvp in currencyMap)
+            {
+                var currency = new ExchangeCurrency
+                {
+                    Name = kvp.Key,
+                    FullName = kvp.Value["name"].ToStringInvariant(),
+                    IsEnabled = true,
+                    TxFee = kvp.Value["txFee"].ConvertInvariant<decimal>()
+                };
+
+                string disabled = kvp.Value["disabled"].ToStringInvariant();
+                string delisted = kvp.Value["delisted"].ToStringInvariant();
+                string frozen = kvp.Value["frozen"].ToStringInvariant();
+                if (string.Equals(disabled, "1") || string.Equals(delisted, "1") || string.Equals(frozen, "1"))
+                {
+                    currency.IsEnabled = false;
+                }
+
+                currencies.Add(currency);
+            }
+
+            return currencies;
+        }
+
         public override IEnumerable<string> GetSymbols()
         {
             List<string> symbols = new List<string>();
@@ -215,6 +245,44 @@ namespace ExchangeSharp
                 symbols.Add(kv.Key);
             }
             return symbols;
+        }
+
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            //https://poloniex.com/public?command=returnOrderBook&currencyPair=all&depth=0
+            /*
+             *       "BTC_CLAM": {
+        "asks": [],
+        "bids": [],
+        "isFrozen": "0",
+        "seq": 37268918
+    }, ...
+             */
+
+            var markets = new List<ExchangeMarket>();
+            Dictionary<string, JToken> lookup = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnOrderBook&currencyPair=all&depth=0");
+            foreach (var kvp in lookup)
+            {
+                var market = new ExchangeMarket { MarketName = kvp.Key, IsActive = false };
+
+                string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
+                if (string.Equals(isFrozen, "0"))
+                {
+                    market.IsActive = true;
+                }
+
+                string[] pairs = kvp.Key.Split('_');
+                if (pairs.Length == 2)
+                {
+                    market.BaseCurrency = pairs[0];
+                    market.MarketCurrency = pairs[1];
+                }
+
+                // TODO: Not sure how to find min order amount
+                markets.Add(market);
+            }
+
+            return markets;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -397,8 +465,13 @@ namespace ExchangeSharp
             return GetHistoricalTrades(symbol);
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
+            if (limit != null)
+            {
+                throw new APIException("Limit parameter not supported");
+            }
+
             // https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400
             // [{"date":1405699200,"high":0.0045388,"low":0.00403001,"open":0.00404545,"close":0.00435873,"volume":44.34555992,"quoteVolume":10311.88079097,"weightedAverage":0.00430043}]
             symbol = NormalizeSymbol(symbol);

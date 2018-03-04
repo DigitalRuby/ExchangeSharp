@@ -12,12 +12,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -87,17 +85,50 @@ namespace ExchangeSharp
 
         public override IEnumerable<string> GetSymbols()
         {
-            if (ReadCache("GetSymbols", out string[] symbols))
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
+        }
+
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            if (ReadCache("GetSymbols", out List<ExchangeMarket> cachedMarkets))
             {
-                return symbols;
+                return cachedMarkets;
             }
-            symbols = MakeJsonRequest<string[]>("/symbols", BaseUrlV1);
-            for (int i = 0; i < symbols.Length; i++)
+
+            var markets = new List<ExchangeMarket>();
+
+            JToken allPairs = MakeJsonRequest<JToken>("/symbols_details", BaseUrlV1);
+            Match m;
+
+            foreach (JToken pair in allPairs)
             {
-                symbols[i] = NormalizeSymbol(symbols[i]);
+                var market = new ExchangeMarket();
+                market.MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant());
+                market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
+                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
+                if (m.Success)
+                {
+                    market.MarketCurrency = m.Value;
+                    market.BaseCurrency = market.MarketName.Substring(m.Length);
+                }
+                else
+                {
+                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|EUR)$");
+                    if (m.Success)
+                    {
+                        market.MarketCurrency = market.MarketName.Substring(0, m.Index);
+                        market.BaseCurrency = m.Value;
+                    }
+                    else
+                    {
+                        throw new System.IO.InvalidDataException("Unexpected market name: " + market.MarketName);
+                    }                    
+                }
+                markets.Add(market);
             }
-            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
-            return symbols;
+
+            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
+            return markets;
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -252,15 +283,23 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             // https://api.bitfinex.com/v2/candles/trade:1d:btcusd/hist?start=ms_start&end=ms_end
             symbol = NormalizeSymbol(symbol);
-            endDate = endDate ?? DateTime.UtcNow;
-            startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds).Replace("d", "D"); // WTF Bitfinex, capital D???
-            string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1&start=" +
-                (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds() + "&end=" + (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds();
+            string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1";
+            if (startDate != null || endDate != null)
+            {
+                endDate = endDate ?? DateTime.UtcNow;
+                startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
+                url += "&start=" + ((long)startDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+                url += "&end=" + ((long)endDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+            }
+            if (limit != null)
+            {
+                url += "&limit=" + (limit.Value.ToStringInvariant());
+            }
             JToken token = MakeJsonRequest<JToken>(url);
             CheckError(token);
 
@@ -527,10 +566,12 @@ namespace ExchangeSharp
         {
             decimal amount = order["original_amount"].ConvertInvariant<decimal>();
             decimal amountFilled = order["executed_amount"].ConvertInvariant<decimal>();
+            decimal price = order["price"].ConvertInvariant<decimal>();
             return new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
+                Price = price,
                 AveragePrice = order["avg_execution_price"].ConvertInvariant<decimal>(order["price"].ConvertInvariant<decimal>()),
                 Message = string.Empty,
                 OrderId = order["id"].ToStringInvariant(),
@@ -565,13 +606,14 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amount,
+                Price = order[6].ConvertInvariant<decimal>(),
                 AveragePrice = order[7].ConvertInvariant<decimal>(),
                 IsBuy = (amount > 0m),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order[8].ConvertInvariant<long>()),
                 OrderId = order[0].ToStringInvariant(),
                 Result = ExchangeAPIOrderResult.Filled,
                 Symbol = order[1].ToStringInvariant()
-            };               
+            };
         }
 
         private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
@@ -600,6 +642,7 @@ namespace ExchangeSharp
                 {
                     ExchangeOrderResult append = new ExchangeOrderResult { Symbol = kv.Key, OrderId = trade[3].ToStringInvariant() };
                     append.Amount = append.AmountFilled = Math.Abs(trade[4].ConvertInvariant<decimal>());
+                    append.Price = trade[7].ConvertInvariant<decimal>();
                     append.AveragePrice = trade[5].ConvertInvariant<decimal>();
                     append.IsBuy = trade[4].ConvertInvariant<decimal>() >= 0m;
                     append.OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(trade[2].ConvertInvariant<long>());

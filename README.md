@@ -10,7 +10,7 @@
 
 [![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
 
-[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)](https://en.cryptobadges.io/donate/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)](https://en.cryptobadges.io/donate/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
@@ -39,6 +39,13 @@ The following cryptocurrency services are supported:
 Please send pull requests if you have made a change that you feel is worthwhile.
 
 Nuget package: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
+
+**Building**  
+```
+Windows: Open ExchangeSharp.sln in Visual Studio and build/run  
+Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.0
+Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.0 -c Release -r ubuntu.16.10-x64
+```
 
 ---
 Simple example:
@@ -91,7 +98,7 @@ public static void Main(string[] args)
 ```
 ---
 
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jjxtra@gmail.com).
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jeff@digitalruby.com).
 
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
@@ -99,12 +106,12 @@ If you want help with your project, have questions that need answering or this p
 
 [![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
 
-[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)](https://en.cryptobadges.io/donate/0x0d9Fc4ef1F1fBF8696D276678ef9fA2B6c1a3433)
+[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)](https://en.cryptobadges.io/donate/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
 Thanks for visiting!
 
 Jeff Johnson  
-jjxtra@gmail.com  
+jeff@digitalruby.com  
 http://www.digitalruby.com  

@@ -12,9 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -136,6 +134,18 @@ namespace ExchangeSharp
         Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
 
         /// <summary>
+        /// Gets currencies and related data such as IsEnabled and TxFee (if available)
+        /// </summary>
+        /// <returns>Collection of Currencies</returns>
+        IEnumerable<ExchangeCurrency> GetCurrencies();
+
+        /// <summary>
+        /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
+        /// </summary>
+        /// <returns>Collection of Currencies</returns>
+        Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync();
+
+        /// <summary>
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
@@ -146,6 +156,18 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Symbols</returns>
         Task<IEnumerable<string>> GetSymbolsAsync();
+
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        IEnumerable<ExchangeMarket> GetSymbolsMetadata();
+
+        /// <summary>
+        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync();
 
         /// <summary>
         /// Get latest ticker
@@ -244,21 +266,23 @@ namespace ExchangeSharp
         /// Get candles (open, high, low, close)
         /// </summary>
         /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodsSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <param name="startDate">Optional start date to get candles for</param>
         /// <param name="endDate">Optional end date to get candles for</param>
+        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null);
+        IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
 
         /// <summary>
         /// ASYNC - Get candles (open, high, low, close)
         /// </summary>
         /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodsSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <param name="startDate">Optional start date to get candles for</param>
         /// <param name="endDate">Optional end date to get candles for</param>
+        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null);
+        Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
 
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
@@ -362,53 +386,7 @@ namespace ExchangeSharp
     }
 
     /// <summary>
-    /// Order request details
-    /// </summary>
-    [System.Serializable]
-    public class ExchangeOrderRequest
-    {
-        /// <summary>
-        /// Symbol or pair for the order, i.e. btcusd
-        /// </summary>
-        public string Symbol { get; set; }
-
-        /// <summary>
-        /// Amount to buy or sell
-        /// </summary>
-        public decimal Amount { get; set; }
-
-        /// <summary>
-        /// The price to buy or sell at
-        /// </summary>
-        public decimal Price { get; set; }
-
-        /// <summary>
-        /// True if this is a buy, false if a sell
-        /// </summary>
-        public bool IsBuy { get; set; }
-
-        /// <summary>
-        /// Whether the amount should be rounded - set to false if you know the exact amount, otherwise leave
-        /// as true so that the exchange does not reject the order due to too many decimal places.
-        /// </summary>
-        public bool ShouldRoundAmount { get; set; } = true;
-
-        /// <summary>
-        /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
-        /// </summary>
-        public OrderType OrderType { get; set; } = OrderType.Limit;
-
-        /// <summary>
-        /// Return a rounded amount if needed
-        /// </summary>
-        /// <returns>Rounded amount or amount if no rounding is needed</returns>
-        public decimal RoundAmount()
-        {
-            return (ShouldRoundAmount ? CryptoUtility.RoundAmount(Amount) : Amount);
-        }
-    }
-
-    /// <summary>
+    /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
     /// Types of orders
     /// </summary>
     public enum OrderType

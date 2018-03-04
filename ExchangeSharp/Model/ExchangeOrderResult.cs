@@ -85,6 +85,11 @@ namespace ExchangeSharp
         public decimal AmountFilled { get; set; }
 
         /// <summary>
+        /// Price
+        /// </summary>
+        public decimal Price { get; set; }
+
+        /// <summary>
         /// Average price
         /// </summary>
         public decimal AveragePrice { get; set; }

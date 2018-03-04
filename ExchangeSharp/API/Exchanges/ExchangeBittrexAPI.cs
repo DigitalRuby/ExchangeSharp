@@ -21,6 +21,8 @@ using System.Web;
 
 namespace ExchangeSharp
 {
+    using System.Linq;
+
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
@@ -28,10 +30,9 @@ namespace ExchangeSharp
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
         private BittrexSocketClient socketClient;
-        private readonly object socketClientLock = new object();
 
         /// <summary>
-        /// Gets the singleton BittrexSocketClient
+        /// Gets the BittrexSocketClient for this API
         /// </summary>
         private BittrexSocketClient SocketClient
         {
@@ -39,7 +40,7 @@ namespace ExchangeSharp
             {
                 if (this.socketClient == null)
                 {
-                    lock (this.socketClientLock)
+                    lock (this)
                     {
                         if (this.socketClient == null)
                         {
@@ -74,6 +75,7 @@ namespace ExchangeSharp
             decimal amountFilled = amount - remaining;
             order.Amount = amount;
             order.AmountFilled = amountFilled;
+            order.Price = token["Price"].ConvertInvariant<decimal>();
             order.AveragePrice = token["PricePerUnit"].ConvertInvariant<decimal>(token["Price"].ConvertInvariant<decimal>());
             order.Message = string.Empty;
             order.OrderId = token["OrderUuid"].ToStringInvariant();
@@ -115,19 +117,62 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override IEnumerable<string> GetSymbols()
+        public override IEnumerable<ExchangeCurrency> GetCurrencies()
         {
-            List<string> symbols = new List<string>();
+            var currencies = new List<ExchangeCurrency>();
+            JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
+            JToken result = CheckError(obj);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    var coin = new ExchangeCurrency
+                    {
+                        Name = token["Currency"].ToStringUpperInvariant(),
+                        FullName = token["CurrencyLong"].ToStringInvariant(),
+                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                        Notes = token["Notice"].ToStringInvariant()
+                    };
+                    currencies.Add(coin);
+                }
+            }
+
+            return currencies;
+        }
+
+        /// <summary>
+        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
+        /// </summary>
+        /// <returns>Collection of ExchangeMarkets</returns>
+        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        {
+            var markets = new List<ExchangeMarket>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
             JToken result = CheckError(obj);
             if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
-                    symbols.Add(token["MarketName"].ToStringInvariant());
+                    var market = new ExchangeMarket
+                    {
+                        MarketName = token["MarketName"].ToStringUpperInvariant(),
+                        IsActive = token["IsActive"].ConvertInvariant<bool>(),
+                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+                        BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
+                        MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant()
+                    };
+                    markets.Add(market);
                 }
             }
-            return symbols;
+
+            return markets;
+        }
+
+
+        public override IEnumerable<string> GetSymbols()
+        {
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -341,8 +386,13 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null)
+        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
+            if (limit != null)
+            {
+                throw new APIException("Limit parameter not supported");
+            }
+
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
             // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
             string periodString;
@@ -493,6 +543,28 @@ namespace ExchangeSharp
                     yield return order;
                 }
             }
+        }
+
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
+
+            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                url += $"&paymentid{withdrawalRequest.AddressTag}";
+            }
+
+            JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
+            JToken result = CheckError(response);
+
+            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
+            {
+                Id = result["uuid"].ToStringInvariant(),
+                Message = result["msg"].ToStringInvariant()
+            };
+
+            return withdrawalResponse;
         }
 
         public override void CancelOrder(string orderId)
