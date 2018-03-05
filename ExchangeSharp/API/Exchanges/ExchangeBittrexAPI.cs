@@ -31,39 +31,45 @@ namespace ExchangeSharp
 
         private BittrexSocketClient socketClient;
 
+        /// <summary>Coin types that both an address and a memo to make the deposit</summary>
         public HashSet<string> TwoFieldDepositCoinTypes { get; }
 
+        /// <summary>Coin types that only require an address to make the deposit</summary>
         public HashSet<string> OneFieldDepositCoinTypes { get; }
 
         public ExchangeBittrexAPI()
         {
-            this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            this.TwoFieldDepositCoinTypes.Add("NXT");
-            this.TwoFieldDepositCoinTypes.Add("NXT_MS");
-            this.TwoFieldDepositCoinTypes.Add("CRYPTO_NOTE_PAYMENTID");
-            this.TwoFieldDepositCoinTypes.Add("BITSHAREX");
-            this.TwoFieldDepositCoinTypes.Add("RIPPLE");
-            this.TwoFieldDepositCoinTypes.Add("NEM");
-            this.TwoFieldDepositCoinTypes.Add("LUMEN");
-            this.TwoFieldDepositCoinTypes.Add("STEEM");
+            this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "BITSHAREX",
+                "CRYPTO_NOTE_PAYMENTID",
+                "LUMEN",
+                "NEM",
+                "NXT",
+                "NXT_MS",
+                "RIPPLE",
+                "STEEM"
+            };
 
-            this.OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            this.OneFieldDepositCoinTypes.Add("BITCOIN");
-            this.OneFieldDepositCoinTypes.Add("BITCOINEX");
-            this.OneFieldDepositCoinTypes.Add("COUNTERPARTY");
-            this.OneFieldDepositCoinTypes.Add("BITCOIN_STEALTH");
-            this.OneFieldDepositCoinTypes.Add("ETH_CONTRACT");
-            this.OneFieldDepositCoinTypes.Add("ETH");
-            this.OneFieldDepositCoinTypes.Add("OMNI");
-            this.OneFieldDepositCoinTypes.Add("FACTOM");
-            this.OneFieldDepositCoinTypes.Add("BITCOIN_PERCENTAGE_FEE");
-            this.OneFieldDepositCoinTypes.Add("LISK");
-            this.OneFieldDepositCoinTypes.Add("WAVES");
-            this.OneFieldDepositCoinTypes.Add("ANTSHARES");
-            this.OneFieldDepositCoinTypes.Add("WAVES_ASSET");
-            this.OneFieldDepositCoinTypes.Add("BYTEBALL");
-            this.OneFieldDepositCoinTypes.Add("SIA");
-            this.OneFieldDepositCoinTypes.Add("ADA");
+            this.OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ADA",
+                "ANTSHARES",
+                "BITCOIN",
+                "BITCOIN_PERCENTAGE_FEE",
+                "BITCOIN_STEALTH",
+                "BITCOINEX",
+                "BYTEBALL",
+                "COUNTERPARTY",
+                "ETH",
+                "ETH_CONTRACT",
+                "FACTOM",
+                "LISK",
+                "OMNI",
+                "SIA",
+                "WAVES",
+                "WAVES_ASSET",
+            };
         }
 
         /// <summary>
