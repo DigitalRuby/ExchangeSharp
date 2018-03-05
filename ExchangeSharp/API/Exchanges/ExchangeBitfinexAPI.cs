@@ -29,12 +29,29 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
         public override string Name => ExchangeName.Bitfinex;
 
+        public Dictionary<string, string> DepositMethodLookup { get; }
+
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
 
         public ExchangeBitfinexAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
+
+            // TODO: Finish these
+            this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["BTC"] = "bitcoin",
+                ["LTC"] = "litecoin",
+                ["ETH"] = "ethereum",
+                ["ETC"] = "ethereumc",
+                ["ZEC"] = "zcash",
+                ["XMR"] = "monero",
+                ["MIOTA"] = "iota",
+                ["BCH"] = "bcash",
+                ["XRP"] = "ripple",
+                ["???"] = "tetheruso" // TODO: what's the symbol?
+            };
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -477,9 +494,14 @@ namespace ExchangeSharp
 
         public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
-            symbol = GetFullNameFromSymbol(symbol);
             Dictionary<string, object> payload = GetNoncePayload();
-            payload["method"] = symbol; // symbol probably wrong -- needs to be full name of coin: bitcoin/litecoin/ethereum
+
+            if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            {
+                return null;
+            }
+
+            payload["method"] = fullName; // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
             payload["wallet_name"] = "exchange";
             payload["renew"] = 0;
             JToken result = MakeJsonRequest<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
@@ -488,7 +510,6 @@ namespace ExchangeSharp
             var details = new ExchangeDepositDetails
             {
                 Symbol = result["currency"].ToStringInvariant(),
-
             };
 
             if (result["address_pool"] != null)
@@ -503,30 +524,6 @@ namespace ExchangeSharp
 
             return details;
         }
-
-        private string GetFullNameFromSymbol(string symbol)
-        {
-            // lookup table for symbol to full name because for some reason bittrex requires the full coin name.
-            this.FullNameLookup.TryGetValue(symbol, out var result);
-
-            return result;
-        }
-
-        public Dictionary<string,string> FullNameLookup = new Dictionary<string, string>
-        {
-            ["BTC"] = "bitcoin" ,
-            ["AID"] = "AidCoin",
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-            ["BTC"] = "bitcoin" ,
-           
-
-        };
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {

@@ -681,15 +681,12 @@ namespace ExchangeSharp
             return base.ProcessRequestUrl(url, payload);
         }
 
-
         public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["asset"] = NormalizeSymbol(symbol);
 
-            // yes, .html ...
-            JToken response = MakeJsonRequest<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload, "GET");
-
+            JToken response = MakeJsonRequest<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
             CheckError(response);
 
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
