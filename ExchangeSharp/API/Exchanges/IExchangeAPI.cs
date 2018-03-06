@@ -50,6 +50,14 @@ namespace ExchangeSharp
         void LoadAPIKeys(string encryptedFile);
 
         /// <summary>
+        ///  Load API keys from unsecure strings
+        /// <param name="publicApiKey">Public Api Key</param>
+        /// <param name="privateApiKey">Private Api Key</param>
+        /// <param name="passPhrase">Pass phrase, null for none</param>
+        /// </summary>
+        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null);
+
+        /// <summary>
         /// Normalize a symbol for use on this exchange
         /// </summary>
         /// <param name="symbol">Symbol</param>

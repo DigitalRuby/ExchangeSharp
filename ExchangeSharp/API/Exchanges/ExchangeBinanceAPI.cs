@@ -623,7 +623,7 @@ namespace ExchangeSharp
                 OrderId = token["orderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant()
             };
-            result.AveragePrice = (result.AmountFilled <= 0m ? 0m : result.Price / result.AmountFilled);
+            result.AveragePrice = result.Price;
             switch (token["status"].ToStringInvariant())
             {
                 case "NEW":
