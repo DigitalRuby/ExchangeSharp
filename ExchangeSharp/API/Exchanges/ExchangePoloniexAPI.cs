@@ -216,10 +216,12 @@ namespace ExchangeSharp
             {
                 var currency = new ExchangeCurrency
                 {
-                    Name = kvp.Key,
+                    BaseAddress = kvp.Value["depositAddress"].ToStringInvariant(),
                     FullName = kvp.Value["name"].ToStringInvariant(),
                     IsEnabled = true,
-                    TxFee = kvp.Value["txFee"].ConvertInvariant<decimal>()
+                    MinConfirmations = kvp.Value["minConf"].ConvertInvariant<int>(),
+                    Name = kvp.Key,
+                    TxFee = kvp.Value["txFee"].ConvertInvariant<decimal>(),
                 };
 
                 string disabled = kvp.Value["disabled"].ToStringInvariant();
@@ -619,41 +621,88 @@ namespace ExchangeSharp
         public override ExchangeDepositDetails GetDepositAddress(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken result = MakePrivateAPIRequest("returnDepositAddresses");
-            CheckError(result);
 
-            var depositAddresses = new Dictionary<string, ExchangeDepositDetails>();
+            Dictionary<string, ExchangeCurrency> currencies = this.GetCurrencies();
 
-            foreach (JProperty token in result)
+            if (!this.TryFetchExistingAddresses(symbol, currencies, out Dictionary<string, ExchangeDepositDetails> depositAddresses))
             {
-                var details = new ExchangeDepositDetails
-                {
-                    Address = token.Value.ToStringInvariant(),
-                    Symbol = token.Name
-                };
-
-                depositAddresses[details.Symbol] = details;
+                return null;
             }
-
 
             if (!depositAddresses.TryGetValue(symbol, out var depositDetails))
             {
-                depositDetails = this.CreateDepositAddress(symbol);
+                depositDetails = this.CreateDepositAddress(symbol, currencies);
             }
 
             return depositDetails;
         }
 
-        private ExchangeDepositDetails CreateDepositAddress(string symbol)
+        private bool TryFetchExistingAddresses(string symbol, Dictionary<string, ExchangeCurrency> currencies, out Dictionary<string, ExchangeDepositDetails> depositAddresses)
+        {
+            JToken result = this.MakePrivateAPIRequest("returnDepositAddresses");
+            this.CheckError(result);
+
+            depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (JToken jToken in result)
+            {
+                var token = (JProperty)jToken;
+                var details = new ExchangeDepositDetails { Symbol = token.Name };
+
+                if (!TryPopulateAddressAndMemo(symbol, currencies, details, token.Value.ToStringInvariant()))
+                {
+                    return false;
+                }
+
+                depositAddresses[details.Symbol] = details;
+            }
+
+            return true;
+        }
+
+        private static bool TryPopulateAddressAndMemo(string symbol, Dictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
+        {
+            if (currencies.TryGetValue(symbol, out ExchangeCurrency coin))
+            {
+                if (!string.IsNullOrWhiteSpace(coin.BaseAddress))
+                {
+                    details.Address = coin.BaseAddress;
+                    details.Memo = address;
+                }
+                else
+                {
+                    details.Address = address;
+                }
+
+                return true;
+            }
+
+            // Cannot find currency in master list. 
+            // Stay safe and don't return a possibly half-baked deposit address missing a memo
+            return false;
+
+        }
+
+        /// <summary>
+        /// Create a deposit address
+        /// </summary>
+        /// <param name="symbol">Symbol to create an address for</param>
+        /// <param name="currencies">Lookup of existing currencies</param>
+        /// <returns>ExchangeDepositDetails with an address or a BaseAddress/Memo pair.</returns>
+        private ExchangeDepositDetails CreateDepositAddress(string symbol, Dictionary<string, ExchangeCurrency> currencies)
         {
             JToken result = MakePrivateAPIRequest("generateNewAddress", "currency", symbol);
             CheckError(result);
+
             var details = new ExchangeDepositDetails
             {
                 Symbol = symbol,
-                Address = result["response"].ToStringInvariant(),
-                //                Memo = 
             };
+
+            if (!TryPopulateAddressAndMemo(symbol, currencies, details, result["response"].ToStringInvariant()))
+            {
+                return null;
+            }
 
             return details;
         }

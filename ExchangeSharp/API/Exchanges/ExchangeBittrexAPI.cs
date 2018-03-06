@@ -170,13 +170,14 @@ namespace ExchangeSharp
                 {
                     var coin = new ExchangeCurrency
                     {
-                        Name = token["Currency"].ToStringUpperInvariant(),
-                        FullName = token["CurrencyLong"].ToStringInvariant(),
-                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
-                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
-                        Notes = token["Notice"].ToStringInvariant(),
+                        BaseAddress = token["BaseAddress"].ToStringInvariant(),
                         CoinType = token["CoinType"].ToStringInvariant(),
-                        BaseAddress = token["BaseAddress"].ToStringInvariant()
+                        FullName = token["CurrencyLong"].ToStringInvariant(),
+                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                        MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
+                        Name = token["Currency"].ToStringUpperInvariant(),
+                        Notes = token["Notice"].ToStringInvariant(),
+                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
                     };
 
                     currencies[coin.Name] = coin;
