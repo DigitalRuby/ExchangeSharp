@@ -618,13 +618,19 @@ namespace ExchangeSharp
             }
         }
 
-        public override ExchangeDepositDetails GetDepositAddress(string symbol)
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
             symbol = NormalizeSymbol(symbol);
 
-            Dictionary<string, ExchangeCurrency> currencies = this.GetCurrencies();
+            // Never reuse IOTA addresses
+            if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
+            {
+                forceRegenerate = true;
+            }
 
-            if (!this.TryFetchExistingAddresses(symbol, currencies, out Dictionary<string, ExchangeDepositDetails> depositAddresses))
+            Dictionary<string, ExchangeCurrency> currencies = this.GetCurrencies();
+            var depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
+            if (!forceRegenerate && !this.TryFetchExistingAddresses(symbol, currencies, depositAddresses))
             {
                 return null;
             }
@@ -637,12 +643,10 @@ namespace ExchangeSharp
             return depositDetails;
         }
 
-        private bool TryFetchExistingAddresses(string symbol, Dictionary<string, ExchangeCurrency> currencies, out Dictionary<string, ExchangeDepositDetails> depositAddresses)
+        private bool TryFetchExistingAddresses(string symbol, Dictionary<string, ExchangeCurrency> currencies, Dictionary<string, ExchangeDepositDetails> depositAddresses)
         {
             JToken result = this.MakePrivateAPIRequest("returnDepositAddresses");
             this.CheckError(result);
-
-            depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
 
             foreach (JToken jToken in result)
             {

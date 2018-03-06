@@ -38,19 +38,19 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
 
-            // TODO: Finish these
+            // TODO: Bitfinex supports deposits of more than these but the API docs don't specify what nouns to use
             this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                ["BTC"] = "bitcoin",
-                ["LTC"] = "litecoin",
-                ["ETH"] = "ethereum",
-                ["ETC"] = "ethereumc",
-                ["ZEC"] = "zcash",
-                ["XMR"] = "monero",
-                ["MIOTA"] = "iota",
                 ["BCH"] = "bcash",
+                ["BTC"] = "bitcoin",
+                ["ETC"] = "ethereumc",
+                ["ETH"] = "ethereum",
+                ["LTC"] = "litecoin",
+                ["MIOTA"] = "iota",
+                ["USDT"] = "tetheruso", // didn't work for me but my account isn't verified. Docs say this is correct
+                ["XMR"] = "monero",
                 ["XRP"] = "ripple",
-                ["???"] = "tetheruso" // TODO: what's the symbol?
+                ["ZEC"] = "zcash",
             };
         }
 
@@ -492,18 +492,26 @@ namespace ExchangeSharp
             CheckError(result);
         }
 
-        public override ExchangeDepositDetails GetDepositAddress(string symbol)
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
+            // IOTA addresses should never be used more than once
+            if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
+            {
+                forceRegenerate = true;
+            }
+
             Dictionary<string, object> payload = GetNoncePayload();
 
+            // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
             if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
                 return null;
             }
 
-            payload["method"] = fullName; // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
+            payload["method"] = fullName;
             payload["wallet_name"] = "exchange";
-            payload["renew"] = 0;
+            payload["renew"] = forceRegenerate ? 1 : 0;
+
             JToken result = MakeJsonRequest<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
             CheckError(result);
 

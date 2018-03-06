@@ -228,15 +228,17 @@ namespace ExchangeSharp
         /// Gets the address to deposit to and applicable details.
         /// </summary>
         /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">Regenerate the address</param>
         /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
-        public virtual ExchangeDepositDetails GetDepositAddress(string symbol) { throw new NotImplementedException(); }
+        public virtual ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Gets the address to deposit to and applicable details.
         /// </summary>
         /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">Regenerate the address</param>
         /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
-        public Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol) => Task.Factory.StartNew(() => GetDepositAddress(symbol));
+        public Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false) => Task.Factory.StartNew(() => GetDepositAddress(symbol, forceRegenerate));
 
         /// <summary>
         /// Get candles (open, high, low, close)

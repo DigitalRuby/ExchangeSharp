@@ -625,10 +625,11 @@ namespace ExchangeSharp
         /// If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
         /// </summary>
         /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">(ignored) Bittrex does not support regenerating deposit addresses.</param>
         /// <returns>
         /// Deposit address details (including memo if applicable, such as with XRP)
         /// </returns>
-        public override ExchangeDepositDetails GetDepositAddress(string symbol)
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
             Dictionary<string, ExchangeCurrency> updatedCurrencies = this.GetCurrencies();
 

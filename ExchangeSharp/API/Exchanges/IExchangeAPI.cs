@@ -146,6 +146,14 @@ namespace ExchangeSharp
         Task<Dictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
 
         /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">True to regenerate the address</param>
+        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false);
+
+        /// <summary>
         /// Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
