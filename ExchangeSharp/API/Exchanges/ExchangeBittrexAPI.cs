@@ -254,7 +254,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            BittrexApiResult<int> result = this.SocketClient.SubscribeToAllMarketDeltaStream
+            CryptoExchange.Net.CallResult<int> result = this.SocketClient.SubscribeToAllMarketDeltaStream
             (
                 summaries =>
                 {
@@ -285,7 +285,7 @@ namespace ExchangeSharp
             );
             if (result.Success)
             {
-                streamId = result.Result;
+                streamId = result.Data;
             }
 
             return this.SocketClient;
