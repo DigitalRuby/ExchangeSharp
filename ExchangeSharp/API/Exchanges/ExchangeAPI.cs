@@ -82,14 +82,14 @@ namespace ExchangeSharp
 
         /// <summary>Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
         /// <returns>Collection of Currencies</returns>
-        public virtual IEnumerable<ExchangeCurrency> GetCurrencies()
+        public virtual IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
             throw new NotImplementedException();
         }
 
         /// <summary>ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
         /// <returns>Collection of Currencies</returns>
-        public Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
+        public Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
 
         /// <summary>
         /// Get exchange symbols
@@ -222,6 +222,23 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all trades</returns>
         public Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol) => Task.Factory.StartNew(() => GetRecentTrades(symbol));
+
+
+        /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">Regenerate the address</param>
+        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        public virtual ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// ASYNC - Gets the address to deposit to and applicable details.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">Regenerate the address</param>
+        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        public Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false) => Task.Factory.StartNew(() => GetDepositAddress(symbol, forceRegenerate));
 
         /// <summary>
         /// Get candles (open, high, low, close)

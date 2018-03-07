@@ -31,6 +31,47 @@ namespace ExchangeSharp
 
         private BittrexSocketClient socketClient;
 
+        /// <summary>Coin types that both an address and a memo to make the deposit</summary>
+        public HashSet<string> TwoFieldDepositCoinTypes { get; }
+
+        /// <summary>Coin types that only require an address to make the deposit</summary>
+        public HashSet<string> OneFieldDepositCoinTypes { get; }
+
+        public ExchangeBittrexAPI()
+        {
+            this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "BITSHAREX",
+                "CRYPTO_NOTE_PAYMENTID",
+                "LUMEN",
+                "NEM",
+                "NXT",
+                "NXT_MS",
+                "RIPPLE",
+                "STEEM"
+            };
+
+            this.OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ADA",
+                "ANTSHARES",
+                "BITCOIN",
+                "BITCOIN_PERCENTAGE_FEE",
+                "BITCOIN_STEALTH",
+                "BITCOINEX",
+                "BYTEBALL",
+                "COUNTERPARTY",
+                "ETH",
+                "ETH_CONTRACT",
+                "FACTOM",
+                "LISK",
+                "OMNI",
+                "SIA",
+                "WAVES",
+                "WAVES_ASSET",
+            };
+        }
+
         /// <summary>
         /// Gets the BittrexSocketClient for this API
         /// </summary>
@@ -117,9 +158,10 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override IEnumerable<ExchangeCurrency> GetCurrencies()
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
-            var currencies = new List<ExchangeCurrency>();
+            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+
             JObject obj = MakeJsonRequest<JObject>("/public/getcurrencies");
             JToken result = CheckError(obj);
             if (result is JArray array)
@@ -128,13 +170,17 @@ namespace ExchangeSharp
                 {
                     var coin = new ExchangeCurrency
                     {
-                        Name = token["Currency"].ToStringUpperInvariant(),
+                        BaseAddress = token["BaseAddress"].ToStringInvariant(),
+                        CoinType = token["CoinType"].ToStringInvariant(),
                         FullName = token["CurrencyLong"].ToStringInvariant(),
-                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
                         IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
-                        Notes = token["Notice"].ToStringInvariant()
+                        MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
+                        Name = token["Currency"].ToStringUpperInvariant(),
+                        Notes = token["Notice"].ToStringInvariant(),
+                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
                     };
-                    currencies.Add(coin);
+
+                    currencies[coin.Name] = coin;
                 }
             }
 
@@ -162,6 +208,7 @@ namespace ExchangeSharp
                         BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
                         MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant()
                     };
+
                     markets.Add(market);
                 }
             }
@@ -571,6 +618,54 @@ namespace ExchangeSharp
         {
             JObject obj = MakeJsonRequest<JObject>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
             CheckError(obj);
+        }
+
+        /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">(ignored) Bittrex does not support regenerating deposit addresses.</param>
+        /// <returns>
+        /// Deposit address details (including memo if applicable, such as with XRP)
+        /// </returns>
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
+        {
+            IReadOnlyDictionary<string, ExchangeCurrency> updatedCurrencies = this.GetCurrencies();
+
+            string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
+            JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
+            JToken result = CheckError(response);
+
+            // NOTE API 1.1 does not include the the static wallet address for currencies with memos such as XRP & NXT (API 2.0 does!)
+            // We are getting the static addresses via the GetCurrencies() api.
+            ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
+            {
+                Symbol = result["Currency"].ToStringInvariant(),
+            };
+
+            if (!updatedCurrencies.TryGetValue(depositDetails.Symbol, out ExchangeCurrency coin))
+            {
+                Console.WriteLine($"Unable to find {depositDetails.Symbol} in existing list of coins.");
+                return null;
+            }
+
+            if (this.TwoFieldDepositCoinTypes.Contains(coin.CoinType))
+            {
+                depositDetails.Address = coin.BaseAddress;
+                depositDetails.Memo = result["Address"].ToStringInvariant();
+            }
+            else if (this.OneFieldDepositCoinTypes.Contains(coin.CoinType))
+            {
+                depositDetails.Address = result["Address"].ToStringInvariant();
+            }
+            else
+            {
+                Console.WriteLine($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
+                return null;
+            }
+
+            return depositDetails;
         }
     }
 }

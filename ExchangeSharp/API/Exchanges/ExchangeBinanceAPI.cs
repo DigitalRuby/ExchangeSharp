@@ -135,6 +135,11 @@ namespace ExchangeSharp
             return markets;
         }
 
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
+        {
+            throw new NotSupportedException("Binance does not provide data about its currencies via the API");
+        }
+
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
@@ -674,6 +679,43 @@ namespace ExchangeSharp
                 return url.Uri;
             }
             return base.ProcessRequestUrl(url, payload);
+        }
+
+        /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for</param>
+        /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
+        /// <returns>
+        /// Deposit address details (including memo if applicable, such as XRP)
+        /// </returns>
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
+        {
+            /* 
+            * TODO: Binance does not offer a "regenerate" option in the API, but a second IOTA deposit to the same address will not be credited
+            * How does Binance handle GetDepositAddress for IOTA after it's been used once?
+            * Need to test calling this API after depositing IOTA.
+            */
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = NormalizeSymbol(symbol);
+
+            JToken response = MakeJsonRequest<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
+            CheckError(response);
+
+            ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
+            {
+                Symbol = response["asset"].ToStringInvariant(),
+                Address = response["address"].ToStringInvariant(),
+                Memo = response["addressTag"].ToStringInvariant()
+            };
+
+            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException(response["msg"].ToStringInvariant());
+            }
+
+            return depositDetails;
         }
     }
 }
