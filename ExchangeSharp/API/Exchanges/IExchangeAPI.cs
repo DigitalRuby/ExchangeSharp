@@ -137,13 +137,13 @@ namespace ExchangeSharp
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        Dictionary<string, ExchangeCurrency> GetCurrencies();
+        IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies();
 
         /// <summary>
         /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        Task<Dictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
+        Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
 
         /// <summary>
         /// Gets the address to deposit to and applicable details.

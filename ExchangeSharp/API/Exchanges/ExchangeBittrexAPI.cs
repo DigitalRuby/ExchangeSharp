@@ -158,7 +158,7 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant();
         }
 
-        public override Dictionary<string, ExchangeCurrency> GetCurrencies()
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
             var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
 
@@ -631,7 +631,7 @@ namespace ExchangeSharp
         /// </returns>
         public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
-            Dictionary<string, ExchangeCurrency> updatedCurrencies = this.GetCurrencies();
+            IReadOnlyDictionary<string, ExchangeCurrency> updatedCurrencies = this.GetCurrencies();
 
             string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());

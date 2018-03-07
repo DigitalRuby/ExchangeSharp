@@ -203,7 +203,7 @@ namespace ExchangeSharp
             return symbol?.ToUpperInvariant().Replace('-', '_');
         }
 
-        public override Dictionary<string, ExchangeCurrency> GetCurrencies()
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
             /*
              * {"1CR":{"id":1,"name":"1CRedit","txFee":"0.01000000","minConf":3,"depositAddress":null,"disabled":0,"delisted":1,"frozen":0},
@@ -628,7 +628,7 @@ namespace ExchangeSharp
                 forceRegenerate = true;
             }
 
-            Dictionary<string, ExchangeCurrency> currencies = this.GetCurrencies();
+            IReadOnlyDictionary<string, ExchangeCurrency> currencies = this.GetCurrencies();
             var depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
             if (!forceRegenerate && !this.TryFetchExistingAddresses(symbol, currencies, depositAddresses))
             {
@@ -643,7 +643,7 @@ namespace ExchangeSharp
             return depositDetails;
         }
 
-        private bool TryFetchExistingAddresses(string symbol, Dictionary<string, ExchangeCurrency> currencies, Dictionary<string, ExchangeDepositDetails> depositAddresses)
+        private bool TryFetchExistingAddresses(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, Dictionary<string, ExchangeDepositDetails> depositAddresses)
         {
             JToken result = this.MakePrivateAPIRequest("returnDepositAddresses");
             this.CheckError(result);
@@ -664,7 +664,7 @@ namespace ExchangeSharp
             return true;
         }
 
-        private static bool TryPopulateAddressAndMemo(string symbol, Dictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
+        private static bool TryPopulateAddressAndMemo(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
         {
             if (currencies.TryGetValue(symbol, out ExchangeCurrency coin))
             {
@@ -693,7 +693,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to create an address for</param>
         /// <param name="currencies">Lookup of existing currencies</param>
         /// <returns>ExchangeDepositDetails with an address or a BaseAddress/Memo pair.</returns>
-        private ExchangeDepositDetails CreateDepositAddress(string symbol, Dictionary<string, ExchangeCurrency> currencies)
+        private ExchangeDepositDetails CreateDepositAddress(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies)
         {
             JToken result = MakePrivateAPIRequest("generateNewAddress", "currency", symbol);
             CheckError(result);

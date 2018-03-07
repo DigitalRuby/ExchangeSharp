@@ -149,7 +149,7 @@ namespace ExchangeSharp
             return markets;
         }
 
-        public override Dictionary<string, ExchangeCurrency> GetCurrencies()
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
             throw new NotSupportedException("Bitfinex does not provide data about its currencies via the API");
         }

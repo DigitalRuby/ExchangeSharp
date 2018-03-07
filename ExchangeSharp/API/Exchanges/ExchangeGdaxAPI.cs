@@ -159,7 +159,7 @@ namespace ExchangeSharp
             return this.GetSymbolsMetadata().Select(market => market.MarketName);
         }
 
-        public override Dictionary<string, ExchangeCurrency> GetCurrencies()
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
             var currencies = new Dictionary<string, ExchangeCurrency>();
             JToken products = MakeJsonRequest<JToken>("/currencies");

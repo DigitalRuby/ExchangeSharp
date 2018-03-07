@@ -82,14 +82,14 @@ namespace ExchangeSharp
 
         /// <summary>Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
         /// <returns>Collection of Currencies</returns>
-        public virtual Dictionary<string, ExchangeCurrency> GetCurrencies()
+        public virtual IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
         {
             throw new NotImplementedException();
         }
 
         /// <summary>ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)</summary>
         /// <returns>Collection of Currencies</returns>
-        public Task<Dictionary<string, ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
+        public Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync() => Task.Factory.StartNew(this.GetCurrencies);
 
         /// <summary>
         /// Get exchange symbols
