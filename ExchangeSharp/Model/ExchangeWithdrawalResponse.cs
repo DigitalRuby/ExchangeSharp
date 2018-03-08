@@ -19,5 +19,8 @@ namespace ExchangeSharp
 
         /// <summary>The identifier for the transaction.</summary>
         public string Id;
+
+        /// <summary>Whether the withdrawal was successful</summary>
+        public bool Success = true;
     }
 }

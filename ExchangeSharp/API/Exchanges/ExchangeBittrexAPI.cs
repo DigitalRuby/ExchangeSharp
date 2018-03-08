@@ -599,7 +599,7 @@ namespace ExchangeSharp
             string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
-                url += $"&paymentid{withdrawalRequest.AddressTag}";
+                url += $"&paymentid={withdrawalRequest.AddressTag}";
             }
 
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());

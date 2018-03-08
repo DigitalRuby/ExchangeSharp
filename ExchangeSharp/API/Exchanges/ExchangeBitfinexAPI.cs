@@ -41,12 +41,19 @@ namespace ExchangeSharp
             // TODO: Bitfinex supports deposits of more than these but the API docs don't specify what nouns to use
             this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+                ["AVT"] = "aventus",
                 ["BCH"] = "bcash",
                 ["BTC"] = "bitcoin",
+                ["BTG"] = "bgold",
+                ["DASH"] = "dash", // TODO: Bitfinex returns "DSH" as the symbol name in the API but on the site it is "DASH". How to normalize?
+                ["EDO"] = "eidoo",
+                ["EOS"] = "eos",
                 ["ETC"] = "ethereumc",
                 ["ETH"] = "ethereum",
                 ["LTC"] = "litecoin",
                 ["MIOTA"] = "iota",
+                ["NEO"] = "neo",
+                ["QTUM"] = "qtum",
                 ["USDT"] = "tetheruso", // didn't work for me but my account isn't verified. Docs say this is correct
                 ["XMR"] = "monero",
                 ["XRP"] = "ripple",
@@ -500,14 +507,13 @@ namespace ExchangeSharp
                 forceRegenerate = true;
             }
 
-            Dictionary<string, object> payload = GetNoncePayload();
-
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
             if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
                 return null;
             }
 
+            Dictionary<string, object> payload = GetNoncePayload();
             payload["method"] = fullName;
             payload["wallet_name"] = "exchange";
             payload["renew"] = forceRegenerate ? 1 : 0;
@@ -531,6 +537,43 @@ namespace ExchangeSharp
             }
 
             return details;
+        }
+
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
+            if (!this.DepositMethodLookup.TryGetValue(withdrawalRequest.Asset, out string fullName))
+            {
+                return null;
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["withdraw_type"] = fullName;
+            payload["walletselected"] = "exchange";
+            payload["amount"] = withdrawalRequest.Amount;
+            payload["address"] = withdrawalRequest.ToAddress;
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                payload["payment_id"] = withdrawalRequest.AddressTag;
+            }
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            {
+                payload["account_name"] = withdrawalRequest.Name;
+            }
+
+            JToken result = MakeJsonRequest<JToken>("/withdraw", BaseUrlV1, payload, "POST");
+
+            var resp = new ExchangeWithdrawalResponse();
+            if (!string.Equals(result["status"].ToStringInvariant(), "success", StringComparison.OrdinalIgnoreCase))
+            {
+                resp.Success = false;
+            }
+
+            resp.Id = result["withdrawal_id"].ToStringInvariant();
+            resp.Message = result["message"].ToStringInvariant();
+            return resp;
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
