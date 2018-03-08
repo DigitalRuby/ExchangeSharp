@@ -29,12 +29,29 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
         public override string Name => ExchangeName.Bitfinex;
 
+        public Dictionary<string, string> DepositMethodLookup { get; }
+
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
 
         public ExchangeBitfinexAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
+
+            // TODO: Bitfinex supports deposits of more than these but the API docs don't specify what nouns to use
+            this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["BCH"] = "bcash",
+                ["BTC"] = "bitcoin",
+                ["ETC"] = "ethereumc",
+                ["ETH"] = "ethereum",
+                ["LTC"] = "litecoin",
+                ["MIOTA"] = "iota",
+                ["USDT"] = "tetheruso", // didn't work for me but my account isn't verified. Docs say this is correct
+                ["XMR"] = "monero",
+                ["XRP"] = "ripple",
+                ["ZEC"] = "zcash",
+            };
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -130,6 +147,11 @@ namespace ExchangeSharp
 
             WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
             return markets;
+        }
+
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
+        {
+            throw new NotSupportedException("Bitfinex does not provide data about its currencies via the API");
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -468,6 +490,47 @@ namespace ExchangeSharp
             payload["order_id"] = long.Parse(orderId);
             JObject result = MakeJsonRequest<JObject>("/order/cancel", BaseUrlV1, payload);
             CheckError(result);
+        }
+
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
+        {
+            // IOTA addresses should never be used more than once
+            if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
+            {
+                forceRegenerate = true;
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+
+            // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
+            if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            {
+                return null;
+            }
+
+            payload["method"] = fullName;
+            payload["wallet_name"] = "exchange";
+            payload["renew"] = forceRegenerate ? 1 : 0;
+
+            JToken result = MakeJsonRequest<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
+            CheckError(result);
+
+            var details = new ExchangeDepositDetails
+            {
+                Symbol = result["currency"].ToStringInvariant(),
+            };
+
+            if (result["address_pool"] != null)
+            {
+                details.Address = result["address_pool"].ToStringInvariant();
+                details.Memo = result["address"].ToStringLowerInvariant();
+            }
+            else
+            {
+                details.Address = result["address"].ToStringInvariant();
+            }
+
+            return details;
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
