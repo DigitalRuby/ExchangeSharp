@@ -237,21 +237,17 @@ namespace ExchangeSharp
         /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
         public Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false) => Task.Factory.StartNew(() => GetDepositAddress(symbol, forceRegenerate));
 
-        /// <summary>
-        /// Gets the deposit history for a symbol
-        /// </summary>
+        /// <summary>Gets the deposit history for a symbol</summary>
         /// <param name="symbol">The symbol to check. May be null.</param>
-        /// <returns>
-        /// Collection of ExchangeCoinTransfers
-        /// </returns>
-        public virtual IEnumerable<ExchangeCoinTransfer> GetDepositHistory(string symbol)
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public virtual IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
         {
             throw new NotImplementedException();
         }
 
         /// <summary>ASYNC - Gets the deposit history for a symbol</summary>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        public Task<IEnumerable<ExchangeCoinTransfer>> GetDepositHistoryAsync(string symbol) => Task.Factory.StartNew(() => this.GetDepositHistory(symbol));
+        public Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol) => Task.Factory.StartNew(() => this.GetDepositHistory(symbol));
 
         /// <summary>
         /// Get candles (open, high, low, close)

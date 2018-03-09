@@ -33,7 +33,7 @@ namespace ExchangeSharp
         public string PaymentId { get; set; }
 
         /// <summary>A value indicating whether the transaction is pending</summary>
-        public bool PendingPayment { get; set; }
+        public TransactionStatus Status { get; set; }
 
         /// <summary>The timestamp of the transaction</summary>
         public DateTime Timestamp { get; set; }
