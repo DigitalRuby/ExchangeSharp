@@ -359,6 +359,21 @@ namespace ExchangeSharp
             return orders;
         }
 
+        public override IEnumerable<ExchangeCoinTransfer> GetDepositHistory(string symbol)
+        {
+            symbol = NormalizeSymbol(symbol);
+
+
+
+            string url = $"/account/getwithdrawalhistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
+            CheckError(obj);
+            JToken result = obj["result"];
+
+
+            return new List<ExchangeCoinTransfer>();
+        }
+
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
             // TODO: sinceDateTime is ignored

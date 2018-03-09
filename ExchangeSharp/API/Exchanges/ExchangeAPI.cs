@@ -15,9 +15,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace ExchangeSharp
 {
     /// <summary>
@@ -155,7 +152,7 @@ namespace ExchangeSharp
         /// ASYNC - Get all tickers. If the exchange does not support this, a ticker will be requested for each symbol.
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync() => Task.Factory.StartNew(() => GetTickers());
+        public Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync() => Task.Factory.StartNew(this.GetTickers);
 
         /// <summary>
         /// Get exchange order book
@@ -239,6 +236,22 @@ namespace ExchangeSharp
         /// <param name="forceRegenerate">Regenerate the address</param>
         /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
         public Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false) => Task.Factory.StartNew(() => GetDepositAddress(symbol, forceRegenerate));
+
+        /// <summary>
+        /// Gets the deposit history for a symbol
+        /// </summary>
+        /// <param name="symbol">The symbol to check. May be null.</param>
+        /// <returns>
+        /// Collection of ExchangeCoinTransfers
+        /// </returns>
+        public virtual IEnumerable<ExchangeCoinTransfer> GetDepositHistory(string symbol)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>ASYNC - Gets the deposit history for a symbol</summary>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public Task<IEnumerable<ExchangeCoinTransfer>> GetDepositHistoryAsync(string symbol) => Task.Factory.StartNew(() => this.GetDepositHistory(symbol));
 
         /// <summary>
         /// Get candles (open, high, low, close)
