@@ -1,7 +1,7 @@
-I have a [BUG REPORT] or [FEATURE REQUEST] (send questions to email exchangesharp@digitalruby.com)
+I have a [BUG REPORT] or [FEATURE REQUEST]
 
 Details:
 
 Error Logs (if any):
 
-The more information you can provide, the better :)
+The more information you can provide, the better. If you are wanting a new feature, I would suggest donating.
