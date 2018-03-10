@@ -129,7 +129,7 @@ namespace ExchangeSharp
         {
             _windowSize = windowSize;
             _values = new double[_windowSize];
-            _weightingMultiplier = 2.0f / (_values.Length + 1);
+            _weightingMultiplier = 2.0 / (_values.Length + 1);
             _nextValueIndex = 0;
             _sum = 0;
             _valuesIn = 0;
