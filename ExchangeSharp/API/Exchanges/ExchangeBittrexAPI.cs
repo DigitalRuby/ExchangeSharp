@@ -359,6 +359,67 @@ namespace ExchangeSharp
             return orders;
         }
 
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. May be null.</param>
+        /// <returns>Collection of ExchangeTransactions</returns>
+        public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
+        {
+            var transactions = new List<ExchangeTransaction>();
+            symbol = NormalizeSymbol(symbol);
+
+            string url = $"/account/getwithdrawalhistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
+            JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
+            CheckError(obj);
+            JToken result = obj["result"];
+
+            foreach (var token in result)
+            {
+                var deposit = new ExchangeTransaction();
+                deposit.Address = token["Address"].ToStringInvariant();
+                deposit.Amount = token["Amount"].ConvertInvariant<decimal>();
+                deposit.BlockchainTxId = token["TxId"].ToStringInvariant();
+                deposit.PaymentId = token["PaymentUuid"].ToStringInvariant();
+                deposit.Symbol = token["Currency"].ToStringInvariant();
+                deposit.TxFee = token["TxCost"].ConvertInvariant<decimal>();
+
+                DateTime.TryParse(token["Opened"].ToStringInvariant(), out DateTime timestamp);
+                deposit.TimestampUTC = timestamp;
+
+                bool authorized = token["Authorized"].ConvertInvariant<bool>();
+                bool cancelled = token["Canceled"].ConvertInvariant<bool>();
+                bool pendingPayment = token["PendingPayment"].ConvertInvariant<bool>();
+                bool invalidAddress = token["InvalidAddress"].ConvertInvariant<bool>();
+
+                deposit.Notes = $"Authorized:{authorized} Cancelled:{cancelled} PendingPayment:{pendingPayment} InvalidAddress:{invalidAddress}";
+
+                if (cancelled)
+                {
+                    deposit.Status = TransactionStatus.Failure;
+                }
+                else if (invalidAddress)
+                {
+                    deposit.Status = TransactionStatus.Rejected;
+                }
+                else if (!authorized)
+                {
+                    deposit.Status = TransactionStatus.AwaitingApproval;
+                }
+                else if (pendingPayment)
+                {
+                    deposit.Status = TransactionStatus.Processing;
+                }
+                else
+                {
+                    deposit.Status = TransactionStatus.Complete;
+                    deposit.Notes = $"Transaction successful. ({deposit.Notes})";
+                }
+
+                transactions.Add(deposit);
+            }
+
+            return transactions;
+        }
+
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
         {
             // TODO: sinceDateTime is ignored
@@ -599,7 +660,7 @@ namespace ExchangeSharp
             string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
-                url += $"&paymentid{withdrawalRequest.AddressTag}";
+                url += $"&paymentid={withdrawalRequest.AddressTag}";
             }
 
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());

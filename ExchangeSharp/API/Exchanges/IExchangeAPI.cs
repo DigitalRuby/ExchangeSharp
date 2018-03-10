@@ -161,6 +161,11 @@ namespace ExchangeSharp
         /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
         ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false);
 
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. May be null.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol);
+
         /// <summary>
         /// Get symbols for the exchange
         /// </summary>
