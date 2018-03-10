@@ -244,8 +244,37 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
+        private static void TestMovingAverageCalculator() {
+            // MA without change
+            const int len1 = 10;
+            var ma1 = new MovingAverageCalculator(len1);
+            for(int i=0; i<len1; i++) {
+                ma1.NextValue(5.0);
+            }
+            Assert(ma1.IsMature);
+            Assert(ma1.MovingAverage == 5.0);
+            Assert(ma1.Slope == 0);
+            Assert(ma1.ExponentialMovingAverage == 5.0);
+            Assert(ma1.ExponentialSlope == 0);
+
+            // constant rise
+            const int len2 = 10;
+            var ma2 = new MovingAverageCalculator(len2);
+            for(int i=0; i<len2; i++) {
+                ma2.NextValue(i);
+            }
+            Assert(ma2.IsMature);
+            Assert(ma2.MovingAverage == 4.5);
+            Assert(ma2.Slope == 0.5);
+            Assert(ma2.ExponentialMovingAverage == 5.2393685730326505);
+            Assert(ma2.ExponentialSlope == 0.83569590309968422);
+
+            Console.WriteLine("TestMovingAverageCalculator OK");
+        }
+
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
+            TestMovingAverageCalculator();
             TestRSAFromFile();
             TestAESEncryption();
             TestKeyStore();
