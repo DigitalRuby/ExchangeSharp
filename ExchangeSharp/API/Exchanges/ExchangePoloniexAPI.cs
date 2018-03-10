@@ -620,7 +620,7 @@ namespace ExchangeSharp
 
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            var paramsList = new List<object> { "currency", this.NormalizeSymbol(withdrawalRequest.Asset), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.Address };
+            var paramsList = new List<object> { "currency", this.NormalizeSymbol(withdrawalRequest.Symbol), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.Address };
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
                 paramsList.Add("paymentId");

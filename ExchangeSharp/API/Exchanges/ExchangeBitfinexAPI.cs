@@ -595,7 +595,7 @@ namespace ExchangeSharp
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
-            if (!this.DepositMethodLookup.TryGetValue(withdrawalRequest.Asset, out string fullName))
+            if (!this.DepositMethodLookup.TryGetValue(withdrawalRequest.Symbol, out string fullName))
             {
                 return null;
             }

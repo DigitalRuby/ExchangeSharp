@@ -490,7 +490,7 @@ namespace ExchangeSharp
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             Dictionary<string, object> payload = GetNoncePayload();
-            payload["asset"] = withdrawalRequest.Asset;
+            payload["asset"] = withdrawalRequest.Symbol;
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
 
