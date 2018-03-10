@@ -24,19 +24,19 @@ namespace ExchangeSharp
     public sealed class MovingAverageCalculator
     {
         private int _windowSize;
-        private double[] _values;
+        private decimal[] _values;
         private int _nextValueIndex;
-        private double _sum;
+        private decimal _sum;
         private int _valuesIn;
 
-        private double _weightingMultiplier;
-        private double _previousMovingAverage;
-        private double _previousExponentialMovingAverage;
+        private decimal _weightingMultiplier;
+        private decimal _previousMovingAverage;
+        private decimal _previousExponentialMovingAverage;
 
-        public double MovingAverage { get; private set; }
-        public double Slope { get; private set; }
-        public double ExponentialMovingAverage { get; private set; }
-        public double ExponentialSlope { get; private set; }
+        public decimal MovingAverage { get; private set; }
+        public decimal Slope { get; private set; }
+        public decimal ExponentialMovingAverage { get; private set; }
+        public decimal ExponentialSlope { get; private set; }
 
         public override string ToString()
         {
@@ -63,7 +63,7 @@ namespace ExchangeSharp
         /// moving average.
         /// </summary>
         /// <param name="nextValue">The next value to be considered within the moving average.</param>
-        public void NextValue(double nextValue)
+        public void NextValue(decimal nextValue)
         {
             // add new value to the sum
             _sum += nextValue;
@@ -93,7 +93,7 @@ namespace ExchangeSharp
             _previousMovingAverage = MovingAverage;
 
             // exponential moving average
-            if (_previousExponentialMovingAverage != double.MinValue)
+            if (_previousExponentialMovingAverage != decimal.MinValue)
             {
                 ExponentialMovingAverage = ((nextValue - _previousExponentialMovingAverage) * _weightingMultiplier) + _previousExponentialMovingAverage;
                 ExponentialSlope = ExponentialMovingAverage - _previousExponentialMovingAverage;
@@ -104,7 +104,7 @@ namespace ExchangeSharp
             else
             {
                 ExponentialMovingAverage = nextValue;
-                ExponentialSlope = 0.0f;
+                ExponentialSlope = 0;
                 _previousExponentialMovingAverage = ExponentialMovingAverage;
             }
         }
@@ -128,12 +128,12 @@ namespace ExchangeSharp
         public void Reset(int windowSize)
         {
             _windowSize = windowSize;
-            _values = new double[_windowSize];
-            _weightingMultiplier = 2.0 / (_values.Length + 1);
+            _values = new decimal[_windowSize];
+            _weightingMultiplier = 2.0m / (_values.Length + 1);
             _nextValueIndex = 0;
             _sum = 0;
             _valuesIn = 0;
-            _previousExponentialMovingAverage = double.MinValue;
+            _previousExponentialMovingAverage = decimal.MinValue;
         }
     }
 }

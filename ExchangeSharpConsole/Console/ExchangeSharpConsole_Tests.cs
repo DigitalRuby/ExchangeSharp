@@ -251,14 +251,14 @@ namespace ExchangeSharpConsoleApp
             var ma1 = new MovingAverageCalculator(len1);
             for (int i=0; i<len1*2; i++)
 	    {
-                ma1.NextValue(5.0);
+                ma1.NextValue(5.0m);
                 Assert((i < len1-1) != ma1.IsMature);
-                Assert(ma1.MovingAverage == 5.0);
+                Assert(ma1.MovingAverage == 5.0m);
             }
             Assert(ma1.IsMature);
-            Assert(ma1.MovingAverage == 5.0);
+            Assert(ma1.MovingAverage == 5.0m);
             Assert(ma1.Slope == 0);
-            Assert(ma1.ExponentialMovingAverage == 5.0);
+            Assert(ma1.ExponentialMovingAverage == 5.0m);
             Assert(ma1.ExponentialSlope == 0);
 
             // constant rise
@@ -267,19 +267,19 @@ namespace ExchangeSharpConsoleApp
             for (int i = 0; i < len2; i++)
 	    {
                 ma2.NextValue(i);
-                Assert(ma2.MovingAverage == i/2.0);
+                Assert(ma2.MovingAverage == i/2.0m);
                 Assert((i<len2-1) != ma2.IsMature);
             }
             Assert(ma2.IsMature);
-            Assert(ma2.MovingAverage == 4.5);
-            Assert(ma2.Slope == 0.5);
-            Assert(ma2.ExponentialMovingAverage == 5.2393684801212155);
-            Assert(ma2.ExponentialSlope == 0.83569589330639626);
+            Assert(ma2.MovingAverage == 4.5m);
+            Assert(ma2.Slope == 0.5m);
+            Assert(ma2.ExponentialMovingAverage == 5.2393684801212157169944615194m);
+            Assert(ma2.ExponentialSlope == 0.8356958933063965073345641067m);
 
             for (int i = len2; i < len2 * 2; i++)
 	    {
                 ma2.NextValue(i);
-                Assert(ma2.MovingAverage == i - 4.5);
+                Assert(ma2.MovingAverage == i - 4.5m);
             }
 
             // step function
@@ -287,24 +287,24 @@ namespace ExchangeSharpConsoleApp
             var ma3 = new MovingAverageCalculator(len3);
             for (int i = 0; i < len3; i++)
 	    {
-                ma3.NextValue(i < 5 ? 0 : 1.0);
+                ma3.NextValue(i < 5 ? 0 : 1.0m);
             }
-            Assert(ma3.MovingAverage == 0.5);
-            Assert(ma3.Slope == 0.05555555555555558);
-            Assert(ma3.ExponentialMovingAverage == 0.63335216794679949);
-            Assert(ma3.ExponentialSlope == 0.081477296011822409);
+            Assert(ma3.MovingAverage == 0.5m);
+            Assert(ma3.Slope == 0.0555555555555555555555555556m);
+            Assert(ma3.ExponentialMovingAverage == 0.6333521679467994610402915846m);
+            Assert(ma3.ExponentialSlope == 0.0814772960118223419910463145m);
 
             // inverse step function
             const int len4 = 10;
             var ma4 = new MovingAverageCalculator(len4);
             for(int i = 0; i < len4; i++)
 	    {
-                ma4.NextValue(i < 5 ? 1.0 : 0);
+                ma4.NextValue(i < 5 ? 1.0m : 0);
             }
-            Assert(ma4.MovingAverage == 0.5);
-            Assert(ma4.Slope == -0.05555555555555558);
-            Assert(ma4.ExponentialMovingAverage == 0.36664783205320051);
-            Assert(ma4.ExponentialSlope == -0.081477296011822353);
+            Assert(ma4.MovingAverage == 0.5m);
+            Assert(ma4.Slope == -0.0555555555555555555555555556m);
+            Assert(ma4.ExponentialMovingAverage == 0.3666478320532005389597084154m);
+            Assert(ma4.ExponentialSlope == -0.0814772960118223419910463145m);
 
             Console.WriteLine("TestMovingAverageCalculator OK");
         }
