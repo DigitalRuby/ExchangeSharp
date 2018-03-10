@@ -26,10 +26,29 @@ namespace ExchangeSharp
         /// <summary>Gets or sets the Amount. Secondary address identifier for coins like XRP,XMR etc</summary>
         public decimal Amount { get; set; }
 
-        /// <summary>Description of the address</summary>
-        public string Name { get; set; }
+        /// <summary>Description of the withdrawal</summary>
+        public string Description { get; set; }
 
         /// <summary>Gets or sets the asset.</summary>
         public string Symbol { get; set; }
+
+        /// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
+        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
+        public override string ToString()
+        {
+            // ExchangeWithdrawalRequest: 2.75 ETH to 0x1234asdf
+            string info = $"ExchangeWithdrawalRequest: {this.Amount} {this.Symbol} to {this.Address}";
+            if (!string.IsNullOrWhiteSpace(this.AddressTag))
+            {
+                info += $" with address tag {this.AddressTag}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(this.Description))
+            {
+                info += $" Description: {this.Description}";
+            }
+
+            return info;
+        }
     }
 }

@@ -611,9 +611,9 @@ namespace ExchangeSharp
                 payload["payment_id"] = withdrawalRequest.AddressTag;
             }
 
-            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Description))
             {
-                payload["account_name"] = withdrawalRequest.Name;
+                payload["account_name"] = withdrawalRequest.Description;
             }
 
             JToken result = MakeJsonRequest<JToken>("/withdraw", BaseUrlV1, payload, "POST");
