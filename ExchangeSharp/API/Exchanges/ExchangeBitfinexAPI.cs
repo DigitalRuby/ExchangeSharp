@@ -529,7 +529,7 @@ namespace ExchangeSharp
             if (result["address_pool"] != null)
             {
                 details.Address = result["address_pool"].ToStringInvariant();
-                details.Memo = result["address"].ToStringLowerInvariant();
+                details.AddressTag = result["address"].ToStringLowerInvariant();
             }
             else
             {
@@ -604,7 +604,7 @@ namespace ExchangeSharp
             payload["withdraw_type"] = fullName;
             payload["walletselected"] = "exchange";
             payload["amount"] = withdrawalRequest.Amount;
-            payload["address"] = withdrawalRequest.ToAddress;
+            payload["address"] = withdrawalRequest.Address;
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {

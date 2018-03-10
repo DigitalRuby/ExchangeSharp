@@ -158,7 +158,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">True to regenerate the address</param>
-        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
         ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false);
 
         /// <summary>Gets the deposit history for a symbol</summary>

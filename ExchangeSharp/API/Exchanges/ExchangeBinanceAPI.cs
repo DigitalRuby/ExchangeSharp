@@ -491,7 +491,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["asset"] = withdrawalRequest.Asset;
-            payload["address"] = withdrawalRequest.ToAddress;
+            payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
@@ -686,7 +686,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for</param>
         /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
         /// <returns>
-        /// Deposit address details (including memo if applicable, such as XRP)
+        /// Deposit address details (including tag if applicable, such as XRP)
         /// </returns>
         public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
@@ -706,7 +706,7 @@ namespace ExchangeSharp
             {
                 Symbol = response["asset"].ToStringInvariant(),
                 Address = response["address"].ToStringInvariant(),
-                Memo = response["addressTag"].ToStringInvariant()
+                AddressTag = response["addressTag"].ToStringInvariant()
             };
 
             return depositDetails;

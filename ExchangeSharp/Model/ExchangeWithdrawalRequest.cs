@@ -20,7 +20,7 @@ namespace ExchangeSharp
 
         /// <summary>Gets or sets to address.</summary>
         /// <value>To address.</value>
-        public string ToAddress { get; set; }
+        public string Address { get; set; }
 
         /// <summary>Gets or sets the address tag.</summary>
         /// <value>The address tag.</value>
