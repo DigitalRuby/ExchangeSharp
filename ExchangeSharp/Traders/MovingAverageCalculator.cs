@@ -33,11 +33,30 @@ namespace ExchangeSharp
         private double _previousMovingAverage;
         private double _previousExponentialMovingAverage;
 
+        /// <summary>
+        /// Current moving average
+        /// </summary>
         public double MovingAverage { get; private set; }
+
+        /// <summary>
+        /// Current slope
+        /// </summary>
         public double Slope { get; private set; }
+
+        /// <summary>
+        /// Current exponential moving average
+        /// </summary>
         public double ExponentialMovingAverage { get; private set; }
+
+        /// <summary>
+        /// Current exponential slope
+        /// </summary>
         public double ExponentialSlope { get; private set; }
 
+        /// <summary>
+        /// ToString
+        /// </summary>
+        /// <returns>String</returns>
         public override string ToString()
         {
             return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
@@ -51,7 +70,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="windowSize"></param>
+        /// <param name="windowSize">Number of items until the calculator matures</param>
         public MovingAverageCalculator(int windowSize)
         {
             Reset(windowSize);
@@ -104,7 +123,7 @@ namespace ExchangeSharp
             else
             {
                 ExponentialMovingAverage = nextValue;
-                ExponentialSlope = 0.0f;
+                ExponentialSlope = 0.0;
                 _previousExponentialMovingAverage = ExponentialMovingAverage;
             }
         }
@@ -129,11 +148,149 @@ namespace ExchangeSharp
         {
             _windowSize = windowSize;
             _values = new double[_windowSize];
-            _weightingMultiplier = 2.0f / (_values.Length + 1);
+            _weightingMultiplier = 2.0 / (_values.Length + 1);
             _nextValueIndex = 0;
             _sum = 0;
             _valuesIn = 0;
             _previousExponentialMovingAverage = double.MinValue;
+        }
+    }
+
+    /// <summary>
+    /// Calculates a moving average value over a specified window using decimal instead of double
+    /// </summary>
+    public sealed class MovingAverageCalculatorDecimal
+    {
+        private int _windowSize;
+        private decimal[] _values;
+        private int _nextValueIndex;
+        private decimal _sum;
+        private int _valuesIn;
+
+        private decimal _weightingMultiplier;
+        private decimal _previousMovingAverage;
+        private decimal _previousExponentialMovingAverage;
+
+        /// <summary>
+        /// Current moving average
+        /// </summary>
+        public decimal MovingAverage { get; private set; }
+
+        /// <summary>
+        /// Current slope
+        /// </summary>
+        public decimal Slope { get; private set; }
+
+        /// <summary>
+        /// Current exponential moving average
+        /// </summary>
+        public decimal ExponentialMovingAverage { get; private set; }
+
+        /// <summary>
+        /// Current exponential slope
+        /// </summary>
+        public decimal ExponentialSlope { get; private set; }
+
+        /// <summary>
+        /// ToString
+        /// </summary>
+        /// <returns>String</returns>
+        public override string ToString()
+        {
+            return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
+        }
+
+        /// <summary>
+        /// Constructor - must call Reset before use
+        /// </summary>
+        public MovingAverageCalculatorDecimal() { }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="windowSize">Number of items until the calculator matures</param>
+        public MovingAverageCalculatorDecimal(int windowSize)
+        {
+            Reset(windowSize);
+        }
+
+        /// <summary>
+        /// Updates the moving average with its next value.
+        /// When IsMature is true and NextValue is called, a previous value will 'fall out' of the
+        /// moving average.
+        /// </summary>
+        /// <param name="nextValue">The next value to be considered within the moving average.</param>
+        public void NextValue(decimal nextValue)
+        {
+            // add new value to the sum
+            _sum += nextValue;
+
+            if (_valuesIn < _windowSize)
+            {
+                // we haven't yet filled our window
+                _valuesIn++;
+            }
+            else
+            {
+                // remove oldest value from sum
+                _sum -= _values[_nextValueIndex];
+            }
+
+            // store the value
+            _values[_nextValueIndex] = nextValue;
+
+            // progress the next value index pointer
+            _nextValueIndex++;
+            if (_nextValueIndex == _windowSize)
+            {
+                _nextValueIndex = 0;
+            }
+            MovingAverage = _sum / _valuesIn;
+            Slope = MovingAverage - _previousMovingAverage;
+            _previousMovingAverage = MovingAverage;
+
+            // exponential moving average
+            if (_previousExponentialMovingAverage != decimal.MinValue)
+            {
+                ExponentialMovingAverage = ((nextValue - _previousExponentialMovingAverage) * _weightingMultiplier) + _previousExponentialMovingAverage;
+                ExponentialSlope = ExponentialMovingAverage - _previousExponentialMovingAverage;
+
+                //update previous average
+                _previousExponentialMovingAverage = ExponentialMovingAverage;
+            }
+            else
+            {
+                ExponentialMovingAverage = nextValue;
+                ExponentialSlope = 0.0m;
+                _previousExponentialMovingAverage = ExponentialMovingAverage;
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether enough values have been provided to fill the
+        /// specified window size.  Values returned from NextValue may still be used prior
+        /// to IsMature returning true, however such values are not subject to the intended
+        /// smoothing effect of the moving average's window size.
+        /// </summary>
+        public bool IsMature
+        {
+            get { return _valuesIn == _windowSize; }
+        }
+
+        /// <summary>
+        /// Clears any accumulated state and resets the calculator to its initial configuration.
+        /// Calling this method is the equivalent of creating a new instance.
+        /// Must be called before first use
+        /// </summary>
+        public void Reset(int windowSize)
+        {
+            _windowSize = windowSize;
+            _values = new decimal[_windowSize];
+            _weightingMultiplier = 2.0m / (_values.Length + 1);
+            _nextValueIndex = 0;
+            _sum = 0;
+            _valuesIn = 0;
+            _previousExponentialMovingAverage = decimal.MinValue;
         }
     }
 }
