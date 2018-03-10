@@ -504,20 +504,14 @@ namespace ExchangeSharp
                 payload["addressTag"] = withdrawalRequest.AddressTag;
             }
 
-            // yes, .html ...
             JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
-
             CheckError(response);
+
             ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = response["id"].ToStringInvariant(),
                 Message = response["msg"].ToStringInvariant(),
             };
-
-            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
-            {
-                throw new APIException(response["msg"].ToStringInvariant());
-            }
 
             return withdrawalResponse;
         }
@@ -549,6 +543,11 @@ namespace ExchangeSharp
             if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
             {
                 throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
+            }
+
+            if (result["success"] == null || !result["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException(result["msg"].ToStringInvariant());
             }
         }
 
@@ -710,12 +709,53 @@ namespace ExchangeSharp
                 Memo = response["addressTag"].ToStringInvariant()
             };
 
-            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
+            return depositDetails;
+        }
+
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. Null for all symbols.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
+        {
+            // TODO: API supports searching on status, startTime, endTime
+            Dictionary<string, object> payload = GetNoncePayload();
+            if (!string.IsNullOrWhiteSpace(symbol))
             {
-                throw new APIException(response["msg"].ToStringInvariant());
+                payload["asset"] = NormalizeSymbol(symbol);
             }
 
-            return depositDetails;
+            JToken response = MakeJsonRequest<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload, "POST");
+            CheckError(response);
+
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in response["depositList"])
+            {
+                var transaction = new ExchangeTransaction();
+                transaction.Timestamp = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
+                transaction.Amount = token["amount"].ConvertInvariant<decimal>();
+                transaction.Symbol = token["asset"].ToStringUpperInvariant();
+                transaction.Address = token["address"].ToStringInvariant();
+                transaction.BlockchainTxId = token["txId"].ToStringInvariant();
+                int status = token["status"].ConvertInvariant<int>();
+                switch (status)
+                {
+                    case 0:
+                        transaction.Status = TransactionStatus.Processing;
+                        break;
+                    case 1:
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    default:
+                        // If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes = "Unknown transaction status: " + status;
+                        break;
+                }
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
         }
     }
 }

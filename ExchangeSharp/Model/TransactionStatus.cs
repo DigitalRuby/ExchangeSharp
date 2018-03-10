@@ -22,6 +22,8 @@ namespace ExchangeSharp
 
         Processing,
 
-        Rejected
+        Rejected,
+
+        Unknown
     }
 }

@@ -659,6 +659,49 @@ namespace ExchangeSharp
             return depositDetails;
         }
 
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">(ignored) The symbol to check.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
+        {
+            JToken result = this.MakePrivateAPIRequest(
+                                                       "returnDepositsWithdrawals",
+                                                       "start",
+                                                       DateTime.MinValue.UnixTimestampFromDateTimeSeconds(),
+                                                       "end",
+                                                       DateTime.UtcNow.UnixTimestampFromDateTimeSeconds());
+            this.CheckError(result);
+
+            var transactions = new List<ExchangeTransaction>();
+
+            foreach (JToken token in result["deposits"])
+            {
+                var deposit = new ExchangeTransaction();
+                deposit.Symbol = token["currency"].ToStringUpperInvariant();
+                deposit.Address = token["address"].ToStringInvariant();
+                deposit.Amount = token["amount"].ConvertInvariant<decimal>();
+                deposit.BlockchainTxId = token["txid"].ToStringInvariant();
+                deposit.Timestamp = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds();
+
+                string status = token["status"].ToStringUpperInvariant();
+                switch (status)
+                {
+                    case "COMPLETE":
+                        deposit.Status = TransactionStatus.Complete;
+                        break;
+                    default:
+                        // TODO: API Docs don't specify what other options there will be for transaction status
+                        deposit.Status = TransactionStatus.Unknown;
+                        deposit.Notes = "Transaction status: " + status;
+                        break;
+                }
+
+                transactions.Add(deposit);
+            }
+
+            return transactions;
+        }
+
         private bool TryFetchExistingAddresses(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, Dictionary<string, ExchangeDepositDetails> depositAddresses)
         {
             JToken result = this.MakePrivateAPIRequest("returnDepositAddresses");
