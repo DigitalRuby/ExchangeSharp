@@ -681,7 +681,7 @@ namespace ExchangeSharp
                 deposit.Address = token["address"].ToStringInvariant();
                 deposit.Amount = token["amount"].ConvertInvariant<decimal>();
                 deposit.BlockchainTxId = token["txid"].ToStringInvariant();
-                deposit.Timestamp = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds();
+                deposit.TimestampUTC = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds();
 
                 string status = token["status"].ToStringUpperInvariant();
                 switch (status)

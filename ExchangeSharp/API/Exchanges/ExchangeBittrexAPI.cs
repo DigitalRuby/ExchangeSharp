@@ -383,7 +383,7 @@ namespace ExchangeSharp
                 deposit.TxFee = token["TxCost"].ConvertInvariant<decimal>();
 
                 DateTime.TryParse(token["Opened"].ToStringInvariant(), out DateTime timestamp);
-                deposit.Timestamp = timestamp;
+                deposit.TimestampUTC = timestamp;
 
                 bool authorized = token["Authorized"].ConvertInvariant<bool>();
                 bool cancelled = token["Canceled"].ConvertInvariant<bool>();

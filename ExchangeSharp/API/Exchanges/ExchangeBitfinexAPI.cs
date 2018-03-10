@@ -539,6 +539,59 @@ namespace ExchangeSharp
             return details;
         }
 
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. Must be specified.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new ArgumentNullException(nameof(symbol));
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["currency"] = NormalizeSymbol(symbol);
+
+            JToken result = MakeJsonRequest<JToken>("/history/movements", BaseUrlV1, payload, "POST");
+            CheckError(result);
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in result)
+            {
+                if (!string.Equals(token["type"].ToStringUpperInvariant(), "DEPOSIT"))
+                {
+                    continue;
+                }
+
+                var transaction = new ExchangeTransaction();
+                transaction.PaymentId = token["id"].ToStringInvariant();
+                transaction.BlockchainTxId = token["txid"].ToStringInvariant();
+                transaction.Symbol = token["currency"].ToStringUpperInvariant();
+                transaction.Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant();
+                transaction.Amount = token["amount"].ConvertInvariant<decimal>();
+                transaction.Address = token["address"].ToStringInvariant();
+
+                string status = token["status"].ToStringUpperInvariant();
+                switch (status)
+                {
+                    case "COMPLETED":
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    default:
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes += ", Unknown transaction status " + status;
+                        break;
+                }
+
+                double unixTimestamp = token["timestamp"].ConvertInvariant<double>();
+                transaction.TimestampUTC = unixTimestamp.UnixTimeStampToDateTimeSeconds();
+                transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
+        }
+
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum

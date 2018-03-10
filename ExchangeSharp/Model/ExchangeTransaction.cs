@@ -20,6 +20,9 @@ namespace ExchangeSharp
         /// <summary>The address the transaction was sent to</summary>
         public string Address { get; set; }
 
+        /// <summary>The address tag used for currencies like Ripple</summary>
+        public string AddressTag { get; set; }
+
         /// <summary>The amount of the transaction</summary>
         public decimal Amount { get; set; }
 
@@ -36,7 +39,7 @@ namespace ExchangeSharp
         public TransactionStatus Status { get; set; }
 
         /// <summary>The timestamp of the transaction</summary>
-        public DateTime Timestamp { get; set; }
+        public DateTime TimestampUTC { get; set; }
 
         /// <summary>The fee on the transaction</summary>
         public decimal TxFee { get; set; }

@@ -724,17 +724,18 @@ namespace ExchangeSharp
                 payload["asset"] = NormalizeSymbol(symbol);
             }
 
-            JToken response = MakeJsonRequest<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload, "POST");
+            JToken response = MakeJsonRequest<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);
             CheckError(response);
 
             var transactions = new List<ExchangeTransaction>();
             foreach (JToken token in response["depositList"])
             {
                 var transaction = new ExchangeTransaction();
-                transaction.Timestamp = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
+                transaction.TimestampUTC = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
                 transaction.Amount = token["amount"].ConvertInvariant<decimal>();
                 transaction.Symbol = token["asset"].ToStringUpperInvariant();
                 transaction.Address = token["address"].ToStringInvariant();
+                transaction.AddressTag = token["addressTag"].ToStringInvariant();
                 transaction.BlockchainTxId = token["txId"].ToStringInvariant();
                 int status = token["status"].ConvertInvariant<int>();
                 switch (status)
