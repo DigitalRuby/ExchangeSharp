@@ -18,40 +18,37 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Calculates a moving average value over a specified window
-    /// </summary>
-    public sealed class MovingAverageCalculator
+    public abstract class MovingAverageCalculatorBase<T>
     {
-        private int _windowSize;
-        private double[] _values;
-        private int _nextValueIndex;
-        private double _sum;
-        private int _valuesIn;
+        protected int _windowSize;
+        protected T[] _values;
+        protected int _nextValueIndex;
+        protected T _sum;
+        protected int _valuesIn;
 
-        private double _weightingMultiplier;
-        private double _previousMovingAverage;
-        private double _previousExponentialMovingAverage;
+        protected T _weightingMultiplier;
+        protected T _previousMovingAverage;
+        protected T _previousExponentialMovingAverage;
 
         /// <summary>
         /// Current moving average
         /// </summary>
-        public double MovingAverage { get; private set; }
+        public T MovingAverage { get; protected set; }
 
         /// <summary>
         /// Current slope
         /// </summary>
-        public double Slope { get; private set; }
+        public T Slope { get; protected set; }
 
         /// <summary>
         /// Current exponential moving average
         /// </summary>
-        public double ExponentialMovingAverage { get; private set; }
+        public T ExponentialMovingAverage { get; protected set; }
 
         /// <summary>
         /// Current exponential slope
         /// </summary>
-        public double ExponentialSlope { get; private set; }
+        public T ExponentialSlope { get; protected set; }
 
         /// <summary>
         /// ToString
@@ -61,17 +58,18 @@ namespace ExchangeSharp
         {
             return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
         }
+    }
 
-        /// <summary>
-        /// Constructor - must call Reset before use
-        /// </summary>
-        public MovingAverageCalculator() { }
-
+    /// <summary>
+    /// Calculates a moving average value over a specified window
+    /// </summary>
+    public sealed class MovingAverageCalculator : MovingAverageCalculatorBase<double>
+    {
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="windowSize">Number of items until the calculator matures</param>
-        public MovingAverageCalculator(int windowSize)
+        public MovingAverageCalculator(int windowSize = 10)
         {
             Reset(windowSize);
         }
@@ -159,57 +157,13 @@ namespace ExchangeSharp
     /// <summary>
     /// Calculates a moving average value over a specified window using decimal instead of double
     /// </summary>
-    public sealed class MovingAverageCalculatorDecimal
+    public sealed class MovingAverageCalculatorDecimal : MovingAverageCalculatorBase<decimal>
     {
-        private int _windowSize;
-        private decimal[] _values;
-        private int _nextValueIndex;
-        private decimal _sum;
-        private int _valuesIn;
-
-        private decimal _weightingMultiplier;
-        private decimal _previousMovingAverage;
-        private decimal _previousExponentialMovingAverage;
-
-        /// <summary>
-        /// Current moving average
-        /// </summary>
-        public decimal MovingAverage { get; private set; }
-
-        /// <summary>
-        /// Current slope
-        /// </summary>
-        public decimal Slope { get; private set; }
-
-        /// <summary>
-        /// Current exponential moving average
-        /// </summary>
-        public decimal ExponentialMovingAverage { get; private set; }
-
-        /// <summary>
-        /// Current exponential slope
-        /// </summary>
-        public decimal ExponentialSlope { get; private set; }
-
-        /// <summary>
-        /// ToString
-        /// </summary>
-        /// <returns>String</returns>
-        public override string ToString()
-        {
-            return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
-        }
-
-        /// <summary>
-        /// Constructor - must call Reset before use
-        /// </summary>
-        public MovingAverageCalculatorDecimal() { }
-
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="windowSize">Number of items until the calculator matures</param>
-        public MovingAverageCalculatorDecimal(int windowSize)
+        public MovingAverageCalculatorDecimal(int windowSize = 10)
         {
             Reset(windowSize);
         }
@@ -264,17 +218,6 @@ namespace ExchangeSharp
                 ExponentialSlope = 0.0m;
                 _previousExponentialMovingAverage = ExponentialMovingAverage;
             }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether enough values have been provided to fill the
-        /// specified window size.  Values returned from NextValue may still be used prior
-        /// to IsMature returning true, however such values are not subject to the intended
-        /// smoothing effect of the moving average's window size.
-        /// </summary>
-        public bool IsMature
-        {
-            get { return _valuesIn == _windowSize; }
         }
 
         /// <summary>
