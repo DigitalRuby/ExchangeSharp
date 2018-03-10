@@ -22,7 +22,7 @@ using ExchangeSharp;
 
 namespace ExchangeSharpConsoleApp
 {
-	public static partial class ExchangeSharpConsole
+    public static partial class ExchangeSharpConsole
     {
         private static void Assert(bool expression)
         {
@@ -244,11 +244,13 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
-        private static void TestMovingAverageCalculator() {
+        private static void TestMovingAverageCalculator()
+	{
             // no change
             const int len1 = 10;
             var ma1 = new MovingAverageCalculator(len1);
-            for(int i=0; i<len1*2; i++) {
+            for (int i=0; i<len1*2; i++)
+	    {
                 ma1.NextValue(5.0);
                 Assert((i < len1-1) != ma1.IsMature);
                 Assert(ma1.MovingAverage == 5.0);
@@ -262,7 +264,8 @@ namespace ExchangeSharpConsoleApp
             // constant rise
             const int len2 = 10;
             var ma2 = new MovingAverageCalculator(len2);
-            for(int i=0; i<len2; i++) {
+            for (int i = 0; i < len2; i++)
+	    {
                 ma2.NextValue(i);
                 Assert(ma2.MovingAverage == i/2.0);
                 Assert((i<len2-1) != ma2.IsMature);
@@ -273,7 +276,8 @@ namespace ExchangeSharpConsoleApp
             Assert(ma2.ExponentialMovingAverage == 5.2393684801212155);
             Assert(ma2.ExponentialSlope == 0.83569589330639626);
 
-            for(int i=len2; i<len2*2; i++) {
+            for (int i = len2; i < len2 * 2; i++)
+	    {
                 ma2.NextValue(i);
                 Assert(ma2.MovingAverage == i - 4.5);
             }
@@ -281,7 +285,8 @@ namespace ExchangeSharpConsoleApp
             // step function
             const int len3 = 10;
             var ma3 = new MovingAverageCalculator(len3);
-            for(int i=0; i<len3; i++) {
+            for (int i = 0; i < len3; i++)
+	    {
                 ma3.NextValue(i < 5 ? 0 : 1.0);
             }
             Assert(ma3.MovingAverage == 0.5);
@@ -292,7 +297,8 @@ namespace ExchangeSharpConsoleApp
             // inverse step function
             const int len4 = 10;
             var ma4 = new MovingAverageCalculator(len4);
-            for(int i=0; i<len4; i++) {
+            for(int i = 0; i < len4; i++)
+	    {
                 ma4.NextValue(i < 5 ? 1.0 : 0);
             }
             Assert(ma4.MovingAverage == 0.5);
