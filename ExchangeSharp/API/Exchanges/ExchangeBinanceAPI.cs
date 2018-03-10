@@ -494,9 +494,9 @@ namespace ExchangeSharp
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
 
-            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Description))
             {
-                payload["name"] = withdrawalRequest.Name;
+                payload["name"] = withdrawalRequest.Description;
             }
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))

@@ -36,8 +36,8 @@ namespace ExchangeSharp
         /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
         public override string ToString()
         {
-            // ExchangeWithdrawalRequest: 2.75 ETH to 0x1234asdf
-            string info = $"ExchangeWithdrawalRequest: {this.Amount} {this.Symbol} to {this.Address}";
+            // 2.75 ETH to 0x1234asdf
+            string info = $"{this.Amount} {this.Symbol} to {this.Address}";
             if (!string.IsNullOrWhiteSpace(this.AddressTag))
             {
                 info += $" with address tag {this.AddressTag}";
