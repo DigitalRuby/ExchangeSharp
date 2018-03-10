@@ -266,8 +266,8 @@ namespace ExchangeSharpConsoleApp
             Assert(ma2.IsMature);
             Assert(ma2.MovingAverage == 4.5);
             Assert(ma2.Slope == 0.5);
-            Assert(ma2.ExponentialMovingAverage == 5.2393685730326505);
-            Assert(ma2.ExponentialSlope == 0.83569590309968422);
+            Assert(ma2.ExponentialMovingAverage == 5.2393684801212155);
+            Assert(ma2.ExponentialSlope == 0.83569589330639626);
 
             Console.WriteLine("TestMovingAverageCalculator OK");
         }
