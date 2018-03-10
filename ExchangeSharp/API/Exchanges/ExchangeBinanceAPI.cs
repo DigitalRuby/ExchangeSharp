@@ -545,9 +545,9 @@ namespace ExchangeSharp
                 throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
             }
 
-            if (result["success"] == null || !result["success"].ConvertInvariant<bool>())
+            if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
             {
-                throw new APIException(result["msg"].ToStringInvariant());
+                throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
             }
         }
 
