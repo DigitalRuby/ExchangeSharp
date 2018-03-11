@@ -46,5 +46,11 @@ namespace ExchangeSharp
 
         /// <summary>The currency symbol (ex. BTC)</summary>
         public string Symbol { get; set; }
+
+        public override string ToString()
+        {
+            return
+                $"{this.Amount} {this.Symbol} (fee: {this.TxFee}) sent to Address: {this.Address ?? "null"} with AddressTag: {this.AddressTag ?? "null"} BlockhainTxId: {this.BlockchainTxId ?? "null"} sent at {this.TimestampUTC} UTC. Status: {this.Status}. Exchange paymentId: {this.PaymentId ?? "null"}. Notes: {this.Notes ?? "null"}";
+        }
     }
 }
