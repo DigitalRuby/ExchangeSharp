@@ -1,7 +1,7 @@
 ﻿/*
 MIT LICENSE
 
-Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
+Copyright 2018 Digital Ruby, LLC - http://www.digitalruby.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -12,15 +12,39 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    public class ExchangeWithdrawalResponse
+    /// <summary>
+    /// State of transaction status
+    /// </summary>
+    public enum TransactionStatus
     {
-        /// <summary>The message of the transacion.</summary>
-        public string Message;
+        /// <summary>
+        /// AwaitingApproval
+        /// </summary>
+        AwaitingApproval,
 
-        /// <summary>The identifier for the transaction.</summary>
-        public string Id;
+        /// <summary>
+        /// Complete
+        /// </summary>
+        Complete,
 
-        /// <summary>Whether the withdrawal was successful</summary>
-        public bool Success = true;
+        /// <summary>
+        /// Failure
+        /// </summary>
+        Failure,
+
+        /// <summary>
+        /// Processing
+        /// </summary>
+        Processing,
+
+        /// <summary>
+        /// Rejected
+        /// </summary>
+        Rejected,
+
+        /// <summary>
+        /// Unknown
+        /// </summary>
+        Unknown
     }
 }

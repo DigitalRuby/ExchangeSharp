@@ -29,12 +29,36 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
         public override string Name => ExchangeName.Bitfinex;
 
+        public Dictionary<string, string> DepositMethodLookup { get; }
+
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
 
         public ExchangeBitfinexAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
+
+            // TODO: Bitfinex supports deposits of more than these but the API docs don't specify what nouns to use
+            this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["AVT"] = "aventus",
+                ["BCH"] = "bcash",
+                ["BTC"] = "bitcoin",
+                ["BTG"] = "bgold",
+                ["DASH"] = "dash", // TODO: Bitfinex returns "DSH" as the symbol name in the API but on the site it is "DASH". How to normalize?
+                ["EDO"] = "eidoo",
+                ["EOS"] = "eos",
+                ["ETC"] = "ethereumc",
+                ["ETH"] = "ethereum",
+                ["LTC"] = "litecoin",
+                ["MIOTA"] = "iota",
+                ["NEO"] = "neo",
+                ["QTUM"] = "qtum",
+                ["USDT"] = "tetheruso", // didn't work for me but my account isn't verified. Docs say this is correct
+                ["XMR"] = "monero",
+                ["XRP"] = "ripple",
+                ["ZEC"] = "zcash",
+            };
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -103,6 +127,7 @@ namespace ExchangeSharp
             foreach (JToken pair in allPairs)
             {
                 var market = new ExchangeMarket();
+                market.IsActive = true;
                 market.MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant());
                 market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
@@ -129,6 +154,11 @@ namespace ExchangeSharp
 
             WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
             return markets;
+        }
+
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
+        {
+            throw new NotSupportedException("Bitfinex does not provide data about its currencies via the API");
         }
 
         public override ExchangeTicker GetTicker(string symbol)
@@ -467,6 +497,136 @@ namespace ExchangeSharp
             payload["order_id"] = long.Parse(orderId);
             JObject result = MakeJsonRequest<JObject>("/order/cancel", BaseUrlV1, payload);
             CheckError(result);
+        }
+
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
+        {
+            // IOTA addresses should never be used more than once
+            if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
+            {
+                forceRegenerate = true;
+            }
+
+            // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
+            if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            {
+                return null;
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["method"] = fullName;
+            payload["wallet_name"] = "exchange";
+            payload["renew"] = forceRegenerate ? 1 : 0;
+
+            JToken result = MakeJsonRequest<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
+            CheckError(result);
+
+            var details = new ExchangeDepositDetails
+            {
+                Symbol = result["currency"].ToStringInvariant(),
+            };
+
+            if (result["address_pool"] != null)
+            {
+                details.Address = result["address_pool"].ToStringInvariant();
+                details.Memo = result["address"].ToStringLowerInvariant();
+            }
+            else
+            {
+                details.Address = result["address"].ToStringInvariant();
+            }
+
+            return details;
+        }
+
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. Must be specified.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new ArgumentNullException(nameof(symbol));
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["currency"] = NormalizeSymbol(symbol);
+
+            JToken result = MakeJsonRequest<JToken>("/history/movements", BaseUrlV1, payload, "POST");
+            CheckError(result);
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in result)
+            {
+                if (!string.Equals(token["type"].ToStringUpperInvariant(), "DEPOSIT"))
+                {
+                    continue;
+                }
+
+                var transaction = new ExchangeTransaction();
+                transaction.PaymentId = token["id"].ToStringInvariant();
+                transaction.BlockchainTxId = token["txid"].ToStringInvariant();
+                transaction.Symbol = token["currency"].ToStringUpperInvariant();
+                transaction.Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant();
+                transaction.Amount = token["amount"].ConvertInvariant<decimal>();
+                transaction.Address = token["address"].ToStringInvariant();
+
+                string status = token["status"].ToStringUpperInvariant();
+                switch (status)
+                {
+                    case "COMPLETED":
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    default:
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes += ", Unknown transaction status " + status;
+                        break;
+                }
+
+                double unixTimestamp = token["timestamp"].ConvertInvariant<double>();
+                transaction.TimestampUTC = unixTimestamp.UnixTimeStampToDateTimeSeconds();
+                transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
+        }
+
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
+            if (!this.DepositMethodLookup.TryGetValue(withdrawalRequest.Asset, out string fullName))
+            {
+                return null;
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["withdraw_type"] = fullName;
+            payload["walletselected"] = "exchange";
+            payload["amount"] = withdrawalRequest.Amount;
+            payload["address"] = withdrawalRequest.ToAddress;
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                payload["payment_id"] = withdrawalRequest.AddressTag;
+            }
+
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            {
+                payload["account_name"] = withdrawalRequest.Name;
+            }
+
+            JToken result = MakeJsonRequest<JToken>("/withdraw", BaseUrlV1, payload, "POST");
+
+            var resp = new ExchangeWithdrawalResponse();
+            if (!string.Equals(result["status"].ToStringInvariant(), "success", StringComparison.OrdinalIgnoreCase))
+            {
+                resp.Success = false;
+            }
+
+            resp.Id = result["withdrawal_id"].ToStringInvariant();
+            resp.Message = result["message"].ToStringInvariant();
+            return resp;
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)

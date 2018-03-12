@@ -50,6 +50,14 @@ namespace ExchangeSharp
         void LoadAPIKeys(string encryptedFile);
 
         /// <summary>
+        ///  Load API keys from unsecure strings
+        /// <param name="publicApiKey">Public Api Key</param>
+        /// <param name="privateApiKey">Private Api Key</param>
+        /// <param name="passPhrase">Pass phrase, null for none</param>
+        /// </summary>
+        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null);
+
+        /// <summary>
         /// Normalize a symbol for use on this exchange
         /// </summary>
         /// <param name="symbol">Symbol</param>
@@ -137,13 +145,26 @@ namespace ExchangeSharp
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        IEnumerable<ExchangeCurrency> GetCurrencies();
+        IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies();
 
         /// <summary>
         /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        Task<IEnumerable<ExchangeCurrency>> GetCurrenciesAsync();
+        Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
+
+        /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="forceRegenerate">True to regenerate the address</param>
+        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false);
+
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. May be null.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol);
 
         /// <summary>
         /// Get symbols for the exchange

@@ -135,6 +135,11 @@ namespace ExchangeSharp
             return markets;
         }
 
+        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
+        {
+            throw new NotSupportedException("Binance does not provide data about its currencies via the API");
+        }
+
         public override ExchangeTicker GetTicker(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
@@ -499,20 +504,14 @@ namespace ExchangeSharp
                 payload["addressTag"] = withdrawalRequest.AddressTag;
             }
 
-            // yes, .html ...
             JToken response = MakeJsonRequest<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
-
             CheckError(response);
+
             ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = response["id"].ToStringInvariant(),
                 Message = response["msg"].ToStringInvariant(),
             };
-
-            if (response["success"] == null || !response["success"].ConvertInvariant<bool>())
-            {
-                throw new APIException(response["msg"].ToStringInvariant());
-            }
 
             return withdrawalResponse;
         }
@@ -544,6 +543,11 @@ namespace ExchangeSharp
             if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
             {
                 throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
+            }
+
+            if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
+            {
+                throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
             }
         }
 
@@ -674,6 +678,85 @@ namespace ExchangeSharp
                 return url.Uri;
             }
             return base.ProcessRequestUrl(url, payload);
+        }
+
+        /// <summary>
+        /// Gets the address to deposit to and applicable details.
+        /// </summary>
+        /// <param name="symbol">Symbol to get address for</param>
+        /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
+        /// <returns>
+        /// Deposit address details (including memo if applicable, such as XRP)
+        /// </returns>
+        public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
+        {
+            /* 
+            * TODO: Binance does not offer a "regenerate" option in the API, but a second IOTA deposit to the same address will not be credited
+            * How does Binance handle GetDepositAddress for IOTA after it's been used once?
+            * Need to test calling this API after depositing IOTA.
+            */
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = NormalizeSymbol(symbol);
+
+            JToken response = MakeJsonRequest<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
+            CheckError(response);
+
+            ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
+            {
+                Symbol = response["asset"].ToStringInvariant(),
+                Address = response["address"].ToStringInvariant(),
+                Memo = response["addressTag"].ToStringInvariant()
+            };
+
+            return depositDetails;
+        }
+
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="symbol">The symbol to check. Null for all symbols.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
+        {
+            // TODO: API supports searching on status, startTime, endTime
+            Dictionary<string, object> payload = GetNoncePayload();
+            if (!string.IsNullOrWhiteSpace(symbol))
+            {
+                payload["asset"] = NormalizeSymbol(symbol);
+            }
+
+            JToken response = MakeJsonRequest<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);
+            CheckError(response);
+
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in response["depositList"])
+            {
+                var transaction = new ExchangeTransaction();
+                transaction.TimestampUTC = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
+                transaction.Amount = token["amount"].ConvertInvariant<decimal>();
+                transaction.Symbol = token["asset"].ToStringUpperInvariant();
+                transaction.Address = token["address"].ToStringInvariant();
+                transaction.AddressTag = token["addressTag"].ToStringInvariant();
+                transaction.BlockchainTxId = token["txId"].ToStringInvariant();
+                int status = token["status"].ConvertInvariant<int>();
+                switch (status)
+                {
+                    case 0:
+                        transaction.Status = TransactionStatus.Processing;
+                        break;
+                    case 1:
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    default:
+                        // If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes = "Unknown transaction status: " + status;
+                        break;
+                }
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿/*
 MIT LICENSE
 
-Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
+Copyright 2018 Digital Ruby, LLC - http://www.digitalruby.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -12,15 +12,36 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    public class ExchangeWithdrawalResponse
+    /// <summary>
+    /// Class to encapsulate details required to make a deposit.
+    /// </summary>
+    public class ExchangeDepositDetails
     {
-        /// <summary>The message of the transacion.</summary>
-        public string Message;
+        /// <summary>
+        /// The symbol of the currency. Ex. ETH
+        /// </summary>
+        public string Symbol;
 
-        /// <summary>The identifier for the transaction.</summary>
-        public string Id;
+        /// <summary>
+        /// The address to deposit to
+        /// </summary>
+        public string Address;
 
-        /// <summary>Whether the withdrawal was successful</summary>
-        public bool Success = true;
+        /// <summary>
+        /// The extra data that must be passed along for currencies like Ripple.
+        /// Null in most cases
+        /// </summary>
+        public string Memo;
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return $"{this.Symbol}: Address: {this.Address} Memo: {this.Memo}";
+        }
     }
 }
