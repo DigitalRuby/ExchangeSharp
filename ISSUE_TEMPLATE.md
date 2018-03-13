@@ -4,4 +4,6 @@ Details:
 
 Error Logs (if any):
 
-The more information you can provide, the better. If you are wanting a new feature, I would suggest donating.
+The more information you can provide, the better.
+
+For new feature, please donate or do a pull request.

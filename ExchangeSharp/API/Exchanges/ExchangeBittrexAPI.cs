@@ -31,7 +31,7 @@ namespace ExchangeSharp
 
         private BittrexSocketClient socketClient;
 
-        /// <summary>Coin types that both an address and a memo to make the deposit</summary>
+        /// <summary>Coin types that both an address and a tag to make the deposit</summary>
         public HashSet<string> TwoFieldDepositCoinTypes { get; }
 
         /// <summary>Coin types that only require an address to make the deposit</summary>
@@ -367,52 +367,25 @@ namespace ExchangeSharp
             var transactions = new List<ExchangeTransaction>();
             symbol = NormalizeSymbol(symbol);
 
-            string url = $"/account/getwithdrawalhistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
+            string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             CheckError(obj);
             JToken result = obj["result"];
 
             foreach (var token in result)
             {
-                var deposit = new ExchangeTransaction();
-                deposit.Address = token["Address"].ToStringInvariant();
-                deposit.Amount = token["Amount"].ConvertInvariant<decimal>();
-                deposit.BlockchainTxId = token["TxId"].ToStringInvariant();
-                deposit.PaymentId = token["PaymentUuid"].ToStringInvariant();
-                deposit.Symbol = token["Currency"].ToStringInvariant();
-                deposit.TxFee = token["TxCost"].ConvertInvariant<decimal>();
+                var deposit = new ExchangeTransaction
+                {
+                    Amount = token["Amount"].ConvertInvariant<decimal>(),
+                    Address = token["CryptoAddress"].ToStringInvariant(),
+                    Symbol = token["Currency"].ToStringInvariant(),
+                    PaymentId = token["Id"].ToStringInvariant(),
+                    BlockchainTxId = token["TxId"].ToStringInvariant(),
+                    Status = TransactionStatus.Complete // As soon as it shows up in this list it is complete (verified manually)
+                };
 
-                DateTime.TryParse(token["Opened"].ToStringInvariant(), out DateTime timestamp);
+                DateTime.TryParse(token["LastUpdated"].ToStringInvariant(), out DateTime timestamp);
                 deposit.TimestampUTC = timestamp;
-
-                bool authorized = token["Authorized"].ConvertInvariant<bool>();
-                bool cancelled = token["Canceled"].ConvertInvariant<bool>();
-                bool pendingPayment = token["PendingPayment"].ConvertInvariant<bool>();
-                bool invalidAddress = token["InvalidAddress"].ConvertInvariant<bool>();
-
-                deposit.Notes = $"Authorized:{authorized} Cancelled:{cancelled} PendingPayment:{pendingPayment} InvalidAddress:{invalidAddress}";
-
-                if (cancelled)
-                {
-                    deposit.Status = TransactionStatus.Failure;
-                }
-                else if (invalidAddress)
-                {
-                    deposit.Status = TransactionStatus.Rejected;
-                }
-                else if (!authorized)
-                {
-                    deposit.Status = TransactionStatus.AwaitingApproval;
-                }
-                else if (pendingPayment)
-                {
-                    deposit.Status = TransactionStatus.Processing;
-                }
-                else
-                {
-                    deposit.Status = TransactionStatus.Complete;
-                    deposit.Notes = $"Transaction successful. ({deposit.Notes})";
-                }
 
                 transactions.Add(deposit);
             }
@@ -657,7 +630,7 @@ namespace ExchangeSharp
         {
             // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
 
-            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Asset)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.ToAddress}";
+            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Symbol)}&quantity={withdrawalRequest.Amount}&address={withdrawalRequest.Address}";
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
                 url += $"&paymentid={withdrawalRequest.AddressTag}";
@@ -688,7 +661,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">(ignored) Bittrex does not support regenerating deposit addresses.</param>
         /// <returns>
-        /// Deposit address details (including memo if applicable, such as with XRP)
+        /// Deposit address details (including tag if applicable, such as with XRP)
         /// </returns>
         public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
@@ -698,7 +671,7 @@ namespace ExchangeSharp
             JToken response = MakeJsonRequest<JToken>(url, null, GetNoncePayload());
             JToken result = CheckError(response);
 
-            // NOTE API 1.1 does not include the the static wallet address for currencies with memos such as XRP & NXT (API 2.0 does!)
+            // NOTE API 1.1 does not include the the static wallet address for currencies with tags such as XRP & NXT (API 2.0 does!)
             // We are getting the static addresses via the GetCurrencies() api.
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
@@ -714,7 +687,7 @@ namespace ExchangeSharp
             if (this.TwoFieldDepositCoinTypes.Contains(coin.CoinType))
             {
                 depositDetails.Address = coin.BaseAddress;
-                depositDetails.Memo = result["Address"].ToStringInvariant();
+                depositDetails.AddressTag = result["Address"].ToStringInvariant();
             }
             else if (this.OneFieldDepositCoinTypes.Contains(coin.CoinType))
             {

@@ -39,7 +39,7 @@ namespace ExchangeSharp
         public string CoinType { get; set; }
 
         /// <summary>The base address where a two-field coin is sent. For example, Ripple deposits
-        /// are all sent to this address with a memo field</summary>
+        /// are all sent to this address with a tag field</summary>
         public string BaseAddress { get; set; }
 
         /// <summary>Minimum number of confirmations before deposit will post at the exchange</summary>
