@@ -31,6 +31,18 @@ namespace ExchangeSharp
 
         /// <summary>In a pair like ZRX/BTC, ZRX is the market currency.</summary>
         public string MarketCurrency { get; set; }
+        
+        /// <summary>
+        /// Defines the intervals that a quantity can be increased/decreased by. 
+        /// The following must be true for quantity: (Quantity-MinTradeSize) % QuantityStepSize == 0
+        /// </summary>
+        public decimal? QuantityStepSize { get; set; }
+
+        /// <summary>
+        /// Defines the intervals that a price can be increased/decreased by. 
+        /// The following must be true for price: Price % PriceStepSize == 0
+        /// </summary>
+        public decimal? PriceStepSize { get; set; }
 
         public override string ToString()
         {

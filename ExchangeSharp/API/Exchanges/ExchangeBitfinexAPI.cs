@@ -149,6 +149,8 @@ namespace ExchangeSharp
                         throw new System.IO.InvalidDataException("Unexpected market name: " + market.MarketName);
                     }                    
                 }
+                int pricePrecision = pair["price_precision"].ConvertInvariant<int>();
+                market.PriceStepSize = (decimal)Math.Pow(0.1, pricePrecision);
                 markets.Add(market);
             }
 

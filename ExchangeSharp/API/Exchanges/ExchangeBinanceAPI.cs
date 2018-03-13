@@ -127,8 +127,15 @@ namespace ExchangeSharp
                 if (lotSizeFilter != null)
                 {
                     market.MinTradeSize = lotSizeFilter["minQty"].ConvertInvariant<decimal>();
+                    market.QuantityStepSize = lotSizeFilter["stepSize"].ConvertInvariant<decimal>();
                 }
 
+                //PRICE_FILTER
+                JToken priceFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "PRICE_FILTER"));
+                if (priceFilter != null)
+                {
+                    market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
+                }
                 markets.Add(market);
             }
 

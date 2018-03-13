@@ -147,7 +147,7 @@ namespace ExchangeSharp
                 market.MarketCurrency = product["base_currency"].ToStringUpperInvariant();
                 market.IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase);
                 market.MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>();
-
+                market.PriceStepSize = product["quote_increment"].ConvertInvariant<decimal>();
                 markets.Add(market);
             }
 
