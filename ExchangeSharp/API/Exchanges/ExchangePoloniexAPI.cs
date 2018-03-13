@@ -344,7 +344,7 @@ namespace ExchangeSharp
                     JToken token = JToken.Parse(msg);
                     if (token[0].ConvertInvariant<int>() == 1002)
                     {
-                        if (token is JArray outterArray && outterArray.Count > 2 && outterArray[2] is JArray array && array.Count > 9 &&
+                        if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array && array.Count > 9 &&
                             idsToSymbols.TryGetValue(array[0].ToStringInvariant(), out string symbol))
                         {
                             callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
@@ -620,7 +620,7 @@ namespace ExchangeSharp
 
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            var paramsList = new List<object> { "currency", this.NormalizeSymbol(withdrawalRequest.Asset), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.ToAddress };
+            var paramsList = new List<object> { "currency", this.NormalizeSymbol(withdrawalRequest.Symbol), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.Address };
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
                 paramsList.Add("paymentId");
@@ -689,6 +689,9 @@ namespace ExchangeSharp
                     case "COMPLETE":
                         deposit.Status = TransactionStatus.Complete;
                         break;
+                    case "PENDING":
+                        deposit.Status = TransactionStatus.Processing;
+                        break;
                     default:
                         // TODO: API Docs don't specify what other options there will be for transaction status
                         deposit.Status = TransactionStatus.Unknown;
@@ -712,7 +715,7 @@ namespace ExchangeSharp
                 var token = (JProperty)jToken;
                 var details = new ExchangeDepositDetails { Symbol = token.Name };
 
-                if (!TryPopulateAddressAndMemo(symbol, currencies, details, token.Value.ToStringInvariant()))
+                if (!TryPopulateAddressAndTag(symbol, currencies, details, token.Value.ToStringInvariant()))
                 {
                     return false;
                 }
@@ -723,14 +726,14 @@ namespace ExchangeSharp
             return true;
         }
 
-        private static bool TryPopulateAddressAndMemo(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
+        private static bool TryPopulateAddressAndTag(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
         {
             if (currencies.TryGetValue(symbol, out ExchangeCurrency coin))
             {
                 if (!string.IsNullOrWhiteSpace(coin.BaseAddress))
                 {
                     details.Address = coin.BaseAddress;
-                    details.Memo = address;
+                    details.AddressTag = address;
                 }
                 else
                 {
@@ -741,7 +744,7 @@ namespace ExchangeSharp
             }
 
             // Cannot find currency in master list. 
-            // Stay safe and don't return a possibly half-baked deposit address missing a memo
+            // Stay safe and don't return a possibly half-baked deposit address missing a tag
             return false;
 
         }
@@ -751,7 +754,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to create an address for</param>
         /// <param name="currencies">Lookup of existing currencies</param>
-        /// <returns>ExchangeDepositDetails with an address or a BaseAddress/Memo pair.</returns>
+        /// <returns>ExchangeDepositDetails with an address or a BaseAddress/AddressTag pair.</returns>
         private ExchangeDepositDetails CreateDepositAddress(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies)
         {
             JToken result = MakePrivateAPIRequest("generateNewAddress", "currency", symbol);
@@ -762,7 +765,7 @@ namespace ExchangeSharp
                 Symbol = symbol,
             };
 
-            if (!TryPopulateAddressAndMemo(symbol, currencies, details, result["response"].ToStringInvariant()))
+            if (!TryPopulateAddressAndTag(symbol, currencies, details, result["response"].ToStringInvariant()))
             {
                 return null;
             }

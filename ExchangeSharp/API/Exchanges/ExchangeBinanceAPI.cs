@@ -497,13 +497,13 @@ namespace ExchangeSharp
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             Dictionary<string, object> payload = GetNoncePayload();
-            payload["asset"] = withdrawalRequest.Asset;
-            payload["address"] = withdrawalRequest.ToAddress;
+            payload["asset"] = withdrawalRequest.Symbol;
+            payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
 
-            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Description))
             {
-                payload["name"] = withdrawalRequest.Name;
+                payload["name"] = withdrawalRequest.Description;
             }
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
@@ -547,14 +547,17 @@ namespace ExchangeSharp
 
         private void CheckError(JToken result)
         {
-            if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
+            if (result != null && !(result is JArray))
             {
-                throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
-            }
+                if (result["status"] != null && result["code"] != null)
+                {
+                    throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
+                }
 
-            if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
-            {
-                throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
+                if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
+                {
+                    throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
+                }
             }
         }
 
@@ -693,7 +696,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for</param>
         /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
         /// <returns>
-        /// Deposit address details (including memo if applicable, such as XRP)
+        /// Deposit address details (including tag if applicable, such as XRP)
         /// </returns>
         public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
@@ -713,7 +716,7 @@ namespace ExchangeSharp
             {
                 Symbol = response["asset"].ToStringInvariant(),
                 Address = response["address"].ToStringInvariant(),
-                Memo = response["addressTag"].ToStringInvariant()
+                AddressTag = response["addressTag"].ToStringInvariant()
             };
 
             return depositDetails;

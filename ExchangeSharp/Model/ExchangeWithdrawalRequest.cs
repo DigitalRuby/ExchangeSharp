@@ -12,26 +12,49 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// Encapsulation of a withdrawal request from an exchange
+    /// </summary>
     public class ExchangeWithdrawalRequest
     {
-        /// <summary>Gets or sets the asset.</summary>
-        /// <value>The asset.</value>
-        public string Asset { get; set; }
-
-        /// <summary>Gets or sets to address.</summary>
-        /// <value>To address.</value>
-        public string ToAddress { get; set; }
+        /// <summary>The address</summary>
+        public string Address { get; set; }
 
         /// <summary>Gets or sets the address tag.</summary>
-        /// <value>The address tag.</value>
         public string AddressTag { get; set; }
 
         /// <summary>Gets or sets the Amount. Secondary address identifier for coins like XRP,XMR etc</summary>
-        /// <value>The Amount.</value>
         public decimal Amount { get; set; }
 
-        /// <summary>Description of the address</summary>
-        /// <value>The name.</value>
-        public string Name { get; set; }
+        /// <summary>Description of the withdrawal</summary>
+        public string Description { get; set; }
+
+        /// <summary>Gets or sets the asset.</summary>
+        public string Symbol { get; set; }
+
+        /// <summary>
+        /// Whether to take the fee from the amount.
+        /// Default: true so requests to withdraw an entire balance don't fail.
+        /// </summary>
+        public bool TakeFeeFromAmount { get; set; } = true;
+
+        /// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
+        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
+        public override string ToString()
+        {
+            // 2.75 ETH to 0x1234asdf
+            string info = $"{this.Amount} {this.Symbol} to {this.Address}";
+            if (!string.IsNullOrWhiteSpace(this.AddressTag))
+            {
+                info += $" with address tag {this.AddressTag}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(this.Description))
+            {
+                info += $" Description: {this.Description}";
+            }
+
+            return info;
+        }
     }
 }
