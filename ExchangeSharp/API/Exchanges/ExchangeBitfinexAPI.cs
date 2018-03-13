@@ -10,19 +10,19 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace ExchangeSharp
 {
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+    using System.Net;
+    using System.Text;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+
     public class ExchangeBitfinexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
@@ -38,26 +38,46 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
 
-            // TODO: Bitfinex supports deposits of more than these but the API docs don't specify what nouns to use
+            // List is from "Withdrawal Types" section https://docs.bitfinex.com/v1/reference#rest-auth-withdrawal
             this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+                ["AID"] = "aid",
                 ["AVT"] = "aventus",
+                ["BAT"] = "bat",
                 ["BCH"] = "bcash",
                 ["BTC"] = "bitcoin",
                 ["BTG"] = "bgold",
                 ["DASH"] = "dash", // TODO: Bitfinex returns "DSH" as the symbol name in the API but on the site it is "DASH". How to normalize?
                 ["EDO"] = "eidoo",
+                ["ELF"] = "elf",
                 ["EOS"] = "eos",
                 ["ETC"] = "ethereumc",
                 ["ETH"] = "ethereum",
+                ["FUN"] = "fun",
+                ["GNT"] = "golem",
                 ["LTC"] = "litecoin",
                 ["MIOTA"] = "iota",
+                ["MNA"] = "mna",
                 ["NEO"] = "neo",
+                ["OMG"] = "omisego",
+                ["QASH"] = "qash",
                 ["QTUM"] = "qtum",
-                ["USDT"] = "tetheruso", // didn't work for me but my account isn't verified. Docs say this is correct
+                ["RCN"] = "rcn",
+                ["REP"] = "rep",
+                ["RLC"] = "rlc",
+                ["SAN"] = "santiment",
+                ["SNG"] = "sng",
+                ["SNT"] = "status",
+                ["SPK"] = "spk",
+                ["TNB"] = "tnb",
+                ["TRX"] = "trx",
+                //["?USDTO?"] = "tetheruso", // Tether on OMNI - Don't use until it's clear how this works
+                //["?USDTE?"] = "tetheruse", // Tether on Ethereum - Don't use until it's clear how this works
                 ["XMR"] = "monero",
                 ["XRP"] = "ripple",
+                ["YYW"] = "yoyow",
                 ["ZEC"] = "zcash",
+                ["ZRX"] = "zrx",
             };
         }
 
@@ -147,7 +167,7 @@ namespace ExchangeSharp
                     else
                     {
                         throw new System.IO.InvalidDataException("Unexpected market name: " + market.MarketName);
-                    }                    
+                    }
                 }
                 markets.Add(market);
             }
@@ -269,6 +289,23 @@ namespace ExchangeSharp
                 }
             }
             return orders;
+        }
+
+        /// <summary>Gets the withdrawal fees for various currencies.</summary>
+        /// <returns>A dictionary of symbol-fee pairs</returns>
+        public Dictionary<string, decimal> GetWithdrawalFees()
+        {
+            JToken obj = this.MakeJsonRequest<JToken>("/account_fees", this.BaseUrlV1, this.GetNoncePayload());
+            CheckError(obj);
+
+            var fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            foreach (var jToken in obj["withdraw"])
+            {
+                var prop = (JProperty)jToken;
+                fees[prop.Name] = prop.Value.ConvertInvariant<decimal>();
+            }
+
+            return fees;
         }
 
         public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
@@ -576,6 +613,9 @@ namespace ExchangeSharp
                     case "COMPLETED":
                         transaction.Status = TransactionStatus.Complete;
                         break;
+                    case "UNCONFIRMED":
+                        transaction.Status = TransactionStatus.Processing;
+                        break;
                     default:
                         transaction.Status = TransactionStatus.Unknown;
                         transaction.Notes += ", Unknown transaction status " + status;
@@ -592,18 +632,34 @@ namespace ExchangeSharp
             return transactions;
         }
 
+        /// <summary>A withdrawal request.</summary>
+        /// <param name="withdrawalRequest">The withdrawal request.
+        /// NOTE: Network fee must be subtracted from amount or withdrawal will fail</param>
+        /// <returns>The withdrawal response</returns>
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
+            string symbol = this.NormalizeSymbol(withdrawalRequest.Symbol);
+
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
-            if (!this.DepositMethodLookup.TryGetValue(withdrawalRequest.Symbol, out string fullName))
+            if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
                 return null;
+            }
+
+            // Bitfinex adds the fee on top of what you request to withdrawal
+            if (withdrawalRequest.TakeFeeFromAmount)
+            {
+                Dictionary<string, decimal> fees = this.GetWithdrawalFees();
+                if (fees.TryGetValue(symbol, out decimal feeAmt))
+                {
+                    withdrawalRequest.Amount -= feeAmt;
+                }
             }
 
             Dictionary<string, object> payload = GetNoncePayload();
             payload["withdraw_type"] = fullName;
             payload["walletselected"] = "exchange";
-            payload["amount"] = withdrawalRequest.Amount;
+            payload["amount"] = withdrawalRequest.Amount.ToString(CultureInfo.InvariantCulture); // API throws if this is a number not a string
             payload["address"] = withdrawalRequest.Address;
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
@@ -619,13 +675,13 @@ namespace ExchangeSharp
             JToken result = MakeJsonRequest<JToken>("/withdraw", BaseUrlV1, payload, "POST");
 
             var resp = new ExchangeWithdrawalResponse();
-            if (!string.Equals(result["status"].ToStringInvariant(), "success", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(result[0]["status"].ToStringInvariant(), "success", StringComparison.OrdinalIgnoreCase))
             {
                 resp.Success = false;
             }
 
-            resp.Id = result["withdrawal_id"].ToStringInvariant();
-            resp.Message = result["message"].ToStringInvariant();
+            resp.Id = result[0]["withdrawal_id"].ToStringInvariant();
+            resp.Message = result[0]["message"].ToStringInvariant();
             return resp;
         }
 

@@ -32,6 +32,12 @@ namespace ExchangeSharp
         /// <summary>Gets or sets the asset.</summary>
         public string Symbol { get; set; }
 
+        /// <summary>
+        /// Whether to take the fee from the amount.
+        /// Default: true so requests to withdraw an entire balance don't fail.
+        /// </summary>
+        public bool TakeFeeFromAmount { get; set; } = true;
+
         /// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
         /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
         public override string ToString()

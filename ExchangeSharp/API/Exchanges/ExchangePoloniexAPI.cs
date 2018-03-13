@@ -344,7 +344,7 @@ namespace ExchangeSharp
                     JToken token = JToken.Parse(msg);
                     if (token[0].ConvertInvariant<int>() == 1002)
                     {
-                        if (token is JArray outterArray && outterArray.Count > 2 && outterArray[2] is JArray array && array.Count > 9 &&
+                        if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array && array.Count > 9 &&
                             idsToSymbols.TryGetValue(array[0].ToStringInvariant(), out string symbol))
                         {
                             callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
@@ -688,6 +688,9 @@ namespace ExchangeSharp
                 {
                     case "COMPLETE":
                         deposit.Status = TransactionStatus.Complete;
+                        break;
+                    case "PENDING":
+                        deposit.Status = TransactionStatus.Processing;
                         break;
                     default:
                         // TODO: API Docs don't specify what other options there will be for transaction status

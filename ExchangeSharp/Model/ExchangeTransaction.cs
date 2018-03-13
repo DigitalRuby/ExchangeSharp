@@ -50,7 +50,7 @@ namespace ExchangeSharp
         public override string ToString()
         {
             return
-                $"{this.Amount} {this.Symbol} (fee: {this.TxFee}) sent to Address: {this.Address ?? "null"} with AddressTag: {this.AddressTag ?? "null"} BlockhainTxId: {this.BlockchainTxId ?? "null"} sent at {this.TimestampUTC} UTC. Status: {this.Status}. Exchange paymentId: {this.PaymentId ?? "null"}. Notes: {this.Notes ?? "null"}";
+                $"{this.Amount} {this.Symbol} (fee: {this.TxFee}) sent to Address: {this.Address ?? "null"} with AddressTag: {this.AddressTag ?? "null"} BlockchainTxId: {this.BlockchainTxId ?? "null"} sent at {this.TimestampUTC} UTC. Status: {this.Status}. Exchange paymentId: {this.PaymentId ?? "null"}. Notes: {this.Notes ?? "null"}";
         }
     }
 }
