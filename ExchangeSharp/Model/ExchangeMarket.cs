@@ -35,12 +35,14 @@ namespace ExchangeSharp
         /// <summary>
         /// Defines the intervals that a quantity can be increased/decreased by. 
         /// The following must be true for quantity: (Quantity-MinTradeSize) % QuantityStepSize == 0
+        /// Null if unknown or not applicable.
         /// </summary>
         public decimal? QuantityStepSize { get; set; }
 
         /// <summary>
         /// Defines the intervals that a price can be increased/decreased by. 
         /// The following must be true for price: Price % PriceStepSize == 0
+        /// Null if unknown or not applicable.
         /// </summary>
         public decimal? PriceStepSize { get; set; }
 
