@@ -494,17 +494,31 @@ namespace ExchangeSharp
             CheckError(token);
         }
 
+        /// <summary>A withdrawal request. Fee is automatically subtracted from the amount.</summary>
+        /// <param name="withdrawalRequest">The withdrawal request.</param>
+        /// <returns>Withdrawal response from Binance</returns>
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
+            if (string.IsNullOrWhiteSpace(withdrawalRequest.Symbol))
+            {
+                throw new APIException("Symbol must be provided for Withdraw");
+            }
+
+            if (string.IsNullOrWhiteSpace(withdrawalRequest.Address))
+            {
+                throw new APIException("Address must be provided for Withdraw");
+            }
+
+            if (withdrawalRequest.Amount <= 0)
+            {
+                throw new APIException("Withdrawal amount must be positive and non-zero");
+            }
+
             Dictionary<string, object> payload = GetNoncePayload();
             payload["asset"] = withdrawalRequest.Symbol;
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
-
-            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Description))
-            {
-                payload["name"] = withdrawalRequest.Description;
-            }
+            payload["name"] = withdrawalRequest.Description ?? "apiwithdrawal"; // Contrary to what the API docs say, name is required
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
@@ -753,11 +767,11 @@ namespace ExchangeSharp
                     case 0:
                         transaction.Status = TransactionStatus.Processing;
                         break;
-			
+
                     case 1:
                         transaction.Status = TransactionStatus.Complete;
                         break;
-			
+
                     default:
                         // If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
                         transaction.Status = TransactionStatus.Unknown;
