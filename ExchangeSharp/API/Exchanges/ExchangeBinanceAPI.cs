@@ -767,11 +767,19 @@ namespace ExchangeSharp
                     case 0:
                         transaction.Status = TransactionStatus.Processing;
                         break;
+<<<<<<< HEAD
 
                     case 1:
                         transaction.Status = TransactionStatus.Complete;
                         break;
 
+=======
+			
+                    case 1:
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+			
+>>>>>>> 5abca7d64af488434aef5cfd21ef7f860fb03a57
                     default:
                         // If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
                         transaction.Status = TransactionStatus.Unknown;
