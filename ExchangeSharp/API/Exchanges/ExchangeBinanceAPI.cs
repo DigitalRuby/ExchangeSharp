@@ -127,8 +127,15 @@ namespace ExchangeSharp
                 if (lotSizeFilter != null)
                 {
                     market.MinTradeSize = lotSizeFilter["minQty"].ConvertInvariant<decimal>();
+                    market.QuantityStepSize = lotSizeFilter["stepSize"].ConvertInvariant<decimal>();
                 }
 
+                // PRICE_FILTER
+                JToken priceFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "PRICE_FILTER"));
+                if (priceFilter != null)
+                {
+                    market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
+                }
                 markets.Add(market);
             }
 
@@ -743,9 +750,11 @@ namespace ExchangeSharp
                     case 0:
                         transaction.Status = TransactionStatus.Processing;
                         break;
+			
                     case 1:
                         transaction.Status = TransactionStatus.Complete;
                         break;
+			
                     default:
                         // If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
                         transaction.Status = TransactionStatus.Unknown;
