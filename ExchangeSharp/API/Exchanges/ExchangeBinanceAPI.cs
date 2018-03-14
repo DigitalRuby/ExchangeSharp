@@ -540,14 +540,16 @@ namespace ExchangeSharp
 
         private void CheckError(JToken result)
         {
-            if (result != null && !(result is JArray) && result["status"] != null && result["code"] != null)
+            if (result != null && !(result is JArray))
             {
-                throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
-            }
-
-            if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
-            {
-                throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
+                if (result["status"] != null && result["code"] != null)
+                {
+                    throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
+                }
+                else if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
+                {
+                    throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
+                }
             }
         }
 
