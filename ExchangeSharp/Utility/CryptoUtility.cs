@@ -103,6 +103,10 @@ namespace ExchangeSharp
 
         public static string SecureStringToString(SecureString s)
         {
+            if (s == null)
+            {
+                return null;
+            }
             IntPtr valuePtr = IntPtr.Zero;
             try
             {
@@ -133,6 +137,10 @@ namespace ExchangeSharp
 
         public static SecureString StringToSecureString(string unsecure)
         {
+            if (unsecure == null)
+            {
+                return null;
+            }
             SecureString secure = new SecureString();
             foreach (char c in unsecure)
             {

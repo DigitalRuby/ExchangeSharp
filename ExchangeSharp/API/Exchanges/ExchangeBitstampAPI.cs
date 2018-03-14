@@ -24,11 +24,19 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://www.bitstamp.net/api/v2";
         public override string Name => ExchangeName.Bitstamp;
-        public string CustomerId { get; set; }
+
+        /// <summary>
+        /// Bitstamp private API requires a customer id. Internally this is secured in the PassPhrase property.
+        /// </summary>
+        public string CustomerId
+        {
+            get { return Passphrase.ToUnsecureString(); }
+            set { Passphrase = value.ToSecureString(); }
+        }
 
         /// <summary>
         /// In order to use private functions of the API, you must set CustomerId by calling constructor with parameter,
-        /// or setting it later in the ExchangeBitstampAPI object
+        /// or setting it later in the ExchangeBitstampAPI object.
         /// </summary>
         public ExchangeBitstampAPI()
         {
@@ -38,7 +46,7 @@ namespace ExchangeSharp
 
         /// <summary>
         /// In order to use private functions of the API, you must set CustomerId by calling this constructor with parameter,
-        /// or setting it later in the ExchangeBitstampAPI object
+        /// or setting it later in the ExchangeBitstampAPI object.
         /// </summary>
         /// <param name="customerId">Customer Id can be found by the link "https://www.bitstamp.net/account/balance/"</param>
         public ExchangeBitstampAPI(string customerId) : this()
@@ -50,13 +58,13 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                if (string.IsNullOrWhiteSpace(this.CustomerId))
+                if (string.IsNullOrWhiteSpace(CustomerId))
                 {
                     throw new APIException("Customer ID is not set for Bitstamp");
                 }
 
-                //messageToSign = nonce + customer_id + api_key
-                string messageToSign = string.Format("{0}{1}{2}", payload["nonce"].ToString(), CustomerId, CryptoUtility.SecureStringToString(PublicApiKey));
+                // messageToSign = nonce + customer_id + api_key
+                string messageToSign = payload["nonce"].ToStringInvariant() + CustomerId + PublicApiKey.ToUnsecureString();
                 string signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
                 payload["signature"] = signature;
                 payload["key"] = CryptoUtility.SecureStringToString(PublicApiKey);
