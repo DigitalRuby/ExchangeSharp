@@ -108,6 +108,7 @@ namespace ExchangeSharp
         /// Whether the order is a buy or sell
         /// </summary>
         public bool IsBuy { get; set; }
+        public decimal Fees { get;  set; }
 
         /// <summary>
         /// Append another order to this order - order id and type must match
@@ -124,6 +125,7 @@ namespace ExchangeSharp
             decimal baseAmount = Amount;
             Amount += other.Amount;
             AmountFilled += other.AmountFilled;
+            Fees += other.Fees;
             AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
             OrderId = other.OrderId;
             OrderDate = (OrderDate == default(DateTime)) ? other.OrderDate : OrderDate;
@@ -137,7 +139,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("[{0}], {1} {2} of {3} {4} filled at {5}", OrderDate, (IsBuy ? "Buy" : "Sell"), AmountFilled, Amount, Symbol, AveragePrice);
+            return string.Format("[{0}], {1} {2} of {3} {4} filled at {5}, fees paid {6}", OrderDate, (IsBuy ? "Buy" : "Sell"), AmountFilled, Amount, Symbol, AveragePrice,Fees);
         }
     }
 }
