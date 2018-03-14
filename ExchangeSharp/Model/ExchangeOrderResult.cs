@@ -139,7 +139,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("[{0}], {1} {2} of {3} {4} filled at {5}, fees paid {6}", OrderDate, (IsBuy ? "Buy" : "Sell"), AmountFilled, Amount, Symbol, AveragePrice,Fees);
+            return string.Format("[{0}], {1} {2} of {3} {4} filled at {5}, fees paid {6}", OrderDate, (IsBuy ? "Buy" : "Sell"), AmountFilled, Amount, Symbol, AveragePrice, Fees);
         }
     }
 }
