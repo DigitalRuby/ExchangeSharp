@@ -17,7 +17,6 @@ using System.Linq;
 using System.Net;
 using Newtonsoft.Json.Linq;
 
-
 namespace ExchangeSharp
 {
     public class ExchangeBitstampAPI : ExchangeAPI
@@ -64,10 +63,11 @@ namespace ExchangeSharp
                 }
 
                 // messageToSign = nonce + customer_id + api_key
-                string messageToSign = payload["nonce"].ToStringInvariant() + CustomerId + PublicApiKey.ToUnsecureString();
+                string apiKey = PublicApiKey.ToUnsecureString();
+                string messageToSign = payload["nonce"].ToStringInvariant() + CustomerId + apiKey;
                 string signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
                 payload["signature"] = signature;
-                payload["key"] = CryptoUtility.SecureStringToString(PublicApiKey);
+                payload["key"] = apiKey;
                 WritePayloadToRequest(request, payload);
             }
         }
@@ -78,13 +78,13 @@ namespace ExchangeSharp
             {
                 throw new APIException("Null result");
             }
-            if (token is JObject && token["status"] != null && token["status"].ToString().Equals("error"))
+            if (token is JObject && token["status"] != null && token["status"].ToStringInvariant().Equals("error"))
             {
-                throw new APIException(token["reason"]?.ToString());
+                throw new APIException(token["reason"].ToStringInvariant());
             }
             if (token is JObject && token["error"] != null)
             {
-                throw new APIException(token["error"]?.ToString());
+                throw new APIException(token["error"].ToStringInvariant());
             }
             return token;
         }
@@ -210,17 +210,18 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbol(orderRequest.Symbol);
             string url = orderRequest.IsBuy ? string.Format("/buy/{0}/", symbol) : string.Format("/sell/{0}/", symbol);
             Dictionary<string, object> payload = GetNoncePayload();
-            payload["price"] = orderRequest.Price.ToString(CultureInfo.InvariantCulture.NumberFormat);
-            payload["amount"] = orderRequest.Amount.ToString(CultureInfo.InvariantCulture.NumberFormat);
+            payload["price"] = orderRequest.Price.ToStringInvariant();
+            payload["amount"] = orderRequest.Amount.ToStringInvariant();
 
             JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
             CheckError(responseObject);
-            ExchangeOrderResult order = new ExchangeOrderResult();
-            order.OrderDate = DateTime.UtcNow;
-            order.OrderId = responseObject["id"].ToStringInvariant();
-            order.IsBuy = orderRequest.IsBuy;
-            order.Symbol = orderRequest.Symbol;
-            return order;
+            return new ExchangeOrderResult
+            {
+                OrderDate = DateTime.UtcNow,
+                OrderId = responseObject["id"].ToStringInvariant(),
+                IsBuy = orderRequest.IsBuy,
+                Symbol = orderRequest.Symbol
+            };
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
@@ -249,11 +250,10 @@ namespace ExchangeSharp
             JObject result = MakeJsonRequest<JObject>(url, null, payload, "POST");
             CheckError(result);
 
-            //string status = result["status"].ToStringInvariant();
-            //status can be 'In Queue', 'Open' or 'Finished'
+            // status can be 'In Queue', 'Open' or 'Finished'
             JArray transactions = result["transactions"] as JArray;
-            //empty transaction array means that order is InQueue or Open and AmountFilled == 0
-            //return empty order in this case. no any additional info available at this point
+            // empty transaction array means that order is InQueue or Open and AmountFilled == 0
+            // return empty order in this case. no any additional info available at this point
             if (transactions.Count() == 0) { return new ExchangeOrderResult() { OrderId = orderId }; }
             JObject first = transactions.First() as JObject;
             List<string> excludeStrings = new List<string>() { "tid", "price", "fee", "datetime", "type", "btc", "usd", "eur" };
@@ -262,7 +262,7 @@ namespace ExchangeSharp
             string marketCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
             if (string.IsNullOrWhiteSpace(marketCurrency))
             {
-                //the only 2 cases are BTC-USD and BTC-EUR
+                // the only 2 cases are BTC-USD and BTC-EUR
                 marketCurrency = "btc";
                 excludeStrings.RemoveAll(s => s.Equals("usd") || s.Equals("eur"));
                 baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
@@ -289,29 +289,29 @@ namespace ExchangeSharp
                     price = t["price"].ConvertInvariant<decimal>();
                 }
             }
-            ExchangeOrderResult order = new ExchangeOrderResult()
+
+            // No way to know if order IsBuy, Amount, OrderDate
+            return new ExchangeOrderResult()
             {
                 AmountFilled = amountFilled,
                 Symbol = symbol,
                 AveragePrice = spentBaseCurrency / amountFilled,
                 Price = price,
             };
-            //No way to know if order IsBuy, Amount, OrderDate
-            return order;
         }
 
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
-            //Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
-            //string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
+            // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
+            // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
             JArray result = MakeJsonRequest<JArray>(url, null, GetNoncePayload(), "POST");
             CheckError(result);
             foreach (JToken token in result)
             {
                 //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
-                string tokenSymbol = token["currency_pair"]?.ToStringLowerInvariant().Replace("/", "");
+                string tokenSymbol = token["currency_pair"].ToStringLowerInvariant().Replace("/", "");
                 if (!string.IsNullOrWhiteSpace(tokenSymbol) && !string.IsNullOrWhiteSpace(symbol) && !tokenSymbol.Equals(symbol, StringComparison.InvariantCultureIgnoreCase))
                 {
                     continue;
@@ -331,8 +331,8 @@ namespace ExchangeSharp
         public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             symbol = NormalizeSymbol(symbol);
-            //Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
-            //string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
+            // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
+            // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
             JToken result = MakeJsonRequest<JToken>(url, null, GetNoncePayload(), "POST");
             CheckError(result);
@@ -340,7 +340,7 @@ namespace ExchangeSharp
             foreach (var transaction in result as JArray)
             {
                 int type = transaction["type"].ConvertInvariant<int>();
-                //only type 2 is order transaction type, so we discard all other transactions
+                // only type 2 is order transaction type, so we discard all other transactions
                 if (type != 2) { continue; }
 
                 string tradingPair = ((JObject)transaction).Properties().FirstOrDefault(p =>
