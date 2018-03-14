@@ -226,7 +226,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">Regenerate the address</param>
-        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
         public virtual ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false) { throw new NotImplementedException(); }
 
         /// <summary>
@@ -234,7 +234,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">Regenerate the address</param>
-        /// <returns>Deposit address details (including memo if applicable, such as XRP)</returns>
+        /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
         public Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false) => Task.Factory.StartNew(() => GetDepositAddress(symbol, forceRegenerate));
 
         /// <summary>Gets the deposit history for a symbol</summary>

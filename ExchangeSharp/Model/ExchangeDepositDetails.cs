@@ -12,36 +12,24 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Class to encapsulate details required to make a deposit.
-    /// </summary>
+    /// <summary>Class to encapsulate details required to make a deposit.</summary>
     public class ExchangeDepositDetails
     {
-        /// <summary>
-        /// The symbol of the currency. Ex. ETH
-        /// </summary>
+        /// <summary>The symbol of the currency. Ex. ETH</summary>
         public string Symbol;
 
-        /// <summary>
-        /// The address to deposit to
-        /// </summary>
+        /// <summary>The address to deposit to</summary>
         public string Address;
 
-        /// <summary>
-        /// The extra data that must be passed along for currencies like Ripple.
-        /// Null in most cases
-        /// </summary>
-        public string Memo;
+        /// <summary>The extra data that must be passed along for currencies like Ripple. Null in
+        /// most cases</summary>
+        public string AddressTag;
 
-        /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
+        /// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
+        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
         public override string ToString()
         {
-            return $"{this.Symbol}: Address: {this.Address} Memo: {this.Memo}";
+            return $"{this.Symbol}: Address: {this.Address} AddressTag: {this.AddressTag}";
         }
     }
 }

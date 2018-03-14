@@ -36,7 +36,7 @@ namespace ExchangeSharp
         public string PaymentId { get; set; }
 
         /// <summary>A value indicating whether the transaction is pending</summary>
-        public TransactionStatus Status { get; set; }
+        public TransactionStatus Status { get; set; } = TransactionStatus.Unknown;
 
         /// <summary>The timestamp of the transaction</summary>
         public DateTime TimestampUTC { get; set; }
@@ -46,5 +46,11 @@ namespace ExchangeSharp
 
         /// <summary>The currency symbol (ex. BTC)</summary>
         public string Symbol { get; set; }
+
+        public override string ToString()
+        {
+            return
+                $"{this.Amount} {this.Symbol} (fee: {this.TxFee}) sent to Address: {this.Address ?? "null"} with AddressTag: {this.AddressTag ?? "null"} BlockchainTxId: {this.BlockchainTxId ?? "null"} sent at {this.TimestampUTC} UTC. Status: {this.Status}. Exchange paymentId: {this.PaymentId ?? "null"}. Notes: {this.Notes ?? "null"}";
+        }
     }
 }

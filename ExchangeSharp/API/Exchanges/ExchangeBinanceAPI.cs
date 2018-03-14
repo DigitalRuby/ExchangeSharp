@@ -127,8 +127,15 @@ namespace ExchangeSharp
                 if (lotSizeFilter != null)
                 {
                     market.MinTradeSize = lotSizeFilter["minQty"].ConvertInvariant<decimal>();
+                    market.QuantityStepSize = lotSizeFilter["stepSize"].ConvertInvariant<decimal>();
                 }
 
+                // PRICE_FILTER
+                JToken priceFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "PRICE_FILTER"));
+                if (priceFilter != null)
+                {
+                    market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
+                }
                 markets.Add(market);
             }
 
@@ -487,17 +494,31 @@ namespace ExchangeSharp
             CheckError(token);
         }
 
+        /// <summary>A withdrawal request. Fee is automatically subtracted from the amount.</summary>
+        /// <param name="withdrawalRequest">The withdrawal request.</param>
+        /// <returns>Withdrawal response from Binance</returns>
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            Dictionary<string, object> payload = GetNoncePayload();
-            payload["asset"] = withdrawalRequest.Asset;
-            payload["address"] = withdrawalRequest.ToAddress;
-            payload["amount"] = withdrawalRequest.Amount;
-
-            if (!string.IsNullOrWhiteSpace(withdrawalRequest.Name))
+            if (string.IsNullOrWhiteSpace(withdrawalRequest.Symbol))
             {
-                payload["name"] = withdrawalRequest.Name;
+                throw new APIException("Symbol must be provided for Withdraw");
             }
+
+            if (string.IsNullOrWhiteSpace(withdrawalRequest.Address))
+            {
+                throw new APIException("Address must be provided for Withdraw");
+            }
+
+            if (withdrawalRequest.Amount <= 0)
+            {
+                throw new APIException("Withdrawal amount must be positive and non-zero");
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["asset"] = withdrawalRequest.Symbol;
+            payload["address"] = withdrawalRequest.Address;
+            payload["amount"] = withdrawalRequest.Amount;
+            payload["name"] = withdrawalRequest.Description ?? "apiwithdrawal"; // Contrary to what the API docs say, name is required
 
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
@@ -688,7 +709,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for</param>
         /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
         /// <returns>
-        /// Deposit address details (including memo if applicable, such as XRP)
+        /// Deposit address details (including tag if applicable, such as XRP)
         /// </returns>
         public override ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false)
         {
@@ -708,7 +729,7 @@ namespace ExchangeSharp
             {
                 Symbol = response["asset"].ToStringInvariant(),
                 Address = response["address"].ToStringInvariant(),
-                Memo = response["addressTag"].ToStringInvariant()
+                AddressTag = response["addressTag"].ToStringInvariant()
             };
 
             return depositDetails;
@@ -745,9 +766,11 @@ namespace ExchangeSharp
                     case 0:
                         transaction.Status = TransactionStatus.Processing;
                         break;
+
                     case 1:
                         transaction.Status = TransactionStatus.Complete;
                         break;
+
                     default:
                         // If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
                         transaction.Status = TransactionStatus.Unknown;
