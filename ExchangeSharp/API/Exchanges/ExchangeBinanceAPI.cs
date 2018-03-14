@@ -565,11 +565,11 @@ namespace ExchangeSharp
             {
                 if (result["status"] != null && result["code"] != null)
                 {
-                    throw new APIException(result["code"].ToStringInvariant() + ": " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
+                    throw new APIException("Code: " + result["code"].ToStringInvariant() + ", error: " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
                 }
                 else if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
                 {
-                    throw new APIException("Success: false. Message: " + result["msg"].ToStringInvariant());
+                    throw new APIException("Success was false, error: " + result["msg"].ToStringInvariant());
                 }
             }
         }
