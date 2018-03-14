@@ -214,6 +214,7 @@ namespace ExchangeSharp
             order.Symbol = orderRequest.Symbol;
             return order;
         }
+
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
             //{
@@ -290,6 +291,7 @@ namespace ExchangeSharp
             //No way to know if order IsBuy, Amount, OrderDate
             return order;
         }
+
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
@@ -317,6 +319,7 @@ namespace ExchangeSharp
                 };
             }
         }
+
         public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
             symbol = NormalizeSymbol(symbol);
