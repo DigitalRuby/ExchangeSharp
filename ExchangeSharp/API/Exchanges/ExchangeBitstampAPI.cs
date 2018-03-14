@@ -12,7 +12,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-
+using System.Globalization;
+using System.Linq;
+using System.Net;
 using Newtonsoft.Json.Linq;
 
 
@@ -22,6 +24,62 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://www.bitstamp.net/api/v2";
         public override string Name => ExchangeName.Bitstamp;
+        public string CustomerId { get; set; }
+
+        /// <summary>
+        /// In order to use private functions of the API, you must set CustomerId by calling constructor with parameter,
+        /// or setting it later in the ExchangeBitstampAPI object
+        /// </summary>
+        public ExchangeBitstampAPI()
+        {
+            RequestContentType = "application/x-www-form-urlencoded";
+            NonceStyle = NonceStyle.UnixMilliseconds;
+        }
+
+        /// <summary>
+        /// In order to use private functions of the API, you must set CustomerId by calling this constructor with parameter,
+        /// or setting it later in the ExchangeBitstampAPI object
+        /// </summary>
+        /// <param name="customerId">Customer Id can be found by the link "https://www.bitstamp.net/account/balance/"</param>
+        public ExchangeBitstampAPI(string customerId) : this()
+        {
+            CustomerId = customerId;
+        }
+
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            if (CanMakeAuthenticatedRequest(payload))
+            {
+                if (string.IsNullOrWhiteSpace(this.CustomerId))
+                {
+                    throw new APIException("Customer ID is not set for Bitstamp");
+                }
+
+                //messageToSign = nonce + customer_id + api_key
+                string messageToSign = string.Format("{0}{1}{2}", payload["nonce"].ToString(), CustomerId, CryptoUtility.SecureStringToString(PublicApiKey));
+                string signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
+                payload["signature"] = signature;
+                payload["key"] = CryptoUtility.SecureStringToString(PublicApiKey);
+                WritePayloadToRequest(request, payload);
+            }
+        }
+
+        private JToken CheckError(JToken token)
+        {
+            if (token == null)
+            {
+                throw new APIException("Null result");
+            }
+            if (token is JObject && token["status"] != null && token["status"].ToString().Equals("error"))
+            {
+                throw new APIException(token["reason"]?.ToString());
+            }
+            if (token is JObject && token["error"] != null)
+            {
+                throw new APIException(token["error"]?.ToString());
+            }
+            return token;
+        }
 
         private JToken MakeBitstampRequest(string subUrl)
         {
@@ -99,6 +157,228 @@ namespace ExchangeSharp
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(trade["date"].ConvertInvariant<long>())
                 };
             }
+        }
+
+        public override Dictionary<string, decimal> GetAmounts()
+        {
+            string url = "/balance/";
+            var payload = GetNoncePayload();
+            JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
+            CheckError(responseObject);
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (var property in responseObject)
+            {
+                if (property.Key.Contains("_balance"))
+                {
+                    decimal balance = property.Value.ConvertInvariant<decimal>();
+                    if (balance == 0) { continue; }
+                    balances.Add(property.Key.Replace("_balance", "").Trim(), balance);
+                }
+            }
+            return balances;
+        }
+
+        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        {
+            string url = "/balance/";
+            var payload = GetNoncePayload();
+            JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
+            CheckError(responseObject);
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (var property in responseObject)
+            {
+                if (property.Key.Contains("_available"))
+                {
+                    decimal balance = property.Value.ConvertInvariant<decimal>();
+                    if (balance == 0) { continue; }
+                    balances.Add(property.Key.Replace("_available", "").Trim(), balance);
+                }
+            }
+            return balances;
+        }
+
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest orderRequest)
+        {
+            string symbol = NormalizeSymbol(orderRequest.Symbol);
+            string url = orderRequest.IsBuy ? string.Format("/buy/{0}/", symbol) : string.Format("/sell/{0}/", symbol);
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["price"] = orderRequest.Price.ToString(CultureInfo.InvariantCulture.NumberFormat);
+            payload["amount"] = orderRequest.Amount.ToString(CultureInfo.InvariantCulture.NumberFormat);
+
+            JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
+            CheckError(responseObject);
+            ExchangeOrderResult order = new ExchangeOrderResult();
+            order.OrderDate = DateTime.UtcNow;
+            order.OrderId = responseObject["id"].ToStringInvariant();
+            order.IsBuy = orderRequest.IsBuy;
+            order.Symbol = orderRequest.Symbol;
+            return order;
+        }
+        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        {
+            //{
+            //    "status": "Finished",
+            //    "id": 1022694747,
+            //    "transactions": [
+            //    {
+            //        "fee": "0.000002",
+            //        "bch": "0.00882714",
+            //        "price": "0.12120000",
+            //        "datetime": "2018-02-24 14:15:29.133824",
+            //        "btc": "0.0010698493680000",
+            //        "tid": 56293144,
+            //        "type": 2
+            //    }]
+            //}
+            if (string.IsNullOrWhiteSpace(orderId))
+            {
+                return null;
+            }
+            string url = "/order_status/";
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["id"] = orderId;
+            JObject result = MakeJsonRequest<JObject>(url, null, payload, "POST");
+            CheckError(result);
+
+            //string status = result["status"].ToStringInvariant();
+            //status can be 'In Queue', 'Open' or 'Finished'
+            JArray transactions = result["transactions"] as JArray;
+            //empty transaction array means that order is InQueue or Open and AmountFilled == 0
+            //return empty order in this case. no any additional info available at this point
+            if (transactions.Count() == 0) { return new ExchangeOrderResult() { OrderId = orderId }; }
+            JObject first = transactions.First() as JObject;
+            List<string> excludeStrings = new List<string>() { "tid", "price", "fee", "datetime", "type", "btc", "usd", "eur" };
+
+            string baseCurrency;
+            string marketCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
+            if (string.IsNullOrWhiteSpace(marketCurrency))
+            {
+                //the only 2 cases are BTC-USD and BTC-EUR
+                marketCurrency = "btc";
+                excludeStrings.RemoveAll(s => s.Equals("usd") || s.Equals("eur"));
+                baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
+            }
+            else
+            {
+                excludeStrings.RemoveAll(s => s.Equals("usd") || s.Equals("eur") || s.Equals("btc"));
+                excludeStrings.Add(marketCurrency);
+                baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
+            }
+            string symbol = $"{marketCurrency}-{baseCurrency}";
+
+            decimal amountFilled = 0, spentBaseCurrency = 0, price = 0;
+
+            foreach (var t in transactions)
+            {
+                int type = t["type"].ConvertInvariant<int>();
+                if (type != 2) { continue; }
+                spentBaseCurrency += t[baseCurrency].ConvertInvariant<decimal>();
+                amountFilled += t[marketCurrency].ConvertInvariant<decimal>();
+                //set price only one time
+                if (price == 0)
+                {
+                    price = t["price"].ConvertInvariant<decimal>();
+                }
+            }
+            ExchangeOrderResult order = new ExchangeOrderResult()
+            {
+                AmountFilled = amountFilled,
+                Symbol = symbol,
+                AveragePrice = spentBaseCurrency / amountFilled,
+                Price = price,
+            };
+            //No way to know if order IsBuy, Amount, OrderDate
+            return order;
+        }
+        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        {
+            symbol = NormalizeSymbol(symbol);
+            //Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
+            //string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
+            string url = "/open_orders/all/";
+            JArray result = MakeJsonRequest<JArray>(url, null, GetNoncePayload(), "POST");
+            CheckError(result);
+            foreach (JToken token in result)
+            {
+                //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
+                string tokenSymbol = token["currency_pair"]?.ToStringLowerInvariant().Replace("/", "");
+                if (!string.IsNullOrWhiteSpace(tokenSymbol) && !string.IsNullOrWhiteSpace(symbol) && !tokenSymbol.Equals(symbol, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    continue;
+                }
+                yield return new ExchangeOrderResult()
+                {
+                    OrderId = token["id"].ToStringInvariant(),
+                    OrderDate = token["datetime"].ConvertInvariant<DateTime>(),
+                    IsBuy = token["type"].ConvertInvariant<int>() == 0,
+                    Price = token["price"].ConvertInvariant<decimal>(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    Symbol = tokenSymbol ?? symbol
+                };
+            }
+        }
+        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
+        {
+            symbol = NormalizeSymbol(symbol);
+            //Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
+            //string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
+            string url = "/user_transactions/";
+            JToken result = MakeJsonRequest<JToken>(url, null, GetNoncePayload(), "POST");
+            CheckError(result);
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            foreach (var transaction in result as JArray)
+            {
+                int type = transaction["type"].ConvertInvariant<int>();
+                //only type 2 is order transaction type, so we discard all other transactions
+                if (type != 2) { continue; }
+
+                string tradingPair = ((JObject)transaction).Properties().FirstOrDefault(p =>
+                    !p.Name.Equals("order_id", StringComparison.InvariantCultureIgnoreCase)
+                    && p.Name.Contains("_"))?.Name.Replace("_", "-");
+                if (!string.IsNullOrWhiteSpace(tradingPair) && !string.IsNullOrWhiteSpace(symbol) && !NormalizeSymbol(tradingPair).Equals(symbol))
+                {
+                    continue;
+                }
+                string marketCurrency, baseCurrency;
+                baseCurrency = tradingPair.Trim().Substring(tradingPair.Length - 3).ToLowerInvariant();
+                marketCurrency = tradingPair.Trim().ToLowerInvariant().Replace(baseCurrency, "").Replace("-", "").Replace("_", "");
+
+                decimal resultMarketCurrency = transaction[marketCurrency].ConvertInvariant<decimal>();
+                ExchangeOrderResult order = new ExchangeOrderResult()
+                {
+                    OrderId = transaction["order_id"].ToStringInvariant(),
+                    IsBuy = resultMarketCurrency > 0,
+                    Symbol = NormalizeSymbol(tradingPair),
+                    OrderDate = transaction["datetime"].ConvertInvariant<DateTime>(),
+                    AmountFilled = Math.Abs(resultMarketCurrency),
+                    AveragePrice = Math.Abs(transaction[baseCurrency].ConvertInvariant<decimal>() / resultMarketCurrency)
+                };
+                orders.Add(order);
+            }
+            // at this point one transaction transformed into one order, we need to consolidate parts into order
+            // group by order id  
+            var groupings = orders.GroupBy(o => o.OrderId);
+            foreach (var group in groupings)
+            {
+                decimal spentBaseCurrency = group.Sum(o => o.AveragePrice * o.AmountFilled);
+                ExchangeOrderResult order = group.First();
+                order.AmountFilled = group.Sum(o => o.AmountFilled);
+                order.AveragePrice = spentBaseCurrency / order.AmountFilled;
+                order.Price = order.AveragePrice;
+                yield return order;
+            }
+        }
+
+        public override void CancelOrder(string orderId)
+        {
+            if (string.IsNullOrWhiteSpace(orderId))
+            {
+                throw new APIException("OrderId is needed for canceling order");
+            }
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["id"] = orderId;
+            JToken obj = MakeJsonRequest<JToken>("/cancel_order/", null, payload, "POST");
+            CheckError(obj);
         }
     }
 }
