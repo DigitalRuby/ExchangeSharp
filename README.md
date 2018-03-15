@@ -23,7 +23,7 @@ The following cryptocurrency exchanges are supported:
 - Binance (public REST, basic private REST, public web socket (tickers))
 - Bitfinex (public REST, basic private REST, public web socket (tickers), private web socket (orders))
 - Bithumb (public REST)
-- Bitstamp (public REST)
+- Bitstamp (public REST, basic private REST)
 - Bittrex (public REST, basic private REST, public web socket (tickers))
 - Gemini (public REST, basic private REST)
 - GDAX (public REST, basic private REST)

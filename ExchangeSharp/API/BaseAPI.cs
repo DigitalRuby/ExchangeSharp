@@ -118,7 +118,7 @@ namespace ExchangeSharp
         public System.Security.SecureString PrivateApiKey { get; set; }
 
         /// <summary>
-        /// Pass phrase API key  - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
+        /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// Most services do not require this, but GDAX is an example of one that does
         /// </summary>
         public System.Security.SecureString Passphrase { get; set; }

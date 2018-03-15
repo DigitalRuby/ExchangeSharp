@@ -86,6 +86,15 @@ namespace ExchangeSharp
                         {
                             order.IsBuy = true;
                         }
+                        // fee is a percentage taken from the traded amount rounded to 8 decimals
+                        if (order.IsBuy)
+                        {
+                            order.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                        }
+                        else
+                        {
+                            order.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["rate"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                        }
                         if (order.OrderDate == DateTime.MinValue)
                         {
                             order.OrderDate = token["date"].ConvertInvariant<DateTime>();
@@ -119,6 +128,19 @@ namespace ExchangeSharp
                 {
                     order.OrderDate = result["date"].ConvertInvariant<DateTime>();
                 }
+                // fee is a percentage taken from the traded amount rounded to 8 decimals
+                if (result["type"] != null && result["amount"] != null && result["rate"] != null)
+                {
+                    if (order.IsBuy)
+                    {
+                        order.Fees += Math.Round(result["amount"].ConvertInvariant<decimal>() * result["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                    }
+                    else
+                    {
+                        order.Fees += Math.Round(result["amount"].ConvertInvariant<decimal>() * result["rate"].ConvertInvariant<decimal>() * result["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                    }
+                }
+
             }
             return order;
         }
@@ -137,6 +159,15 @@ namespace ExchangeSharp
                 subOrder.AveragePrice = token["rate"].ConvertInvariant<decimal>();
                 subOrder.IsBuy = token["type"].ToStringInvariant() != "sell";
                 subOrder.OrderDate = token["date"].ConvertInvariant<DateTime>();
+                // fee is a percentage taken from the traded amount rounded to 8 decimals
+                if (subOrder.IsBuy)
+                {
+                    subOrder.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                }
+                else
+                {
+                    subOrder.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["rate"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                }
                 subOrder.OrderId = token["orderNumber"].ToStringInvariant();
                 subOrder.Result = ExchangeAPIOrderResult.Filled;
                 subOrder.Symbol = symbol;
