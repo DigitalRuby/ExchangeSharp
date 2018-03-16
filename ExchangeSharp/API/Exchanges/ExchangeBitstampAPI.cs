@@ -403,25 +403,15 @@ namespace ExchangeSharp
             string url = "";
             switch (withdrawalRequest.Symbol)
             {
-                case "XRP":
-                    url = "/xrp_withdrawal/";
-                    break;
-                case "BCH":
-                    url = "/bch_withdrawal/";
-                    break;
-                case "LTC":
-                    url = "/ltc_withdrawal/";
-                    break;
-                case "ETH":
-                    url = "/eth_withdrawal/";
-                    break;
                 case "BTC":
+                    // use old API for Bitcoin withdraw
                     baseurl = "https://www.bitstamp.net/api/";
                     url = "/bitcoin_withdrawal/";
-
                     break;
                 default:
-                    throw new NotImplementedException();
+                    // this will work for some currencies and fail for others, caller must be aware of the supported currencies
+                    url = "/" + withdrawalRequest.Symbol.ToLowerInvariant() + "_withdrawal/";
+                    break;
             }
 
             Dictionary<string, object> payload = GetNoncePayload();
@@ -435,7 +425,7 @@ namespace ExchangeSharp
             {
                 Id = responseObject["id"].ToStringInvariant(),
                 Message = responseObject["message"].ToStringInvariant(),
-                Success = (bool)responseObject["success"]
+                Success = responseObject["success"].ConvertInvariant<bool>()
             };
         }
     }
