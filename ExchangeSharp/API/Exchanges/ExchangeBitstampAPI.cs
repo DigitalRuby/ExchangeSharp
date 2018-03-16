@@ -391,5 +391,52 @@ namespace ExchangeSharp
             JToken obj = MakeJsonRequest<JToken>("/cancel_order/", null, payload, "POST");
             CheckError(obj);
         }
+
+        /// <summary>
+        /// Function to withdraw from Bitsamp exchange. At the moment only XRP is supported.
+        /// </summary>
+        /// <param name="withdrawalRequest"></param>
+        /// <returns></returns>
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            string baseurl = null;
+            string url = "";
+            switch (withdrawalRequest.Symbol)
+            {
+                case "XRP":
+                    url = "/xrp_withdrawal/";
+                    break;
+                case "BCH":
+                    url = "/bch_withdrawal/";
+                    break;
+                case "LTC":
+                    url = "/ltc_withdrawal/";
+                    break;
+                case "ETH":
+                    url = "/eth_withdrawal/";
+                    break;
+                case "BTC":
+                    baseurl = "https://www.bitstamp.net/api/";
+                    url = "/bitcoin_withdrawal/";
+
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["address"] = withdrawalRequest.Address.ToStringInvariant();
+            payload["amount"] = withdrawalRequest.Amount.ToStringInvariant();
+            payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();
+
+            JObject responseObject = MakeJsonRequest<JObject>(url, baseurl, payload, "POST");
+            CheckError(responseObject);
+            return new ExchangeWithdrawalResponse()
+            {
+                Id = responseObject["id"].ToStringInvariant(),
+                Message = responseObject["message"].ToStringInvariant(),
+                Success = (bool)responseObject["success"]
+            };
+        }
     }
 }
