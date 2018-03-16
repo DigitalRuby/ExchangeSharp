@@ -405,6 +405,9 @@ namespace ExchangeSharp
                 case "XRP":
                     url = "/xrp_withdrawal/";
                     break;
+                case "BCH":
+                    url = "/bch_withdrawal/";
+                    break;
                 default:
                     throw new NotImplementedException();
             }
