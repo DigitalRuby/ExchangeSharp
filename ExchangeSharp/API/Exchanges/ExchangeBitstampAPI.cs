@@ -391,5 +391,36 @@ namespace ExchangeSharp
             JToken obj = MakeJsonRequest<JToken>("/cancel_order/", null, payload, "POST");
             CheckError(obj);
         }
+        /// <summary>
+        /// Function to withdraw from Bitsamp exchange. At the moment only XRP is supported.
+        /// </summary>
+        /// <param name="withdrawalRequest"></param>
+        /// <returns></returns>
+        public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            string url = "";
+            switch (withdrawalRequest.Symbol)
+            {
+                case "XRP":
+                    url = "/xrp_withdrawal/";
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            Dictionary<string, object> payload = GetNoncePayload();
+            payload["address"] = withdrawalRequest.Address.ToStringInvariant();
+            payload["amount"] = withdrawalRequest.Amount.ToStringInvariant();
+            payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();
+
+            JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
+            CheckError(responseObject);
+            return new ExchangeWithdrawalResponse()
+            {
+                Id = responseObject["id"].ToStringInvariant(),
+                Message = responseObject["message"].ToStringInvariant(),
+                Success = (bool)responseObject["success"]
+            };
+        }
     }
 }
