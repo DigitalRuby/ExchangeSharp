@@ -399,6 +399,7 @@ namespace ExchangeSharp
         /// <returns></returns>
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
+            string baseurl = null;
             string url = "";
             switch (withdrawalRequest.Symbol)
             {
@@ -407,6 +408,17 @@ namespace ExchangeSharp
                     break;
                 case "BCH":
                     url = "/bch_withdrawal/";
+                    break;
+                case "LTC":
+                    url = "/ltc_withdrawal/";
+                    break;
+                case "ETH":
+                    url = "/eth_withdrawal/";
+                    break;
+                case "BTC":
+                    baseurl = "https://www.bitstamp.net/api/";
+                    url = "/bitcoin_withdrawal/";
+
                     break;
                 default:
                     throw new NotImplementedException();
@@ -417,7 +429,7 @@ namespace ExchangeSharp
             payload["amount"] = withdrawalRequest.Amount.ToStringInvariant();
             payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();
 
-            JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
+            JObject responseObject = MakeJsonRequest<JObject>(url, baseurl, payload, "POST");
             CheckError(responseObject);
             return new ExchangeWithdrawalResponse()
             {
