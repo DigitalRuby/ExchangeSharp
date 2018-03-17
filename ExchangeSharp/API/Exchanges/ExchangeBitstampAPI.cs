@@ -400,7 +400,7 @@ namespace ExchangeSharp
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
             string baseurl = null;
-            string url = "";
+            string url;
             switch (withdrawalRequest.Symbol)
             {
                 case "BTC":
@@ -421,7 +421,7 @@ namespace ExchangeSharp
 
             JObject responseObject = MakeJsonRequest<JObject>(url, baseurl, payload, "POST");
             CheckError(responseObject);
-            return new ExchangeWithdrawalResponse()
+            return new ExchangeWithdrawalResponse
             {
                 Id = responseObject["id"].ToStringInvariant(),
                 Message = responseObject["message"].ToStringInvariant(),
