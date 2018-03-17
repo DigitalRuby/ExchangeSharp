@@ -74,14 +74,17 @@ namespace ExchangeSharp
             JToken trades = result["resultingTrades"];
             if (trades != null && trades.Children().Count() != 0)
             {
-                decimal tradeCount = (decimal)trades.Children().Count();
+                int tradeCount = trades.Children().Count();
                 if (tradeCount != 0m)
                 {
                     foreach (JToken token in trades)
                     {
-                        order.Amount += token["amount"].ConvertInvariant<decimal>();
+                        decimal tradeAmt = token["amount"].ConvertInvariant<decimal>();
+                        decimal tradeRate = token["rate"].ConvertInvariant<decimal>();
+
+                        order.Amount += tradeAmt;
                         order.AmountFilled = order.Amount;
-                        order.AveragePrice += token["rate"].ConvertInvariant<decimal>();
+                        order.AveragePrice += tradeRate;
                         if (token["type"].ToStringInvariant() == "buy")
                         {
                             order.IsBuy = true;
@@ -89,11 +92,11 @@ namespace ExchangeSharp
                         // fee is a percentage taken from the traded amount rounded to 8 decimals
                         if (order.IsBuy)
                         {
-                            order.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                            order.Fees += Math.Round(tradeAmt * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
                         }
                         else
                         {
-                            order.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["rate"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
+                            order.Fees += Math.Round(tradeAmt * tradeRate * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
                         }
                         if (order.OrderDate == DateTime.MinValue)
                         {
@@ -140,13 +143,14 @@ namespace ExchangeSharp
                         order.Fees += Math.Round(result["amount"].ConvertInvariant<decimal>() * result["rate"].ConvertInvariant<decimal>() * result["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
                     }
                 }
-
             }
+
             return order;
         }
 
-        private void ParseOrderFromTrades(List<ExchangeOrderResult> orders, JArray trades, string symbol)
+        private List<ExchangeOrderResult> ParseOrderFromTrades(JArray trades, string symbol)
         {
+            var orders = new List<ExchangeOrderResult>();
             Dictionary<string, ExchangeOrderResult> orderLookup = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken token in trades)
             {
@@ -168,6 +172,7 @@ namespace ExchangeSharp
                 {
                     subOrder.Fees += Math.Round(token["amount"].ConvertInvariant<decimal>() * token["rate"].ConvertInvariant<decimal>() * token["fee"].ConvertInvariant<decimal>(), 8, MidpointRounding.AwayFromZero);
                 }
+
                 subOrder.OrderId = token["orderNumber"].ToStringInvariant();
                 subOrder.Result = ExchangeAPIOrderResult.Filled;
                 subOrder.Symbol = symbol;
@@ -180,7 +185,9 @@ namespace ExchangeSharp
                     orderLookup[subOrder.OrderId] = subOrder;
                 }
             }
+
             orders.AddRange(orderLookup.Values);
+            return orders;
         }
 
         private ExchangeTicker ParseTickerWebSocket(string symbol, JToken token)
@@ -611,31 +618,49 @@ namespace ExchangeSharp
             }
         }
 
+        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        {
+            JToken result = MakePrivateAPIRequest("returnOrderTrades", "orderNumber", orderId);
+            CheckError(result);
+
+            JArray resultArray = result as JArray;
+            if (result != null && result.HasValues)
+            {
+                string tickerSymbol = result[0]["currencyPair"].ToStringInvariant();
+                List<ExchangeOrderResult> orders = ParseOrderFromTrades(resultArray, tickerSymbol);
+                if (orders.Count != 1)
+                {
+                    throw new APIException($"ReturnOrderTrades for a single orderNumber returned {orders.Count} orders. Expected 1.");
+                }
+
+                orders[0].OrderId = orderId;
+                return orders[0];
+            }
+
+            return null;
+        }
+
         public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
         {
-            symbol = NormalizeSymbol(symbol);
-            if (string.IsNullOrWhiteSpace(symbol))
-            {
-                symbol = "all";
-            }
-            JToken result;
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            symbol = string.IsNullOrWhiteSpace(symbol) ? "all" : NormalizeSymbol(symbol);
+
+            List<ExchangeOrderResult> orders = null;
             afterDate = afterDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0));
             long afterTimestamp = (long)afterDate.Value.UnixTimestampFromDateTimeSeconds();
-            result = MakePrivateAPIRequest("returnTradeHistory", "currencyPair", symbol, "limit", 10000, "start", afterTimestamp);
+            JToken result = this.MakePrivateAPIRequest("returnTradeHistory", "currencyPair", symbol, "limit", 10000, "start", afterTimestamp);
             CheckError(result);
             if (symbol != "all")
             {
-                ParseOrderFromTrades(orders, result as JArray, symbol);
+                orders = ParseOrderFromTrades(result as JArray, symbol);
             }
             else
             {
                 foreach (JProperty prop in result)
                 {
-                    symbol = prop.Name;
-                    ParseOrderFromTrades(orders, prop.Value as JArray, symbol);
+                    orders = ParseOrderFromTrades(prop.Value as JArray, prop.Name);
                 }
             }
+
             return orders;
         }
 
