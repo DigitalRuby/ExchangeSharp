@@ -20,11 +20,27 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using System.IO;
+    using System.Reflection;
+
     public class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
         public override string Name => ExchangeName.Poloniex;
+
+
+        public ExchangePoloniexAPI()
+        {
+            RequestContentType = "application/x-www-form-urlencoded";
+            this.WithdrawalFieldCount = this.LoadWithdrawalFieldCount();
+        }
+
+        /// <summary>
+        /// Number of fields Poloniex provides for withdrawals since specifying
+        /// extra content in the API request won't be rejected and may cause withdrawal to get stuck.
+        /// </summary>
+        public Dictionary<string, int> WithdrawalFieldCount { get; set; }
 
         private void CheckError(JObject json)
         {
@@ -231,9 +247,28 @@ namespace ExchangeSharp
             }
         }
 
-        public ExchangePoloniexAPI()
+        public Dictionary<string, int> LoadWithdrawalFieldCount()
         {
-            RequestContentType = "application/x-www-form-urlencoded";
+            var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var assem = Assembly.GetExecutingAssembly();
+            var resourceName = "ExchangeSharp.API.Exchanges.PoloWithdrawalFields.csv";
+            Stream manifestResourceStream = assem.GetManifestResourceStream(resourceName);
+            using (var sr = new StreamReader(manifestResourceStream))
+            {
+                sr.ReadLine(); // eat the header
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    string[] split = line.Split(',');
+                    if (split.Length == 2)
+                    {
+                        int.TryParse(split[1], out int count);
+                        fieldCount[split[0]] = count;
+                    }
+                }
+            }
+
+            return fieldCount;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -676,6 +711,25 @@ namespace ExchangeSharp
 
         public override ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest)
         {
+            // If we have an address tag, verify that Polo lets you specify it as part of the withdrawal
+            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
+            {
+                if (!this.WithdrawalFieldCount.TryGetValue(withdrawalRequest.Symbol, out int fieldCount) || fieldCount == 0)
+                {
+                    throw new APIException($"Coin {withdrawalRequest.Symbol} is unknown by ExchangeSharp. Manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and set it on WithdrawalFieldCount before calling Withdraw");
+                }
+
+                if (fieldCount == 1)
+                {
+                    throw new APIException($"Coin {withdrawalRequest.Symbol} only allows an address to be specified and address tag {withdrawalRequest.AddressTag} was provided.");
+                }
+
+                if (fieldCount > 2)
+                {
+                    throw new APIException("More than two fields on a withdrawal is unsupported.");
+                }
+            }
+
             var paramsList = new List<object> { "currency", this.NormalizeSymbol(withdrawalRequest.Symbol), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.Address };
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
@@ -686,7 +740,6 @@ namespace ExchangeSharp
             JToken token = this.MakePrivateAPIRequest("withdraw", paramsList.ToArray());
 
             ExchangeWithdrawalResponse resp = new ExchangeWithdrawalResponse { Message = token["response"].ToStringInvariant() };
-
             return resp;
         }
 
