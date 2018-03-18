@@ -14,7 +14,7 @@
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
-<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
+<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.2.9 ```  
 </a> 
 
@@ -114,7 +114,7 @@ If you want help with your project, have questions that need answering or this p
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
-<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
+<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.2.9 ```  
 </a> 
 
