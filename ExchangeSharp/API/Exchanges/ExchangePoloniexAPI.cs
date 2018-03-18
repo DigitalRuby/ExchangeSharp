@@ -29,18 +29,38 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
         public override string Name => ExchangeName.Poloniex;
 
+        static ExchangePoloniexAPI()
+        {
+            // load withdrawal field counts
+            var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var assem = Assembly.GetExecutingAssembly();
+            using (var sr = new StringReader(Resources.ExchangeSharpResources.PoloniexWithdrawalFields))
+            {
+                sr.ReadLine(); // eat the header
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    string[] split = line.Split(',');
+                    if (split.Length == 2)
+                    {
+                        int.TryParse(split[1], out int count);
+                        fieldCount[split[0]] = count;
+                    }
+                }
+            }
+            WithdrawalFieldCount = fieldCount;
+        }
 
         public ExchangePoloniexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            this.WithdrawalFieldCount = this.LoadWithdrawalFieldCount();
         }
 
         /// <summary>
         /// Number of fields Poloniex provides for withdrawals since specifying
         /// extra content in the API request won't be rejected and may cause withdrawal to get stuck.
         /// </summary>
-        public Dictionary<string, int> WithdrawalFieldCount { get; set; }
+        public static readonly IReadOnlyDictionary<string, int> WithdrawalFieldCount;
 
         private void CheckError(JObject json)
         {
@@ -245,30 +265,6 @@ namespace ExchangeSharp
                 request.Method = "POST";
                 WriteFormToRequest(request, form);
             }
-        }
-
-        public Dictionary<string, int> LoadWithdrawalFieldCount()
-        {
-            var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var assem = Assembly.GetExecutingAssembly();
-            var resourceName = "ExchangeSharp.API.Exchanges.PoloWithdrawalFields.csv";
-            Stream manifestResourceStream = assem.GetManifestResourceStream(resourceName);
-            using (var sr = new StreamReader(manifestResourceStream))
-            {
-                sr.ReadLine(); // eat the header
-                string line;
-                while ((line = sr.ReadLine()) != null)
-                {
-                    string[] split = line.Split(',');
-                    if (split.Length == 2)
-                    {
-                        int.TryParse(split[1], out int count);
-                        fieldCount[split[0]] = count;
-                    }
-                }
-            }
-
-            return fieldCount;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -714,17 +710,15 @@ namespace ExchangeSharp
             // If we have an address tag, verify that Polo lets you specify it as part of the withdrawal
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
-                if (!this.WithdrawalFieldCount.TryGetValue(withdrawalRequest.Symbol, out int fieldCount) || fieldCount == 0)
+                if (!WithdrawalFieldCount.TryGetValue(withdrawalRequest.Symbol, out int fieldCount) || fieldCount == 0)
                 {
-                    throw new APIException($"Coin {withdrawalRequest.Symbol} is unknown by ExchangeSharp. Manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and set it on WithdrawalFieldCount before calling Withdraw");
+                    throw new APIException($"Coin {withdrawalRequest.Symbol} has unknown withdrawal field count. Please manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and add it to PoloniexWithdrawalFields.csv before calling Withdraw");
                 }
-
-                if (fieldCount == 1)
+                else if (fieldCount == 1)
                 {
                     throw new APIException($"Coin {withdrawalRequest.Symbol} only allows an address to be specified and address tag {withdrawalRequest.AddressTag} was provided.");
                 }
-
-                if (fieldCount > 2)
+                else if (fieldCount > 2)
                 {
                     throw new APIException("More than two fields on a withdrawal is unsupported.");
                 }
