@@ -59,7 +59,7 @@ namespace ExchangeSharp
         /// Number of fields Poloniex provides for withdrawals since specifying
         /// extra content in the API request won't be rejected and may cause withdrawal to get stuck.
         /// </summary>
-        public static IReadOnlyDictionary<string, int> WithdrawalFieldCount;
+        public static IReadOnlyDictionary<string, int> WithdrawalFieldCount { get; set; }
 
         private void CheckError(JObject json)
         {
