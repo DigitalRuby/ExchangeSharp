@@ -33,7 +33,6 @@ namespace ExchangeSharp
         {
             // load withdrawal field counts
             var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var assem = Assembly.GetExecutingAssembly();
             using (var sr = new StringReader(Resources.ExchangeSharpResources.PoloniexWithdrawalFields))
             {
                 sr.ReadLine(); // eat the header
@@ -60,7 +59,7 @@ namespace ExchangeSharp
         /// Number of fields Poloniex provides for withdrawals since specifying
         /// extra content in the API request won't be rejected and may cause withdrawal to get stuck.
         /// </summary>
-        public static readonly IReadOnlyDictionary<string, int> WithdrawalFieldCount;
+        public static IReadOnlyDictionary<string, int> WithdrawalFieldCount;
 
         private void CheckError(JObject json)
         {
