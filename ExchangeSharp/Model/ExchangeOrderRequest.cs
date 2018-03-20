@@ -10,6 +10,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System.Collections.Generic;
+
 namespace ExchangeSharp
 {
     /// <summary>
@@ -48,6 +50,12 @@ namespace ExchangeSharp
         /// The type of order - only limit is supported for now
         /// </summary>
         public OrderType OrderType { get; set; } = OrderType.Limit;
+
+        /// <summary>
+        /// Additional order parameters specific to the exchange that don't fit in common order properties. These will be forwarded on to the exchange as key=value pairs.
+        /// Not all exchanges will use this dictionary.
+        /// </summary>
+        public Dictionary<string, object> ExtraParameters { get; private set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Return a rounded amount if needed

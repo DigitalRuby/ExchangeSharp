@@ -146,10 +146,12 @@ namespace ExchangeSharp
 
             foreach (JToken pair in allPairs)
             {
-                var market = new ExchangeMarket();
-                market.IsActive = true;
-                market.MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant());
-                market.MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>();
+                var market = new ExchangeMarket
+                {
+                    IsActive = true,
+                    MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
+                    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>()
+                };
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
                 if (m.Success)
                 {
@@ -601,13 +603,15 @@ namespace ExchangeSharp
                     continue;
                 }
 
-                var transaction = new ExchangeTransaction();
-                transaction.PaymentId = token["id"].ToStringInvariant();
-                transaction.BlockchainTxId = token["txid"].ToStringInvariant();
-                transaction.Symbol = token["currency"].ToStringUpperInvariant();
-                transaction.Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant();
-                transaction.Amount = token["amount"].ConvertInvariant<decimal>();
-                transaction.Address = token["address"].ToStringInvariant();
+                var transaction = new ExchangeTransaction
+                {
+                    PaymentId = token["id"].ToStringInvariant(),
+                    BlockchainTxId = token["txid"].ToStringInvariant(),
+                    Symbol = token["currency"].ToStringUpperInvariant(),
+                    Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    Address = token["address"].ToStringInvariant()
+                };
 
                 string status = token["status"].ToStringUpperInvariant();
                 switch (status)

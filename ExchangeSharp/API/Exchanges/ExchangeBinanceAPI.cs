@@ -115,11 +115,13 @@ namespace ExchangeSharp
             JToken allSymbols = obj["symbols"];
             foreach (JToken symbol in allSymbols)
             {
-                var market = new ExchangeMarket();
-                market.MarketName = symbol["symbol"].ToStringUpperInvariant();
-                market.IsActive = this.ParseMarketStatus(symbol["status"].ToStringUpperInvariant());
-                market.BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant();
-                market.MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant();
+                var market = new ExchangeMarket
+                {
+                    MarketName = symbol["symbol"].ToStringUpperInvariant(),
+                    IsActive = this.ParseMarketStatus(symbol["status"].ToStringUpperInvariant()),
+                    BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant(),
+                    MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant()
+                };
 
                 // "LOT_SIZE"
                 JToken filters = symbol["filters"];
@@ -753,13 +755,15 @@ namespace ExchangeSharp
             var transactions = new List<ExchangeTransaction>();
             foreach (JToken token in response["depositList"])
             {
-                var transaction = new ExchangeTransaction();
-                transaction.TimestampUTC = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
-                transaction.Amount = token["amount"].ConvertInvariant<decimal>();
-                transaction.Symbol = token["asset"].ToStringUpperInvariant();
-                transaction.Address = token["address"].ToStringInvariant();
-                transaction.AddressTag = token["addressTag"].ToStringInvariant();
-                transaction.BlockchainTxId = token["txId"].ToStringInvariant();
+                var transaction = new ExchangeTransaction
+                {
+                    TimestampUTC = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    Symbol = token["asset"].ToStringUpperInvariant(),
+                    Address = token["address"].ToStringInvariant(),
+                    AddressTag = token["addressTag"].ToStringInvariant(),
+                    BlockchainTxId = token["txId"].ToStringInvariant()
+                };
                 int status = token["status"].ConvertInvariant<int>();
                 switch (status)
                 {

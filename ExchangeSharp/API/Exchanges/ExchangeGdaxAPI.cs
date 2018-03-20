@@ -141,13 +141,15 @@ namespace ExchangeSharp
             JToken products = MakeJsonRequest<JToken>("/products");
             foreach (JToken product in products)
             {
-                var market = new ExchangeMarket();
-                market.MarketName = product["id"].ToStringUpperInvariant();
-                market.BaseCurrency = product["quote_currency"].ToStringUpperInvariant();
-                market.MarketCurrency = product["base_currency"].ToStringUpperInvariant();
-                market.IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase);
-                market.MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>();
-                market.PriceStepSize = product["quote_increment"].ConvertInvariant<decimal>();
+                var market = new ExchangeMarket
+                {
+                    MarketName = product["id"].ToStringUpperInvariant(),
+                    BaseCurrency = product["quote_currency"].ToStringUpperInvariant(),
+                    MarketCurrency = product["base_currency"].ToStringUpperInvariant(),
+                    IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase),
+                    MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>(),
+                    PriceStepSize = product["quote_increment"].ConvertInvariant<decimal>()
+                };
                 markets.Add(market);
             }
 
@@ -165,10 +167,12 @@ namespace ExchangeSharp
             JToken products = MakeJsonRequest<JToken>("/currencies");
             foreach (JToken product in products)
             {
-                var currency = new ExchangeCurrency();
-                currency.Name = product["id"].ToStringUpperInvariant();
-                currency.FullName = product["name"].ToStringInvariant();
-                currency.IsEnabled = true;
+                var currency = new ExchangeCurrency
+                {
+                    Name = product["id"].ToStringUpperInvariant(),
+                    FullName = product["name"].ToStringInvariant(),
+                    IsEnabled = true
+                };
 
                 currencies[currency.Name] = currency;
             }

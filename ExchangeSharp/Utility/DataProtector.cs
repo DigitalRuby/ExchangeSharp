@@ -182,8 +182,10 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    CspParameters csp = new CspParameters();
-                    csp.KeyContainerName = "DAPI";
+                    CspParameters csp = new CspParameters
+                    {
+                        KeyContainerName = "DAPI"
+                    };
                     user = new RSACryptoServiceProvider(1536, csp);
                 }
                 catch
@@ -192,9 +194,11 @@ namespace ExchangeSharp
                 }
                 try
                 {
-                    CspParameters csp = new CspParameters();
-                    csp.KeyContainerName = "DAPI";
-                    csp.Flags = CspProviderFlags.UseMachineKeyStore;
+                    CspParameters csp = new CspParameters
+                    {
+                        KeyContainerName = "DAPI",
+                        Flags = CspProviderFlags.UseMachineKeyStore
+                    };
                     machine = new RSACryptoServiceProvider(1536, csp);
                 }
                 catch

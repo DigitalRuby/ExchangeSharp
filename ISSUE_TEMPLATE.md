@@ -6,4 +6,6 @@ Error Logs (if any):
 
 The more information you can provide, the better.
 
-For new feature, please donate or do a pull request.
+For new features, please donate or do a pull request. When donating, email the feature request details, coin type and tx id to exchangesharp@digitalruby.com.
+
+Requests for new features without a donation or pull request will be ignored due to the high volume of emails and requests. I've done hundreds of hours for free on this project to get a great baseline. I obviously can't continue to spend my time on new features without donations. Pull requests are always welcome too.

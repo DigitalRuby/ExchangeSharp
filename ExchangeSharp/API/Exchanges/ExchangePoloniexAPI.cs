@@ -82,13 +82,13 @@ namespace ExchangeSharp
             }
         }
 
-        private JToken MakePrivateAPIRequest(string command, params object[] parameters)
+        private JToken MakePrivateAPIRequest(string command, IReadOnlyList<object> parameters = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["command"] = command;
-            if (parameters != null && parameters.Length % 2 == 0)
+            if (parameters != null && parameters.Count % 2 == 0)
             {
-                for (int i = 0; i < parameters.Length;)
+                for (int i = 0; i < parameters.Count;)
                 {
                     payload[parameters[i++].ToStringInvariant()] = parameters[i++];
                 }
@@ -611,8 +611,19 @@ namespace ExchangeSharp
             }
 
             string symbol = NormalizeSymbol(order.Symbol);
-            JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", "currencyPair", symbol, "rate",
-                order.Price.ToStringInvariant(), "amount", order.RoundAmount().ToStringInvariant());
+            List<object> orderParams = new List<object>
+            {
+                "currencyPair", symbol,
+                "rate", order.Price.ToStringInvariant(),
+                "amount", order.RoundAmount().ToStringInvariant()
+            };
+            foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
+            {
+                orderParams.Add(kv.Key);
+                orderParams.Add(kv.Value);
+            }
+
+            JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", orderParams);
             return ParseOrder(result);
         }
 
@@ -624,7 +635,7 @@ namespace ExchangeSharp
                 symbol = "all";
             }
             JToken result;
-            result = MakePrivateAPIRequest("returnOpenOrders", "currencyPair", symbol);
+            result = MakePrivateAPIRequest("returnOpenOrders", new object[] { "currencyPair", symbol });
             CheckError(result);
             if (symbol == "all")
             {
@@ -650,7 +661,7 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
-            JToken result = MakePrivateAPIRequest("returnOrderTrades", "orderNumber", orderId);
+            JToken result = MakePrivateAPIRequest("returnOrderTrades", new object[] { "orderNumber", orderId });
             CheckError(result);
 
             JArray resultArray = result as JArray;
@@ -677,7 +688,7 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = null;
             afterDate = afterDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0));
             long afterTimestamp = (long)afterDate.Value.UnixTimestampFromDateTimeSeconds();
-            JToken result = this.MakePrivateAPIRequest("returnTradeHistory", "currencyPair", symbol, "limit", 10000, "start", afterTimestamp);
+            JToken result = this.MakePrivateAPIRequest("returnTradeHistory", new object[] { "currencyPair", symbol, "limit", 10000, "start", afterTimestamp });
             CheckError(result);
             if (symbol != "all")
             {
@@ -696,7 +707,7 @@ namespace ExchangeSharp
 
         public override void CancelOrder(string orderId)
         {
-            JToken token = MakePrivateAPIRequest("cancelOrder", "orderNumber", long.Parse(orderId));
+            JToken token = MakePrivateAPIRequest("cancelOrder", new object[] { "orderNumber", long.Parse(orderId) });
             CheckError(token);
             if (token["success"] == null || token["success"].ConvertInvariant<int>() != 1)
             {
@@ -766,24 +777,27 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeCoinTransfers</returns>
         public override IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol)
         {
-            JToken result = this.MakePrivateAPIRequest(
-                                                       "returnDepositsWithdrawals",
-                                                       "start",
-                                                       DateTime.MinValue.UnixTimestampFromDateTimeSeconds(),
-                                                       "end",
-                                                       DateTime.UtcNow.UnixTimestampFromDateTimeSeconds());
+            JToken result = this.MakePrivateAPIRequest("returnDepositsWithdrawals",
+                new object[]
+                {
+                    "start", DateTime.MinValue.UnixTimestampFromDateTimeSeconds(),
+                    "end", DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()
+                });
+
             this.CheckError(result);
 
             var transactions = new List<ExchangeTransaction>();
 
             foreach (JToken token in result["deposits"])
             {
-                var deposit = new ExchangeTransaction();
-                deposit.Symbol = token["currency"].ToStringUpperInvariant();
-                deposit.Address = token["address"].ToStringInvariant();
-                deposit.Amount = token["amount"].ConvertInvariant<decimal>();
-                deposit.BlockchainTxId = token["txid"].ToStringInvariant();
-                deposit.TimestampUTC = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds();
+                var deposit = new ExchangeTransaction
+                {
+                    Symbol = token["currency"].ToStringUpperInvariant(),
+                    Address = token["address"].ToStringInvariant(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    BlockchainTxId = token["txid"].ToStringInvariant(),
+                    TimestampUTC = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds()
+                };
 
                 string status = token["status"].ToStringUpperInvariant();
                 switch (status)
@@ -859,7 +873,7 @@ namespace ExchangeSharp
         /// <returns>ExchangeDepositDetails with an address or a BaseAddress/AddressTag pair.</returns>
         private ExchangeDepositDetails CreateDepositAddress(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies)
         {
-            JToken result = MakePrivateAPIRequest("generateNewAddress", "currency", symbol);
+            JToken result = MakePrivateAPIRequest("generateNewAddress", new object[] { "currency", symbol });
             CheckError(result);
 
             var details = new ExchangeDepositDetails
