@@ -443,6 +443,10 @@ namespace ExchangeSharp
             {
                 payload["price"] = order.Price.ToStringInvariant();
             }
+            foreach (var kv in order.ExtraParameters)
+            {
+                payload[kv.Key] = kv.Value;
+            }
 
             JToken obj = MakeJsonRequest<JToken>("/order/new", BaseUrlV1, payload);
             CheckError(obj);

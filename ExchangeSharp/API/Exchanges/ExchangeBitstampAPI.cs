@@ -205,13 +205,17 @@ namespace ExchangeSharp
             return balances;
         }
 
-        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest orderRequest)
+        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(orderRequest.Symbol);
-            string url = orderRequest.IsBuy ? string.Format("/buy/{0}/", symbol) : string.Format("/sell/{0}/", symbol);
+            string symbol = NormalizeSymbol(order.Symbol);
+            string url = order.IsBuy ? string.Format("/buy/{0}/", symbol) : string.Format("/sell/{0}/", symbol);
             Dictionary<string, object> payload = GetNoncePayload();
-            payload["price"] = orderRequest.Price.ToStringInvariant();
-            payload["amount"] = orderRequest.Amount.ToStringInvariant();
+            payload["price"] = order.Price.ToStringInvariant();
+            payload["amount"] = order.Amount.ToStringInvariant();
+            foreach (var kv in order.ExtraParameters)
+            {
+                payload[kv.Key] = kv.Value;
+            }
 
             JObject responseObject = MakeJsonRequest<JObject>(url, null, payload, "POST");
             CheckError(responseObject);
@@ -219,8 +223,8 @@ namespace ExchangeSharp
             {
                 OrderDate = DateTime.UtcNow,
                 OrderId = responseObject["id"].ToStringInvariant(),
-                IsBuy = orderRequest.IsBuy,
-                Symbol = orderRequest.Symbol
+                IsBuy = order.IsBuy,
+                Symbol = order.Symbol
             };
         }
 

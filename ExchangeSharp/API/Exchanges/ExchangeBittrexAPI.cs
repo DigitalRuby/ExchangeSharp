@@ -578,6 +578,10 @@ namespace ExchangeSharp
             decimal amount = order.RoundAmount();
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
                 amount.ToStringInvariant() + "&rate=" + order.Price.ToStringInvariant();
+            foreach (var kv in order.ExtraParameters)
+            {
+                url += "&" + WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value.ToStringInvariant());
+            }
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
             string orderId = result["uuid"].ToStringInvariant();

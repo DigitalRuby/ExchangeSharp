@@ -371,10 +371,13 @@ namespace ExchangeSharp
                 { "volume", order.RoundAmount().ToStringInvariant() },
                 { "nonce", GenerateNonce() }
             };
-
             if (order.OrderType != OrderType.Market)
             {
                 payload.Add("price", order.Price.ToStringInvariant());
+            }
+            foreach (var kv in order.ExtraParameters)
+            {
+                payload[kv.Key] = kv.Value;
             }
 
             JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);

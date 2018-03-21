@@ -378,6 +378,10 @@ namespace ExchangeSharp
                 payload["timeInForce"] = "GTC";
                 payload["price"] = order.Price;
             }
+            foreach (var kv in order.ExtraParameters)
+            {
+                payload[kv.Key] = kv.Value;
+            }
 
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload, "POST");
             CheckError(token);
