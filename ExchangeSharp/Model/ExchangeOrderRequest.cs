@@ -54,6 +54,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Additional order parameters specific to the exchange that don't fit in common order properties. These will be forwarded on to the exchange as key=value pairs.
         /// Not all exchanges will use this dictionary.
+        /// These are added after all other parameters and will replace existing properties, such as order type.
         /// </summary>
         public Dictionary<string, object> ExtraParameters { get; private set; } = new Dictionary<string, object>();
 
