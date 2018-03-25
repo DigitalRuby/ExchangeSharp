@@ -4,11 +4,11 @@
     <TargetFrameworks>netstandard2.0;netcoreapp2.0;net47</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>Exchange Sharp - C# API for multiple cryptocurrency exchanges</Title>
-    <PackageVersion>0.3.1.0</PackageVersion>
+    <PackageVersion>0.3.2.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges including Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Gdax, Gemini, Kraken, Okex, Poloniex. Web sockets are also supported.</Description>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Upgrade Bittrex web socket library</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix bug in getting Poloniex orders, update NuGet dependencies</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
     <PackageTags>C# API Binance Bitfinex Bithumb Bitstamp Bittrex Gdax Gemini Kraken Okex Poloniex crypto cryptocurrency trade trader exchange socket web socket websocket signalr secure</PackageTags>
   </PropertyGroup>
