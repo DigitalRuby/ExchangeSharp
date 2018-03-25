@@ -30,7 +30,7 @@ The following cryptocurrency exchanges are supported:
 - Bitstamp (public REST, basic private REST)
 - Bittrex (public REST, basic private REST, public web socket (tickers))
 - Gemini (public REST, basic private REST)
-- GDAX (public REST, basic private REST)
+- GDAX (public REST, basic private REST, public web socket (tickers))
 - Kraken (public REST, basic private REST)
 - Okex (basic public REST)
 - Poloniex (public REST, basic private REST, public web socket (tickers))

@@ -24,6 +24,7 @@ namespace ExchangeSharp
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
+        public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.gdax.com";
         public override string Name => ExchangeName.GDAX;
 
         /// <summary>
@@ -192,6 +193,65 @@ namespace ExchangeSharp
                 Bid = Convert.ToDecimal(ticker["bid"], System.Globalization.CultureInfo.InvariantCulture),
                 Last = price,
                 Volume = new ExchangeVolume { PriceAmount = volume, PriceSymbol = symbol, QuantityAmount = volume * price, QuantitySymbol = symbol, Timestamp = timestamp }
+            };
+        }
+
+        public override IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            if (callback == null) return null;
+
+            var wrapper = ConnectWebSocket("/", (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    if (token["type"].ToStringInvariant() != "ticker") return;
+                    ExchangeTicker ticker = ParseTickerWebSocket(token);
+                    callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
+                }
+                catch
+                {
+                }
+            }) as WebSocketWrapper;
+
+            var symbols = GetSymbols();
+
+            var subscribeRequest = new
+            {
+                type = "subscribe",
+                product_ids = symbols,
+                channels = new object[]
+                {
+                    new {
+                        name = "ticker",
+                        product_ids = symbols
+                    }
+                }
+            };
+            wrapper.SendMessage(Newtonsoft.Json.JsonConvert.SerializeObject(subscribeRequest));
+
+            return wrapper;
+        }
+
+        private ExchangeTicker ParseTickerWebSocket(JToken token)
+        {
+            var price = token["price"].ConvertInvariant<decimal>();
+            var lastSize = token["last_size"].ConvertInvariant<decimal>();
+            var symbol = token["product_id"].ToStringInvariant();
+            var time = token["time"] == null ? DateTime.Now.ToUniversalTime() : Convert.ToDateTime(token["time"].ToStringInvariant());
+            return new ExchangeTicker
+            {
+                Ask = token["best_ask"].ConvertInvariant<decimal>(),
+                Bid = token["best_bid"].ConvertInvariant<decimal>(),
+                Last = price,
+                Volume = new ExchangeVolume
+                {
+                    PriceAmount = lastSize * price,
+                    PriceSymbol = symbol.Split(new char[] { '-' })[1],
+                    QuantityAmount = lastSize,
+                    QuantitySymbol = symbol.Split(new char[] { '-' })[0],
+                    Timestamp = time
+                }
             };
         }
 
