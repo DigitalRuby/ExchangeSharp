@@ -183,9 +183,8 @@ namespace ExchangeSharp
             return order;
         }
 
-        private List<ExchangeOrderResult> ParseOrderFromTrades(JArray trades, string symbol)
+        private List<ExchangeOrderResult> ParseOrderFromTrades(List<ExchangeOrderResult> orders, JArray trades, string symbol)
         {
-            var orders = new List<ExchangeOrderResult>();
             Dictionary<string, ExchangeOrderResult> orderLookup = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken token in trades)
             {
@@ -668,7 +667,8 @@ namespace ExchangeSharp
             if (result != null && result.HasValues)
             {
                 string tickerSymbol = result[0]["currencyPair"].ToStringInvariant();
-                List<ExchangeOrderResult> orders = ParseOrderFromTrades(resultArray, tickerSymbol);
+                List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+                ParseOrderFromTrades(orders, resultArray, tickerSymbol);
                 if (orders.Count != 1)
                 {
                     throw new APIException($"ReturnOrderTrades for a single orderNumber returned {orders.Count} orders. Expected 1.");
@@ -685,23 +685,22 @@ namespace ExchangeSharp
         {
             symbol = string.IsNullOrWhiteSpace(symbol) ? "all" : NormalizeSymbol(symbol);
 
-            List<ExchangeOrderResult> orders = null;
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             afterDate = afterDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0));
             long afterTimestamp = (long)afterDate.Value.UnixTimestampFromDateTimeSeconds();
             JToken result = this.MakePrivateAPIRequest("returnTradeHistory", new object[] { "currencyPair", symbol, "limit", 10000, "start", afterTimestamp });
             CheckError(result);
             if (symbol != "all")
             {
-                orders = ParseOrderFromTrades(result as JArray, symbol);
+                ParseOrderFromTrades(orders, result as JArray, symbol);
             }
             else
             {
                 foreach (JProperty prop in result)
                 {
-                    orders = ParseOrderFromTrades(prop.Value as JArray, prop.Name);
+                    ParseOrderFromTrades(orders, prop.Value as JArray, prop.Name);
                 }
             }
-
             return orders;
         }
 
