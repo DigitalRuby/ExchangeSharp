@@ -429,7 +429,10 @@ namespace ExchangeSharp
             return Math.Round(amount, places);
         }
 
-        private static int GetDecimalPlaces(decimal amount)
+        /// <summary>Gets the number of decimal places to preserve based on the size of the amount.</summary>
+        /// <param name="amount">The amount.</param>
+        /// <returns>The number of decimal places</returns>
+        public static int GetDecimalPlaces(decimal amount)
         {
             if (amount < 1.0m)
             {
