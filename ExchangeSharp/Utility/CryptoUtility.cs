@@ -420,15 +420,50 @@ namespace ExchangeSharp
         /// </remarks>
         public static decimal RoundAmount(decimal amount)
         {
+            int places = GetDecimalPlaces(amount);
+            if (places == 0)
+            {
+                return Math.Floor(amount);
+            }
+
+            return Math.Round(amount, places);
+        }
+
+        /// <summary>Gets the number of decimal places to preserve based on the size of the amount.</summary>
+        /// <param name="amount">The amount.</param>
+        /// <returns>The number of decimal places</returns>
+        public static int GetDecimalPlaces(decimal amount)
+        {
             if (amount < 1.0m)
             {
-                return Math.Round(amount, 7);
+                return 7;
             }
-            else if (amount < 10.0m)
+
+            if (amount < 10.0m)
             {
-                return Math.Round(amount, 3);
+                return 3;
             }
-            return Math.Floor(amount);
+
+            return 0;
+        }
+
+        /// <summary>Rounds down at the specified number of decimal places. Do not specify places to use default decimal rules</summary>
+        /// <param name="amount">The amount to round.</param>
+        /// <param name="places">The decimal places to preserve.</param>
+        /// <returns>(amount: 1.23456, places: 2) = 1.23</returns>
+        public static decimal RoundDown(decimal amount, int? places = null)
+        {
+            if (!places.HasValue)
+            {
+                places = GetDecimalPlaces(amount);
+            }
+            else if (places.Value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(places));
+            }
+
+            decimal adjustment = (decimal)Math.Pow(10, places.Value);
+            return Math.Floor(amount * adjustment) / adjustment;
         }
 
         public static bool IsWindows { get; private set; }
