@@ -383,8 +383,17 @@ namespace ExchangeSharp
             outputPrice = order.Price;
 
             // Get the exchange markets if we haven't gotten them yet.
+
             if (_exchangeMarkets == null)
-                _exchangeMarkets = GetSymbolsMetadata();
+            {
+                lock (this)
+                {
+                    if (_exchangeMarkets == null)
+                    {
+                        _exchangeMarkets = GetSymbolsMetadata();
+                    }
+                }
+            }
 
             // Check if the current market is in our definitions.
             ExchangeMarket market = _exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
