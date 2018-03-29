@@ -46,12 +46,44 @@
         }
 
         [TestMethod]
+        public void ClampPriceOutOfRange()
+        {
+            Action a = () => CryptoUtility.ClampPrice(-0.00000100m, 100000.00000000m, 0.00000100m, 0.05507632m);
+            a.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action b = () => CryptoUtility.ClampPrice(0.00000100m, -100000.00000000m, 0.00000100m, 0.05507632m);
+            b.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action c = () => CryptoUtility.ClampPrice(0.00000100m, 100000.00000000m, 0.00000100m, -0.05507632m);
+            c.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action d = () => CryptoUtility.ClampPrice(0.00000100m, 100000.00000000m, -0.00000100m, 0.05507632m);
+            d.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [TestMethod]
         public void ClampQuantity()
         {
             CryptoUtility.ClampQuantity(0.01000000m, 90000000.00000000m, 0.01000000m, 34.55215m).Should().Be(34.55m);
             CryptoUtility.ClampQuantity(0.00100000m, 90000000.00000000m, 0.00100000m, 941.4192).Should().Be(941.419m);
             CryptoUtility.ClampQuantity(0.00000100m, 90000000.00000000m, 0.00000100m, 172.94102192m).Should().Be(172.941021m);
             CryptoUtility.ClampQuantity(0.00010000m, 90000000.00000000m, null, 1837.31935m).Should().Be(1837.31935m);
+        }
+
+        [TestMethod]
+        public void ClampQuantityOutOfRange()
+        {
+            Action a = () => CryptoUtility.ClampQuantity(-0.00010000m, 900000.00000000m, 0.00010000m, 33.393832);
+            a.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action b = () => CryptoUtility.ClampQuantity(0.00010000m, -900000.00000000m, 0.00010000m, 33.393832);
+            b.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action c = () => CryptoUtility.ClampQuantity(0.00010000m, 900000.00000000m, 0.00010000m, -33.393832m);
+            c.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action d = () => CryptoUtility.ClampQuantity(0.00010000m, 900000.00000000m, -0.00010000m, 33.393832m);
+            d.Should().Throw<ArgumentOutOfRangeException>();
         }
     }
 }

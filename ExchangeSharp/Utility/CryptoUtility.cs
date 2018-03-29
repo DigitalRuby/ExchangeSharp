@@ -151,8 +151,14 @@ namespace ExchangeSharp
 
         public static decimal ClampQuantity(decimal minQuantity, decimal maxQuantity, decimal? stepSize, decimal quantity)
         {
+            if(minQuantity < 0) throw new ArgumentOutOfRangeException(nameof(minQuantity));
+            if (maxQuantity < 0) throw new ArgumentOutOfRangeException(nameof(maxQuantity));
+            if (quantity < 0) throw new ArgumentOutOfRangeException(nameof(quantity));
+
             if (stepSize.HasValue)
             {
+                if (stepSize < 0) throw new ArgumentOutOfRangeException(nameof(stepSize));
+
                 quantity = Math.Min(maxQuantity, quantity);
                 quantity = Math.Max(minQuantity, quantity);
                 quantity -= quantity % stepSize.Value;
@@ -164,8 +170,14 @@ namespace ExchangeSharp
 
         public static decimal ClampPrice(decimal minPrice, decimal maxPrice, decimal? tickSize, decimal price)
         {
+            if (minPrice < 0) throw new ArgumentOutOfRangeException(nameof(minPrice));
+            if (maxPrice < 0) throw new ArgumentOutOfRangeException(nameof(maxPrice));
+            if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
+            
             if (tickSize.HasValue)
             {
+                if (tickSize < 0) throw new ArgumentOutOfRangeException(nameof(tickSize));
+                
                 price = Math.Min(maxPrice, price);
                 price = Math.Max(minPrice, price);
                 price -= price % tickSize.Value;
