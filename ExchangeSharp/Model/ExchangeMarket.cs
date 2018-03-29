@@ -26,6 +26,11 @@ namespace ExchangeSharp
         /// </summary>
         public decimal MinTradeSize { get; set; }
 
+        /// <summary>
+        /// The maximum size of the trade in the unit of "MarketCurrency".
+        /// </summary>
+        public decimal MaxTradeSize { get; set; }
+
         /// <summary>In a pair like ZRX/BTC, BTC is the base currency.</summary>
         public string BaseCurrency { get; set; }
 
@@ -38,6 +43,16 @@ namespace ExchangeSharp
         /// Null if unknown or not applicable.
         /// </summary>
         public decimal? QuantityStepSize { get; set; }
+
+        /// <summary>
+        /// The minimum price of the pair.
+        /// </summary>
+        public decimal MinPrice { get; set; }
+
+        /// <summary>
+        /// The maximum price of the pair.
+        /// </summary>
+        public decimal MaxPrice { get; set; }
 
         /// <summary>
         /// Defines the intervals that a price can be increased/decreased by. 

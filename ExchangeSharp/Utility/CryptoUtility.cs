@@ -149,6 +149,35 @@ namespace ExchangeSharp
             return secure;
         }
 
+        public static decimal ClampQuantity(decimal minQuantity, decimal maxQuantity, decimal? stepSize, decimal quantity)
+        {
+            if (stepSize.HasValue)
+            {
+                quantity = Math.Min(maxQuantity, quantity);
+                quantity = Math.Max(minQuantity, quantity);
+                quantity -= quantity % stepSize.Value;
+                quantity = Floor(quantity);
+            }
+            return quantity;
+        }
+
+        public static decimal ClampPrice(decimal minPrice, decimal maxPrice, decimal? tickSize, decimal price)
+        {
+            if (tickSize.HasValue)
+            {
+                price = Math.Min(maxPrice, price);
+                price = Math.Max(minPrice, price);
+                price -= price % tickSize.Value;
+                price = Floor(price);
+            }
+            return price;
+        }
+
+        private static decimal Floor(decimal number)
+        {
+            return Math.Floor(number * 100000000) / 100000000;
+        }
+
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
         {
             // Unix timestamp is seconds past epoch
