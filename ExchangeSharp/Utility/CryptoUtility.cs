@@ -156,8 +156,9 @@ namespace ExchangeSharp
                 quantity = Math.Min(maxQuantity, quantity);
                 quantity = Math.Max(minQuantity, quantity);
                 quantity -= quantity % stepSize.Value;
-                quantity = Floor(quantity);
+                quantity = RoundDown(quantity);
             }
+
             return quantity;
         }
 
@@ -168,14 +169,9 @@ namespace ExchangeSharp
                 price = Math.Min(maxPrice, price);
                 price = Math.Max(minPrice, price);
                 price -= price % tickSize.Value;
-                price = Floor(price);
+                price = RoundDown(price);
             }
             return price;
-        }
-
-        private static decimal Floor(decimal number)
-        {
-            return Math.Floor(number * 100000000) / 100000000;
         }
 
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
