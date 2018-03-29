@@ -139,8 +139,8 @@ namespace ExchangeSharp
                 JToken priceFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "PRICE_FILTER"));
                 if (priceFilter != null)
                 {
-                    market.MaxPrice = lotSizeFilter["maxPrice"].ConvertInvariant<decimal>();
-                    market.MinPrice = lotSizeFilter["minPrice"].ConvertInvariant<decimal>();
+                    market.MaxPrice = priceFilter["maxPrice"].ConvertInvariant<decimal>();
+                    market.MinPrice = priceFilter["minPrice"].ConvertInvariant<decimal>();
                     market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
                 }
                 markets.Add(market);
