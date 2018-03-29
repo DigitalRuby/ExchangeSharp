@@ -116,13 +116,25 @@ namespace ExchangeSharp
             decimal amountFilled = amount - remaining;
             order.Amount = amount;
             order.AmountFilled = amountFilled;
-            order.Price = token["Price"].ConvertInvariant<decimal>();
-            order.AveragePrice = token["PricePerUnit"].ConvertInvariant<decimal>(token["Price"].ConvertInvariant<decimal>());
+            order.AveragePrice = token["PricePerUnit"].ConvertInvariant<decimal>();
+            order.Price = token["Limit"].ConvertInvariant<decimal>(order.AveragePrice);
             order.Message = string.Empty;
             order.OrderId = token["OrderUuid"].ToStringInvariant();
-            order.Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially));
+            order.Result = amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially);
             order.OrderDate = token["Opened"].ConvertInvariant<DateTime>(token["TimeStamp"].ConvertInvariant<DateTime>());
             order.Symbol = token["Exchange"].ToStringInvariant();
+            order.Fees = token["CommissionPaid"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
+
+            string exchangePair = token["Exchange"].ToStringInvariant();
+            if (!string.IsNullOrWhiteSpace(exchangePair))
+            {
+                string[] pairs = exchangePair.Split('-');
+                if (pairs.Length == 2)
+                {
+                    order.FeesCurrency = pairs[0];
+                }
+            }
+
             string type = token["OrderType"].ToStringInvariant();
             if (string.IsNullOrWhiteSpace(type))
             {

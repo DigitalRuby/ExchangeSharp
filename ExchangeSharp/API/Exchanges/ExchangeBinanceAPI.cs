@@ -400,7 +400,37 @@ namespace ExchangeSharp
             payload["orderId"] = pieces[1];
             JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload);
             CheckError(token);
-            return ParseOrder(token);
+            ExchangeOrderResult result = ParseOrder(token);
+
+            // Add up the fees from each trade in the order
+            Dictionary<string, object> feesPayload = GetNoncePayload();
+            feesPayload["symbol"] = pieces[0];
+            JToken feesToken = MakeJsonRequest<JToken>("/myTrades", BaseUrlPrivate, feesPayload);
+            CheckError(feesToken);
+            ParseFees(feesToken, result);
+
+            return result;
+        }
+
+        /// <summary>Process the trades that executed as part of your order and sum the fees.</summary>
+        /// <param name="feesToken">The trades executed for a specific currency pair.</param>
+        /// <param name="result">The result object to append to.</param>
+        private static void ParseFees(JToken feesToken, ExchangeOrderResult result)
+        {
+            var tradesInOrder = feesToken.Where(x => x["orderId"].ToStringInvariant() == result.OrderId);
+
+            bool currencySet = false;
+            foreach (var trade in tradesInOrder)
+            {
+                result.Fees += trade["commission"].ConvertInvariant<decimal>();
+
+                // TODO: Not sure how to handle commissions in different currencies, for example if you run out of BNB mid-trade
+                if (!currencySet)
+                {
+                    result.FeesCurrency = trade["commissionAsset"].ToStringInvariant();
+                    currencySet = true;
+                }
+            }
         }
 
         public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
