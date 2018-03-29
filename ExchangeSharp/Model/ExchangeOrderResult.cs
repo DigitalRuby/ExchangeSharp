@@ -10,136 +10,80 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Result of exchange order
-    /// </summary>
-    public enum ExchangeAPIOrderResult
-    {
-        /// <summary>
-        /// Order status is unknown
-        /// </summary>
-        Unknown,
+    using System;
 
-        /// <summary>
-        /// Order has been filled completely
-        /// </summary>
-        Filled,
-
-        /// <summary>
-        /// Order partially filled
-        /// </summary>
-        FilledPartially,
-
-        /// <summary>
-        /// Order is pending or open but no amount has been filled yet
-        /// </summary>
-        Pending,
-
-        /// <summary>
-        /// Error
-        /// </summary>
-        Error,
-
-        /// <summary>
-        /// Order was cancelled
-        /// </summary>
-        Canceled
-    }
-
-    /// <summary>
-    /// Result of an exchange order
-    /// </summary>
+    /// <summary>Result of an exchange order</summary>
     public class ExchangeOrderResult
     {
-        /// <summary>
-        /// Order id
-        /// </summary>
+        /// <summary>Order id</summary>
         public string OrderId { get; set; }
 
-        /// <summary>
-        /// Result of the order
-        /// </summary>
+        /// <summary>Result of the order</summary>
         public ExchangeAPIOrderResult Result { get; set; }
 
-        /// <summary>
-        /// Message if any
-        /// </summary>
+        /// <summary>Message if any</summary>
         public string Message { get; set; }
 
-        /// <summary>
-        /// Original order amount
-        /// </summary>
+        /// <summary>Original order amount in the market currency. 
+        /// E.g. ADA/BTC would be ADA</summary>
         public decimal Amount { get; set; }
 
-        /// <summary>
-        /// Amount filled
-        /// </summary>
+        /// <summary>Amount filled in the market currency.</summary>
         public decimal AmountFilled { get; set; }
 
-        /// <summary>
-        /// Price
-        /// </summary>
+        /// <summary>The limit price on the order in the ratio of base/market currency.
+        /// E.g. 0.000342 ADA/ETH</summary>
         public decimal Price { get; set; }
 
-        /// <summary>
-        /// Average price
-        /// </summary>
+        /// <summary>Price per unit in the ratio of base/market currency.
+        /// E.g. 0.000342 ADA/ETH</summary>
         public decimal AveragePrice { get; set; }
 
-        /// <summary>
-        /// Order date
-        /// </summary>
+        /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
 
-        /// <summary>
-        /// Symbol
-        /// </summary>
+        /// <summary>Symbol. E.g. ADA/ETH</summary>
         public string Symbol { get; set; }
 
-        /// <summary>
-        /// Whether the order is a buy or sell
-        /// </summary>
+        /// <summary>Whether the order is a buy or sell</summary>
         public bool IsBuy { get; set; }
-        public decimal Fees { get;  set; }
 
-        /// <summary>
-        /// Append another order to this order - order id and type must match
-        /// </summary>
+        /// <summary>The fees on the order (not a percent).
+        /// E.g. 0.0025 ETH</summary>
+        public decimal Fees { get; set; }
+
+        /// <summary>The currency the fees are in. 
+        /// If not set, this is probably the base currency</summary>
+        public string FeesCurrency { get; set; }
+
+        /// <summary>Append another order to this order - order id and type must match</summary>
         /// <param name="other">Order to append</param>
         public void AppendOrderWithOrder(ExchangeOrderResult other)
         {
-            if (OrderId != null && Symbol != null && (OrderId != other.OrderId || IsBuy != other.IsBuy || Symbol != other.Symbol))
+            if ((this.OrderId != null) && (this.Symbol != null) && ((this.OrderId != other.OrderId) || (this.IsBuy != other.IsBuy) || (this.Symbol != other.Symbol)))
             {
                 throw new InvalidOperationException("Appending orders requires order id, symbol and is buy to match");
             }
 
-            decimal tradeSum = Amount + other.Amount;
-            decimal baseAmount = Amount;
-            Amount += other.Amount;
-            AmountFilled += other.AmountFilled;
-            Fees += other.Fees;
-            AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
-            OrderId = other.OrderId;
-            OrderDate = (OrderDate == default(DateTime)) ? other.OrderDate : OrderDate;
-            Symbol = other.Symbol;
-            IsBuy = other.IsBuy;
+            decimal tradeSum = this.Amount + other.Amount;
+            decimal baseAmount = this.Amount;
+            this.Amount += other.Amount;
+            this.AmountFilled += other.AmountFilled;
+            this.Fees += other.Fees;
+            this.AveragePrice = (this.AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
+            this.OrderId = other.OrderId;
+            this.OrderDate = this.OrderDate == default(DateTime) ? other.OrderDate : this.OrderDate;
+            this.Symbol = other.Symbol;
+            this.IsBuy = other.IsBuy;
         }
 
-        /// <summary>
-        /// ToString
-        /// </summary>
-        /// <returns>String</returns>
+        /// <summary>Returns a string that represents this instance.</summary>
+        /// <returns>A string that represents this instance.</returns>
         public override string ToString()
         {
-            return string.Format("[{0}], {1} {2} of {3} {4} filled at {5}, fees paid {6}", OrderDate, (IsBuy ? "Buy" : "Sell"), AmountFilled, Amount, Symbol, AveragePrice, Fees);
+            return $"[{this.OrderDate}], {(this.IsBuy ? "Buy" : "Sell")} {this.AmountFilled} of {this.Amount} {this.Symbol} filled at {this.AveragePrice}, fees paid {this.Fees} {this.FeesCurrency}";
         }
     }
 }
