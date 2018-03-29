@@ -30,6 +30,8 @@ namespace ExchangeSharp
         public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
+        private IEnumerable<ExchangeMarket> _exchangeMarkets;
+
         public override string NormalizeSymbol(string symbol)
         {
             if (symbol != null)
@@ -128,6 +130,7 @@ namespace ExchangeSharp
                 JToken lotSizeFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "LOT_SIZE"));
                 if (lotSizeFilter != null)
                 {
+                    market.MaxTradeSize = lotSizeFilter["maxQty"].ConvertInvariant<decimal>();
                     market.MinTradeSize = lotSizeFilter["minQty"].ConvertInvariant<decimal>();
                     market.QuantityStepSize = lotSizeFilter["stepSize"].ConvertInvariant<decimal>();
                 }
@@ -136,6 +139,8 @@ namespace ExchangeSharp
                 JToken priceFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "PRICE_FILTER"));
                 if (priceFilter != null)
                 {
+                    market.MaxPrice = priceFilter["maxPrice"].ConvertInvariant<decimal>();
+                    market.MinPrice = priceFilter["minPrice"].ConvertInvariant<decimal>();
                     market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
                 }
                 markets.Add(market);
@@ -367,16 +372,48 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
+            decimal outputQuantity, outputPrice;
             string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
             payload["side"] = (order.IsBuy ? "BUY" : "SELL");
             payload["type"] = order.OrderType.ToString().ToUpperInvariant();
-            payload["quantity"] = order.RoundAmount();
+
+            outputQuantity = order.RoundAmount();
+            outputPrice = order.Price;
+
+            // Get the exchange markets if we haven't gotten them yet.
+
+            if (_exchangeMarkets == null)
+            {
+                lock (this)
+                {
+                    if (_exchangeMarkets == null)
+                    {
+                        _exchangeMarkets = GetSymbolsMetadata();
+                    }
+                }
+            }
+
+            // Check if the current market is in our definitions.
+            ExchangeMarket market = _exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
+
+            // If a definition is found, we can update the quantity and price to match the rules imposed by Binance.
+            if (market != null)
+            {
+                // Binance has strict rules on which quantities are allowed. They have to match the rules defined in the market definition.
+                outputQuantity = CryptoUtility.ClampQuantity(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, order.RoundAmount());
+
+                // Binance has strict rules on which prices are allowed. They have to match the rules defined in the market definition.
+                outputPrice = CryptoUtility.ClampPrice(market.MinPrice, market.MaxPrice, market.PriceStepSize, order.Price);
+            }
+            
+            payload["quantity"] = outputQuantity;
+
             if (order.OrderType != OrderType.Market)
             {
                 payload["timeInForce"] = "GTC";
-                payload["price"] = order.Price;
+                payload["price"] = outputPrice;
             }
             foreach (var kv in order.ExtraParameters)
             {
