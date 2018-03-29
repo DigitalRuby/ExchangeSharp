@@ -208,33 +208,32 @@ namespace ExchangeSharp
                     switch (NonceStyle)
                     {
                         case NonceStyle.Ticks:
-                            nonce = now.Ticks;
+                            nonce = now.Ticks * 10;
                             break;
 
                         case NonceStyle.TicksString:
-                            nonce = now.Ticks.ToStringInvariant();
+                            nonce = (now.Ticks * 10).ToStringInvariant();
                             break;
 
                         case NonceStyle.UnixMilliseconds:
-                            nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
+                            nonce = (long)now.UnixTimestampFromDateTimeMilliseconds() * 10; 
                             break;
 
                         case NonceStyle.UnixMillisecondsString:
-                            nonce = ((long)now.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+                            nonce = (((long)now.UnixTimestampFromDateTimeMilliseconds()) * 10).ToStringInvariant();
                             break;
 
                         case NonceStyle.UnixSeconds:
-                            nonce = now.UnixTimestampFromDateTimeSeconds();
+                            nonce = now.UnixTimestampFromDateTimeSeconds() * 10;
                             break;
 
                         case NonceStyle.UnixSecondsString:
-                            nonce = now.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
+                            nonce = (now.UnixTimestampFromDateTimeSeconds() * 10).ToStringInvariant();
                             break;
 
                         default:
                             throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
                     }
-
                     // check for duplicate nonce
                     decimal convertedNonce = nonce.ConvertInvariant<decimal>();
                     if (lastNonce != convertedNonce)
