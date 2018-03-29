@@ -154,6 +154,7 @@ namespace ExchangeSharp
             if(minQuantity < 0) throw new ArgumentOutOfRangeException(nameof(minQuantity));
             if (maxQuantity < 0) throw new ArgumentOutOfRangeException(nameof(maxQuantity));
             if (quantity < 0) throw new ArgumentOutOfRangeException(nameof(quantity));
+            if (minQuantity > maxQuantity) throw new ArgumentOutOfRangeException(nameof(minQuantity));
 
             if (stepSize.HasValue)
             {
@@ -173,6 +174,7 @@ namespace ExchangeSharp
             if (minPrice < 0) throw new ArgumentOutOfRangeException(nameof(minPrice));
             if (maxPrice < 0) throw new ArgumentOutOfRangeException(nameof(maxPrice));
             if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
+            if(minPrice > maxPrice) throw new ArgumentOutOfRangeException(nameof(minPrice));
             
             if (tickSize.HasValue)
             {

@@ -59,6 +59,9 @@
 
             Action d = () => CryptoUtility.ClampPrice(0.00000100m, 100000.00000000m, -0.00000100m, 0.05507632m);
             d.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action e = () => CryptoUtility.ClampPrice(100000.00000000m, 0.00000100m, -0.00000100m, 0.05507632m);
+            e.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [TestMethod]
@@ -84,6 +87,9 @@
 
             Action d = () => CryptoUtility.ClampQuantity(0.00010000m, 900000.00000000m, -0.00010000m, 33.393832m);
             d.Should().Throw<ArgumentOutOfRangeException>();
+
+            Action e = () => CryptoUtility.ClampQuantity(900000.00000000m, 0.00010000m, -0.00010000m, 33.393832m);
+            e.Should().Throw<ArgumentOutOfRangeException>();
         }
     }
 }
