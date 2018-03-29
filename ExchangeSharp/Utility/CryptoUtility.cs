@@ -149,43 +149,24 @@ namespace ExchangeSharp
             return secure;
         }
 
-        public static decimal ClampQuantity(decimal minQuantity, decimal maxQuantity, decimal? stepSize, decimal quantity)
+        public static decimal ClampDecimal(decimal minValue, decimal maxValue, decimal? stepSize, decimal value)
         {
-            if(minQuantity < 0) throw new ArgumentOutOfRangeException(nameof(minQuantity));
-            if (maxQuantity < 0) throw new ArgumentOutOfRangeException(nameof(maxQuantity));
-            if (quantity < 0) throw new ArgumentOutOfRangeException(nameof(quantity));
-            if (minQuantity > maxQuantity) throw new ArgumentOutOfRangeException(nameof(minQuantity));
+            if(minValue < 0) throw new ArgumentOutOfRangeException(nameof(minValue));
+            if (maxValue < 0) throw new ArgumentOutOfRangeException(nameof(maxValue));
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+            if (minValue > maxValue) throw new ArgumentOutOfRangeException(nameof(minValue));
 
             if (stepSize.HasValue)
             {
                 if (stepSize < 0) throw new ArgumentOutOfRangeException(nameof(stepSize));
 
-                quantity = Math.Min(maxQuantity, quantity);
-                quantity = Math.Max(minQuantity, quantity);
-                quantity -= quantity % stepSize.Value;
-                quantity = RoundDown(quantity);
+                value = Math.Min(maxValue, value);
+                value = Math.Max(minValue, value);
+                decimal mod = value % stepSize.Value;
+                value -= mod;
             }
 
-            return quantity;
-        }
-
-        public static decimal ClampPrice(decimal minPrice, decimal maxPrice, decimal? tickSize, decimal price)
-        {
-            if (minPrice < 0) throw new ArgumentOutOfRangeException(nameof(minPrice));
-            if (maxPrice < 0) throw new ArgumentOutOfRangeException(nameof(maxPrice));
-            if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
-            if(minPrice > maxPrice) throw new ArgumentOutOfRangeException(nameof(minPrice));
-            
-            if (tickSize.HasValue)
-            {
-                if (tickSize < 0) throw new ArgumentOutOfRangeException(nameof(tickSize));
-                
-                price = Math.Min(maxPrice, price);
-                price = Math.Max(minPrice, price);
-                price -= price % tickSize.Value;
-                price = RoundDown(price);
-            }
-            return price;
+            return value;
         }
 
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)

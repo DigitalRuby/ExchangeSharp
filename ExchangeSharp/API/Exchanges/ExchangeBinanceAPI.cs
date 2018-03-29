@@ -402,10 +402,10 @@ namespace ExchangeSharp
             if (market != null)
             {
                 // Binance has strict rules on which quantities are allowed. They have to match the rules defined in the market definition.
-                outputQuantity = CryptoUtility.ClampQuantity(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, order.RoundAmount());
+                outputQuantity = CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, order.RoundAmount());
 
                 // Binance has strict rules on which prices are allowed. They have to match the rules defined in the market definition.
-                outputPrice = CryptoUtility.ClampPrice(market.MinPrice, market.MaxPrice, market.PriceStepSize, order.Price);
+                outputPrice = CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, order.Price);
             }
             
             payload["quantity"] = outputQuantity;
