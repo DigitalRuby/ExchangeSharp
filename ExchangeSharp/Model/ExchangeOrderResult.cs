@@ -84,7 +84,7 @@ namespace ExchangeSharp
         /// <returns>A string that represents this instance.</returns>
         public override string ToString()
         {
-            return $"[{this.OrderDate}], {(this.IsBuy ? "Buy" : "Sell")} {this.AmountFilled} of {this.Amount} {this.Symbol} filled at {this.AveragePrice}, fees paid {this.Fees} {this.FeesCurrency}";
+            return $"[{this.OrderDate}], {(this.IsBuy ? "Buy" : "Sell")} {this.AmountFilled} of {this.Amount} {this.Symbol} {this.Result} at {this.AveragePrice}, fees paid {this.Fees} {this.FeesCurrency}";
         }
     }
 }

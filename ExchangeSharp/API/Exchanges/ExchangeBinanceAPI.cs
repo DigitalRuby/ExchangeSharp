@@ -372,15 +372,14 @@ namespace ExchangeSharp
 
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
-            decimal outputQuantity, outputPrice;
             string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["side"] = (order.IsBuy ? "BUY" : "SELL");
+            payload["side"] = order.IsBuy ? "BUY" : "SELL";
             payload["type"] = order.OrderType.ToString().ToUpperInvariant();
 
-            outputQuantity = order.RoundAmount();
-            outputPrice = order.Price;
+            decimal outputQuantity = order.RoundAmount();
+            decimal outputPrice = order.Price;
 
             // Get the exchange markets if we haven't gotten them yet.
 
@@ -409,6 +408,7 @@ namespace ExchangeSharp
             }
             
             payload["quantity"] = outputQuantity;
+            payload["newOrderRespType"] = "FULL";
 
             if (order.OrderType != OrderType.Market)
             {
@@ -711,7 +711,39 @@ namespace ExchangeSharp
               "status": "NEW",
               "timeInForce": "GTC",
               "type": "LIMIT",
-              "side": "SELL"
+              "side": "SELL",
+              "fills": [
+                  {
+                    "price": "4000.00000000",
+                    "qty": "1.00000000",
+                    "commission": "4.00000000",
+                    "commissionAsset": "USDT"
+                  },
+                  {
+                    "price": "3999.00000000",
+                    "qty": "5.00000000",
+                    "commission": "19.99500000",
+                    "commissionAsset": "USDT"
+                  },
+                  {
+                    "price": "3998.00000000",
+                    "qty": "2.00000000",
+                    "commission": "7.99600000",
+                    "commissionAsset": "USDT"
+                  },
+                  {
+                    "price": "3997.00000000",
+                    "qty": "1.00000000",
+                    "commission": "3.99700000",
+                    "commissionAsset": "USDT"
+                  },
+                  {
+                    "price": "3995.00000000",
+                    "qty": "1.00000000",
+                    "commission": "3.99500000",
+                    "commissionAsset": "USDT"
+                  }
+                ]
             */
             ExchangeOrderResult result = new ExchangeOrderResult
             {
@@ -749,7 +781,28 @@ namespace ExchangeSharp
                     result.Result = ExchangeAPIOrderResult.Error;
                     break;
             }
+
+            ParseFeesFromFills(result, token["fills"]);
+
             return result;
+        }
+
+        private void ParseFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
+        {
+            bool currencySet = false;
+            if (fillsToken is JArray)
+            {
+                foreach (var fill in fillsToken)
+                {
+                    if (!currencySet)
+                    {
+                        result.FeesCurrency = fill["commissionAsset"].ToStringInvariant();
+                        currencySet = true;
+                    }
+
+                    result.Fees += fill["commission"].ConvertInvariant<decimal>();
+                }
+            }
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
