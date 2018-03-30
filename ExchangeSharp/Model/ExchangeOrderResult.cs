@@ -72,6 +72,7 @@ namespace ExchangeSharp
             this.Amount += other.Amount;
             this.AmountFilled += other.AmountFilled;
             this.Fees += other.Fees;
+            this.FeesCurrency = other.FeesCurrency;
             this.AveragePrice = (this.AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
             this.OrderId = other.OrderId;
             this.OrderDate = this.OrderDate == default(DateTime) ? other.OrderDate : this.OrderDate;
