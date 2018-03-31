@@ -11,12 +11,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 	ProjectSection(SolutionItems) = preProject
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		CONTRIBUTING.md = CONTRIBUTING.md
+		icon.png = icon.png
 		ISSUE_TEMPLATE.md = ISSUE_TEMPLATE.md
 		LICENSE.txt = LICENSE.txt
+		logo.png = logo.png
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpTests", "ExchangeSharpTests\ExchangeSharpTests.csproj", "{85BBD19C-5702-4394-BD7C-CE08309F6F49}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpTests", "ExchangeSharpTests\ExchangeSharpTests.csproj", "{85BBD19C-5702-4394-BD7C-CE08309F6F49}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
