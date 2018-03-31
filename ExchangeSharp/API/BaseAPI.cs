@@ -263,7 +263,7 @@ namespace ExchangeSharp
             PrivateApiKey = strings[1];
             if (strings.Length > 2)
             {
-                Passphrase = strings[3];
+                Passphrase = strings[2];
             }
         }
 
