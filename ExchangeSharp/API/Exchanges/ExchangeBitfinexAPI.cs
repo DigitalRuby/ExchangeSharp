@@ -129,7 +129,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<string> GetSymbols()
         {
-            return this.GetSymbolsMetadata().Select(x => x.MarketName).ToArray();
+            return this.GetSymbolsMetadata().Select(x => x.MarketName);
         }
 
         public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
