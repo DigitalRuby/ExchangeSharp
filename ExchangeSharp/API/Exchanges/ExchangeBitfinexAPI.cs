@@ -129,7 +129,7 @@ namespace ExchangeSharp
 
         public override IEnumerable<string> GetSymbols()
         {
-            return this.GetSymbolsMetadata().Select(x => x.MarketName);
+            return this.GetSymbolsMetadata().Select(x => x.MarketName).ToArray();
         }
 
         public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
@@ -152,7 +152,7 @@ namespace ExchangeSharp
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
                     MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>()
                 };
-                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|EUR)");
+                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR)");
                 if (m.Success)
                 {
                     market.MarketCurrency = m.Value;
@@ -160,7 +160,7 @@ namespace ExchangeSharp
                 }
                 else
                 {
-                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|EUR)$");
+                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|GBP|JPY|EUR)$");
                     if (m.Success)
                     {
                         market.MarketCurrency = market.MarketName.Substring(0, m.Index);
