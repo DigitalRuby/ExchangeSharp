@@ -413,13 +413,13 @@ namespace ExchangeSharp
         protected decimal ClampOrderPrice(string symbol, decimal outputPrice)
         {
             ExchangeMarket market = this.GetExchangeMarket(symbol);
-            return CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
+            return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
         }
 
         protected decimal ClampOrderQuantity(string symbol, decimal outputQuantity)
         {
             ExchangeMarket market = this.GetExchangeMarket(symbol);
-            return CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity.RoundAmount());
+            return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
     }
 
