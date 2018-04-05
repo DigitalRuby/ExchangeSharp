@@ -30,8 +30,6 @@ namespace ExchangeSharp
         public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
-        private IEnumerable<ExchangeMarket> _exchangeMarkets;
-
         public override string NormalizeSymbol(string symbol)
         {
             if (symbol != null)
@@ -378,35 +376,10 @@ namespace ExchangeSharp
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
             payload["type"] = order.OrderType.ToString().ToUpperInvariant();
 
-            decimal outputQuantity = order.RoundAmount();
-            decimal outputPrice = order.Price;
+            // Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
+            decimal outputQuantity = this.ClampOrderQuantity(symbol, order.Amount);
+            decimal outputPrice = this.ClampOrderPrice(symbol, order.Price);
 
-            // Get the exchange markets if we haven't gotten them yet.
-
-            if (_exchangeMarkets == null)
-            {
-                lock (this)
-                {
-                    if (_exchangeMarkets == null)
-                    {
-                        _exchangeMarkets = GetSymbolsMetadata();
-                    }
-                }
-            }
-
-            // Check if the current market is in our definitions.
-            ExchangeMarket market = _exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
-
-            // If a definition is found, we can update the quantity and price to match the rules imposed by Binance.
-            if (market != null)
-            {
-                // Binance has strict rules on which quantities are allowed. They have to match the rules defined in the market definition.
-                outputQuantity = CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, order.RoundAmount());
-
-                // Binance has strict rules on which prices are allowed. They have to match the rules defined in the market definition.
-                outputPrice = CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, order.Price);
-            }
-            
             payload["quantity"] = outputQuantity;
             payload["newOrderRespType"] = "FULL";
 

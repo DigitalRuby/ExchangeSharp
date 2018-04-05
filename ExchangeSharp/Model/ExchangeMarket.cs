@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
+    /// <summary>Representation of a market on an exchange.</summary>
     public class ExchangeMarket
     {
         /// <summary>Gets or sets the name of the market.</summary>
@@ -20,50 +21,37 @@ namespace ExchangeSharp
         /// <summary>A value indicating whether the market is active.</summary>
         public bool IsActive { get; set; }
 
-        /// <summary>
-        /// The minimum size of the trade in the unit of "MarketCurrency".
-        /// For example, in DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE
-        /// </summary>
-        public decimal MinTradeSize { get; set; }
-
-        /// <summary>
-        /// The maximum size of the trade in the unit of "MarketCurrency".
-        /// </summary>
-        public decimal MaxTradeSize { get; set; }
-
         /// <summary>In a pair like ZRX/BTC, BTC is the base currency.</summary>
         public string BaseCurrency { get; set; }
 
         /// <summary>In a pair like ZRX/BTC, ZRX is the market currency.</summary>
         public string MarketCurrency { get; set; }
-        
-        /// <summary>
-        /// Defines the intervals that a quantity can be increased/decreased by. 
-        /// The following must be true for quantity: (Quantity-MinTradeSize) % QuantityStepSize == 0
-        /// Null if unknown or not applicable.
-        /// </summary>
-        public decimal? QuantityStepSize { get; set; }
 
-        /// <summary>
-        /// The minimum price of the pair.
-        /// </summary>
+        /// <summary>The minimum size of the trade in the unit of "MarketCurrency". For example, in
+        /// DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE</summary>
+        public decimal MinTradeSize { get; set; }
+
+        /// <summary>The maximum size of the trade in the unit of "MarketCurrency".</summary>
+        public decimal MaxTradeSize { get; set; } = decimal.MaxValue;
+
+        /// <summary>The minimum price of the pair.</summary>
         public decimal MinPrice { get; set; }
 
-        /// <summary>
-        /// The maximum price of the pair.
-        /// </summary>
-        public decimal MaxPrice { get; set; }
+        /// <summary>The maximum price of the pair.</summary>
+        public decimal MaxPrice { get; set; } = decimal.MaxValue;
 
-        /// <summary>
-        /// Defines the intervals that a price can be increased/decreased by. 
-        /// The following must be true for price: Price % PriceStepSize == 0
-        /// Null if unknown or not applicable.
-        /// </summary>
+        /// <summary>Defines the intervals that a price can be increased/decreased by. The following
+        /// must be true for price: Price % PriceStepSize == 0 Null if unknown or not applicable.</summary>
         public decimal? PriceStepSize { get; set; }
+
+        /// <summary>Defines the intervals that a quantity can be increased/decreased by. The
+        /// following must be true for quantity: (Quantity-MinTradeSize) % QuantityStepSize == 0 Null
+        /// if unknown or not applicable.</summary>
+        public decimal? QuantityStepSize { get; set; }
 
         public override string ToString()
         {
-            return $"{MarketName}, {MarketCurrency}-{BaseCurrency}";
+            return $"{this.MarketName}, {this.MarketCurrency}-{this.BaseCurrency}";
         }
     }
 }

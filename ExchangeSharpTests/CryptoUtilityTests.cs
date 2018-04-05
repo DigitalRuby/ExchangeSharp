@@ -90,5 +90,22 @@ namespace ExchangeSharpTests
             void e() => CryptoUtility.ClampDecimal(900000.00000000m, 0.00010000m, -0.00010000m, 33.393832m);
             Invoking(e).Should().Throw<ArgumentOutOfRangeException>();
         }
+
+        [TestMethod]
+        public void CalculatePrecision_NoDecimals_Returns1()
+        {
+            CryptoUtility.CalculatePrecision("24").Should().Be(1);
+            CryptoUtility.CalculatePrecision("1000").Should().Be(1);
+            CryptoUtility.CalculatePrecision("123456789123456789465132").Should().Be(1);
+        }
+
+        [TestMethod]
+        public void CalculatePrecision_WithDecimals()
+        {
+            CryptoUtility.CalculatePrecision("1.12").Should().Be(0.01m);
+            CryptoUtility.CalculatePrecision("1.123456789").Should().Be(0.000000001m);
+            CryptoUtility.CalculatePrecision("1.0").Should().Be(0.1m);
+            CryptoUtility.CalculatePrecision("0.00000").Should().Be(0.00001m);
+        }
     }
 }

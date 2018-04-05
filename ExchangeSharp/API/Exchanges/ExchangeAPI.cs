@@ -24,6 +24,8 @@ namespace ExchangeSharp
     {
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
+        private IEnumerable<ExchangeMarket> exchangeMarkets;
+
         /// <summary>
         /// Static constructor
         /// </summary>
@@ -382,6 +384,43 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="withdrawalRequest">The withdrawal request.</param>
         public Task WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => Task.Factory.StartNew(() => Withdraw(withdrawalRequest));
+
+        /// <summary>Gets the exchange market from this exchange's SymbolsMetadata cache.</summary>
+        /// <param name="symbol">The symbol. Ex. ADA/BTC</param>
+        /// <returns>The ExchangeMarket or null if it doesn't exist</returns>
+        protected ExchangeMarket GetExchangeMarket(string symbol)
+        {
+            this.PopulateExchangeMarkets();
+            return this.exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
+        }
+
+        /// <summary>Call GetSymbolsMetadata and store the results.</summary>
+        private void PopulateExchangeMarkets()
+        {
+            // Get the exchange markets if we haven't gotten them yet.
+            if (this.exchangeMarkets == null)
+            {
+                lock (this)
+                {
+                    if (this.exchangeMarkets == null)
+                    {
+                        this.exchangeMarkets = this.GetSymbolsMetadata();
+                    }
+                }
+            }
+        }
+
+        protected decimal ClampOrderPrice(string symbol, decimal outputPrice)
+        {
+            ExchangeMarket market = this.GetExchangeMarket(symbol);
+            return CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
+        }
+
+        protected decimal ClampOrderQuantity(string symbol, decimal outputQuantity)
+        {
+            ExchangeMarket market = this.GetExchangeMarket(symbol);
+            return CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity.RoundAmount());
+        }
     }
 
     /// <summary>

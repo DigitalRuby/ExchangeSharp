@@ -10,20 +10,19 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-
-using Newtonsoft.Json.Linq;
-
 namespace ExchangeSharp
 {
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
+    using System.Linq;
+    using System.Runtime.InteropServices;
+    using System.Security;
+    using System.Security.Cryptography;
+    using System.Text;
+
     public static class CryptoUtility
     {
         /// <summary>
@@ -42,7 +41,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public static string ToStringInvariant(this object obj)
         {
-            return System.Convert.ToString(obj, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            return Convert.ToString(obj, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
         /// <summary>
@@ -83,7 +82,7 @@ namespace ExchangeSharp
             {
                 return defaultValue;
             }
-            return (T)System.Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
+            return (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
         }
 
         public static string NormalizeSymbol(string symbol)
@@ -130,7 +129,7 @@ namespace ExchangeSharp
         public static byte[] SecureStringToBytesBase64Decode(SecureString s)
         {
             string unsecure = SecureStringToString(s);
-            byte[] bytes = System.Convert.FromBase64String(unsecure);
+            byte[] bytes = Convert.FromBase64String(unsecure);
             unsecure = null;
             return bytes;
         }
@@ -151,7 +150,7 @@ namespace ExchangeSharp
 
         public static decimal ClampDecimal(decimal minValue, decimal maxValue, decimal? stepSize, decimal value)
         {
-            if(minValue < 0) throw new ArgumentOutOfRangeException(nameof(minValue));
+            if (minValue < 0) throw new ArgumentOutOfRangeException(nameof(minValue));
             if (maxValue < 0) throw new ArgumentOutOfRangeException(nameof(maxValue));
             if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
             if (minValue > maxValue) throw new ArgumentOutOfRangeException(nameof(minValue));
@@ -172,7 +171,7 @@ namespace ExchangeSharp
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
         {
             // Unix timestamp is seconds past epoch
-            System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             dtDateTime = dtDateTime.AddSeconds(unixTimeStampSeconds);
             return dtDateTime;
         }
@@ -180,7 +179,7 @@ namespace ExchangeSharp
         public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
             // Unix timestamp is seconds past epoch
-            System.DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             dtDateTime = dtDateTime.AddMilliseconds(unixTimeStampMilliseconds);
             return dtDateTime;
         }
@@ -207,7 +206,7 @@ namespace ExchangeSharp
 
         public static string SHA256SignBase64(string message, byte[] key)
         {
-            return System.Convert.ToBase64String(new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
         }
 
         public static string SHA384Sign(string message, string key)
@@ -222,7 +221,7 @@ namespace ExchangeSharp
 
         public static string SHA384SignBase64(string message, byte[] key)
         {
-            return System.Convert.ToBase64String(new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
         }
 
         public static string SHA512Sign(string message, string key)
@@ -246,7 +245,7 @@ namespace ExchangeSharp
             var hmac = new HMACSHA512(key);
             var messagebyte = Encoding.ASCII.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
-            return System.Convert.ToBase64String(hashmessage);
+            return Convert.ToBase64String(hashmessage);
         }
 
         public static byte[] GenerateSalt(int length)
@@ -329,7 +328,7 @@ namespace ExchangeSharp
             const int dayThreshold = 60 * 60 * 24;
             const int weekThreshold = dayThreshold * 7;
             const int monthThreshold = dayThreshold * 30;
-            
+
             if (seconds >= monthThreshold)
             {
                 return seconds / monthThreshold + "M";
@@ -488,5 +487,21 @@ namespace ExchangeSharp
 
         public static bool IsWindows { get; private set; }
         public static bool IsMono { get; private set; }
+
+        /// <summary>Calculates the precision allowed based on the number of decimal points in a number.</summary>
+        /// <param name="numberWithDecimals">The number on which to count decimal points.</param>
+        /// <returns>A number indicating how many digits are after the decimal point. 
+        /// For example, 5 zeroes after the decimal would indicate a price step size of 0.00001</returns>
+        public static decimal CalculatePrecision(string numberWithDecimals)
+        {
+            int precision = 0;
+            int decPoint = numberWithDecimals.IndexOf('.');
+            if (decPoint != -1)
+            {
+                precision = numberWithDecimals.Length - decPoint - 1;
+            }
+
+            return (decimal)Math.Pow(10, -1 * precision);
+        }
     }
 }
