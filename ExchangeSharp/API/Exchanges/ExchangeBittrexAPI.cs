@@ -10,18 +10,17 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using Bittrex.Net;
-using Bittrex.Net.Objects;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
-using System.Web;
-
 namespace ExchangeSharp
 {
+    using Bittrex.Net;
+    using Bittrex.Net.Objects;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
+    using System.Web;
 
     public class ExchangeBittrexAPI : ExchangeAPI
     {
@@ -208,17 +207,23 @@ namespace ExchangeSharp
             var markets = new List<ExchangeMarket>();
             JObject obj = MakeJsonRequest<JObject>("/public/getmarkets");
             JToken result = CheckError(obj);
+
+            // StepSize is 8 decimal places for both price and amount on everything at Bittrex
+            const decimal StepSize = 0.00000001m;
             if (result is JArray array)
             {
                 foreach (JToken token in array)
                 {
                     var market = new ExchangeMarket
                     {
-                        MarketName = token["MarketName"].ToStringUpperInvariant(),
-                        IsActive = token["IsActive"].ConvertInvariant<bool>(),
-                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
                         BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
-                        MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant()
+                        IsActive = token["IsActive"].ConvertInvariant<bool>(),
+                        MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant(),
+                        MarketName = token["MarketName"].ToStringUpperInvariant(),
+                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+                        MinPrice = StepSize,
+                        PriceStepSize = StepSize,
+                        QuantityStepSize = StepSize
                     };
 
                     markets.Add(market);
@@ -227,7 +232,6 @@ namespace ExchangeSharp
 
             return markets;
         }
-
 
         public override IEnumerable<string> GetSymbols()
         {
@@ -587,9 +591,12 @@ namespace ExchangeSharp
             }
 
             string symbol = NormalizeSymbol(order.Symbol);
-            decimal amount = order.RoundAmount();
+
+            decimal orderAmount = this.ClampOrderQuantity(symbol, order.Amount);
+            decimal orderPrice = this.ClampOrderPrice(symbol, order.Price);
+
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
-                amount.ToStringInvariant() + "&rate=" + order.Price.ToStringInvariant();
+                orderAmount.ToStringInvariant() + "&rate=" + orderPrice.ToStringInvariant();
             foreach (var kv in order.ExtraParameters)
             {
                 url += "&" + WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value.ToStringInvariant());
@@ -597,7 +604,7 @@ namespace ExchangeSharp
             JObject obj = MakeJsonRequest<JObject>(url, null, GetNoncePayload());
             JToken result = CheckError(obj);
             string orderId = result["uuid"].ToStringInvariant();
-            return new ExchangeOrderResult { Amount = amount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
+            return new ExchangeOrderResult { Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
 
         public override ExchangeOrderResult GetOrderDetails(string orderId)
