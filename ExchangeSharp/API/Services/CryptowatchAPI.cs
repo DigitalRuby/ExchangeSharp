@@ -111,21 +111,21 @@ namespace ExchangeSharp
         public ExchangeOrderBook GetOrderBook(string exchange, string symbol, int maxCount = 100)
         {
             ExchangeOrderBook book = new ExchangeOrderBook();
-            JObject obj = MakeJsonRequest<JObject>("/markets/" + exchange.ToLower() + "/" + symbol + "/orderbook");
+            JObject obj = MakeJsonRequest<JObject>("/markets/" + exchange.ToLowerInvariant() + "/" + symbol + "/orderbook");
             JObject result = (JObject)obj["result"];
             int count = 0;
             foreach (JArray array in result["asks"])
             {
                 if (++count > maxCount)
                     break;
-                book.Asks.Add(new ExchangeOrderPrice { Amount = (decimal)array[1], Price = (decimal)array[0] });
+                book.Asks.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
             }
             count = 0;
             foreach (JArray array in result["bids"])
             {
                 if (++count > maxCount)
                     break;
-                book.Bids.Add(new ExchangeOrderPrice { Amount = (decimal)array[1], Price = (decimal)array[0] });
+                book.Bids.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
             }
             return book;
         }
