@@ -1,7 +1,7 @@
 ﻿namespace ExchangeSharpTests
 {
     using System;
-    using System.Threading;
+    using System.Collections.Generic;
 
     using ExchangeSharp;
 
@@ -15,8 +15,7 @@
     [TestClass]
     public class ExchangePoloniexAPITests
     {
-        private const string SingleMarketTradeHistory =
-            @"[{
+        private const string SingleMarketTradeHistory = @"[{
     ""globalTradeID"": 25129732,
     ""tradeID"": ""6325758"",
     ""date"": ""2016-04-05 08:08:40"",
@@ -42,8 +41,7 @@
 
         #region AllMarketTradeHistory
 
-        private const string AllMarketTradeHistory =
-            @"{
+        private const string AllMarketTradeHistory = @"{
     ""BTC_MAID"": [{
         ""globalTradeID"": 29251512,
         ""tradeID"": ""1385888"",
@@ -69,6 +67,7 @@
     }, ...],
     ""BTC_LTC"": [...]...
 }";
+
         #endregion
 
         #region CompletedOrderDetails
@@ -129,65 +128,8 @@
     ""type"": ""buy"",
     ""category"": ""exchange""
 }]";
-#endregion
 
-        [TestMethod]
-        public void ParseBuyOrder_SingleTrade_HappyPath()
-        {
-            const string BuyOrder = @"{
-    ""orderNumber"": 31226040,
-    ""resultingTrades"": [{
-        ""amount"": ""338.8732"",
-        ""date"": ""2014-10-18 23:03:21"",
-        ""rate"": ""0.00000173"",
-        ""total"": ""0.00058625"",
-        ""tradeID"": ""16164"",
-        ""type"": ""buy""
-    }]
-}";
-
-            JToken singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
-            var polo = new ExchangePoloniexAPI();
-            ExchangeOrderResult order = polo.ParseOrder(singleOrder);
-            order.OrderId.Should().Be("31226040");
-            order.IsBuy.Should().BeTrue();
-            order.Amount.Should().Be(338.8732m);
-            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 03, 21));
-            order.AveragePrice.Should().Be(0.00000173m);
-            order.AmountFilled.Should().Be(338.8732m);
-            order.FeesCurrency.Should().BeNullOrEmpty();
-            order.Fees.Should().Be(0);
-        }
-
-        [TestMethod]
-        public void ParseSellOrder_SingleTrade_HappyPath()
-        {
-            const string SellOrder = @"{
-    ""orderNumber"": 31226040,
-    ""resultingTrades"": [{
-        ""amount"": ""338.8732"",
-        ""date"": ""2014-10-18 23:03:21"",
-        ""rate"": ""0.00000173"",
-        ""total"": ""0.00058625"",
-        ""tradeID"": ""16164"",
-        ""type"": ""sell""
-    }]
-}";
-
-            JToken singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
-            var polo = new ExchangePoloniexAPI();
-            ExchangeOrderResult order = polo.ParseOrder(singleOrder);
-            order.OrderId.Should().Be("31226040");
-            order.IsBuy.Should().BeFalse();
-            order.Amount.Should().Be(338.8732m);
-            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 03, 21));
-            order.AveragePrice.Should().Be(0.00000173m);
-            order.AmountFilled.Should().Be(338.8732m);
-            order.FeesCurrency.Should().BeNullOrEmpty();
-            order.Fees.Should().Be(0);
-        }
-
-
+        #endregion
 
         private const string ReturnOrderTradesSell = @"[{
     ""globalTradeID"": 353843995,
@@ -221,23 +163,6 @@
     ""date"": ""2018-03-15 02:00:31""
 }]";
 
-        [TestMethod]
-        public void ReturnOrderTrades_Sell_HasCorrectValues()
-        {
-            ExchangeOrderResult order = new ExchangeOrderResult();
-            JToken orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTradesSell);
-            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
-            order.Amount.Should().Be(143.14m);
-            order.AmountFilled.Should().Be(order.Amount);
-            order.Fees.Should().Be(0.00006141m);
-            order.FeesCurrency.Should().Be("BTC");
-            order.IsBuy.Should().BeFalse();
-            order.OrderId.Should().BeNullOrEmpty();
-            order.AveragePrice.Should().Be(0.0001716132563851949140701411m);
-            order.Price.Should().Be(order.AveragePrice);
-            order.Symbol.Should().Be("BTC_VIA");
-        }
-
         private const string ReturnOrderTrades_SimpleBuy = @"[{
     ""globalTradeID"": 345736206,
     ""tradeID"": 6238021,
@@ -259,23 +184,6 @@
     ""fee"": ""0.00150000"",
     ""date"": ""2018-02-16 19:39:06""
 }]";
-
-        [TestMethod]
-        public void ReturnOrderTrades_Buy_HasCorrectValues()
-        {
-            ExchangeOrderResult order = new ExchangeOrderResult();
-            JToken orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_SimpleBuy);
-            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
-            order.OrderId.Should().BeNullOrEmpty();
-            order.Amount.Should().Be(19096.46996880m);
-            order.AmountFilled.Should().Be(order.Amount);
-            order.IsBuy.Should().BeTrue();
-            order.Fees.Should().Be(28.64470495m);
-            order.FeesCurrency.Should().Be("XEM");
-            order.Symbol.Should().Be("BTC_XEM");
-            order.Price.Should().Be(0.00005128m);
-            order.AveragePrice.Should().Be(0.00005128m);
-        }
 
         #region ReturnOrderTrades_GasBuy
 
@@ -401,22 +309,168 @@
     ""date"": ""2018-03-31 17:08:09""
 }]";
 
-#endregion
+        #endregion
+
+        [TestMethod]
+        public void ParseBuyOrder_SingleTrade_HappyPath()
+        {
+            const string BuyOrder = @"{
+    ""orderNumber"": 31226040,
+    ""resultingTrades"": [{
+        ""amount"": ""338.8732"",
+        ""date"": ""2014-10-18 23:03:21"",
+        ""rate"": ""0.00000173"",
+        ""total"": ""0.00058625"",
+        ""tradeID"": ""16164"",
+        ""type"": ""buy""
+    }]
+}";
+
+            var singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
+            var polo = new ExchangePoloniexAPI();
+            ExchangeOrderResult order = polo.ParseOrder(singleOrder);
+            order.OrderId.Should().Be("31226040");
+            order.IsBuy.Should().BeTrue();
+            order.Amount.Should().Be(338.8732m);
+            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 03, 21));
+            order.AveragePrice.Should().Be(0.00000173m);
+            order.AmountFilled.Should().Be(338.8732m);
+            order.FeesCurrency.Should().BeNullOrEmpty();
+            order.Fees.Should().Be(0);
+        }
+
+        [TestMethod]
+        public void ParseSellOrder_SingleTrade_HappyPath()
+        {
+            const string SellOrder = @"{
+    ""orderNumber"": 31226040,
+    ""resultingTrades"": [{
+        ""amount"": ""338.8732"",
+        ""date"": ""2014-10-18 23:03:21"",
+        ""rate"": ""0.00000173"",
+        ""total"": ""0.00058625"",
+        ""tradeID"": ""16164"",
+        ""type"": ""sell""
+    }]
+}";
+
+            var singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
+            var polo = new ExchangePoloniexAPI();
+            ExchangeOrderResult order = polo.ParseOrder(singleOrder);
+            order.OrderId.Should().Be("31226040");
+            order.IsBuy.Should().BeFalse();
+            order.Amount.Should().Be(338.8732m);
+            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 03, 21));
+            order.AveragePrice.Should().Be(0.00000173m);
+            order.AmountFilled.Should().Be(338.8732m);
+            order.FeesCurrency.Should().BeNullOrEmpty();
+            order.Fees.Should().Be(0);
+        }
+
+        [TestMethod]
+        public void ReturnOrderTrades_Sell_HasCorrectValues()
+        {
+            var order = new ExchangeOrderResult();
+            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTradesSell);
+            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
+            order.Amount.Should().Be(143.14m);
+            order.AmountFilled.Should().Be(order.Amount);
+            order.Fees.Should().Be(0.00006141m);
+            order.FeesCurrency.Should().Be("BTC");
+            order.IsBuy.Should().BeFalse();
+            order.OrderId.Should().BeNullOrEmpty();
+            order.AveragePrice.Should().Be(0.0001716132563851949140701411m);
+            order.Price.Should().Be(order.AveragePrice);
+            order.Symbol.Should().Be("BTC_VIA");
+        }
+
+        [TestMethod]
+        public void ReturnOrderTrades_Buy_HasCorrectValues()
+        {
+            var order = new ExchangeOrderResult();
+            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_SimpleBuy);
+            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
+            order.OrderId.Should().BeNullOrEmpty();
+            order.Amount.Should().Be(19096.46996880m);
+            order.AmountFilled.Should().Be(order.Amount);
+            order.IsBuy.Should().BeTrue();
+            order.Fees.Should().Be(28.64470495m);
+            order.FeesCurrency.Should().Be("XEM");
+            order.Symbol.Should().Be("BTC_XEM");
+            order.Price.Should().Be(0.00005128m);
+            order.AveragePrice.Should().Be(0.00005128m);
+        }
 
         [TestMethod]
         public void ReturnOrderTrades_BuyComplicatedPriceAvg_IsCorrect()
         {
-            ExchangeOrderResult order = new ExchangeOrderResult();
-            JToken orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_GasBuy);
+            var order = new ExchangeOrderResult();
+            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_GasBuy);
             ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
             order.AveragePrice.Should().Be(0.0397199908083616777777777778m);
             order.IsBuy.Should().BeTrue();
         }
 
         [TestMethod]
-        public void ReturnOrderTrades_Null_DoesNotThrow()
+        public void ReturnOpenOrders_SingleMarket_Parses()
         {
+            string marketOrdersJson = @"[{
+    ""orderNumber"": ""120466"",
+    ""type"": ""sell"",
+    ""rate"": ""0.025"",
+    ""amount"": ""100"",
+    ""total"": ""2.5""
+}, {
+    ""orderNumber"": ""120467"",
+    ""type"": ""sell"",
+    ""rate"": ""0.04"",
+    ""amount"": ""100"",
+    ""total"": ""4""
+}]";
+            var polo = new ExchangePoloniexAPI();
+            JToken marketOrders = JsonConvert.DeserializeObject<JToken>(marketOrdersJson);
 
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+
+            if (marketOrders is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    orders.Add(polo.ParseOrder(token));
+                }
+            }
+
+            orders[0].OrderId.Should().Be("120466");
+            orders[0].IsBuy.Should().BeFalse();
+            orders[0].Price.Should().Be(0.025m);
+            orders[0].Amount.Should().Be(100);
+
+        }
+
+        [TestMethod]
+        public void ReturnOpenOrders_Unfilled_IsCorrect()
+        {
+            string unfilled = @"[{
+    ""orderNumber"": ""35329211614"",
+    ""type"": ""buy"",
+    ""rate"": ""0.50000000"",
+    ""startingAmount"": ""0.01000000"",
+    ""amount"": ""0.01000000"",
+    ""total"": ""0.00500000"",
+    ""date"": ""2018-04-06 01:03:45"",
+    ""margin"": 0
+}]";
+
+            var polo = new ExchangePoloniexAPI();
+            JToken marketOrders = JsonConvert.DeserializeObject<JToken>(unfilled);
+            ExchangeOrderResult order = polo.ParseOrder(marketOrders[0]);
+            order.OrderId.Should().Be("35329211614");
+            order.IsBuy.Should().BeTrue();
+            order.AmountFilled.Should().Be(0);
+            order.Amount.Should().Be(0.01m);
+            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
+            order.Fees.Should().Be(0);
+            order.FeesCurrency.Should().BeNullOrEmpty();
         }
     }
 }

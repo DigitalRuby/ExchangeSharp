@@ -117,7 +117,7 @@ namespace ExchangeSharp
 
                 order.Price = result["rate"].ConvertInvariant<decimal>();
                 order.Amount = result["startingAmount"].ConvertInvariant<decimal>();
-                order.AmountFilled = amount - order.Amount; // Is this right?
+                order.AmountFilled = amount - order.Amount;
                 order.OrderDate = result["date"].ConvertInvariant<DateTime>();
                 order.IsBuy = result["type"].ToStringLowerInvariant() != "sell";
 
