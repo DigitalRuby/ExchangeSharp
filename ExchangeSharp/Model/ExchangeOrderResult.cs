@@ -14,8 +14,6 @@ namespace ExchangeSharp
 {
     using System;
 
-    using Newtonsoft.Json.Linq;
-
     /// <summary>Result of an exchange order</summary>
     public class ExchangeOrderResult
     {

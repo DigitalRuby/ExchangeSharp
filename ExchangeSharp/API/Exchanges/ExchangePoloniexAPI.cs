@@ -105,7 +105,7 @@ namespace ExchangeSharp
             return this.MakeJsonRequest<JToken>("/tradingApi", null, payload);
         }
 
-        public ExchangeOrderResult ParseActiveOrder(JToken result)
+        public ExchangeOrderResult ParsePlacedOrder(JToken result)
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {
@@ -121,7 +121,10 @@ namespace ExchangeSharp
             return order;
         }
 
-        public ExchangeOrderResult ParseOpenOrders(JToken result)
+        /// <summary>Parses an order which has not been filled.</summary>
+        /// <param name="result">The JToken to parse.</param>
+        /// <returns>ExchangeOrderResult with the open order and how much is remaining to fill</returns>
+        public ExchangeOrderResult ParseOpenOrder(JToken result)
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {
@@ -616,7 +619,7 @@ namespace ExchangeSharp
 
             JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", orderParams);
             CheckError(result);
-            ExchangeOrderResult exchangeOrderResult = this.ParseActiveOrder(result);
+            ExchangeOrderResult exchangeOrderResult = this.ParsePlacedOrder(result);
             exchangeOrderResult.Symbol = symbol;
             exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, symbol);
             return exchangeOrderResult;
@@ -653,7 +656,7 @@ namespace ExchangeSharp
                     {
                         foreach (JToken token in array)
                         {
-                            yield return this.ParseActiveOrder(token);
+                            yield return this.ParseOpenOrder(token);
                         }
                     }
                 }
@@ -662,7 +665,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    yield return this.ParseActiveOrder(token);
+                    yield return this.ParseOpenOrder(token);
                 }
             }
         }
