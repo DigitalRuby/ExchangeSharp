@@ -321,6 +321,9 @@ namespace ExchangeSharp
             Dictionary<string, JToken> lookup = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnOrderBook&currencyPair=all&depth=0");
             foreach (var kvp in lookup)
             {
+                // StepSize is 8 decimal places for both price and amount on everything at Polo
+                const decimal StepSize = 0.00000001m;
+                const decimal minTradeSize = 0.0001m;
                 var market = new ExchangeMarket { MarketName = kvp.Key, IsActive = false };
 
                 string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
@@ -334,9 +337,12 @@ namespace ExchangeSharp
                 {
                     market.BaseCurrency = pairs[0];
                     market.MarketCurrency = pairs[1];
+                    market.PriceStepSize = StepSize;
+                    market.QuantityStepSize = StepSize;
+                    market.MinPrice = StepSize;
+                    market.MinTradeSize = minTradeSize;
                 }
 
-                // TODO: Not sure how to find min order amount
                 markets.Add(market);
             }
 
