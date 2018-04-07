@@ -22,6 +22,8 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using ExchangeSharp.API.Services;
+
     public class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
@@ -139,7 +141,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
@@ -172,7 +174,7 @@ namespace ExchangeSharp
             }
         }
 
-        public ExchangeKrakenAPI()
+        public ExchangeKrakenAPI() : base()
         {
             RequestMethod = "POST";
             RequestContentType = "application/x-www-form-urlencoded";
