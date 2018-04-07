@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     using ExchangeSharp;
     using ExchangeSharp.API.Services;
@@ -18,6 +19,8 @@
     [TestClass]
     public class ExchangePoloniexAPITests
     {
+        private static Action Invoking(Action action) => action;
+
         private const string SingleMarketTradeHistory = @"[{
     ""globalTradeID"": 25129732,
     ""tradeID"": ""6325758"",
@@ -314,6 +317,319 @@
 
         #endregion
 
+        #region GetCompletedOrderDetails_AllGas
+
+        private const string ReturnOrderTrades_AllGas = @"[{
+    ""globalTradeID"": 359099213,
+    ""tradeID"": ""130931"",
+    ""date"": ""2018-04-04 01:31:41"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.09270548"",
+    ""total"": ""0.00382224"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359099165,
+    ""tradeID"": ""130930"",
+    ""date"": ""2018-04-04 01:31:33"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.49122807"",
+    ""total"": ""0.02025333"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359099125,
+    ""tradeID"": ""130929"",
+    ""date"": ""2018-04-04 01:31:24"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098971,
+    ""tradeID"": ""130928"",
+    ""date"": ""2018-04-04 01:30:59"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098909,
+    ""tradeID"": ""130927"",
+    ""date"": ""2018-04-04 01:30:50"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098836,
+    ""tradeID"": ""130926"",
+    ""date"": ""2018-04-04 01:30:41"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098805,
+    ""tradeID"": ""130925"",
+    ""date"": ""2018-04-04 01:30:34"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098661,
+    ""tradeID"": ""130924"",
+    ""date"": ""2018-04-04 01:30:10"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098505,
+    ""tradeID"": ""130923"",
+    ""date"": ""2018-04-04 01:29:46"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098451,
+    ""tradeID"": ""130922"",
+    ""date"": ""2018-04-04 01:29:39"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.26835036"",
+    ""total"": ""0.01106408"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359098353,
+    ""tradeID"": ""130920"",
+    ""date"": ""2018-04-04 01:29:11"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359097358,
+    ""tradeID"": ""130919"",
+    ""date"": ""2018-04-04 01:25:56"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.30075188"",
+    ""total"": ""0.01240000"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359097294,
+    ""tradeID"": ""130918"",
+    ""date"": ""2018-04-04 01:25:44"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.49122807"",
+    ""total"": ""0.02025333"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359097028,
+    ""tradeID"": ""130917"",
+    ""date"": ""2018-04-04 01:25:05"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""0.40853799"",
+    ""total"": ""0.01684402"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359094184,
+    ""tradeID"": ""130914"",
+    ""date"": ""2018-04-04 01:11:45"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""1.61598982"",
+    ""total"": ""0.06662726"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 359078956,
+    ""tradeID"": ""130910"",
+    ""date"": ""2018-04-04 00:02:42"",
+    ""rate"": ""0.04123000"",
+    ""amount"": ""3.63812757"",
+    ""total"": ""0.14999999"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17565886729"",
+    ""type"": ""sell"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358351885,
+    ""tradeID"": ""130147"",
+    ""date"": ""2018-04-01 02:43:03"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.17821893"",
+    ""total"": ""0.00707885"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358351682,
+    ""tradeID"": ""130146"",
+    ""date"": ""2018-04-01 02:41:03"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""4.39606430"",
+    ""total"": ""0.17461167"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358351475,
+    ""tradeID"": ""130145"",
+    ""date"": ""2018-04-01 02:40:32"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""2.78493409"",
+    ""total"": ""0.11061758"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358350781,
+    ""tradeID"": ""130144"",
+    ""date"": ""2018-04-01 02:34:58"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.30969000"",
+    ""total"": ""0.01230088"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358350765,
+    ""tradeID"": ""130143"",
+    ""date"": ""2018-04-01 02:34:46"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.30969000"",
+    ""total"": ""0.01230088"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358350760,
+    ""tradeID"": ""130142"",
+    ""date"": ""2018-04-01 02:34:41"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.30969000"",
+    ""total"": ""0.01230088"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358350720,
+    ""tradeID"": ""130141"",
+    ""date"": ""2018-04-01 02:34:03"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.50949000"",
+    ""total"": ""0.02023694"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358350626,
+    ""tradeID"": ""130140"",
+    ""date"": ""2018-04-01 02:33:23"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.43261515"",
+    ""total"": ""0.01718347"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358329457,
+    ""tradeID"": ""130133"",
+    ""date"": ""2018-03-31 22:49:19"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.48059203"",
+    ""total"": ""0.01908911"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358316481,
+    ""tradeID"": ""130128"",
+    ""date"": ""2018-03-31 21:05:15"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.00923445"",
+    ""total"": ""0.00036679"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358284828,
+    ""tradeID"": ""130127"",
+    ""date"": ""2018-03-31 17:09:24"",
+    ""rate"": ""0.03972000"",
+    ""amount"": ""0.00730656"",
+    ""total"": ""0.00029021"",
+    ""fee"": ""0.00150000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}, {
+    ""globalTradeID"": 358284727,
+    ""tradeID"": ""130126"",
+    ""date"": ""2018-03-31 17:08:09"",
+    ""rate"": ""0.03971998"",
+    ""amount"": ""8.27247449"",
+    ""total"": ""0.32858252"",
+    ""fee"": ""0.00250000"",
+    ""orderNumber"": ""17518581082"",
+    ""type"": ""buy"",
+    ""category"": ""exchange""
+}]";
+#endregion
+
         [TestMethod]
         public void ParseBuyOrder_SingleTrade_HappyPath()
         {
@@ -331,7 +647,7 @@
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
             var polo = new ExchangePoloniexAPI();
-            ExchangeOrderResult order = polo.ParseOrder(singleOrder);
+            ExchangeOrderResult order = polo.ParseActiveOrder(singleOrder);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeTrue();
             order.Amount.Should().Be(338.8732m);
@@ -359,7 +675,7 @@
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
             var polo = new ExchangePoloniexAPI();
-            ExchangeOrderResult order = polo.ParseOrder(singleOrder);
+            ExchangeOrderResult order = polo.ParseActiveOrder(singleOrder);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeFalse();
             order.Amount.Should().Be(338.8732m);
@@ -375,7 +691,8 @@
         {
             var order = new ExchangeOrderResult();
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTradesSell);
-            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
+            var polo = new ExchangePoloniexAPI();
+            polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.Amount.Should().Be(143.14m);
             order.AmountFilled.Should().Be(order.Amount);
             order.Fees.Should().Be(0.00006141m);
@@ -392,7 +709,8 @@
         {
             var order = new ExchangeOrderResult();
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_SimpleBuy);
-            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
+            var polo = new ExchangePoloniexAPI();
+            polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.OrderId.Should().BeNullOrEmpty();
             order.Amount.Should().Be(19096.46996880m);
             order.AmountFilled.Should().Be(order.Amount);
@@ -409,7 +727,8 @@
         {
             var order = new ExchangeOrderResult();
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_GasBuy);
-            ExchangePoloniexAPI.ParseOrderTrades(orderWithMultipleTrades, order);
+            var polo = new ExchangePoloniexAPI();
+            polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.AveragePrice.Should().Be(0.0397199908083616777777777778m);
             order.IsBuy.Should().BeTrue();
         }
@@ -439,24 +758,14 @@
             {
                 foreach (JToken token in array)
                 {
-                    orders.Add(polo.ParseOrder(token));
+                    orders.Add(polo.ParseOpenOrders(token));
                 }
             }
 
             orders[0].OrderId.Should().Be("120466");
             orders[0].IsBuy.Should().BeFalse();
             orders[0].Price.Should().Be(0.025m);
-//            orders[0].Amount.Should().Be(100);
-
-        }
-
-        [TestMethod]
-        public void GetOrderdetails_happyPath()
-        {
-            var requestHelper = Substitute.For<IRequestHelper>();
-            requestHelper.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_SimpleBuy);
-            var polo = new ExchangePoloniexAPI(requestHelper);
-            var response = polo.GetOrderDetails("1");
+            //            orders[0].Amount.Should().Be(100);
         }
 
         [TestMethod]
@@ -475,7 +784,7 @@
 
             var polo = new ExchangePoloniexAPI();
             JToken marketOrders = JsonConvert.DeserializeObject<JToken>(unfilled);
-            ExchangeOrderResult order = polo.ParseOrder(marketOrders[0]);
+            ExchangeOrderResult order = polo.ParseOpenOrders(marketOrders[0]);
             order.OrderId.Should().Be("35329211614");
             order.IsBuy.Should().BeTrue();
             order.AmountFilled.Should().Be(0);
@@ -483,6 +792,66 @@
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
+        }
+
+        [TestMethod]
+        public void GetOrderDetails_HappyPath()
+        {
+            var requestHelper = Substitute.For<IRequestHelper>();
+            requestHelper.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_SimpleBuy);
+            var polo = new ExchangePoloniexAPI(requestHelper);
+            ExchangeOrderResult order = polo.GetOrderDetails("1");
+
+            order.OrderId.Should().Be("1");
+            order.Amount.Should().Be(19096.46996880m);
+            order.AmountFilled.Should().Be(order.Amount);
+            order.IsBuy.Should().BeTrue();
+            order.Fees.Should().Be(28.64470495m);
+            order.FeesCurrency.Should().Be("XEM");
+            order.Symbol.Should().Be("BTC_XEM");
+            order.Price.Should().Be(0.00005128m);
+            order.AveragePrice.Should().Be(0.00005128m);
+        }
+
+        [TestMethod]
+        public void GetOrderDetails_OrderNotFound_DoesNotThrow()
+        {
+            var requestHelper = Substitute.For<IRequestHelper>();
+            requestHelper.MakeRequest(null).ReturnsForAnyArgs(@"{""error"":""Order not found, or you are not the person who placed it.""}");
+            var polo = new ExchangePoloniexAPI(requestHelper);
+            polo.GetOrderDetails("1").Should().BeNull();
+        }
+
+        [TestMethod]
+        public void GetOrderDetails_OtherErrors_ThrowAPIException()
+        {
+            var requestHelper = Substitute.For<IRequestHelper>();
+            requestHelper.MakeRequest(null).ReturnsForAnyArgs(@"{""error"":""Big scary error.""}");
+            var polo = new ExchangePoloniexAPI(requestHelper);
+
+            void a() => polo.GetOrderDetails("1");
+            Invoking(a).Should().Throw<APIException>();
+        }
+
+        [TestMethod]
+        public void GetCompletedOrderDetails_MultipleOrders()
+        {
+            var requestHelper = Substitute.For<IRequestHelper>();
+            requestHelper.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_AllGas);
+            var polo = new ExchangePoloniexAPI(requestHelper);
+            IEnumerable<ExchangeOrderResult> orders = polo.GetCompletedOrderDetails("ETH_GAS");
+            orders.Should().HaveCount(2);
+            var sellorder = orders.Single(x => !x.IsBuy);
+            sellorder.AveragePrice.Should().Be(0.04123m);
+            sellorder.AmountFilled.Should().Be(9.71293428m);
+            sellorder.FeesCurrency.Should().Be("ETH");
+            sellorder.Fees.Should().Be(0.0006007m);
+
+            var buyOrder = orders.Single(x => x.IsBuy);
+            buyOrder.AveragePrice.Should().Be(0.0397199908083616777777777778m);
+            buyOrder.AmountFilled.Should().Be(18);
+            buyOrder.FeesCurrency.Should().Be("GAS");
+            buyOrder.Fees.Should().Be(0.0352725m);
         }
     }
 }
