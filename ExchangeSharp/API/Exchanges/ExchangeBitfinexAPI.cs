@@ -23,6 +23,8 @@ namespace ExchangeSharp
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
+    using ExchangeSharp.API.Services;
+
     public class ExchangeBitfinexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
@@ -34,6 +36,12 @@ namespace ExchangeSharp
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
 
         public ExchangeBitfinexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBitfinexAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));

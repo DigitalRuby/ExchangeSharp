@@ -151,12 +151,7 @@ namespace ExchangeSharp
         private decimal lastNonce;
 
         // Helper for making the API calls
-        public IRequestHelper RequestHelper { get; set; }
-
-        public BaseAPI()
-        {
-            this.RequestHelper = new RequestHelper(this);
-        }
+        protected IRequestHelper requestHelper;
 
         /// <summary>
         /// Static constructor
@@ -280,7 +275,7 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
-        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => Task.Factory.StartNew(() => this.RequestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: method));
+        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => Task.Factory.StartNew(() => this.requestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: method));
 
         /// <summary>
         /// Make a JSON request to an API end point
@@ -293,7 +288,7 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
-            string response = this.RequestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
+            string response = this.requestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
             return JsonConvert.DeserializeObject<T>(response);
         }
 

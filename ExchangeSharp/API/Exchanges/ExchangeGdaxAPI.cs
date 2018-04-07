@@ -21,6 +21,8 @@ namespace ExchangeSharp
 {
     using System.Linq;
 
+    using ExchangeSharp.API.Services;
+
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
@@ -126,6 +128,12 @@ namespace ExchangeSharp
         }
 
         public ExchangeGdaxAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeGdaxAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;

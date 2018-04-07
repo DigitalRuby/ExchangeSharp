@@ -22,6 +22,8 @@ namespace ExchangeSharp
     using System.Threading.Tasks;
     using System.Web;
 
+    using ExchangeSharp.API.Services;
+
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
@@ -37,6 +39,12 @@ namespace ExchangeSharp
         public HashSet<string> OneFieldDepositCoinTypes { get; }
 
         public ExchangeBittrexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBittrexAPI(IRequestHelper requestHelper = null) 
+            : base(requestHelper)
         {
             this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {

@@ -17,6 +17,8 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
+    using ExchangeSharp.API.Services;
+
     /// <summary>
     /// Base class for all exchange API
     /// </summary>
@@ -36,6 +38,15 @@ namespace ExchangeSharp
                 ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI;
                 apis[api.Name] = api;
             }
+        }
+
+        protected ExchangeAPI() : this(null)
+        {
+        }
+
+        protected ExchangeAPI(IRequestHelper helper)
+        {
+            this.requestHelper = helper ?? new RequestHelper(this);
         }
 
         /// <summary>

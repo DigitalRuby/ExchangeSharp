@@ -11,10 +11,17 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.6.2" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.2.0" />
     <PackageReference Include="MSTest.TestFramework" Version="1.2.0" />
+    <PackageReference Include="NSubstitute" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="NSubstitute">
+      <HintPath>..\..\packages\NSubstitute.3.1.0\lib\net46\NSubstitute.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

@@ -17,12 +17,20 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using ExchangeSharp.API.Services;
+
     public class ExchangeOkexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public override string Name => ExchangeName.Okex;
 
         public ExchangeOkexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeOkexAPI(IRequestHelper requestHelper)
+            : base(requestHelper)
         {
             RequestContentType = "application/x-www-form-urlencoded";
         }

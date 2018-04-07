@@ -17,12 +17,24 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using ExchangeSharp.API.Services;
+
     public class ExchangeBithumbAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
         public override string Name => ExchangeName.Bithumb;
 
         private static readonly char[] normalizeSeps = new char[] { '-', '_' };
+
+        public ExchangeBithumbAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBithumbAPI(IRequestHelper requestHelper)
+            : base(requestHelper)
+        {
+        }
 
         public override string NormalizeSymbol(string symbol)
         {

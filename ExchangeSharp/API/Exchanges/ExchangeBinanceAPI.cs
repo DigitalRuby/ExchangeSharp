@@ -22,6 +22,8 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using ExchangeSharp.API.Services;
+
     public class ExchangeBinanceAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
@@ -40,6 +42,12 @@ namespace ExchangeSharp
         }
 
         public ExchangeBinanceAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBinanceAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             // give binance plenty of room to accept requests
             RequestWindow = TimeSpan.FromMinutes(15.0);

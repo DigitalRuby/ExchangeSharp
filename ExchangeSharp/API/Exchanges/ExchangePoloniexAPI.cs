@@ -23,6 +23,8 @@ namespace ExchangeSharp
     using System.IO;
     using System.Reflection;
 
+    using ExchangeSharp.API.Services;
+
     public class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
@@ -51,6 +53,12 @@ namespace ExchangeSharp
         }
 
         public ExchangePoloniexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangePoloniexAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             RequestContentType = "application/x-www-form-urlencoded";
         }
