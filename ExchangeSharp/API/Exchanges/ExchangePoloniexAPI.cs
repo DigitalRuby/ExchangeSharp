@@ -57,7 +57,7 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Number of fields Poloniex provides for withdrawals since specifying
-        /// extra content in the API request won't be rejected and may cause withdrawal to get stuck.
+        /// extra content in the API request won't be rejected and may cause withdraweal to get stuck.
         /// </summary>
         public static IReadOnlyDictionary<string, int> WithdrawalFieldCount { get; set; }
 
@@ -93,49 +93,23 @@ namespace ExchangeSharp
                     payload[parameters[i++].ToStringInvariant()] = parameters[i++];
                 }
             }
-            JToken result = MakeJsonRequest<JToken>("/tradingApi", null, payload);
-            CheckError(result);
-            return result;
+
+            return this.MakeJsonRequest<JToken>("/tradingApi", null, payload);
         }
 
-        private ExchangeOrderResult ParseOrder(JToken result)
+        public ExchangeOrderResult ParseOrder(JToken result)
         {
             //result = JToken.Parse("{\"orderNumber\":31226040,\"resultingTrades\":[{\"amount\":\"338.8732\",\"date\":\"2014-10-18 23:03:21\",\"rate\":\"0.00000173\",\"total\":\"0.00058625\",\"tradeID\":\"16164\",\"type\":\"buy\"}]}");
             // open order: { "orderNumber": "45549304213", "type": "sell", "rate": "0.01000000", "startingAmount": "1497.74185318", "amount": "1497.74185318", "total": "14.97741853", "date": "2018-01-28 17:07:39", "margin": 0 }
             ExchangeOrderResult order = new ExchangeOrderResult
             {
-                OrderId = result["orderNumber"].ToStringInvariant()
+                OrderId = result["orderNumber"].ToStringInvariant(),
             };
 
             JToken trades = result["resultingTrades"];
             if (trades != null && trades.Children().Count() != 0)
             {
-                int tradeCount = trades.Children().Count();
-                if (tradeCount != 0)
-                {
-                    foreach (JToken token in trades)
-                    {
-                        decimal tradeAmt = token["amount"].ConvertInvariant<decimal>();
-                        decimal tradeRate = token["rate"].ConvertInvariant<decimal>();
-
-                        order.Amount += tradeAmt;
-                        order.AmountFilled = order.Amount;
-                        order.AveragePrice += tradeRate;
-                        order.IsBuy = result["type"].ToStringLowerInvariant() != "sell";
-
-                        // fee is a percentage taken from the traded amount rounded to 8 decimals
-                        order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, token["fee"].ConvertInvariant<decimal>());
-
-                        if (order.OrderDate == DateTime.MinValue)
-                        {
-                            order.OrderDate = token["date"].ConvertInvariant<DateTime>();
-                        }
-                    }
-                    order.AveragePrice /= tradeCount;
-
-                    // Poloniex does not provide a way to get the original price
-                    order.Price = order.AveragePrice;
-                }
+                ParseOrderTrades(trades, order);
             }
             else
             {
@@ -144,14 +118,52 @@ namespace ExchangeSharp
                 order.Price = result["rate"].ConvertInvariant<decimal>();
                 order.Amount = result["startingAmount"].ConvertInvariant<decimal>();
                 order.AmountFilled = amount - order.Amount; // Is this right?
-                order.IsBuy = result["type"].ToStringLowerInvariant() != "sell";
                 order.OrderDate = result["date"].ConvertInvariant<DateTime>();
+                order.IsBuy = result["type"].ToStringLowerInvariant() != "sell";
 
                 // fee is a percentage taken from the traded amount rounded to 8 decimals
                 order.Fees += CalculateFees(amount, order.Price, order.IsBuy, result["fee"].ConvertInvariant<decimal>());
             }
 
             return order;
+        }
+
+        public static void ParseOrderTrades(JToken trades, ExchangeOrderResult order)
+        {
+            bool orderMetadataSet = false;
+            foreach (JToken trade in trades)
+            {
+                if (!orderMetadataSet)
+                {
+                    order.IsBuy = trade["type"].ToStringLowerInvariant() != "sell";
+                    string symbol = trade["currencyPair"].ToStringInvariant();
+                    if (!string.IsNullOrWhiteSpace(symbol))
+                    {
+                        order.FeesCurrency = ParseFeesCurrency(order.IsBuy, symbol);
+                        order.Symbol = symbol;
+                    }
+
+                    orderMetadataSet = true;
+                }
+
+                decimal tradeAmt = trade["amount"].ConvertInvariant<decimal>();
+                decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
+
+                order.AveragePrice = (order.AveragePrice * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
+                order.Amount += tradeAmt;
+                order.AmountFilled = order.Amount;
+
+                if (order.OrderDate == DateTime.MinValue)
+                {
+                    order.OrderDate = trade["date"].ConvertInvariant<DateTime>();
+                }
+
+                // fee is a percentage taken from the traded amount rounded to 8 decimals
+                order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, trade["fee"].ConvertInvariant<decimal>());
+            }
+
+            // Poloniex does not provide a way to get the original price
+            order.Price = order.AveragePrice;
         }
 
         private static decimal CalculateFees(decimal tradeAmt, decimal tradeRate, bool isBuy, decimal fee)
@@ -302,7 +314,7 @@ namespace ExchangeSharp
         "bids": [],
         "isFrozen": "0",
         "seq": 37268918
-    }, ...
+        }, ...
              */
 
             var markets = new List<ExchangeMarket>();
@@ -553,6 +565,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JToken result = MakePrivateAPIRequest("returnCompleteBalances");
+            CheckError(result);
             foreach (JProperty child in result.Children())
             {
                 decimal amount = child.Value["available"].ConvertInvariant<decimal>();
@@ -568,6 +581,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JToken result = MakePrivateAPIRequest("returnBalances");
+            CheckError(result);
             foreach (JProperty child in result.Children())
             {
                 decimal amount = child.Value.ConvertInvariant<decimal>();
@@ -600,6 +614,7 @@ namespace ExchangeSharp
             }
 
             JToken result = MakePrivateAPIRequest(order.IsBuy ? "buy" : "sell", orderParams);
+            CheckError(result);
             ExchangeOrderResult exchangeOrderResult = this.ParseOrder(result);
             exchangeOrderResult.Symbol = symbol;
             exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, symbol);
@@ -654,7 +669,19 @@ namespace ExchangeSharp
         public override ExchangeOrderResult GetOrderDetails(string orderId)
         {
             JToken result = MakePrivateAPIRequest("returnOrderTrades", new object[] { "orderNumber", orderId });
-            CheckError(result);
+            try
+            {
+                CheckError(result);
+            }
+            catch (APIException e)
+            {
+                if (e.Message.Equals("Order not found, or you are not the person who placed it.", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                throw;
+            }
 
             JArray resultArray = result as JArray;
             if (result != null && result.HasValues)
@@ -735,6 +762,7 @@ namespace ExchangeSharp
             }
 
             JToken token = this.MakePrivateAPIRequest("withdraw", paramsList.ToArray());
+            CheckError(token);
 
             ExchangeWithdrawalResponse resp = new ExchangeWithdrawalResponse { Message = token["response"].ToStringInvariant() };
             return resp;
