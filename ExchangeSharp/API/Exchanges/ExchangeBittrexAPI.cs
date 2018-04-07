@@ -143,7 +143,7 @@ namespace ExchangeSharp
             return order;
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        public override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

@@ -174,7 +174,7 @@ namespace ExchangeSharp
             }
         }
 
-        public ExchangeKrakenAPI() : base()
+        public ExchangeKrakenAPI()
         {
             RequestMethod = "POST";
             RequestContentType = "application/x-www-form-urlencoded";

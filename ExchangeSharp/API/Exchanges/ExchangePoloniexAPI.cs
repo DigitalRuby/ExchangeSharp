@@ -607,11 +607,15 @@ namespace ExchangeSharp
             }
 
             string symbol = NormalizeSymbol(order.Symbol);
+
+            decimal orderAmount = this.ClampOrderQuantity(symbol, order.Amount);
+            decimal orderPrice = this.ClampOrderPrice(symbol, order.Price);
+
             List<object> orderParams = new List<object>
             {
                 "currencyPair", symbol,
-                "rate", order.Price.ToStringInvariant(),
-                "amount", order.RoundAmount().ToStringInvariant()
+                "rate", orderPrice.ToStringInvariant(),
+                "amount", orderAmount.ToStringInvariant()
             };
             foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
             {

@@ -118,7 +118,7 @@ namespace ExchangeSharp
             WriteFormToRequest(request, form);
         }
 
-        protected override void ProcessResponse(HttpWebResponse response)
+        public override void ProcessResponse(HttpWebResponse response)
         {
             base.ProcessResponse(response);
             cursorAfter = response.Headers["cb-after"];
