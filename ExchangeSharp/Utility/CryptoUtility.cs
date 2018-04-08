@@ -25,6 +25,8 @@ namespace ExchangeSharp
 
     public static class CryptoUtility
     {
+        private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+
         /// <summary>
         /// Static constructor
         /// </summary>
@@ -170,28 +172,22 @@ namespace ExchangeSharp
 
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
         {
-            // Unix timestamp is seconds past epoch
-            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            dtDateTime = dtDateTime.AddSeconds(unixTimeStampSeconds);
-            return dtDateTime;
+            return unixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
         public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
-            // Unix timestamp is seconds past epoch
-            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            dtDateTime = dtDateTime.AddMilliseconds(unixTimeStampMilliseconds);
-            return dtDateTime;
+            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
 
         public static double UnixTimestampFromDateTimeSeconds(this DateTime dt)
         {
-            return (dt - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
+            return (dt - unixEpoch).TotalSeconds;
         }
 
         public static double UnixTimestampFromDateTimeMilliseconds(this DateTime dt)
         {
-            return (dt - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            return (dt - unixEpoch).TotalMilliseconds;
         }
 
         public static string SHA256Sign(string message, string key)
