@@ -32,8 +32,8 @@ namespace ExchangeSharpTests
     {
         private static ExchangePoloniexAPI CreateAPI()
         {
-            var requestHelper = Substitute.For<IAPIRequestMaker>();
-            var polo = new ExchangePoloniexAPI { RequestHelper = requestHelper };
+            var requestMaker = Substitute.For<IAPIRequestMaker>();
+            var polo = new ExchangePoloniexAPI { RequestMaker = requestMaker };
             return polo;
         }
 
@@ -194,7 +194,7 @@ namespace ExchangeSharpTests
         public void GetOpenOrderDetails_Unfilled_IsCorrect()
         {
             var polo = CreateAPI();
-            polo.RequestHelper.MakeRequest(null).ReturnsForAnyArgs(Unfilled);
+            polo.RequestMaker.MakeRequest(null).ReturnsForAnyArgs(Unfilled);
 
             IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetails("ETH_BCH");
             ExchangeOrderResult order = orders.Single();
@@ -211,7 +211,7 @@ namespace ExchangeSharpTests
         public void GetOpenOrderDetails_AllUnfilled_IsCorrect()
         {
             var polo = CreateAPI();
-            polo.RequestHelper.MakeRequest(null).ReturnsForAnyArgs(AllUnfilledOrders);
+            polo.RequestMaker.MakeRequest(null).ReturnsForAnyArgs(AllUnfilledOrders);
 
             IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetails(); // all
             ExchangeOrderResult order = orders.Single();
@@ -228,7 +228,7 @@ namespace ExchangeSharpTests
         public void GetOrderDetails_HappyPath()
         {
             var polo = CreateAPI();
-            polo.RequestHelper.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_SimpleBuy);
+            polo.RequestMaker.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_SimpleBuy);
             ExchangeOrderResult order = polo.GetOrderDetails("1");
 
             order.OrderId.Should().Be("1");
@@ -246,7 +246,7 @@ namespace ExchangeSharpTests
         public void GetOrderDetails_OrderNotFound_DoesNotThrow()
         {
             var polo = CreateAPI();
-            polo.RequestHelper.MakeRequest(null).ReturnsForAnyArgs(@"{""error"":""Order not found, or you are not the person who placed it.""}");
+            polo.RequestMaker.MakeRequest(null).ReturnsForAnyArgs(@"{""error"":""Order not found, or you are not the person who placed it.""}");
             polo.GetOrderDetails("1").Should().BeNull();
         }
 
@@ -254,7 +254,7 @@ namespace ExchangeSharpTests
         public void GetOrderDetails_OtherErrors_ThrowAPIException()
         {
             var polo = CreateAPI();
-            polo.RequestHelper.MakeRequest(null).ReturnsForAnyArgs(@"{""error"":""Big scary error.""}");
+            polo.RequestMaker.MakeRequest(null).ReturnsForAnyArgs(@"{""error"":""Big scary error.""}");
 
             void a() => polo.GetOrderDetails("1");
             Invoking(a).Should().Throw<APIException>();
@@ -264,7 +264,7 @@ namespace ExchangeSharpTests
         public void GetCompletedOrderDetails_MultipleOrders()
         {
             var polo = CreateAPI();
-            polo.RequestHelper.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_AllGas);
+            polo.RequestMaker.MakeRequest(null).ReturnsForAnyArgs(ReturnOrderTrades_AllGas);
             IEnumerable<ExchangeOrderResult> orders = polo.GetCompletedOrderDetails("ETH_GAS");
             orders.Should().HaveCount(2);
             ExchangeOrderResult sellorder = orders.Single(x => !x.IsBuy);

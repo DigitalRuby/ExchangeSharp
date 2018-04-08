@@ -173,7 +173,7 @@ namespace ExchangeSharp
         /// <summary>
         /// API request maker
         /// </summary>
-        public IAPIRequestMaker RequestHelper
+        public IAPIRequestMaker RequestMaker
         {
             get { return requestMaker; }
             set { requestMaker = value ?? new APIRequestMaker(this); }
