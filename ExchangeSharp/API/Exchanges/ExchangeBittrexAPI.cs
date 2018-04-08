@@ -22,8 +22,6 @@ namespace ExchangeSharp
     using System.Threading.Tasks;
     using System.Web;
 
-    using ExchangeSharp.API.Services;
-
     public class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";

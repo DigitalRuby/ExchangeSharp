@@ -21,8 +21,6 @@ namespace ExchangeSharp
 {
     using System.Linq;
 
-    using ExchangeSharp.API.Services;
-
     public class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";

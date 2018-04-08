@@ -17,8 +17,7 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    using ExchangeSharp.API.Services;
-
+    /// <summary>
     /// <summary>
     /// Base class for all exchange API
     /// </summary>

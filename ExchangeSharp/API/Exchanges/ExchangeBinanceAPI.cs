@@ -22,8 +22,6 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    using ExchangeSharp.API.Services;
-
     public class ExchangeBinanceAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";

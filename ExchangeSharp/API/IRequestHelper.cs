@@ -1,4 +1,4 @@
-﻿namespace ExchangeSharp.API.Services
+﻿namespace ExchangeSharp
 {
     using System.Collections.Generic;
 

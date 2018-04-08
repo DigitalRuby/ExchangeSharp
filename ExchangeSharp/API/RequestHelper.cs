@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ExchangeSharp.API.Services
+namespace ExchangeSharp
 {
     using System.IO;
     using System.Net;
 
-    class RequestHelper : IRequestHelper
+    /// <summary>
+    /// Handles all the logic for making API calls.
+    /// </summary>
+    /// <seealso cref="ExchangeSharp.API.Services.IRequestHelper" />
+    public class RequestHelper : IRequestHelper
     {
         private BaseAPI api;
 

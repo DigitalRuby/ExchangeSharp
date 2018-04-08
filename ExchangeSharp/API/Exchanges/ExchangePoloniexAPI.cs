@@ -23,8 +23,6 @@ namespace ExchangeSharp
     using System.IO;
     using System.Reflection;
 
-    using ExchangeSharp.API.Services;
-
     public class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
@@ -313,11 +311,12 @@ namespace ExchangeSharp
 
             var markets = new List<ExchangeMarket>();
             Dictionary<string, JToken> lookup = MakeJsonRequest<Dictionary<string, JToken>>("/public?command=returnOrderBook&currencyPair=all&depth=0");
+            // StepSize is 8 decimal places for both price and amount on everything at Polo
+            const decimal StepSize = 0.00000001m;
+            const decimal minTradeSize = 0.0001m;
+
             foreach (var kvp in lookup)
             {
-                // StepSize is 8 decimal places for both price and amount on everything at Polo
-                const decimal StepSize = 0.00000001m;
-                const decimal minTradeSize = 0.0001m;
                 var market = new ExchangeMarket { MarketName = kvp.Key, IsActive = false };
 
                 string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();

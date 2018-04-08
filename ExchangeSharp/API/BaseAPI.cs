@@ -27,8 +27,6 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    using ExchangeSharp.API.Services;
-
     /// <summary>
     /// Type of nonce styles
     /// </summary>

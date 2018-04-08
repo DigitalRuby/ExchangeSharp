@@ -19,8 +19,6 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    using ExchangeSharp.API.Services;
-
     public class ExchangeBitstampAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.bitstamp.net/api/v2";
