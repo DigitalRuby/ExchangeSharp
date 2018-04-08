@@ -73,6 +73,16 @@ namespace ExchangeSharp
         /// </summary>
         public const string RequestUserAgent = "ExchangeSharp (https://github.com/jjxtra/ExchangeSharp)";
 
+        private IAPIRequestMaker requestMaker;
+        /// <summary>
+        /// API request maker
+        /// </summary>
+        public IAPIRequestMaker RequestMaker
+        {
+            get { return requestMaker; }
+            set { requestMaker = value ?? new APIRequestMaker(this); }
+
+        }
         /// <summary>
         /// Base URL for the API
         /// </summary>
@@ -167,16 +177,6 @@ namespace ExchangeSharp
             {
 
             }
-        }
-
-        private IAPIRequestMaker requestMaker;
-        /// <summary>
-        /// API request maker
-        /// </summary>
-        public IAPIRequestMaker RequestMaker
-        {
-            get { return requestMaker; }
-            set { requestMaker = value ?? new APIRequestMaker(this); }
         }
 
         /// <summary>
