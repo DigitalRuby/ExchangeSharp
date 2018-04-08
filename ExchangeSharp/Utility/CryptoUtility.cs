@@ -315,9 +315,8 @@ namespace ExchangeSharp
         /// Convert seconds to a period string, i.e. 5s, 1m, 2h, 3d, 1w, 1M, etc.
         /// </summary>
         /// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
-        /// <param name="spelledOut">Whether the string should be spelled out, i.e. hour, day, thirtyMin, etc.</param>
         /// <returns>Period string</returns>
-        public static string SecondsToPeriodString(int seconds, bool spelledOut = false)
+        public static string SecondsToPeriodString(int seconds)
         {
             const int minuteThreshold = 60;
             const int hourThreshold = 60 * 60;
