@@ -509,7 +509,7 @@ namespace ExchangeSharp
                     }
                     else
                     {
-                        throw new ArgumentOutOfRangeException("Period seconds must be 60,300,1800,3600,86400, 259200 or 604800");
+                        throw new ArgumentException("Period seconds must be one of 60 (min), 300 (fiveMin), 1800 (thirtyMin), 3600 (hour), 86400 (day), 259200 (threeDay), 604800 (week), 2419200 (month)");
                     }
                     break;
             }
