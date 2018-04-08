@@ -261,7 +261,7 @@ namespace ExchangeSharp
         /// <param name="endDate">Optional end date to get candles for</param>
         /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) { throw new NotSupportedException(); }
+        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get candles (open, high, low, close)
@@ -278,7 +278,7 @@ namespace ExchangeSharp
         /// Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
-        public virtual Dictionary<string, decimal> GetAmounts() { throw new NotSupportedException(); }
+        public virtual Dictionary<string, decimal> GetAmounts() { throw new NotImplementedException(); }
 
         /// <summary>
         /// ASYNC - Get total amounts, symbol / amount dictionary

@@ -228,10 +228,6 @@ namespace ExchangeSharpConsoleApp
 
                         Console.WriteLine($"API {api.Name} GetCandles OK ({candles.Length})");
                     }
-                    catch (NotSupportedException)
-                    {
-                        Console.WriteLine($"API {api.Name} GetCandles not supported");
-                    }
                     catch (NotImplementedException)
                     {
                         Console.WriteLine($"API {api.Name} GetCandles not implemented");

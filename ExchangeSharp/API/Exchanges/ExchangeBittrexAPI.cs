@@ -587,7 +587,7 @@ namespace ExchangeSharp
         {
             if (order.OrderType == OrderType.Market)
             {
-                throw new NotSupportedException();
+                throw new NotSupportedException("Order type " + order.OrderType + " not supported");
             }
 
             string symbol = NormalizeSymbol(order.Symbol);
