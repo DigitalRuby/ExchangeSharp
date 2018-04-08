@@ -179,8 +179,6 @@ namespace ExchangeSharp
             set { requestMaker = value ?? new APIRequestMaker(this); }
         }
 
-        RateGate IAPIRequestHandler.RateLimit => throw new NotImplementedException();
-
         /// <summary>
         /// Constructor
         /// </summary>

@@ -311,12 +311,12 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
+            TestExchanges();
             TestMovingAverageCalculator();
             TestRSAFromFile();
             TestAESEncryption();
             TestKeyStore();
             TestRateGate();
-            TestExchanges();
         }
     }
 }
