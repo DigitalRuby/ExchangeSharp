@@ -208,9 +208,17 @@ namespace ExchangeSharp
         public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
-            string url = order.IsBuy ? string.Format("/buy/{0}/", symbol) : string.Format("/sell/{0}/", symbol);
+
+            string action = order.IsBuy ? "buy" : "sell";
+            string market = order.OrderType == OrderType.Market ? "/market" : "";
+            string url = $"/{action}{market}/{symbol}/";
             Dictionary<string, object> payload = GetNoncePayload();
-            payload["price"] = order.Price.ToStringInvariant();
+
+            if (order.OrderType != OrderType.Market)
+            {
+                payload["price"] = order.Price.ToStringInvariant();
+            }
+
             payload["amount"] = order.Amount.ToStringInvariant();
             foreach (var kv in order.ExtraParameters)
             {
@@ -258,7 +266,7 @@ namespace ExchangeSharp
             JArray transactions = result["transactions"] as JArray;
             // empty transaction array means that order is InQueue or Open and AmountFilled == 0
             // return empty order in this case. no any additional info available at this point
-            if (transactions.Count() == 0) { return new ExchangeOrderResult() { OrderId = orderId }; }
+            if (!transactions.Any()) { return new ExchangeOrderResult() { OrderId = orderId }; }
             JObject first = transactions.First() as JObject;
             List<string> excludeStrings = new List<string>() { "tid", "price", "fee", "datetime", "type", "btc", "usd", "eur" };
 
