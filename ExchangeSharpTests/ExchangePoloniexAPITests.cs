@@ -5,7 +5,6 @@
     using System.Linq;
 
     using ExchangeSharp;
-    using ExchangeSharp.API.Services;
 
     using FluentAssertions;
 
