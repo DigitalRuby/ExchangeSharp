@@ -39,15 +39,6 @@ namespace ExchangeSharp
             }
         }
 
-        protected ExchangeAPI() : this(null)
-        {
-        }
-
-        protected ExchangeAPI(IRequestHelper helper)
-        {
-            this.requestHelper = helper ?? new RequestHelper(this);
-        }
-
         /// <summary>
         /// Get an exchange API given an exchange name (see ExchangeName class)
         /// </summary>

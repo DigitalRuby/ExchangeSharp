@@ -66,7 +66,7 @@ namespace ExchangeSharp
     /// <summary>
     /// API base class functionality
     /// </summary>
-    public abstract class BaseAPI
+    public abstract class BaseAPI : IAPIRequestHandler
     {
         /// <summary>
         /// User agent for requests
@@ -142,14 +142,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
         /// </summary>
-        public System.Net.Cache.RequestCachePolicy CachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
+        public System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
 
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
 
         private decimal lastNonce;
-
-        // Helper for making the API calls
-        protected IRequestHelper requestHelper;
 
         /// <summary>
         /// Static constructor
@@ -170,6 +167,26 @@ namespace ExchangeSharp
             {
 
             }
+        }
+
+        private IAPIRequestMaker requestMaker;
+        /// <summary>
+        /// API request maker
+        /// </summary>
+        public IAPIRequestMaker RequestHelper
+        {
+            get { return requestMaker; }
+            set { requestMaker = value ?? new APIRequestMaker(this); }
+        }
+
+        RateGate IAPIRequestHandler.RateLimit => throw new NotImplementedException();
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public BaseAPI()
+        {
+            requestMaker = new APIRequestMaker(this);
         }
 
         /// <summary>
@@ -273,7 +290,7 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
-        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => Task.Factory.StartNew(() => this.requestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: method));
+        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => Task.Factory.StartNew(() => this.requestMaker.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: method));
 
         /// <summary>
         /// Make a JSON request to an API end point
@@ -286,7 +303,7 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
-            string response = this.requestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
+            string response = this.requestMaker.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
             return JsonConvert.DeserializeObject<T>(response);
         }
 
@@ -329,7 +346,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        public virtual void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected virtual void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
 
         }
@@ -338,7 +355,7 @@ namespace ExchangeSharp
         /// Additional handling for response
         /// </summary>
         /// <param name="response">Response</param>
-        public virtual void ProcessResponse(HttpWebResponse response)
+        protected virtual void ProcessResponse(HttpWebResponse response)
         {
 
         }
@@ -349,7 +366,7 @@ namespace ExchangeSharp
         /// <param name="url">Url</param>
         /// <param name="payload">Payload</param>
         /// <returns>Updated url</returns>
-        public virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             return url.Uri;
         }
@@ -484,6 +501,21 @@ namespace ExchangeSharp
                 }
                 return noncePayload;
             }
+        }
+
+        void IAPIRequestHandler.ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            this.ProcessRequest(request, payload);
+        }
+
+        void IAPIRequestHandler.ProcessResponse(HttpWebResponse response)
+        {
+            this.ProcessResponse(response);
+        }
+
+        Uri IAPIRequestHandler.ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        {
+            return this.ProcessRequestUrl(url, payload);
         }
     }
 }

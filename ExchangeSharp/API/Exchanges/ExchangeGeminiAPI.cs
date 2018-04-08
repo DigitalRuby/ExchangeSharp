@@ -28,12 +28,6 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Gemini;
 
         public ExchangeGeminiAPI()
-            : this(null)
-        {
-        }
-
-        public ExchangeGeminiAPI(IRequestHelper requestHelper)
-            : base(requestHelper)
         {
         }
 
@@ -80,7 +74,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

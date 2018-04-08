@@ -51,12 +51,6 @@ namespace ExchangeSharp
         }
 
         public ExchangePoloniexAPI()
-            : this(null)
-        {
-        }
-
-        public ExchangePoloniexAPI(IRequestHelper requestHelper)
-            : base(requestHelper)
         {
             RequestContentType = "application/x-www-form-urlencoded";
         }
@@ -234,7 +228,7 @@ namespace ExchangeSharp
             };
         }
 
-        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

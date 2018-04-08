@@ -25,12 +25,6 @@ namespace ExchangeSharp
         private static readonly char[] normalizeSeps = new char[] { '-', '_' };
 
         public ExchangeBithumbAPI()
-            : this(null)
-        {
-        }
-
-        public ExchangeBithumbAPI(IRequestHelper requestHelper)
-            : base(requestHelper)
         {
         }
 

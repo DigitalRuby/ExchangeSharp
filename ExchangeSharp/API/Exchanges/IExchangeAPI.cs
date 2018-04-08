@@ -89,7 +89,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
         /// </summary>
-        System.Net.Cache.RequestCachePolicy CachePolicy { get; set; }
+        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
 
         /// <summary>
         /// Generate a nonce
