@@ -40,6 +40,12 @@ namespace ExchangeSharp
         }
 
         public ExchangeBinanceAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBinanceAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             // give binance plenty of room to accept requests
             RequestWindow = TimeSpan.FromMinutes(15.0);
@@ -778,7 +784,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -786,7 +792,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        public override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

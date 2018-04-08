@@ -23,6 +23,12 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Okex;
 
         public ExchangeOkexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeOkexAPI(IRequestHelper requestHelper)
+            : base(requestHelper)
         {
             RequestContentType = "application/x-www-form-urlencoded";
         }

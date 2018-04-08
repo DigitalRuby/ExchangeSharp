@@ -34,6 +34,12 @@ namespace ExchangeSharp
         public string BaseUrlV1 { get; set; } = "https://api.bitfinex.com/v1";
 
         public ExchangeBitfinexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBitfinexAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
@@ -695,7 +701,7 @@ namespace ExchangeSharp
             return resp;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

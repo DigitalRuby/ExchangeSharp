@@ -37,6 +37,12 @@ namespace ExchangeSharp
         public HashSet<string> OneFieldDepositCoinTypes { get; }
 
         public ExchangeBittrexAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeBittrexAPI(IRequestHelper requestHelper = null) 
+            : base(requestHelper)
         {
             this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -143,7 +149,7 @@ namespace ExchangeSharp
             return order;
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        public override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -154,7 +160,7 @@ namespace ExchangeSharp
             return url.Uri;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

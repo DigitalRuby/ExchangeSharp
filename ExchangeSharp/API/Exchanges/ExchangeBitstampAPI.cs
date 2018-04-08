@@ -33,11 +33,17 @@ namespace ExchangeSharp
             set { Passphrase = value.ToSecureString(); }
         }
 
+        public ExchangeBitstampAPI() 
+            : this((IRequestHelper)null)
+        {
+        }
+
         /// <summary>
         /// In order to use private functions of the API, you must set CustomerId by calling constructor with parameter,
         /// or setting it later in the ExchangeBitstampAPI object.
         /// </summary>
-        public ExchangeBitstampAPI()
+        public ExchangeBitstampAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMilliseconds;
@@ -53,7 +59,7 @@ namespace ExchangeSharp
             CustomerId = customerId;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

@@ -95,7 +95,7 @@ namespace ExchangeSharp
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (!CanMakeAuthenticatedRequest(payload))
             {
@@ -118,7 +118,7 @@ namespace ExchangeSharp
             WriteFormToRequest(request, form);
         }
 
-        protected override void ProcessResponse(HttpWebResponse response)
+        public override void ProcessResponse(HttpWebResponse response)
         {
             base.ProcessResponse(response);
             cursorAfter = response.Headers["cb-after"];
@@ -126,6 +126,12 @@ namespace ExchangeSharp
         }
 
         public ExchangeGdaxAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeGdaxAPI(IRequestHelper requestHelper) 
+            : base(requestHelper)
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;

@@ -27,6 +27,16 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
         public override string Name => ExchangeName.Gemini;
 
+        public ExchangeGeminiAPI()
+            : this(null)
+        {
+        }
+
+        public ExchangeGeminiAPI(IRequestHelper requestHelper)
+            : base(requestHelper)
+        {
+        }
+
         private ExchangeVolume ParseVolume(JToken token)
         {
             ExchangeVolume vol = new ExchangeVolume();
@@ -70,7 +80,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

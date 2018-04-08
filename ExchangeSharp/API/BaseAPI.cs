@@ -28,25 +28,6 @@ using Newtonsoft.Json.Linq;
 namespace ExchangeSharp
 {
     /// <summary>
-    /// Exception class for API calls
-    /// </summary>
-    public class APIException : Exception
-    {
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="message">Message</param>
-        public APIException(string message) : base(message) { }
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="innerException">Inner exception</param>
-        public APIException(string message, Exception innerException) : base(message, innerException) { }
-    }
-
-    /// <summary>
     /// Type of nonce styles
     /// </summary>
     public enum NonceStyle
@@ -167,6 +148,9 @@ namespace ExchangeSharp
 
         private decimal lastNonce;
 
+        // Helper for making the API calls
+        protected IRequestHelper requestHelper;
+
         /// <summary>
         /// Static constructor
         /// </summary>
@@ -281,69 +265,6 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Make a request to a path on the API
-        /// </summary>
-        /// <param name="url">Path and query</param>
-        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// The encoding of payload is API dependant but is typically json.</param>
-        /// <param name="method">Request method or null for default</param>
-        /// <returns>Raw response</returns>
-        public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
-        {
-            RateLimit.WaitToProceed();
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                return null;
-            }
-            else if (url[0] != '/')
-            {
-                url = "/" + url;
-            }
-
-            string fullUrl = (baseUrl ?? BaseUrl) + url;
-            Uri uri = ProcessRequestUrl(new UriBuilder(fullUrl), payload);
-            HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
-            request.Headers["Accept-Language"] = "en-us; q=1.0;";
-            request.Method = method ?? RequestMethod;
-            request.ContentType = RequestContentType;
-            request.UserAgent = RequestUserAgent;
-            request.CachePolicy = CachePolicy;
-            request.Timeout = request.ReadWriteTimeout = request.ContinueTimeout = (int)RequestTimeout.TotalMilliseconds;
-            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            ProcessRequest(request, payload);
-            HttpWebResponse response;
-            try
-            {
-                response = request.GetResponse() as HttpWebResponse;
-                if (response == null)
-                {
-                    throw new APIException("Unknown response from server");
-                }
-            }
-            catch (WebException we)
-            {
-                response = we.Response as HttpWebResponse;
-                if (response == null)
-                {
-                    throw new APIException(we.Message ?? "Unknown response from server");
-                }
-            }
-            string responseString = null;
-            using (Stream responseStream = response.GetResponseStream())
-            {
-                responseString = new StreamReader(responseStream).ReadToEnd();
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new APIException(responseString);
-                }
-                ProcessResponse(response);
-            }
-            response.Dispose();
-            return responseString;
-        }
-
-        /// <summary>
         /// ASYNC - Make a request to a path on the API
         /// </summary>
         /// <param name="url">Path and query</param>
@@ -352,7 +273,7 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
-        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => Task.Factory.StartNew(() => MakeRequest(url, baseUrl, payload, method));
+        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => Task.Factory.StartNew(() => this.requestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: method));
 
         /// <summary>
         /// Make a JSON request to an API end point
@@ -365,7 +286,7 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
-            string response = MakeRequest(url, baseUrl, payload, requestMethod);
+            string response = this.requestHelper.MakeRequest(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
             return JsonConvert.DeserializeObject<T>(response);
         }
 
@@ -404,22 +325,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Process a request url
-        /// </summary>
-        /// <param name="url">Url</param>
-        /// <param name="payload">Payload</param>
-        /// <returns>Updated url</returns>
-        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
-        {
-            return url.Uri;
-        }
-
-        /// <summary>
         /// Additional handling for request
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        protected virtual void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        public virtual void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
 
         }
@@ -428,9 +338,20 @@ namespace ExchangeSharp
         /// Additional handling for response
         /// </summary>
         /// <param name="response">Response</param>
-        protected virtual void ProcessResponse(HttpWebResponse response)
+        public virtual void ProcessResponse(HttpWebResponse response)
         {
 
+        }
+
+        /// <summary>
+        /// Process a request url
+        /// </summary>
+        /// <param name="url">Url</param>
+        /// <param name="payload">Payload</param>
+        /// <returns>Updated url</returns>
+        public virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        {
+            return url.Uri;
         }
 
         /// <summary>
