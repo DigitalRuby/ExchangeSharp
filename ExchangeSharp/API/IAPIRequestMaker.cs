@@ -34,7 +34,7 @@ namespace ExchangeSharp
     }
 
     /// <summary>
-    /// Interface for setting up and handling API request and rseponse
+    /// Interface for setting up and handling API request and response
     /// </summary>
     public interface IAPIRequestHandler
     {
