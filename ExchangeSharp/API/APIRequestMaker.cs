@@ -64,7 +64,16 @@ namespace ExchangeSharp
             request.ContentType = this.api.RequestContentType;
             request.UserAgent = BaseAPI.RequestUserAgent;
             request.CachePolicy = this.api.RequestCachePolicy;
-            request.Timeout = request.ReadWriteTimeout = request.ContinueTimeout = (int)this.api.RequestTimeout.TotalMilliseconds;
+            request.Timeout = request.ReadWriteTimeout = (int)this.api.RequestTimeout.TotalMilliseconds;
+            try
+            {
+                // not supported on some platforms
+                request.ContinueTimeout = (int)this.api.RequestTimeout.TotalMilliseconds;
+            }
+            catch
+            {
+                
+            }
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             api.ProcessRequest(request, payload);
             HttpWebResponse response;
