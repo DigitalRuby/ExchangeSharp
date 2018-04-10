@@ -17,6 +17,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExchangeSharpTests
 {
+    using System.Globalization;
+
     [TestClass]
     public class CryptoUtilityTests
     {
@@ -54,6 +56,14 @@ namespace ExchangeSharpTests
             CryptoUtility.ClampDecimal(0.00000010m, 100000.00000000m, 0.00000010m, 0.00052286m).Should().Be(0.0005228m);
             CryptoUtility.ClampDecimal(0.00001000m, 100000.00000000m, 0.00001000m, 0.02525215m).Should().Be(0.02525m);
             CryptoUtility.ClampDecimal(0.00001000m, 100000.00000000m, null, 0.00401212m).Should().Be(0.00401212m);
+        }
+
+        [TestMethod]
+        public void ClampDecimalTrailingZeroesRemoved()
+        {
+            decimal result = CryptoUtility.ClampDecimal(0, Decimal.MaxValue, 0.01m, 1.23456789m);
+            result.Should().Be(1.23m);
+            result.ToString(CultureInfo.InvariantCulture).Should().NotEndWith("0");
         }
 
         [TestMethod]
