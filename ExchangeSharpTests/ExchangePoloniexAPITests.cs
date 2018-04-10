@@ -172,7 +172,7 @@ namespace ExchangeSharpTests
             orders[0].OrderId.Should().Be("120466");
             orders[0].IsBuy.Should().BeFalse();
             orders[0].Price.Should().Be(0.025m);
-            //            orders[0].Amount.Should().Be(100);
+            orders[0].Result.Should().Be(ExchangeAPIOrderResult.Pending);
         }
 
         [TestMethod]
@@ -188,6 +188,7 @@ namespace ExchangeSharpTests
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
+            order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
         }
 
         [TestMethod]
@@ -205,6 +206,7 @@ namespace ExchangeSharpTests
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
+            order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
         }
 
         [TestMethod]
@@ -222,6 +224,7 @@ namespace ExchangeSharpTests
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
+            order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
         }
 
         [TestMethod]
@@ -240,6 +243,7 @@ namespace ExchangeSharpTests
             order.Symbol.Should().Be("BTC_XEM");
             order.Price.Should().Be(0.00005128m);
             order.AveragePrice.Should().Be(0.00005128m);
+            order.Result.Should().Be(ExchangeAPIOrderResult.Filled);
         }
 
         [TestMethod]
@@ -272,12 +276,14 @@ namespace ExchangeSharpTests
             sellorder.AmountFilled.Should().Be(9.71293428m);
             sellorder.FeesCurrency.Should().Be("ETH");
             sellorder.Fees.Should().Be(0.0006007m);
+            sellorder.Result.Should().Be(ExchangeAPIOrderResult.Filled);
 
             ExchangeOrderResult buyOrder = orders.Single(x => x.IsBuy);
             buyOrder.AveragePrice.Should().Be(0.0397199908083616777777777778m);
             buyOrder.AmountFilled.Should().Be(18);
             buyOrder.FeesCurrency.Should().Be("GAS");
             buyOrder.Fees.Should().Be(0.0352725m);
+            buyOrder.Result.Should().Be(ExchangeAPIOrderResult.Filled);
         }
 
         private static Action Invoking(Action action) => action;
