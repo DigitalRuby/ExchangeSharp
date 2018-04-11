@@ -10,18 +10,15 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-
-using Newtonsoft.Json.Linq;
-
 namespace ExchangeSharp
 {
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections.Generic;
     using System.IO;
-    using System.Reflection;
+    using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
 
     public class ExchangePoloniexAPI : ExchangeAPI
     {
@@ -120,11 +117,12 @@ namespace ExchangeSharp
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {
+                Amount = result["startingAmount"].ConvertInvariant<decimal>(),
+                IsBuy = result["type"].ToStringLowerInvariant() != "sell",
+                OrderDate = result["date"].ConvertInvariant<DateTime>(),
                 OrderId = result["orderNumber"].ToStringInvariant(),
                 Price = result["rate"].ConvertInvariant<decimal>(),
-                Amount = result["startingAmount"].ConvertInvariant<decimal>(),
-                OrderDate = result["date"].ConvertInvariant<DateTime>(),
-                IsBuy = result["type"].ToStringLowerInvariant() != "sell",
+                Result = ExchangeAPIOrderResult.Pending,
             };
 
             decimal amount = result["amount"].ConvertInvariant<decimal>();
@@ -195,6 +193,7 @@ namespace ExchangeSharp
 
                 this.ParseOrderTrades(tradesForOrder, order);
                 order.Price = order.AveragePrice;
+                order.Result = ExchangeAPIOrderResult.Filled;
                 orders.Add(order);
             }
         }

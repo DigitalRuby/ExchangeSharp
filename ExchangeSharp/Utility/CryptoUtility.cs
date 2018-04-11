@@ -167,7 +167,15 @@ namespace ExchangeSharp
                 value -= mod;
             }
 
-            return value;
+            return value.Normalize();
+        }
+
+        /// <summary>Remove trailing zeroes on the decimal.</summary>
+        /// <param name="value">The value to normalize.</param>
+        /// <returns>1.230000 becomes 1.23</returns>
+        public static decimal Normalize(this decimal value)
+        {
+            return value / 1.000000000000000000000000000000000m;
         }
 
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
