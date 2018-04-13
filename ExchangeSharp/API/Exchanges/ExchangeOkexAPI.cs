@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
@@ -40,12 +41,12 @@ namespace ExchangeSharp
             }
         }
 
-        private JToken MakeRequestOkex(ref string symbol, string subUrl)
+        private async Task<Tuple<JToken, string>> MakeRequestOkexAsync(string symbol, string subUrl)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken obj = MakeJsonRequest<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
+            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
             CheckError(obj);
-            return obj;
+            return new Tuple<JToken, string>(obj, symbol);
         }
 
         private ExchangeTicker ParseTicker(string symbol, JToken data)
@@ -71,52 +72,54 @@ namespace ExchangeSharp
             };
         }
 
-        public override IEnumerable<string> GetSymbols()
+        public override async Task<IEnumerable<string>> GetSymbolsAsync()
         {
             // WTF no symbols end point? Sigh...
-            return new string[]
+            return await Task.FromResult<IEnumerable<string>>(new string[]
             {
                 "ltc_btc", "eth_btc", "etc_btc", "bch_btc", "btc_usdt", "eth_usdt", "ltc_usdt", "etc_usdt", "bch_usdt", "etc_eth", "bt1_btc", "bt2_btc", "btg_btc", "qtum_btc", "hsr_btc", "neo_btc", "gas_btc", "qtum_usdt", "hsr_usdt", "neo_usdt", "gas_usdt"
-            };
+            });
         }
 
-        public override ExchangeTicker GetTicker(string symbol)
+        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
         {
-            JToken data = MakeRequestOkex(ref symbol, "/ticker.do?symbol=$SYMBOL$");
-            return ParseTicker(symbol, data);
+            var data = await MakeRequestOkexAsync(symbol, "/ticker.do?symbol=$SYMBOL$");
+            return ParseTicker(data.Item2, data.Item1);
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
+        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            JToken token = MakeRequestOkex(ref symbol, "/depth.do?symbol=$SYMBOL$");
+            var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
             ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray ask in token["asks"])
+            foreach (JArray ask in token.Item1["asks"])
             {
                 book.Asks.Add(new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() });
             }
             book.Asks.Sort((a1, a2) => a1.Price.CompareTo(a2.Price));
-            foreach (JArray bid in token["bids"])
+            foreach (JArray bid in token.Item1["bids"])
             {
                 book.Bids.Add(new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() });
             }
             return book;
         }
 
-        public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
+        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
-            JToken trades = MakeRequestOkex(ref symbol, "/trades.do?symbol=$SYMBOL$");
-            foreach (JToken trade in trades)
+            List<ExchangeTrade> allTrades = new List<ExchangeTrade>();
+            var trades = await MakeRequestOkexAsync(symbol, "/trades.do?symbol=$SYMBOL$");
+            foreach (JToken trade in trades.Item1)
             {
                 // [ { "date": "1367130137", "date_ms": "1367130137000", "price": 787.71, "amount": 0.003, "tid": "230433", "type": "sell" } ]
-                yield return new ExchangeTrade
+                allTrades.Add(new ExchangeTrade
                 {
                     Amount = trade["amount"].ConvertInvariant<decimal>(),
                     Price = trade["price"].ConvertInvariant<decimal>(),
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(trade["date_ms"].ConvertInvariant<long>()),
                     Id = trade["tid"].ConvertInvariant<long>(),
                     IsBuy = trade["type"].ToStringInvariant() == "buy"
-                };
+                });
             }
+            callback(allTrades);
         }
     }
 }

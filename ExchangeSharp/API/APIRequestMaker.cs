@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
@@ -46,7 +47,21 @@ namespace ExchangeSharp
         /// <returns>Raw response</returns>
         public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            this.api.RateLimit.WaitToProceed();
+            return MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// ASYNC - Make a request to a path on the API
+        /// </summary>
+        /// <param name="url">Path and query</param>
+        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
+        /// The encoding of payload is API dependant but is typically json.</param>
+        /// <param name="method">Request method or null for default</param>
+        /// <returns>Raw response</returns>
+        public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
+        {
+            await this.api.RateLimit.WaitToProceedAsync();
             if (string.IsNullOrWhiteSpace(url))
             {
                 return null;
@@ -79,7 +94,7 @@ namespace ExchangeSharp
             HttpWebResponse response;
             try
             {
-                response = request.GetResponse() as HttpWebResponse;
+                response = await request.GetResponseAsync() as HttpWebResponse;
                 if (response == null)
                 {
                     throw new APIException("Unknown response from server");

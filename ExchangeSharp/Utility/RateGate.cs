@@ -158,7 +158,15 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="millisecondsTimeout">Number of milliseconds to wait, or -1 to wait indefinitely.</param>
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
-        public bool WaitToProceed(int millisecondsTimeout)
+        public bool WaitToProceed(int millisecondsTimeout) => WaitToProceedAsync(millisecondsTimeout).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Blocks the current thread until allowed to proceed or until the
+        /// specified timeout elapses.
+        /// </summary>
+        /// <param name="millisecondsTimeout">Number of milliseconds to wait, or -1 to wait indefinitely.</param>
+        /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
+        public async Task<bool> WaitToProceedAsync(int millisecondsTimeout)
         {
             // Check the arguments.
             if (millisecondsTimeout < -1)
@@ -169,7 +177,7 @@ namespace ExchangeSharp
             CheckDisposed();
 
             // Block until we can enter the semaphore or until the timeout expires.
-            var entered = semaphore.Wait(millisecondsTimeout);
+            var entered = await semaphore.WaitAsync(millisecondsTimeout);
 
             // If we entered the semaphore, compute the corresponding exit time 
             // and add it to the queue.
@@ -187,17 +195,30 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
-        public bool WaitToProceed(TimeSpan timeout)
+        public bool WaitToProceed(TimeSpan timeout) => WaitToProceedAsync(timeout).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Blocks the current thread until allowed to proceed or until the
+        /// specified timeout elapses.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
+        public async Task<bool> WaitToProceedAsync(TimeSpan timeout)
         {
-            return WaitToProceed((int)timeout.TotalMilliseconds);
+            return await WaitToProceedAsync((int)timeout.TotalMilliseconds);
         }
 
         /// <summary>
         /// Blocks the current thread indefinitely until allowed to proceed.
         /// </summary>
-        public void WaitToProceed()
+        public void WaitToProceed() => WaitToProceedAsync().GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Blocks the current thread indefinitely until allowed to proceed.
+        /// </summary>
+        public async Task WaitToProceedAsync()
         {
-            WaitToProceed(Timeout.Infinite);
+            await WaitToProceedAsync(Timeout.Infinite);
         }
 
         /// <summary>
