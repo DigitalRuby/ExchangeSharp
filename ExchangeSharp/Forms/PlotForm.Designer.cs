@@ -30,31 +30,31 @@ namespace ExchangeSharp
         /// </summary>
         private void InitializeComponent()
         {
-            this.PlotChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
-            ((System.ComponentModel.ISupportInitialize)(this.PlotChart)).BeginInit();
-            this.SuspendLayout();
+            PlotChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            ((System.ComponentModel.ISupportInitialize)(PlotChart)).BeginInit();
+            SuspendLayout();
             // 
             // PlotChart
             // 
-            this.PlotChart.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.PlotChart.Location = new System.Drawing.Point(0, 0);
-            this.PlotChart.Margin = new System.Windows.Forms.Padding(2);
-            this.PlotChart.Name = "PlotChart";
-            this.PlotChart.Size = new System.Drawing.Size(658, 412);
-            this.PlotChart.TabIndex = 0;
-            this.PlotChart.Text = "chart1";
+            PlotChart.Dock = System.Windows.Forms.DockStyle.Fill;
+            PlotChart.Location = new System.Drawing.Point(0, 0);
+            PlotChart.Margin = new System.Windows.Forms.Padding(2);
+            PlotChart.Name = "PlotChart";
+            PlotChart.Size = new System.Drawing.Size(658, 412);
+            PlotChart.TabIndex = 0;
+            PlotChart.Text = "chart1";
             // 
             // PlotForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(658, 412);
-            this.Controls.Add(this.PlotChart);
-            this.Margin = new System.Windows.Forms.Padding(2);
-            this.Name = "PlotForm";
-            this.Text = "Plot of Trade Data";
-            ((System.ComponentModel.ISupportInitialize)(this.PlotChart)).EndInit();
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new System.Drawing.Size(658, 412);
+            Controls.Add(PlotChart);
+            Margin = new System.Windows.Forms.Padding(2);
+            Name = "PlotForm";
+            Text = "Plot of Trade Data";
+            ((System.ComponentModel.ISupportInitialize)(PlotChart)).EndInit();
+            ResumeLayout(false);
 
         }
 

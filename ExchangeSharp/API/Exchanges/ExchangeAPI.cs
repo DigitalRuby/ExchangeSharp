@@ -33,8 +33,8 @@ namespace ExchangeSharp
         /// <returns>The ExchangeMarket or null if it doesn't exist</returns>
         protected ExchangeMarket GetExchangeMarket(string symbol)
         {
-            this.PopulateExchangeMarkets();
-            return this.exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
+            PopulateExchangeMarkets();
+            return exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
         }
 
         /// <summary>
@@ -43,13 +43,13 @@ namespace ExchangeSharp
         private void PopulateExchangeMarkets()
         {
             // Get the exchange markets if we haven't gotten them yet.
-            if (this.exchangeMarkets == null)
+            if (exchangeMarkets == null)
             {
                 lock (this)
                 {
-                    if (this.exchangeMarkets == null)
+                    if (exchangeMarkets == null)
                     {
-                        this.exchangeMarkets = this.GetSymbolsMetadata();
+                        exchangeMarkets = GetSymbolsMetadata();
                     }
                 }
             }
@@ -63,7 +63,7 @@ namespace ExchangeSharp
         /// <returns>Clamped price</returns>
         protected decimal ClampOrderPrice(string symbol, decimal outputPrice)
         {
-            ExchangeMarket market = this.GetExchangeMarket(symbol);
+            ExchangeMarket market = GetExchangeMarket(symbol);
             return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
         }
 
@@ -75,7 +75,7 @@ namespace ExchangeSharp
         /// <returns>Clamped quantity</returns>
         protected decimal ClampOrderQuantity(string symbol, decimal outputQuantity)
         {
-            ExchangeMarket market = this.GetExchangeMarket(symbol);
+            ExchangeMarket market = GetExchangeMarket(symbol);
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 

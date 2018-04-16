@@ -290,7 +290,7 @@ namespace ExchangeSharp
         /// <returns>Raw response</returns>
         public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            return this.MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
+            return MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -302,7 +302,7 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
-        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => this.requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
+        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
 
         /// <summary>
         /// Make a JSON request to an API end point
@@ -520,17 +520,17 @@ namespace ExchangeSharp
 
         void IAPIRequestHandler.ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            this.ProcessRequest(request, payload);
+            ProcessRequest(request, payload);
         }
 
         void IAPIRequestHandler.ProcessResponse(HttpWebResponse response)
         {
-            this.ProcessResponse(response);
+            ProcessResponse(response);
         }
 
         Uri IAPIRequestHandler.ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
-            return this.ProcessRequestUrl(url, payload);
+            return ProcessRequestUrl(url, payload);
         }
     }
 }

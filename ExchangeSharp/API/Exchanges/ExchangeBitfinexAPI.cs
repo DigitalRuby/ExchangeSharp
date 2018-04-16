@@ -39,7 +39,7 @@ namespace ExchangeSharp
             RateLimit = new RateGate(1, TimeSpan.FromSeconds(6.0));
 
             // List is from "Withdrawal Types" section https://docs.bitfinex.com/v1/reference#rest-auth-withdrawal
-            this.DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["AID"] = "aid",
                 ["AVT"] = "aventus",
@@ -129,7 +129,7 @@ namespace ExchangeSharp
 
         public override async Task<IEnumerable<string>> GetSymbolsAsync()
         {
-            var m = await this.GetSymbolsMetadataAsync();
+            var m = await GetSymbolsMetadataAsync();
             return m.Select(x => x.MarketName);
         }
 
@@ -295,7 +295,7 @@ namespace ExchangeSharp
         /// <returns>A dictionary of symbol-fee pairs</returns>
         public Dictionary<string, decimal> GetWithdrawalFees()
         {
-            JToken obj = this.MakeJsonRequest<JToken>("/account_fees", this.BaseUrlV1, this.GetNoncePayload());
+            JToken obj = MakeJsonRequest<JToken>("/account_fees", BaseUrlV1, GetNoncePayload());
             CheckError(obj);
 
             var fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
@@ -552,7 +552,7 @@ namespace ExchangeSharp
             }
 
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
-            if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
                 return null;
             }
@@ -647,10 +647,10 @@ namespace ExchangeSharp
         /// <returns>The withdrawal response</returns>
         public override async Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            string symbol = this.NormalizeSymbol(withdrawalRequest.Symbol);
+            string symbol = NormalizeSymbol(withdrawalRequest.Symbol);
 
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
-            if (!this.DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
                 return null;
             }
@@ -658,7 +658,7 @@ namespace ExchangeSharp
             // Bitfinex adds the fee on top of what you request to withdrawal
             if (withdrawalRequest.TakeFeeFromAmount)
             {
-                Dictionary<string, decimal> fees = this.GetWithdrawalFees();
+                Dictionary<string, decimal> fees = GetWithdrawalFees();
                 if (fees.TryGetValue(symbol, out decimal feeAmt))
                 {
                     withdrawalRequest.Amount -= feeAmt;

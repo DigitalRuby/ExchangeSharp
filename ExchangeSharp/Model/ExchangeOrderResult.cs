@@ -62,29 +62,29 @@ namespace ExchangeSharp
         /// <param name="other">Order to append</param>
         public void AppendOrderWithOrder(ExchangeOrderResult other)
         {
-            if ((this.OrderId != null) && (this.Symbol != null) && ((this.OrderId != other.OrderId) || (this.IsBuy != other.IsBuy) || (this.Symbol != other.Symbol)))
+            if ((OrderId != null) && (Symbol != null) && ((OrderId != other.OrderId) || (IsBuy != other.IsBuy) || (Symbol != other.Symbol)))
             {
                 throw new InvalidOperationException("Appending orders requires order id, symbol and is buy to match");
             }
 
-            decimal tradeSum = this.Amount + other.Amount;
-            decimal baseAmount = this.Amount;
-            this.Amount += other.Amount;
-            this.AmountFilled += other.AmountFilled;
-            this.Fees += other.Fees;
-            this.FeesCurrency = other.FeesCurrency;
-            this.AveragePrice = (this.AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
-            this.OrderId = other.OrderId;
-            this.OrderDate = this.OrderDate == default(DateTime) ? other.OrderDate : this.OrderDate;
-            this.Symbol = other.Symbol;
-            this.IsBuy = other.IsBuy;
+            decimal tradeSum = Amount + other.Amount;
+            decimal baseAmount = Amount;
+            Amount += other.Amount;
+            AmountFilled += other.AmountFilled;
+            Fees += other.Fees;
+            FeesCurrency = other.FeesCurrency;
+            AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
+            OrderId = other.OrderId;
+            OrderDate = OrderDate == default(DateTime) ? other.OrderDate : OrderDate;
+            Symbol = other.Symbol;
+            IsBuy = other.IsBuy;
         }
 
         /// <summary>Returns a string that represents this instance.</summary>
         /// <returns>A string that represents this instance.</returns>
         public override string ToString()
         {
-            return $"[{this.OrderDate}], {(this.IsBuy ? "Buy" : "Sell")} {this.AmountFilled} of {this.Amount} {this.Symbol} {this.Result} at {this.AveragePrice}, fees paid {this.Fees} {this.FeesCurrency}";
+            return $"[{OrderDate}], {(IsBuy ? "Buy" : "Sell")} {AmountFilled} of {Amount} {Symbol} {Result} at {AveragePrice}, fees paid {Fees} {FeesCurrency}";
         }
     }
 }

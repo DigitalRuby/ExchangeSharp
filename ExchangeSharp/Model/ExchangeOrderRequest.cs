@@ -64,7 +64,7 @@ namespace ExchangeSharp
         /// <returns>Rounded amount or amount if no rounding is needed</returns>
         public decimal RoundAmount()
         {
-            return this.ShouldRoundAmount ? CryptoUtility.RoundAmount(this.Amount) : this.Amount;
+            return ShouldRoundAmount ? CryptoUtility.RoundAmount(Amount) : Amount;
         }
     }
 }

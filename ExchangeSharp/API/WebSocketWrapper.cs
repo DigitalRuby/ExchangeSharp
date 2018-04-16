@@ -217,7 +217,7 @@ namespace ExchangeSharp
                         }
                         else if (message is string messageString)
                         {
-                            this._onMessage?.Invoke(messageString, this);
+                            _onMessage?.Invoke(messageString, this);
                         }
                     }
                     catch

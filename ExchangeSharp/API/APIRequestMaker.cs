@@ -33,7 +33,7 @@ namespace ExchangeSharp
         /// <param name="api">API</param>
         public APIRequestMaker(IAPIRequestHandler api)
         {
-            this.api = api;
+            api = api;
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace ExchangeSharp
         /// <returns>Raw response</returns>
         public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            await this.api.RateLimit.WaitToProceedAsync();
+            await api.RateLimit.WaitToProceedAsync().ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(url))
             {
                 return null;
@@ -71,19 +71,19 @@ namespace ExchangeSharp
                 url = "/" + url;
             }
 
-            string fullUrl = (baseUrl ?? this.api.BaseUrl) + url;
-            Uri uri = this.api.ProcessRequestUrl(new UriBuilder(fullUrl), payload);
+            string fullUrl = (baseUrl ?? api.BaseUrl) + url;
+            Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload);
             HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
             request.Headers["Accept-Language"] = "en-us; q=1.0;";
-            request.Method = method ?? this.api.RequestMethod;
-            request.ContentType = this.api.RequestContentType;
+            request.Method = method ?? api.RequestMethod;
+            request.ContentType = api.RequestContentType;
             request.UserAgent = BaseAPI.RequestUserAgent;
-            request.CachePolicy = this.api.RequestCachePolicy;
-            request.Timeout = request.ReadWriteTimeout = (int)this.api.RequestTimeout.TotalMilliseconds;
+            request.CachePolicy = api.RequestCachePolicy;
+            request.Timeout = request.ReadWriteTimeout = (int)api.RequestTimeout.TotalMilliseconds;
             try
             {
                 // not supported on some platforms
-                request.ContinueTimeout = (int)this.api.RequestTimeout.TotalMilliseconds;
+                request.ContinueTimeout = (int)api.RequestTimeout.TotalMilliseconds;
             }
             catch
             {

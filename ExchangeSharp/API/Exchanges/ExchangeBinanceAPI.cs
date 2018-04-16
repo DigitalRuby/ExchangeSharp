@@ -118,7 +118,7 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     MarketName = symbol["symbol"].ToStringUpperInvariant(),
-                    IsActive = this.ParseMarketStatus(symbol["status"].ToStringUpperInvariant()),
+                    IsActive = ParseMarketStatus(symbol["status"].ToStringUpperInvariant()),
                     BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant(),
                     MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant()
                 };
@@ -382,8 +382,8 @@ namespace ExchangeSharp
             payload["type"] = order.OrderType.ToString().ToUpperInvariant();
 
             // Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
-            decimal outputQuantity = this.ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = this.ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = ClampOrderQuantity(symbol, order.Amount);
+            decimal outputPrice = ClampOrderPrice(symbol, order.Price);
 
             payload["quantity"] = outputQuantity;
             payload["newOrderRespType"] = "FULL";

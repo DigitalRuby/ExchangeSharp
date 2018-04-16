@@ -38,7 +38,7 @@ namespace ExchangeSharp
 
         public ExchangeBittrexAPI()
         {
-            this.TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "BITSHAREX",
                 "CRYPTO_NOTE_PAYMENTID",
@@ -50,7 +50,7 @@ namespace ExchangeSharp
                 "STEEM"
             };
 
-            this.OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "ADA",
                 "ANTSHARES",
@@ -78,18 +78,18 @@ namespace ExchangeSharp
         {
             get
             {
-                if (this.socketClient == null)
+                if (socketClient == null)
                 {
                     lock (this)
                     {
-                        if (this.socketClient == null)
+                        if (socketClient == null)
                         {
-                            this.socketClient = new BittrexSocketClient();
+                            socketClient = new BittrexSocketClient();
                         }
                     }
                 }
 
-                return this.socketClient;
+                return socketClient;
             }
         }
 
@@ -294,7 +294,7 @@ namespace ExchangeSharp
         public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             // Eat the streamId and rely on .Dispose to clean up all streams
-            return this.GetTickersWebSocket(callback, out int streamId);
+            return GetTickersWebSocket(callback, out int streamId);
         }
 
         /// <summary>
@@ -317,7 +317,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            CryptoExchange.Net.CallResult<int> result = this.SocketClient.SubscribeToAllMarketDeltaStream
+            CryptoExchange.Net.CallResult<int> result = SocketClient.SubscribeToAllMarketDeltaStream
             (
                 summaries =>
                 {
@@ -351,7 +351,7 @@ namespace ExchangeSharp
                 streamId = result.Data;
             }
 
-            return this.SocketClient;
+            return SocketClient;
         }
 
         public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
@@ -598,8 +598,8 @@ namespace ExchangeSharp
 
             string symbol = NormalizeSymbol(order.Symbol);
 
-            decimal orderAmount = this.ClampOrderQuantity(symbol, order.Amount);
-            decimal orderPrice = this.ClampOrderPrice(symbol, order.Price);
+            decimal orderAmount = ClampOrderQuantity(symbol, order.Amount);
+            decimal orderPrice = ClampOrderPrice(symbol, order.Price);
 
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
                 orderAmount.ToStringInvariant() + "&rate=" + orderPrice.ToStringInvariant();
@@ -719,12 +719,12 @@ namespace ExchangeSharp
                 return null;
             }
 
-            if (this.TwoFieldDepositCoinTypes.Contains(coin.CoinType))
+            if (TwoFieldDepositCoinTypes.Contains(coin.CoinType))
             {
                 depositDetails.Address = coin.BaseAddress;
                 depositDetails.AddressTag = result["Address"].ToStringInvariant();
             }
-            else if (this.OneFieldDepositCoinTypes.Contains(coin.CoinType))
+            else if (OneFieldDepositCoinTypes.Contains(coin.CoinType))
             {
                 depositDetails.Address = result["Address"].ToStringInvariant();
             }

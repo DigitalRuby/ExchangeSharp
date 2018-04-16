@@ -51,7 +51,7 @@ namespace ExchangeSharp
 
         public override string ToString()
         {
-            return $"{this.MarketName}, {this.MarketCurrency}-{this.BaseCurrency}";
+            return $"{MarketName}, {MarketCurrency}-{BaseCurrency}";
         }
     }
 }

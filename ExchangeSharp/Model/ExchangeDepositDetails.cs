@@ -29,7 +29,7 @@ namespace ExchangeSharp
         /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
         public override string ToString()
         {
-            return $"{this.Symbol}: Address: {this.Address} AddressTag: {this.AddressTag}";
+            return $"{Symbol}: Address: {Address} AddressTag: {AddressTag}";
         }
     }
 }
