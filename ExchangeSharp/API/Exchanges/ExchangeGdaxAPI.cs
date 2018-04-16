@@ -136,10 +136,10 @@ namespace ExchangeSharp
             return symbol?.Replace('_', '-').ToUpperInvariant();
         }
 
-        public override IEnumerable<ExchangeMarket> GetSymbolsMetadata()
+        public override async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
-            JToken products = MakeJsonRequest<JToken>("/products");
+            JToken products = await MakeJsonRequestAsync<JToken>("/products");
             foreach (JToken product in products)
             {
                 var market = new ExchangeMarket
@@ -157,15 +157,15 @@ namespace ExchangeSharp
             return markets;
         }
 
-        public override IEnumerable<string> GetSymbols()
+        public override async Task<IEnumerable<string>> GetSymbolsAsync()
         {
-            return this.GetSymbolsMetadata().Select(market => market.MarketName);
+            return (await GetSymbolsMetadataAsync()).Select(market => market.MarketName);
         }
 
-        public override IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies()
+        public override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync()
         {
             var currencies = new Dictionary<string, ExchangeCurrency>();
-            JToken products = MakeJsonRequest<JToken>("/currencies");
+            JToken products = await MakeJsonRequestAsync<JToken>("/currencies");
             foreach (JToken product in products)
             {
                 var currency = new ExchangeCurrency
@@ -181,9 +181,9 @@ namespace ExchangeSharp
             return currencies;
         }
 
-        public override ExchangeTicker GetTicker(string symbol)
+        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
         {
-            Dictionary<string, string> ticker = MakeJsonRequest<Dictionary<string, string>>("/products/" + symbol + "/ticker");
+            Dictionary<string, string> ticker = await MakeJsonRequestAsync<Dictionary<string, string>>("/products/" + symbol + "/ticker");
             decimal volume = Convert.ToDecimal(ticker["volume"], System.Globalization.CultureInfo.InvariantCulture);
             DateTime timestamp = DateTime.Parse(ticker["time"]);
             decimal price = Convert.ToDecimal(ticker["price"], System.Globalization.CultureInfo.InvariantCulture);
@@ -255,7 +255,7 @@ namespace ExchangeSharp
             };
         }
 
-        public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
+        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/candles?granularity=" + (sinceDateTime == null ? "3600.0" : "60.0");
             string url;
@@ -269,7 +269,7 @@ namespace ExchangeSharp
                     url += "&start=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture));
                     url += "&end=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s", System.Globalization.CultureInfo.InvariantCulture));
                 }
-                tradeChunk = MakeJsonRequest<decimal[][]>(url);
+                tradeChunk = await MakeJsonRequestAsync<decimal[][]>(url);
                 if (tradeChunk == null || tradeChunk.Length == 0)
                 {
                     break;
@@ -283,9 +283,9 @@ namespace ExchangeSharp
                     trades.Add(new ExchangeTrade { Amount = tradeChunkPiece[5], IsBuy = true, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((double)tradeChunkPiece[0]), Id = 0 });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                foreach (ExchangeTrade t in trades)
+                if (!callback(trades))
                 {
-                    yield return t;
+                    break;
                 }
                 trades.Clear();
                 if (sinceDateTime == null)
@@ -296,10 +296,10 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<ExchangeTrade> GetRecentTrades(string symbol)
+        public override async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
         {
             string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/trades";
-            Dictionary<string, object>[] trades = MakeJsonRequest<Dictionary<string, object>[]>(baseUrl);
+            Dictionary<string, object>[] trades = await MakeJsonRequestAsync<Dictionary<string, object>[]>(baseUrl);
             List<ExchangeTrade> tradeList = new List<ExchangeTrade>();
             foreach (Dictionary<string, object> trade in trades)
             {
@@ -312,17 +312,14 @@ namespace ExchangeSharp
                     Id = trade["trade_id"].ConvertInvariant<long>()
                 });
             }
-            foreach (ExchangeTrade trade in tradeList)
-            {
-                yield return trade;
-            }
+            return tradeList;
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 50)
+        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 50)
         {
             string url = "/products/" + symbol.ToUpperInvariant() + "/book?level=2";
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            Dictionary<string, object> books = MakeJsonRequest<Dictionary<string, object>>(url);
+            Dictionary<string, object> books = await MakeJsonRequestAsync<Dictionary<string, object>>(url);
             JArray asks = books["asks"] as JArray;
             JArray bids = books["bids"] as JArray;
             foreach (JArray ask in asks)
@@ -336,7 +333,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        public override async Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             if (limit != null)
             {
@@ -360,7 +357,7 @@ namespace ExchangeSharp
             url += "&end=" + endDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
 
             // time, low, high, open, close, volume
-            JToken token = MakeJsonRequest<JToken>(url);
+            JToken token = await MakeJsonRequestAsync<JToken>(url);
             foreach (JArray candle in token)
             {
                 candles.Add(new MarketCandle
@@ -382,10 +379,10 @@ namespace ExchangeSharp
             return candles;
         }
 
-        public override Dictionary<string, decimal> GetAmounts()
+        public override async Task<Dictionary<string, decimal>> GetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 decimal amount = token["balance"].ConvertInvariant<decimal>();
@@ -397,10 +394,10 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        public override Dictionary<string, decimal> GetAmountsAvailableToTrade()
+        public override async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = MakeJsonRequest<JArray>("/accounts", null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -412,7 +409,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
+        public override async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>
@@ -435,43 +432,49 @@ namespace ExchangeSharp
                 payload[kv.Key] = kv.Value;
             }
 
-            JObject result = MakeJsonRequest<JObject>("/orders", null, payload, "POST");
+            JObject result = await MakeJsonRequestAsync<JObject>("/orders", null, payload, "POST");
             return ParseOrder(result);
         }
 
-        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId)
         {
-            JObject obj = MakeJsonRequest<JObject>("/orders/" + orderId, null, GetNoncePayload(), "GET");
+            JObject obj = await MakeJsonRequestAsync<JObject>("/orders/" + orderId, null, GetNoncePayload(), "GET");
             return ParseOrder(obj);
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        public override async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
         {
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
-            JArray array = MakeJsonRequest<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
             foreach (JToken token in array)
             {
-                yield return ParseOrder(token);
+                orders.Add(ParseOrder(token));
             }
+
+            return orders;
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
+        public override async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
-            JArray array = MakeJsonRequest<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
             foreach (JToken token in array)
             {
                 ExchangeOrderResult result = ParseOrder(token);
                 if (afterDate == null || result.OrderDate >= afterDate)
                 {
-                    yield return result;
+                    orders.Add(result);
                 }
             }
+
+            return orders;
         }
 
-        public override void CancelOrder(string orderId)
+        public override async Task CancelOrderAsync(string orderId)
         {
-            MakeJsonRequest<JArray>("orders/" + orderId, null, GetNoncePayload(), "DELETE");
+            await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, GetNoncePayload(), "DELETE");
         }
     }
 }

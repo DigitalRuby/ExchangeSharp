@@ -268,18 +268,18 @@ namespace ExchangeSharp
         public virtual Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null) => throw new NotImplementedException();
 
         /// <summary>
-        /// Get recent trades on the exchange - this implementation simply calls GetHistoricalTrades with a null sinceDateTime.
+        /// Get recent trades on the exchange - the default implementation simply calls GetHistoricalTrades with a null sinceDateTime.
         /// </summary>
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all recent trades</returns>
         public IEnumerable<ExchangeTrade> GetRecentTrades(string symbol) => GetRecentTradesAsync(symbol).GetAwaiter().GetResult();
 
         /// <summary>
-        /// ASYNC - Get recent trades on the exchange - this implementation simply calls GetHistoricalTrades with a null sinceDateTime.
+        /// ASYNC - Get recent trades on the exchange - the default implementation simply calls GetHistoricalTrades with a null sinceDateTime.
         /// </summary>
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all recent trades</returns>
-        public async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
+        public virtual async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             await GetHistoricalTradesAsync((e) =>

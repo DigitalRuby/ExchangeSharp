@@ -188,6 +188,13 @@ namespace ExchangeSharpConsoleApp
 
         private static void TestExchanges()
         {
+            ExchangeTrade[] trades = null;
+            bool histTradeCallback(IEnumerable<ExchangeTrade> tradeEnum)
+            {
+                trades = tradeEnum.ToArray();
+                return true;
+            }
+
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {
@@ -200,7 +207,8 @@ namespace ExchangeSharpConsoleApp
                     Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
                     Console.WriteLine($"API {api.Name} GetSymbols OK (default: {symbol}; {symbols.Count} symbols)");
 
-                    ExchangeTrade[] trades = api.GetHistoricalTrades(symbol).ToArray();
+                    api.GetHistoricalTrades(histTradeCallback, symbol);
+
                     Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                     Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
 
