@@ -49,7 +49,7 @@ namespace ExchangeSharp
 
         public TradeReaderMemory(byte[] tickerData)
         {
-            tickerData = tickerData;
+            this.tickerData = tickerData;
             tickersHandle = GCHandle.Alloc(tickerData, GCHandleType.Pinned);
             tickers = (Trade*)tickersHandle.AddrOfPinnedObject();
             tickersStart = tickers;

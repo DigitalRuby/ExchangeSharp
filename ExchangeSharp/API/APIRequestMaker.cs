@@ -33,7 +33,7 @@ namespace ExchangeSharp
         /// <param name="api">API</param>
         public APIRequestMaker(IAPIRequestHandler api)
         {
-            api = api;
+            this.api = api;
         }
 
         /// <summary>

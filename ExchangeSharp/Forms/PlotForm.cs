@@ -88,8 +88,8 @@ namespace ExchangeSharp
             PlotChart.ChartAreas.Clear();
             PlotChart.ChartAreas.Add(new ChartArea());
 
-            buyPrices = buyPrices;
-            sellPrices = sellPrices;
+            this.buyPrices = buyPrices;
+            this.sellPrices = sellPrices;
             int index = 0;
             float minPrice = float.MaxValue;
             float maxPrice = float.MinValue;
