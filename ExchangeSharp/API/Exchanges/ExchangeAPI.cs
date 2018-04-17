@@ -192,6 +192,20 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="tickers">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
+
+        /// <summary>
+        /// Get the details of all completed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+
+        /// <summary>
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
@@ -256,13 +270,6 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             return await OnGetTickerAsync(symbol);
         }
-
-        /// <summary>
-        /// Get all tickers via web socket
-        /// </summary>
-        /// <param name="tickers">Callback</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
 
         /// <summary>
         /// Get all tickers in one request. If the exchange does not support this, a ticker will be requested for each symbol.
@@ -524,13 +531,6 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             return await OnGetCompletedOrderDetailsAsync(symbol, afterDate);
         }
-
-        /// <summary>
-        /// Get the details of all completed orders via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         /// <summary>
         /// Cancel an order, an exception is thrown if error
