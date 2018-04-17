@@ -96,12 +96,12 @@ namespace ExchangeSharp
             return symbol?.Replace("-", string.Empty).ToLowerInvariant();
         }
 
-        public override async Task<IEnumerable<string>> GetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             return await MakeJsonRequestAsync<string[]>("/symbols");
         }
 
-        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             JObject obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JObject>("/pubticker/" + symbol);
@@ -119,7 +119,7 @@ namespace ExchangeSharp
             return t;
         }
 
-        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
             JObject obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JObject>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
@@ -144,7 +144,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
@@ -192,7 +192,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override async Task<Dictionary<string, decimal>> GetAmountsAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, GetNoncePayload());
@@ -209,7 +209,7 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, GetNoncePayload());
@@ -226,7 +226,7 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             if (order.OrderType == OrderType.Market)
             {
@@ -254,7 +254,7 @@ namespace ExchangeSharp
             return ParseOrder(obj);
         }
 
-        public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
@@ -266,7 +266,7 @@ namespace ExchangeSharp
             return ParseOrder(result);
         }
 
-        public override async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
@@ -286,7 +286,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override async Task CancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId)
         {
             JObject result = await MakeJsonRequestAsync<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
             CheckError(result);

@@ -106,7 +106,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        public override async Task<IEnumerable<string>> GetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             string symbol = "all";
@@ -121,13 +121,13 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1, null);
         }
 
-        public override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync()
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -143,13 +143,13 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
             return ParseOrderBook(data.Item1);
         }
 
-        public override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100)
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
@@ -164,7 +164,7 @@ namespace ExchangeSharp
             return books;
         }
 
-        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             var data = await MakeRequestBithumbAsync(symbol, "/public/recent_transactions/$SYMBOL$");

@@ -168,6 +168,8 @@ namespace ExchangeSharp
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
         public async Task<bool> WaitToProceedAsync(int millisecondsTimeout)
         {
+            await new SynchronizationContextRemover();
+
             // Check the arguments.
             if (millisecondsTimeout < -1)
             {
@@ -205,6 +207,8 @@ namespace ExchangeSharp
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
         public async Task<bool> WaitToProceedAsync(TimeSpan timeout)
         {
+            await new SynchronizationContextRemover();
+
             return await WaitToProceedAsync((int)timeout.TotalMilliseconds);
         }
 
@@ -218,6 +222,8 @@ namespace ExchangeSharp
         /// </summary>
         public async Task WaitToProceedAsync()
         {
+            await new SynchronizationContextRemover();
+
             await WaitToProceedAsync(Timeout.Infinite);
         }
 

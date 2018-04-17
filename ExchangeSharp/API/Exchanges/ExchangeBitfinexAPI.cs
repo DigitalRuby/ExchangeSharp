@@ -127,13 +127,13 @@ namespace ExchangeSharp
             return ParseOrderV2(trades);
         }
 
-        public override async Task<IEnumerable<string>> GetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             var m = await GetSymbolsMetadataAsync();
             return m.Select(x => x.MarketName);
         }
 
-        public override async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             if (ReadCache("GetSymbols", out List<ExchangeMarket> cachedMarkets))
             {
@@ -181,14 +181,14 @@ namespace ExchangeSharp
             return markets;
         }
 
-        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             decimal[] ticker = await MakeJsonRequestAsync<decimal[]>("/ticker/t" + symbol);
             return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7] * ticker[6], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
         }
 
-        public override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync()
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             IReadOnlyCollection<string> symbols = (await GetSymbolsAsync()).ToArray();
@@ -272,7 +272,7 @@ namespace ExchangeSharp
             });
         }
 
-        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
@@ -291,24 +291,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        /// <summary>Gets the withdrawal fees for various currencies.</summary>
-        /// <returns>A dictionary of symbol-fee pairs</returns>
-        public Dictionary<string, decimal> GetWithdrawalFees()
-        {
-            JToken obj = MakeJsonRequest<JToken>("/account_fees", BaseUrlV1, GetNoncePayload());
-            CheckError(obj);
-
-            var fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            foreach (var jToken in obj["withdraw"])
-            {
-                var prop = (JProperty)jToken;
-                fees[prop.Name] = prop.Value.ConvertInvariant<decimal>();
-            }
-
-            return fees;
-        }
-
-        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
@@ -350,7 +333,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override async Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             // https://api.bitfinex.com/v2/candles/trade:1d:btcusd/hist?start=ms_start&end=ms_end
             List<MarketCandle> candles = new List<MarketCandle>();
@@ -392,7 +375,7 @@ namespace ExchangeSharp
             return candles;
         }
 
-        public override async Task<Dictionary<string, decimal>> GetAmountsAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
@@ -411,7 +394,7 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
@@ -430,7 +413,7 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        public override async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
@@ -452,7 +435,7 @@ namespace ExchangeSharp
             return ParseOrder(obj);
         }
 
-        public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
@@ -466,12 +449,12 @@ namespace ExchangeSharp
             return ParseOrder(result);
         }
 
-        public override async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             return await GetOrderDetailsInternalAsync("/orders", symbol);
         }
 
-        public override async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty) + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
             if (!ReadCache<ExchangeOrderResult[]>(cacheKey, out ExchangeOrderResult[] orders))
@@ -535,7 +518,7 @@ namespace ExchangeSharp
             });
         }
 
-        public override async Task CancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["order_id"] = long.Parse(orderId);
@@ -543,7 +526,7 @@ namespace ExchangeSharp
             CheckError(result);
         }
 
-        public override async Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             // IOTA addresses should never be used more than once
             if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
@@ -586,7 +569,7 @@ namespace ExchangeSharp
         /// <summary>Gets the deposit history for a symbol</summary>
         /// <param name="symbol">The symbol to check. Must be specified.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        public override async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
@@ -645,7 +628,7 @@ namespace ExchangeSharp
         /// <param name="withdrawalRequest">The withdrawal request.
         /// NOTE: Network fee must be subtracted from amount or withdrawal will fail</param>
         /// <returns>The withdrawal response</returns>
-        public override async Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             string symbol = NormalizeSymbol(withdrawalRequest.Symbol);
 
@@ -658,7 +641,7 @@ namespace ExchangeSharp
             // Bitfinex adds the fee on top of what you request to withdrawal
             if (withdrawalRequest.TakeFeeFromAmount)
             {
-                Dictionary<string, decimal> fees = GetWithdrawalFees();
+                Dictionary<string, decimal> fees = await GetWithdrawalFeesAsync();
                 if (fees.TryGetValue(symbol, out decimal feeAmt))
                 {
                     withdrawalRequest.Amount -= feeAmt;
@@ -926,6 +909,23 @@ namespace ExchangeSharp
                     Timestamp = DateTime.UtcNow
                 }
             };
+        }
+
+        /// <summary>Gets the withdrawal fees for various currencies.</summary>
+        /// <returns>A dictionary of symbol-fee pairs</returns>
+        private async Task<Dictionary<string, decimal>> GetWithdrawalFeesAsync()
+        {
+            JToken obj = await MakeJsonRequestAsync<JToken>("/account_fees", BaseUrlV1, GetNoncePayload());
+            CheckError(obj);
+
+            var fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            foreach (var jToken in obj["withdraw"])
+            {
+                var prop = (JProperty)jToken;
+                fees[prop.Name] = prop.Value.ConvertInvariant<decimal>();
+            }
+
+            return fees;
         }
     }
 }

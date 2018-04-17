@@ -72,7 +72,7 @@ namespace ExchangeSharp
             };
         }
 
-        public override async Task<IEnumerable<string>> GetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             // WTF no symbols end point? Sigh...
             return await Task.FromResult<IEnumerable<string>>(new string[]
@@ -81,13 +81,13 @@ namespace ExchangeSharp
             });
         }
 
-        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestOkexAsync(symbol, "/ticker.do?symbol=$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1);
         }
 
-        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
             ExchangeOrderBook book = new ExchangeOrderBook();
@@ -103,7 +103,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             List<ExchangeTrade> allTrades = new List<ExchangeTrade>();
             var trades = await MakeRequestOkexAsync(symbol, "/trades.do?symbol=$SYMBOL$");

@@ -61,7 +61,9 @@ namespace ExchangeSharp
         /// <returns>Raw response</returns>
         public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            await api.RateLimit.WaitToProceedAsync().ConfigureAwait(false);
+            await new SynchronizationContextRemover();
+
+            await api.RateLimit.WaitToProceedAsync();
             if (string.IsNullOrWhiteSpace(url))
             {
                 return null;

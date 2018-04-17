@@ -195,14 +195,14 @@ namespace ExchangeSharp
             return base.NormalizeSymbolGlobal(symbol);
         }
 
-        public override async Task<IEnumerable<string>> GetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             JObject json = await MakeJsonRequestAsync<JObject>("/0/public/AssetPairs");
             JToken result = CheckError(json);
             return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
-        public override async Task<ExchangeTicker> GetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
             JToken ticker = CheckError(json);
@@ -224,7 +224,7 @@ namespace ExchangeSharp
             };
         }
 
-        public override async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
             JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
@@ -250,7 +250,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/0/public/Trades?pair=" + symbol;
@@ -305,7 +305,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override async Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             if (limit != null)
             {
@@ -350,7 +350,7 @@ namespace ExchangeSharp
             return candles;
         }
 
-        public override async Task<Dictionary<string, decimal>> GetAmountsAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, GetNoncePayload());
             JToken result = CheckError(token);
@@ -366,7 +366,7 @@ namespace ExchangeSharp
             return balances;
         }
 
-        public override async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
@@ -399,7 +399,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
@@ -423,12 +423,12 @@ namespace ExchangeSharp
             return ParseOrder(orderId, result[orderId]); ;
         }
 
-        public override async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             return await QueryOrdersAsync(symbol, "/0/private/OpenOrders");
         }
 
-        public override async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             string path = "/0/private/ClosedOrders";
             if (afterDate != null)
@@ -438,7 +438,7 @@ namespace ExchangeSharp
             return await QueryOrdersAsync(symbol, path);
         }
 
-        public override async Task CancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId)
         {
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {

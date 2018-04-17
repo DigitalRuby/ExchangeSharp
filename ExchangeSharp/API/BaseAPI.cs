@@ -329,6 +329,8 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         public async Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
+            await new SynchronizationContextRemover();
+
             string result = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
             return JsonConvert.DeserializeObject<T>(result);
         }

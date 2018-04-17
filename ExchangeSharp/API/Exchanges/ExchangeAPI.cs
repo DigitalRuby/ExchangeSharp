@@ -79,6 +79,65 @@ namespace ExchangeSharp
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 
+        #region API Implementation
+
+        protected virtual async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        {
+            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            var symbols = await GetSymbolsAsync();
+            foreach (string symbol in symbols)
+            {
+                var ticker = await GetTickerAsync(symbol);
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
+            }
+            return tickers;
+        }
+
+        protected async virtual Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
+        {
+            await new SynchronizationContextRemover();
+
+            List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
+            var symbols = await GetSymbolsAsync();
+            foreach (string symbol in symbols)
+            {
+                var book = await GetOrderBookAsync(symbol);
+                books.Add(new KeyValuePair<string, ExchangeOrderBook>(symbol, book));
+            }
+            return books;
+        }
+
+        protected virtual async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        {
+            List<ExchangeTrade> trades = new List<ExchangeTrade>();
+            await GetHistoricalTradesAsync((e) =>
+            {
+                trades.AddRange(e);
+                return true;
+            }, symbol);
+            return trades;
+        }
+
+        protected virtual Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync() => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<string>> OnGetSymbolsAsync() => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync() => throw new NotImplementedException();
+        protected virtual Task<ExchangeTicker> OnGetTickerAsync(string symbol) => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100) => throw new NotImplementedException();
+        protected virtual Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null) => throw new NotImplementedException();
+        protected virtual Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
+        protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAsync() => throw new NotImplementedException();
+        protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
+        protected virtual Task OnCancelOrderAsync(string orderId) => throw new NotImplementedException();
+        protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+
+        #endregion API implementation
+
         /// <summary>
         /// Static constructor
         /// </summary>
@@ -142,7 +201,11 @@ namespace ExchangeSharp
         /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        public virtual Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync() => throw new NotImplementedException();
+        public async Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetCurrenciesAsync();
+        }
 
         /// <summary>
         /// Get exchange symbols
@@ -154,7 +217,11 @@ namespace ExchangeSharp
         /// ASYNC - Get exchange symbols
         /// </summary>
         /// <returns>Array of symbols</returns>
-        public virtual Task<IEnumerable<string>> GetSymbolsAsync() => throw new NotImplementedException();
+        public async Task<IEnumerable<string>> GetSymbolsAsync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetSymbolsAsync();
+        }
 
         /// <summary>
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
@@ -166,7 +233,11 @@ namespace ExchangeSharp
         /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
         /// <returns>Collection of ExchangeMarkets</returns>
-        public virtual Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync() => throw new NotImplementedException();
+        public async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetSymbolsMetadataAsync();
+        }
 
         /// <summary>
         /// Get exchange ticker
@@ -180,7 +251,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get ticker for</param>
         /// <returns>Ticker</returns>
-        public virtual Task<ExchangeTicker> GetTickerAsync(string symbol) => throw new NotImplementedException();
+        public async Task<ExchangeTicker> GetTickerAsync(string symbol)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetTickerAsync(symbol);
+        }
 
         /// <summary>
         /// Get all tickers via web socket
@@ -199,16 +274,10 @@ namespace ExchangeSharp
         /// ASYNC - Get all tickers in one request. If the exchange does not support this, a ticker will be requested for each symbol.
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public virtual async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync()
+        public async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync()
         {
-            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            var symbols = await GetSymbolsAsync();
-            foreach (string symbol in symbols)
-            {
-               var ticker = await GetTickerAsync(symbol);
-               tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
-            }
-            return tickers;
+            await new SynchronizationContextRemover();
+            return await OnGetTickersAsync();
         }
 
         /// <summary>
@@ -225,7 +294,11 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get order book for</param>
         /// <param name="maxCount">Max count, not all exchanges will honor this parameter</param>
         /// <returns>Exchange order book or null if failure</returns>
-        public virtual Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100) => throw new NotImplementedException();
+        public async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetOrderBookAsync(symbol, maxCount);
+        }
 
         /// <summary>
         /// Get all exchange order book symbols in one request. If the exchange does not support this, an order book will be requested for each symbol. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -239,16 +312,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        public async virtual Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100)
+        public async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100)
         {
-            List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
-            var symbols = await GetSymbolsAsync();
-            foreach (string symbol in symbols)
-            {
-                var book = await GetOrderBookAsync(symbol);
-                books.Add(new KeyValuePair<string, ExchangeOrderBook>(symbol, book));
-            }
-            return books;
+            await new SynchronizationContextRemover();
+            return await OnGetOrderBooksAsync(maxCount);
         }
 
         /// <summary>
@@ -265,7 +332,11 @@ namespace ExchangeSharp
         /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
         /// <param name="symbol">Symbol to get historical data for</param>
         /// <param name="sinceDateTime">Optional date time to start getting the historical data at, null for the most recent data</param>
-        public virtual Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null) => throw new NotImplementedException();
+        public async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        {
+            await new SynchronizationContextRemover();
+            await OnGetHistoricalTradesAsync(callback, symbol, sinceDateTime);
+        }
 
         /// <summary>
         /// Get recent trades on the exchange - the default implementation simply calls GetHistoricalTrades with a null sinceDateTime.
@@ -279,15 +350,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all recent trades</returns>
-        public virtual async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
+        public async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
         {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            await GetHistoricalTradesAsync((e) =>
-            {
-                trades.AddRange(e);
-                return true;
-            }, symbol);
-            return trades;
+            await new SynchronizationContextRemover();
+            return await OnGetRecentTradesAsync(symbol);
         }
 
         /// <summary>
@@ -304,7 +370,11 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">Regenerate the address</param>
         /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-        public virtual Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false) => throw new NotImplementedException();
+        public async Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetDepositAddressAsync(symbol, forceRegenerate);
+        }
 
         /// <summary>
         /// Gets the deposit history for a symbol
@@ -317,7 +387,11 @@ namespace ExchangeSharp
         /// ASYNC - Gets the deposit history for a symbol
         /// </summary>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        public virtual Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol) => throw new NotImplementedException();
+        public async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetDepositHistoryAsync(symbol);
+        }
 
         /// <summary>
         /// Get candles (open, high, low, close)
@@ -339,7 +413,11 @@ namespace ExchangeSharp
         /// <param name="endDate">Optional end date to get candles for</param>
         /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public virtual Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
+        public async Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetCandlesAsync(symbol, periodSeconds, startDate, endDate, limit);
+        }
 
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
@@ -351,7 +429,11 @@ namespace ExchangeSharp
         /// ASYNC - Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
-        public virtual Task<Dictionary<string, decimal>> GetAmountsAsync() => throw new NotImplementedException();
+        public async Task<Dictionary<string, decimal>> GetAmountsAsync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetAmountsAsync();
+        }
 
         /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary
@@ -363,7 +445,11 @@ namespace ExchangeSharp
         /// ASYNC - Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Symbol / amount dictionary</returns>
-        public virtual Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
+        public async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetAmountsAvailableToTradeAsync();
+        }
 
         /// <summary>
         /// Place an order
@@ -377,7 +463,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="order">The order request</param>
         /// <returns>Result</returns>
-        public virtual Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
+        public async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
+        {
+            await new SynchronizationContextRemover();
+            return await OnPlaceOrderAsync(order);
+        }
 
         /// <summary>
         /// Get order details
@@ -391,7 +481,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">Order id to get details for</param>
         /// <returns>Order details</returns>
-        public virtual Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId) => throw new NotImplementedException();
+        public async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetOrderDetailsAsync(orderId);
+        }
 
         /// <summary>
         /// Get the details of all open orders
@@ -405,7 +499,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get open orders for or null for all</param>
         /// <returns>All open order details</returns>
-        public virtual Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null) => throw new NotImplementedException();
+        public async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetOpenOrderDetailsAsync(symbol);
+        }
 
         /// <summary>
         /// Get the details of all completed orders
@@ -421,7 +519,11 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        public virtual Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
+        public async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetCompletedOrderDetailsAsync(symbol, afterDate);
+        }
 
         /// <summary>
         /// Get the details of all completed orders via web socket
@@ -440,7 +542,11 @@ namespace ExchangeSharp
         /// ASYNC - Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        public virtual Task CancelOrderAsync(string orderId) => throw new NotImplementedException();
+        public async Task CancelOrderAsync(string orderId)
+        {
+            await new SynchronizationContextRemover();
+            await OnCancelOrderAsync(orderId);
+        }
 
         /// <summary>
         /// A withdrawal request.
@@ -452,7 +558,11 @@ namespace ExchangeSharp
         /// Asynchronous withdraws request.
         /// </summary>
         /// <param name="withdrawalRequest">The withdrawal request.</param>
-        public virtual Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+        public async Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            await new SynchronizationContextRemover();
+            return await OnWithdrawAsync(withdrawalRequest);
+        }
     }
 
     /// <summary>
