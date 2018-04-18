@@ -28,14 +28,21 @@ namespace ExchangeSharp
         public void OnCompleted(Action continuation)
         {
             var prevContext = SynchronizationContext.Current;
-            try
+            if (prevContext == null)
             {
-                SynchronizationContext.SetSynchronizationContext(null);
-                continuation();
+                continuation?.Invoke();
             }
-            finally
+            else
             {
-                SynchronizationContext.SetSynchronizationContext(prevContext);
+                try
+                {
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    continuation?.Invoke();
+                }
+                finally
+                {
+                    SynchronizationContext.SetSynchronizationContext(prevContext);
+                }
             }
         }
 
