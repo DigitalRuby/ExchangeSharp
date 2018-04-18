@@ -499,7 +499,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get open orders for or null for all</param>
         /// <returns>All open order details</returns>
-        public IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null) => GetOpenOrderDetailsAsync().GetAwaiter().GetResult();
+        public IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null) => GetOpenOrderDetailsAsync(symbol).GetAwaiter().GetResult();
 
         /// <summary>
         /// ASYNC - Get the details of all open orders

@@ -73,7 +73,11 @@ namespace ExchangeSharp
 
         private void CheckError(JToken result)
         {
-            if (result != null && !(result is JArray) && result["error"] != null)
+            if (result == null)
+            {
+                throw new APIException("No result");
+            }
+            else if (!(result is JArray) && result["error"] != null)
             {
                 throw new APIException(result["error"].ToStringInvariant());
             }
