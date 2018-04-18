@@ -317,13 +317,13 @@ namespace ExchangeSharp
                 return null;
             }
 
-            CryptoExchange.Net.CallResult<int> result = SocketClient.SubscribeToAllMarketDeltaStream
+            CryptoExchange.Net.CallResult<int> result = SocketClient.SubscribeToMarketSummariesUpdate
             (
                 summaries =>
                 {
                     // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
                     var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
-                    foreach (BittrexMarketSummary market in summaries)
+                    foreach (BittrexStreamMarketSummary market in summaries)
                     {
                         decimal quantityAmount = market.Volume.ConvertInvariant<decimal>();
                         decimal last = market.Last.ConvertInvariant<decimal>();
