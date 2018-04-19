@@ -122,9 +122,10 @@ namespace ExchangeSharp
             return orderResult;
         }
 
-        private IEnumerable<ExchangeOrderResult> QueryOrders(string symbol, string path)
+        private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
-            JObject json = MakeJsonRequest<JObject>(path, null, GetNoncePayload());
+            List<ExchangeOrderResult> orders = new List<ExchangeSharp.ExchangeOrderResult>();
+            JObject json = await MakeJsonRequestAsync<JObject>(path, null, GetNoncePayload());
             JToken result = CheckError(json);
             result = result["open"];
 
@@ -134,9 +135,11 @@ namespace ExchangeSharp
             {
                 if (symbol == null || order.Value["descr"]["pair"].ToStringInvariant() == symbol)
                 {
-                    yield return ParseOrder(order.Name, order.Value);
+                    orders.Add(ParseOrder(order.Name, order.Value));
                 }
             }
+
+            return orders;
         }
 
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
@@ -192,16 +195,16 @@ namespace ExchangeSharp
             return base.NormalizeSymbolGlobal(symbol);
         }
 
-        public override IEnumerable<string> GetSymbols()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
-            JObject json = MakeJsonRequest<JObject>("/0/public/AssetPairs");
+            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/AssetPairs");
             JToken result = CheckError(json);
             return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
-        public override ExchangeTicker GetTicker(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JObject json = MakeJsonRequest<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
+            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
             JToken ticker = CheckError(json);
             ticker = ticker[symbol];
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();
@@ -221,10 +224,10 @@ namespace ExchangeSharp
             };
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject json = MakeJsonRequest<JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
+            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
             JToken obj = CheckError(json);
             obj = obj[symbol];
             if (obj == null)
@@ -247,7 +250,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/0/public/Trades?pair=" + symbol;
@@ -261,7 +264,7 @@ namespace ExchangeSharp
                 {
                     url += "&since=" + (long)(CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) * 1000000.0);
                 }
-                JObject obj = MakeJsonRequest<JObject>(url);
+                JObject obj = await MakeJsonRequestAsync<JObject>(url);
                 if (obj == null)
                 {
                     break;
@@ -289,9 +292,9 @@ namespace ExchangeSharp
                     });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                foreach (ExchangeTrade t in trades)
+                if (!callback(trades))
                 {
-                    yield return t;
+                    break;
                 }
                 trades.Clear();
                 if (sinceDateTime == null)
@@ -302,7 +305,7 @@ namespace ExchangeSharp
             }
         }
 
-        public override IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             if (limit != null)
             {
@@ -315,8 +318,9 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
             endDate = endDate ?? DateTime.UtcNow;
-            JObject json = MakeJsonRequest<JObject>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
+            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
             CheckError(json);
+            List<MarketCandle> candles = new List<MarketCandle>();
             if (json["result"].Children().Count() != 0)
             {
                 JProperty prop = json["result"].Children().First() as JProperty;
@@ -338,15 +342,17 @@ namespace ExchangeSharp
                     };
                     if (candle.Timestamp >= startDate.Value && candle.Timestamp <= endDate.Value)
                     {
-                        yield return candle;
+                        candles.Add(candle);
                     }
                 }
             }
+
+            return candles;
         }
 
-        public override Dictionary<string, decimal> GetAmounts()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            JToken token = MakeJsonRequest<JToken>("/0/private/Balance", null, GetNoncePayload());
+            JToken token = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, GetNoncePayload());
             JToken result = CheckError(token);
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty prop in result)
@@ -360,7 +366,7 @@ namespace ExchangeSharp
             return balances;
         }
 
-        public override ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order)
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
@@ -380,7 +386,7 @@ namespace ExchangeSharp
                 payload[kv.Key] = kv.Value;
             }
 
-            JObject obj = MakeJsonRequest<JObject>("/0/private/AddOrder", null, payload);
+            JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/AddOrder", null, payload);
             JToken token = CheckError(obj);
             ExchangeOrderResult result = new ExchangeOrderResult
             {
@@ -393,7 +399,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        public override ExchangeOrderResult GetOrderDetails(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
@@ -405,7 +411,7 @@ namespace ExchangeSharp
                 { "txid", orderId },
                 { "nonce", GenerateNonce() }
             };
-            JObject obj = MakeJsonRequest<JObject>("/0/private/QueryOrders", null, payload);
+            JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/QueryOrders", null, payload);
             JToken result = CheckError(obj);
             ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
             if (result == null || result[orderId] == null)
@@ -417,29 +423,29 @@ namespace ExchangeSharp
             return ParseOrder(orderId, result[orderId]); ;
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
-            return QueryOrders(symbol, "/0/private/OpenOrders");
+            return await QueryOrdersAsync(symbol, "/0/private/OpenOrders");
         }
 
-        public override IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             string path = "/0/private/ClosedOrders";
             if (afterDate != null)
             {
                 path += "?start=" + ((long)afterDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
             }
-            return QueryOrders(symbol, path);
+            return await QueryOrdersAsync(symbol, path);
         }
 
-        public override void CancelOrder(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId)
         {
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
                 { "nonce", GenerateNonce() }
             };
-            JObject obj = MakeJsonRequest<JObject>("/0/private/CancelOrder", null, payload);
+            JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/CancelOrder", null, payload);
             CheckError(obj);
         }
     }

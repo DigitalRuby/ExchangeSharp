@@ -218,40 +218,40 @@ namespace ExchangeSharp
         Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100);
 
         /// <summary>
-        /// Get exchange order book for all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
+        /// Get exchange order book for all symbols. Not all exchanges support  Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
         IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100);
 
         /// <summary>
-        /// ASYNC - Get exchange order book for all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
+        /// ASYNC - Get exchange order book for all symbols. Not all exchanges support  Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
         Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100);
 
         /// <summary>
-        /// Get historical trades
+        /// Get historical trades for the exchange
         /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="sinceDateTime">Since date time</param>
-        /// <returns>Trades</returns>
-        IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null);
+        /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
+        /// <param name="symbol">Symbol to get historical data for</param>
+        /// <param name="sinceDateTime">Optional date time to start getting the historical data at, null for the most recent data</param>
+        void GetHistoricalTrades(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null);
 
         /// <summary>
-        /// ASYNC - Get historical trades
+        /// ASYNC - Get historical trades for the exchange
         /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="sinceDateTime">Since date time</param>
-        /// <returns>Trades</returns>
-        Task<IEnumerable<ExchangeTrade>> GetHistoricalTradesAsync(string symbol, DateTime? sinceDateTime = null);
+        /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
+        /// <param name="symbol">Symbol to get historical data for</param>
+        /// <param name="sinceDateTime">Optional date time to start getting the historical data at, null for the most recent data</param>
+        Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null);
 
         /// <summary>
-        /// Get the latest trades
+        /// Get recent trades on the exchange - this implementation simply calls GetHistoricalTrades with a null sinceDateTime.
         /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <returns>Trades</returns>
+        /// <param name="symbol">Symbol to get recent trades for</param>
+        /// <returns>An enumerator that loops through all recent trades</returns>
         IEnumerable<ExchangeTrade> GetRecentTrades(string symbol);
 
         /// <summary>
@@ -358,18 +358,19 @@ namespace ExchangeSharp
         IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null);
 
         /// <summary>
+        /// ASYNC - Get the details of all completed orders
+        /// </summary>
+        /// <param name="symbol">Symbol to get completed orders for or null for all</param>
+        /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
+        /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
+        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null);
+
+        /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
         IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback);
-
-        /// <summary>
-        /// ASYNC - Get the details of all completed orders
-        /// </summary>
-        /// <param name="symbol">Symbol to get completed orders for or null for all</param>
-        /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null);
 
         /// <summary>
         /// Cancel an order, an exception is thrown if failure

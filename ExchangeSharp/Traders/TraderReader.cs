@@ -51,11 +51,11 @@ namespace ExchangeSharp
         {
             this.tickerData = tickerData;
             tickersHandle = GCHandle.Alloc(tickerData, GCHandleType.Pinned);
-            this.tickers = (Trade*)tickersHandle.AddrOfPinnedObject();
-            this.tickersStart = this.tickers;
-            this.tickersCount = tickerData.Length / 16;
-            this.tickersEnd = this.tickers + this.tickersCount;
-            this.ownsHandle = true;
+            tickers = (Trade*)tickersHandle.AddrOfPinnedObject();
+            tickersStart = tickers;
+            tickersCount = tickerData.Length / 16;
+            tickersEnd = tickers + tickersCount;
+            ownsHandle = true;
         }
 
         public void Dispose()

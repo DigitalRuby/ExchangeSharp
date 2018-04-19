@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
@@ -65,12 +66,12 @@ namespace ExchangeSharp
             }
         }
         
-        private JToken MakeRequestBithumb(ref string symbol, string subUrl)
+        private async Task<Tuple<JToken, string>> MakeRequestBithumbAsync(string symbol, string subUrl)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject obj = MakeJsonRequest<JObject>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
+            JObject obj = await MakeJsonRequestAsync<JObject>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
             CheckError(obj);
-            return obj["data"];
+            return new Tuple<JToken, string>(obj["data"], symbol);
         }
 
         private ExchangeTicker ParseTicker(string symbol, JToken data, DateTime? date)
@@ -105,12 +106,12 @@ namespace ExchangeSharp
             return book;
         }
 
-        public override IEnumerable<string> GetSymbols()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             string symbol = "all";
-            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
-            foreach (JProperty token in data)
+            var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
+            foreach (JProperty token in data.Item1)
             {
                 if (token.Name != "date")
                 {
@@ -120,19 +121,19 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        public override ExchangeTicker GetTicker(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
-            return ParseTicker(symbol, data, null);
+            var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
+            return ParseTicker(data.Item2, data.Item1, null);
         }
 
-        public override IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers()
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            JToken data = MakeRequestBithumb(ref symbol, "/public/ticker/$SYMBOL$");
-            DateTime date = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>());
-            foreach (JProperty token in data)
+            var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
+            DateTime date = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data.Item1["date"].ConvertInvariant<long>());
+            foreach (JProperty token in data.Item1)
             {
                 if (token.Name != "date")
                 {
@@ -142,18 +143,18 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            JToken data = MakeRequestBithumb(ref symbol, "/public/orderbook/$SYMBOL$");
-            return ParseOrderBook(data);
+            var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
+            return ParseOrderBook(data.Item1);
         }
 
-        public override IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100)
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
-            JToken data = MakeRequestBithumb(ref symbol, "/public/orderbook/$SYMBOL$");
-            foreach (JProperty book in data)
+            var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
+            foreach (JProperty book in data.Item1)
             {
                 if (book.Name != "timestamp" && book.Name != "payment_currency")
                 {
@@ -163,20 +164,22 @@ namespace ExchangeSharp
             return books;
         }
 
-        public override IEnumerable<ExchangeTrade> GetHistoricalTrades(string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
-            JToken data = MakeRequestBithumb(ref symbol, "/public/recent_transactions/$SYMBOL$");
-            foreach (JToken token in data)
+            List<ExchangeTrade> trades = new List<ExchangeTrade>();
+            var data = await MakeRequestBithumbAsync(symbol, "/public/recent_transactions/$SYMBOL$");
+            foreach (JToken token in data.Item1)
             {
-                yield return new ExchangeTrade
+                trades.Add(new ExchangeTrade
                 {
                     Amount = token["units_traded"].ConvertInvariant<decimal>(),
                     Price = token["price"].ConvertInvariant<decimal>(),
                     Id = -1,
                     IsBuy = token["type"].ToStringInvariant() == "bid",
                     Timestamp = token["transaction_date"].ConvertInvariant<DateTime>()
-                };
+                });
             }
+            callback(trades);
         }
     }
 }

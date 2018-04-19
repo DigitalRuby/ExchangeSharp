@@ -10,27 +10,49 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Class encapsulating a withdrawal response from an exchange
-    /// </summary>
-    public class ExchangeWithdrawalResponse
+    internal struct SynchronizationContextRemover : INotifyCompletion
     {
-        /// <summary>The message of the transacion.</summary>
-        public string Message { get; set; }
-
-        /// <summary>The identifier for the transaction.</summary>
-        public string Id { get; set; }
-
-        /// <summary>Whether the withdrawal was successful</summary>
-        public bool Success { get; set; } = true;
-
-        /// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
-        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
-        public override string ToString()
+        public bool IsCompleted
         {
-            return $"Success: {Success} Id: {Id ?? "null"} Message: {Message ?? "null"}";
+            get { return SynchronizationContext.Current == null; }
+        }
+
+        public void OnCompleted(Action continuation)
+        {
+            var prevContext = SynchronizationContext.Current;
+            if (prevContext == null)
+            {
+                continuation?.Invoke();
+            }
+            else
+            {
+                try
+                {
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    continuation?.Invoke();
+                }
+                finally
+                {
+                    SynchronizationContext.SetSynchronizationContext(prevContext);
+                }
+            }
+        }
+
+        public SynchronizationContextRemover GetAwaiter()
+        {
+            return this;
+        }
+
+        public void GetResult()
+        {
         }
     }
 }

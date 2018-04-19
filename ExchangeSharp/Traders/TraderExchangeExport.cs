@@ -40,24 +40,29 @@ namespace ExchangeSharp
                 int lastYear = -1;
                 int lastMonth = -1;
                 StreamWriter writer = null;
-                foreach (ExchangeTrade trade in api.GetHistoricalTrades(symbol, sinceDateTime))
+                bool innerCallback(IEnumerable<ExchangeTrade> trades)
                 {
-                    if (trade.Timestamp.Year != lastYear || trade.Timestamp.Month != lastMonth)
+                    foreach (ExchangeTrade trade in trades)
                     {
-                        if (writer != null)
+                        if (trade.Timestamp.Year != lastYear || trade.Timestamp.Month != lastMonth)
                         {
-                            writer.Close();
+                            if (writer != null)
+                            {
+                                writer.Close();
+                            }
+                            lastYear = trade.Timestamp.Year;
+                            lastMonth = trade.Timestamp.Month;
+                            writer = new StreamWriter(basePath + trade.Timestamp.Year + "-" + trade.Timestamp.Month.ToString("00") + ".csv");
                         }
-                        lastYear = trade.Timestamp.Year;
-                        lastMonth = trade.Timestamp.Month;
-                        writer = new StreamWriter(basePath + trade.Timestamp.Year + "-" + trade.Timestamp.Month.ToString("00") + ".csv");
+                        writer.WriteLine("{0},{1},{2}", CryptoUtility.UnixTimestampFromDateTimeSeconds(trade.Timestamp), trade.Price, trade.Amount);
+                        if (++count % 100 == 0)
+                        {
+                            callback?.Invoke(count);
+                        }
                     }
-                    writer.WriteLine("{0},{1},{2}", CryptoUtility.UnixTimestampFromDateTimeSeconds(trade.Timestamp), trade.Price, trade.Amount);
-                    if (++count % 100 == 0)
-                    {
-                        callback?.Invoke(count);
-                    }
+                    return true;
                 }
+                api.GetHistoricalTrades(innerCallback, symbol, sinceDateTime);
                 writer.Close();
                 callback?.Invoke(count);
             }

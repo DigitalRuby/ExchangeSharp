@@ -43,15 +43,15 @@ namespace ExchangeSharp
         public override string ToString()
         {
             // 2.75 ETH to 0x1234asdf
-            string info = $"{this.Amount} {this.Symbol} to {this.Address}";
-            if (!string.IsNullOrWhiteSpace(this.AddressTag))
+            string info = $"{Amount} {Symbol} to {Address}";
+            if (!string.IsNullOrWhiteSpace(AddressTag))
             {
-                info += $" with address tag {this.AddressTag}";
+                info += $" with address tag {AddressTag}";
             }
 
-            if (!string.IsNullOrWhiteSpace(this.Description))
+            if (!string.IsNullOrWhiteSpace(Description))
             {
-                info += $" Description: {this.Description}";
+                info += $" Description: {Description}";
             }
 
             return info;
