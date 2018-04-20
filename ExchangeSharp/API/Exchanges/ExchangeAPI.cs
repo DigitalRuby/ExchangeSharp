@@ -573,6 +573,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Binance
         /// </summary>
+        public const string Abucoins = "Abucoins";
+
+        /// <summary>
+        /// Binance
+        /// </summary>
         public const string Binance = "Binance";
 
         /// <summary>
