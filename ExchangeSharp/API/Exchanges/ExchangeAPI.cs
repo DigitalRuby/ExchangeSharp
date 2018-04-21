@@ -616,7 +616,7 @@ namespace ExchangeSharp
         public const string Gemini = "Gemini";
 
         /// <summary>
-        /// Gemini
+        /// Hitbtc
         /// </summary>
         public const string Hitbtc = "Hitbtc";
 
