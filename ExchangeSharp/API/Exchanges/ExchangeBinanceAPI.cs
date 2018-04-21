@@ -413,7 +413,7 @@ namespace ExchangeSharp
             }
             payload["symbol"] = pieces[0];
             payload["orderId"] = pieces[1];
-            JToken token = MakeJsonRequest<JToken>("/order", BaseUrlPrivate, payload);
+            JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
             CheckError(token);
             ExchangeOrderResult result = ParseOrder(token);
 

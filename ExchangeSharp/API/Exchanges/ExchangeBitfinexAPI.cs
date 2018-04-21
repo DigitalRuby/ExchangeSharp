@@ -100,13 +100,13 @@ namespace ExchangeSharp
             return symbol?.Replace("-", string.Empty).ToLowerInvariant();
         }
 
-        public IEnumerable<ExchangeOrderResult> GetOrderDetailsInternalV2(string url, string symbol = null)
+        public async Task<IEnumerable<ExchangeOrderResult>> GetOrderDetailsInternalV2(string url, string symbol = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["limit"] = 250;
             payload["start"] = DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
             payload["end"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds();
-            JToken result = MakeJsonRequest<JToken>(url, null, payload);
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload);
             CheckError(result);
             Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
             if (result is JArray array)
@@ -202,7 +202,7 @@ namespace ExchangeSharp
                     symbolString.Append(',');
                 }
                 symbolString.Length--;
-                JToken token = MakeJsonRequest<JToken>("/tickers?symbols=" + symbolString);
+                JToken token = await MakeJsonRequestAsync<JToken>("/tickers?symbols=" + symbolString);
                 DateTime now = DateTime.UtcNow;
                 foreach (JArray array in token)
                 {
