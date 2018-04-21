@@ -4,12 +4,12 @@
     <TargetFrameworks>netstandard2.0;netcoreapp2.0;net47</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>Exchange Sharp - C# API for multiple cryptocurrency exchanges</Title>
-    <PackageVersion>0.3.5.0</PackageVersion>
+    <PackageVersion>0.4.0.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges including Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Gdax, Gemini, Kraken, Okex, Poloniex. Web sockets are also supported.</Description>
     <PackageIconUrl>https://github.com/jjxtra/ExchangeSharp/raw/master/icon.png</PackageIconUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>New icon, bug fixes, add fees fields and currency metadata</PackageReleaseNotes>
+    <PackageReleaseNotes>Async code refactor - all methods marked async do not create new tasks by default anymore.</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
     <PackageTags>C# API Binance Bitfinex Bithumb Bitstamp Bittrex Gdax Gemini Kraken Okex Poloniex crypto cryptocurrency trade trader exchange socket web socket websocket signalr secure</PackageTags>
   </PropertyGroup>
@@ -28,7 +28,7 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Authors>jjxtra</Authors>
-    <PackageReleaseNotes>Symbol not found fix for Bitfinex</PackageReleaseNotes>
+    <PackageReleaseNotes>Async code refactor - all methods marked async do not create new tasks by default anymore.</PackageReleaseNotes>
     <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
     <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
