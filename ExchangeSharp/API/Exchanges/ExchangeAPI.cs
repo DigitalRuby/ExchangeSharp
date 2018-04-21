@@ -571,6 +571,11 @@ namespace ExchangeSharp
     public static class ExchangeName
     {
         /// <summary>
+        /// Abucoins
+        /// </summary>
+        public const string Abucoins = "Abucoins";
+
+        /// <summary>
         /// Binance
         /// </summary>
         public const string Binance = "Binance";
@@ -596,6 +601,11 @@ namespace ExchangeSharp
         public const string Bittrex = "Bittrex";
 
         /// <summary>
+        /// Bleutrade
+        /// </summary>
+        public const string Bleutrade = "Bleutrade";
+
+        /// <summary>
         /// GDAX
         /// </summary>
         public const string GDAX = "GDAX";
@@ -604,6 +614,11 @@ namespace ExchangeSharp
         /// Gemini
         /// </summary>
         public const string Gemini = "Gemini";
+
+        /// <summary>
+        /// Hitbtc
+        /// </summary>
+        public const string Hitbtc = "Hitbtc";
 
         /// <summary>
         /// Kraken
