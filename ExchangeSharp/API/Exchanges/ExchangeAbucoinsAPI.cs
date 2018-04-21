@@ -11,13 +11,13 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangebuCoinsAPI : ExchangeAPI
+    public sealed class ExchangeAbucoinsAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Abucoins;
         public override string BaseUrl { get; set; } = "https://api.abucoins.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws.abucoins.com";
 
-        public neuAbuCoinsAPI()
+        public ExchangeAbucoinsAPI()
         {
             RequestContentType = "application/json";
         }
