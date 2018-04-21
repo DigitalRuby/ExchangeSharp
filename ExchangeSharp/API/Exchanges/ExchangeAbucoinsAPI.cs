@@ -1,5 +1,4 @@
-﻿using ExchangeSharp;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -48,10 +47,7 @@ namespace ExchangeSharp
 
         #region Public APIs
 
-        
-
-        
-        protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>>  OnGetCurrenciesAsync()
+        protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             throw new NotSupportedException("Abucoins does not provide data about its currencies via the API");
         }
@@ -63,7 +59,7 @@ namespace ExchangeSharp
             foreach (JToken token in obj) symbols.Add(token["id"].Value<string>());
             return symbols;
         }
-         
+
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
@@ -73,15 +69,15 @@ namespace ExchangeSharp
             {
                 markets.Add(new ExchangeMarket
                 {
-                     MarketName = token["id"].ToStringInvariant(),
-                     BaseCurrency = token["base_currency"].ToStringInvariant(),
-                     MarketCurrency = token["quote_currency"].ToStringInvariant(),
-                     MinTradeSize = token["base_min_size"].ConvertInvariant<decimal>(),
-                     MaxTradeSize = token["base_max_size"].ConvertInvariant<decimal>(),
-                     QuantityStepSize = token["quote_increment"].ConvertInvariant<decimal>(),
-                     MaxPrice = StepSize,
-                     MinPrice = StepSize,
-                     PriceStepSize = StepSize,
+                    MarketName = token["id"].ToStringInvariant(),
+                    BaseCurrency = token["base_currency"].ToStringInvariant(),
+                    MarketCurrency = token["quote_currency"].ToStringInvariant(),
+                    MinTradeSize = token["base_min_size"].ConvertInvariant<decimal>(),
+                    MaxTradeSize = token["base_max_size"].ConvertInvariant<decimal>(),
+                    QuantityStepSize = token["quote_increment"].ConvertInvariant<decimal>(),
+                    MaxPrice = StepSize,
+                    MinPrice = StepSize,
+                    PriceStepSize = StepSize,
                     IsActive = true
                 });
             }
@@ -150,18 +146,15 @@ namespace ExchangeSharp
 
             // { "time": "2017-09-21T12:33:03Z", "trade_id": "553794", "price": "14167.99328000", "size": "0.00035000", "side": "buy"}
             JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades");
-            if (obj.HasValues) foreach(JToken token in obj) trades.Add(parseExchangeTrade(token));
+            if (obj.HasValues) foreach (JToken token in obj) trades.Add(parseExchangeTrade(token));
             return trades;
         }
 
-        protected override Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
-            if (sinceDateTime == null) return GetRecentTrades(symbol);
-
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            DateTime earliestTrade = DateTime.Now;
             long? lastTradeID = null;
-            // Abucoins uses a page curser based on trade_id to iterate history. Keep paginating until startDate is reached
+            // Abucoins uses a page curser based on trade_id to iterate history. Keep paginating until startDate is reached or we run out of data
             JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades");
             if (obj.HasValues)
             {
@@ -169,33 +162,55 @@ namespace ExchangeSharp
                 {
                     ExchangeTrade trade = parseExchangeTrade(token);
                     lastTradeID = trade.Id;
-                    if (trade.Timestamp > sinceDateTime)
+                    if (sinceDateTime != null)
                     {
-                        earliestTrade = trade.Timestamp;
-                        trades.Add(trade);
-                    } else break;
+                        if (trade.Timestamp > sinceDateTime) trades.Add(trade);
+                        else
+                        {
+                            if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
+                            return;
+                        }
+                    }
+                    else trades.Add(trade);
                 }
 
-                while (earliestTrade > sinceDateTime && !(lastTradeID is null))
+                if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
+                else return;
+
+                trades.Clear();
+
+                while (true)
                 {
-                    obj = MakeJsonRequest<JToken>("/products/" + symbol + "/trades?before=" + lastTradeID);
+                    obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades?before=" + lastTradeID);
                     if (obj.HasValues)
                     {
                         foreach (JToken token in obj)
                         {
                             ExchangeTrade trade = parseExchangeTrade(token);
                             lastTradeID = trade.Id;
-                            if (trade.Timestamp > sinceDateTime)
+                            if (sinceDateTime != null)
                             {
-                                earliestTrade = trade.Timestamp;
-                                trades.Add(trade);
+                                if (trade.Timestamp > sinceDateTime) trades.Add(trade);
+                                else
+                                {
+                                    if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
+                                    return;
+                                }
                             }
-                            else break;
+                            else trades.Add(trade);
                         }
-                    } else break;
+                    }
+                    else return;
+
+                    if (callback != null && trades.Count > 0)
+                    {
+                        callback(trades.OrderBy(t => t.Timestamp));
+                        trades.Clear();
+                    }
+                    else return;
+                    await Task.Delay(2000);   // two seconds seems like a lot and unnecessary. The RateGate should time this
                 }
             }
-            return trades.OrderByDescending(t => t.Timestamp);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
@@ -210,7 +225,7 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/candles?granularity=" + periodSeconds + "&start=" + ((DateTime)startDate).ToString("o") + "&end=" + ((DateTime)endDate).ToString("o"));
             if (obj.HasValues)
             {
-                foreach(JArray array in obj)
+                foreach (JArray array in obj)
                 {
                     candles.Add(new MarketCandle()
                     {
@@ -228,7 +243,6 @@ namespace ExchangeSharp
             }
             return candles;
         }
-
 
         #endregion
 
@@ -282,7 +296,6 @@ namespace ExchangeSharp
             return eor;
         }
 
-
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> result = new List<ExchangeOrderResult>();
@@ -312,7 +325,6 @@ namespace ExchangeSharp
             return result;
         }
 
-        
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> result = new List<ExchangeOrderResult>();
@@ -364,11 +376,11 @@ namespace ExchangeSharp
                 result.AveragePrice = token["price"].ConvertInvariant<decimal>();
                 result.Fees = token["fill_fees"].ConvertInvariant<decimal>();
                 result.IsBuy = token["buy"].ToStringInvariant().Equals("buy");
-                result.OrderDate = token["created_at".ConvertInvariant<DateTime>();
+                result.OrderDate = token["created_at"].ConvertInvariant<DateTime>();
                 result.Price = token["price"].ConvertInvariant<decimal>();
                 result.Symbol = token["product_id"].ToStringInvariant();
                 result.Message = token["reject_reason"].ToStringInvariant();
-                switch(token["status"].ToStringInvariant())
+                switch (token["status"].ToStringInvariant())
                 {
                     case "done": result.Result = ExchangeAPIOrderResult.Filled; break;
                     case "pending":
@@ -407,7 +419,7 @@ namespace ExchangeSharp
                     PaymentId = token["deposit_id"].ToStringInvariant(),
                     TxFee = token["fee"].ConvertInvariant<decimal>()
                 };
-                switch(token["status"].ToStringInvariant())
+                switch (token["status"].ToStringInvariant())
                 {
                     case "complete": deposit.Status = TransactionStatus.Complete; break;
                     case "pending": deposit.Status = TransactionStatus.Processing; break;
@@ -466,7 +478,6 @@ namespace ExchangeSharp
             return response;
         }
 
-
         #endregion
 
         #region WebSocket APIs
@@ -494,12 +505,12 @@ namespace ExchangeSharp
                     {
                         callback.Invoke(new ExchangeOrderResult()
                         {
-                             OrderId = token["order_id"].ToStringInvariant(),
-                             Symbol = token["product_id"].ToStringInvariant(),
-                             OrderDate = token["time"].ConvertInvariant<DateTime>(),
-                             Message = token["reason"].ToStringInvariant(),
-                             IsBuy = token["side"].ToStringInvariant().Equals("buy"),
-                             Price = token["price"].ConvertInvariant<decimal>()
+                            OrderId = token["order_id"].ToStringInvariant(),
+                            Symbol = token["product_id"].ToStringInvariant(),
+                            OrderDate = token["time"].ConvertInvariant<DateTime>(),
+                            Message = token["reason"].ToStringInvariant(),
+                            IsBuy = token["side"].ToStringInvariant().Equals("buy"),
+                            Price = token["price"].ConvertInvariant<decimal>()
                         });
                     }
                 }
@@ -543,7 +554,8 @@ namespace ExchangeSharp
                             })
                         });
                     }
-                } catch( Exception ex) { Debug.WriteLine(ex.Message); }
+                }
+                catch (Exception ex) { Debug.WriteLine(ex.Message); }
             }, (_socket) =>
             {
                 // subscribe to ticker channel
