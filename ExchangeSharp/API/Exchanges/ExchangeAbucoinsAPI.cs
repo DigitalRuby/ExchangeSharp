@@ -116,7 +116,7 @@ namespace ExchangeSharp
                         Bid = token["bid"].ConvertInvariant<decimal>(),
                         Volume = new ExchangeVolume()
                     };
-                    // sometimes the size is null and sometimes it is returned using exponent notaion and sometimes not. 
+                    // sometimes the size is null and sometimes it is returned using exponent notation and sometimes not. 
                     // We therefore parse as string and convert to decimal with float option
                     if ((string)token["size"] != null) ticker.Volume.PriceAmount = decimal.Parse((string)token["size"], NumberStyles.Float);
                     ticker.Volume.QuantityAmount = token.Value<decimal>("volume");
@@ -341,8 +341,7 @@ namespace ExchangeSharp
                     Symbol = token["product_id"].ToStringInvariant(),
                 };
 
-                DateTime dt;
-                if (DateTime.TryParse(token["created_at"].ToStringInvariant(), out dt)) eor.OrderDate = dt;
+                if (DateTime.TryParse(token["created_at"].ToStringInvariant(), out DateTime dt)) eor.OrderDate = dt;
                 if (token["status"].ToStringInvariant().Equals("open")) eor.Result = ExchangeAPIOrderResult.Pending;
                 else
                 {

@@ -601,6 +601,11 @@ namespace ExchangeSharp
         public const string Bittrex = "Bittrex";
 
         /// <summary>
+        /// Bittrex
+        /// </summary>
+        public const string Bleutrade = "Bleutrade";
+
+        /// <summary>
         /// GDAX
         /// </summary>
         public const string GDAX = "GDAX";
