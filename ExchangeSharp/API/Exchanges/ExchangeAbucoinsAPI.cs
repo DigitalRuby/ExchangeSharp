@@ -9,7 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace neuCryptoManager.Shared
+namespace ExchangeSharp
 {
     public sealed class ExchangebuCoinsAPI : ExchangeAPI
     {
