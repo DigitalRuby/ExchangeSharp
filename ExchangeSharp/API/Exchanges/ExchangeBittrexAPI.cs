@@ -22,7 +22,7 @@ namespace ExchangeSharp
     using System.Threading.Tasks;
     using System.Web;
 
-    public class ExchangeBittrexAPI : ExchangeAPI
+    public sealed class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
         public override string Name => ExchangeName.Bittrex;

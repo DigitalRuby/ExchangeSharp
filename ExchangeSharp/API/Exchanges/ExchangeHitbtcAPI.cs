@@ -11,16 +11,25 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    class neuHitbtcAPI : ExchangeAPI
+    public sealed class ExchangeHitbtcAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.HitBTC;
+        public override string Name => ExchangeName.Hitbtc;
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.hitbtc.com/api/2/ws";
 
-        public neuHitbtcAPI()
+        public ExchangeHitbtcAPI()
         {
             RequestContentType = "x-www-form-urlencoded";
             NonceStyle = ExchangeSharp.NonceStyle.UnixMillisecondsString;
+        }
+
+        public override string NormalizeSymbol(string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                return symbol;
+            }
+            return symbol.Replace("-", string.Empty).Replace("/", string.Empty).Replace("_", string.Empty);
         }
 
         #region ProcessRequest 
@@ -105,15 +114,20 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
+            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/ticker/" + symbol);
-            return ParseTicker(obj);
+            return ParseTicker(obj, symbol);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/ticker");
-            foreach (JToken token in obj) tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["symbol"].ToStringInvariant(), ParseTicker(token)));
+            foreach (JToken token in obj)
+            {
+                string symbol = NormalizeSymbol(token["symbol"].ToStringInvariant());
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTicker(token, symbol)));
+            }
             return tickers;
         }
 
@@ -182,7 +196,7 @@ namespace ExchangeSharp
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             long? lastTradeID = null;
-            // Can't get Hitbtc to return other than the last 50 trades even though their API says it should (by orderid or timestamp). When passing either of these parms, it still returns the last 50
+            // TODO: Can't get Hitbtc to return other than the last 50 trades even though their API says it should (by orderid or timestamp). When passing either of these parms, it still returns the last 50
             // So until there is an update, that's what we'll go with
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + symbol);
             if (obj.HasValues)
@@ -191,18 +205,15 @@ namespace ExchangeSharp
                 {
                     ExchangeTrade trade = ParseExchangeTrade(token);
                     lastTradeID = trade.Id;
-                    if (sinceDateTime != null)
+                    if (sinceDateTime == null || trade.Timestamp >= sinceDateTime)
                     {
-                        if (trade.Timestamp > sinceDateTime) trades.Add(trade);
-                        else
-                        {
-                            if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
-                            return;
-                        }
+                        trades.Add(trade);
                     }
-                    else trades.Add(trade);
                 }
-                if (callback != null && trades.Count > 0) callback(trades);
+                if (trades.Count != 0)
+                {
+                    callback(trades.OrderBy(t => t.Timestamp));
+                }
             }
         }
 
@@ -425,7 +436,7 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(JToken token)
+        private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
             return new ExchangeTicker()

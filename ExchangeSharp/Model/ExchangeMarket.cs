@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace ExchangeSharp
 {
     /// <summary>Representation of a market on an exchange.</summary>
-    public class ExchangeMarket
+    public sealed class ExchangeMarket
     {
         /// <summary>Gets or sets the name of the market.</summary>
         public string MarketName { get; set; }

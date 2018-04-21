@@ -23,7 +23,7 @@ namespace ExchangeSharp
     /// Handles all the logic for making API calls.
     /// </summary>
     /// <seealso cref="ExchangeSharp.IAPIRequestMaker" />
-    public class APIRequestMaker : IAPIRequestMaker
+    public sealed class APIRequestMaker : IAPIRequestMaker
     {
         private readonly IAPIRequestHandler api;
 

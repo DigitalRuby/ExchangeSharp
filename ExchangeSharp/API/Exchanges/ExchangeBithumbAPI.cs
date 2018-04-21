@@ -18,7 +18,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public class ExchangeBithumbAPI : ExchangeAPI
+    public sealed class ExchangeBithumbAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
         public override string Name => ExchangeName.Bithumb;

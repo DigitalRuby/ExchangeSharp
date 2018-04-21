@@ -21,7 +21,7 @@ namespace ExchangeSharp
 {
     using System.Linq;
 
-    public class ExchangeGdaxAPI : ExchangeAPI
+    public sealed class ExchangeGdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gdax.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.gdax.com";

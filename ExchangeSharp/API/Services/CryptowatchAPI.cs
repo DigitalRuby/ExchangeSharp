@@ -28,7 +28,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Contains functions to query cryptowatch API
     /// </summary>
-    public class CryptowatchAPI : BaseAPI
+    public sealed class CryptowatchAPI : BaseAPI
     {
         public override string BaseUrl { get; set; } = "https://api.cryptowat.ch";
         public override string Name => "Cryptowatch";

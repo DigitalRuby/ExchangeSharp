@@ -24,7 +24,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Details of the current price of an exchange asset
     /// </summary>
-    public class ExchangeTicker
+    public sealed class ExchangeTicker
     {
         /// <summary>
         /// An exchange specific id if known, otherwise null
@@ -89,7 +89,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Info about exchange volume
     /// </summary>
-    public class ExchangeVolume
+    public sealed class ExchangeVolume
     {
         /// <summary>
         /// Last volume update timestamp

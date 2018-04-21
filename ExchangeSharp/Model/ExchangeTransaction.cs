@@ -15,7 +15,7 @@ namespace ExchangeSharp
     using System;
 
     /// <summary>An encapsulation of a deposit or withdrawal to an exchange</summary>
-    public class ExchangeTransaction
+    public sealed class ExchangeTransaction
     {
         /// <summary>The address the transaction was sent to</summary>
         public string Address { get; set; }

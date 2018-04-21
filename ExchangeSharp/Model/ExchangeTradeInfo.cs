@@ -21,7 +21,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Latest trade info for an exchange
     /// </summary>
-    public class ExchangeTradeInfo
+    public sealed class ExchangeTradeInfo
     {
         /// <summary>
         /// Constructor

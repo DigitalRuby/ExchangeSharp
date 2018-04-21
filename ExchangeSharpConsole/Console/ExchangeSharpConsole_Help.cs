@@ -30,7 +30,7 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("help - Show this help screen, or just run without arguments to show help as well.");
             Console.WriteLine();
             Console.WriteLine("test - Run integrations test code against exchanges.");
-            Console.WriteLine(" test currently has no additional arguments.");
+            Console.WriteLine(" exchangeName - regex of exchanges to test, null/empty for all");
             Console.WriteLine();
             Console.WriteLine("export - export exchange data. CSV files have millisecond timestamp, price and amount columns. The export will also convert the CSV to bin files. This can take a long time depending on your sinceDateTime parameter.");
             Console.WriteLine(" Please note that not all exchanges will let you do this and may ban your IP if you try to grab to much data at once. I've added sensible sleep statements to limit request rates.");

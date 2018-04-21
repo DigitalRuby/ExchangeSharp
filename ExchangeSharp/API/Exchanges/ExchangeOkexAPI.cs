@@ -18,7 +18,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public class ExchangeOkexAPI : ExchangeAPI
+    public sealed class ExchangeOkexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public override string Name => ExchangeName.Okex;

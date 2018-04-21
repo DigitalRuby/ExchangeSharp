@@ -8,14 +8,23 @@ using System.Web;
 namespace ExchangeSharp
 { 
 
-    public class ExchangeBleutradeAPI : ExchangeAPI
+    public sealed class ExchangeBleutradeAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.BleuTrade;
+        public override string Name => ExchangeName.Bleutrade;
         public override string BaseUrl { get; set; } = "https://bleutrade.com/api/v2";
 
         public ExchangeBleutradeAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
+        }
+
+        public override string NormalizeSymbol(string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                return symbol;
+            }
+            return symbol.Replace('/', '_').Replace('-', '_');
         }
 
         #region ProcessRequest 
@@ -34,7 +43,7 @@ namespace ExchangeSharp
             {
                 // payload is ignored, except for the nonce which is added to the url query
                 var query = HttpUtility.ParseQueryString(url.Query);
-                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToString() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
+                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString());
             }
             return url.Uri;
         }
@@ -75,7 +84,6 @@ namespace ExchangeSharp
             return symbols;
         }
 
-
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
@@ -96,21 +104,25 @@ namespace ExchangeSharp
             return markets;
         }
 
-
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JToken result = await MakeJsonRequestAsync<JObject>("/public/getticker?market=" + symbol);
+            JToken result = await MakeJsonRequestAsync<JObject>("/public/getmarketsummary?market=" + symbol);
             result = CheckError(result);
-            if (result[0] != null)
+            result = result[0];
+            return new ExchangeTicker
             {
-                return new ExchangeTicker
+                Ask = result["Ask"].ConvertInvariant<decimal>(),
+                Bid = result["Bid"].ConvertInvariant<decimal>(),
+                Last = result["Last"].ConvertInvariant<decimal>(),
+                Volume = new ExchangeVolume
                 {
-                    Ask = result["Ask"].ConvertInvariant<decimal>(),
-                    Bid = result["Bid"].ConvertInvariant<decimal>(),
-                    Last = result["Last"].ConvertInvariant<decimal>()
-                };
-            }
-            return null;
+                    PriceAmount = result["Volume"].ConvertInvariant<decimal>(),
+                    PriceSymbol = result["BaseCurrency"].ToStringInvariant(),
+                    QuantityAmount = result["BaseVolume"].ConvertInvariant<decimal>(),
+                    QuantitySymbol = result["MarketCurrency"].ToStringInvariant(),
+                    Timestamp = result["TimeStamp"].ConvertInvariant<DateTime>()
+                }
+            };
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -198,16 +210,21 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            // Not directly supported so the best we can do is get their Max 200 and check the timestamp if necessary
+            // TODO: Not directly supported so the best we can do is get their Max 200 and check the timestamp if necessary
             JToken result = await MakeJsonRequestAsync<JObject>("/public/getmarkethistory?market=" + symbol + "&count=200");
             result = CheckError(result);
             foreach (JToken token in result)
             {
                 ExchangeTrade trade = ParseTrade(token);
-                if (sinceDateTime != null && trade.Timestamp > sinceDateTime) trades.Add(trade);
-                else trades.Add(trade);
+                if (sinceDateTime == null || trade.Timestamp >= sinceDateTime)
+                {
+                    trades.Add(trade);
+                }
             }
-            if (callback != null) callback(trades);
+            if (trades.Count != 0)
+            {
+                callback(trades);
+            }
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)

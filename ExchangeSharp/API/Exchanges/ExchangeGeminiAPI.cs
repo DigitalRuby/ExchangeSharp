@@ -22,7 +22,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public class ExchangeGeminiAPI : ExchangeAPI
+    public sealed class ExchangeGeminiAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
         public override string Name => ExchangeName.Gemini;

@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    public class ExchangeCurrency
+    public sealed class ExchangeCurrency
     {
         /// <summary>Short name of the currency. Eg. ETH</summary>
         public string Name { get; set; }

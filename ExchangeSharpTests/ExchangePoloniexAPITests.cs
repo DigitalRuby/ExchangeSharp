@@ -28,7 +28,7 @@ using NSubstitute;
 namespace ExchangeSharpTests
 {
     [TestClass]
-    public class ExchangePoloniexAPITests
+    public sealed class ExchangePoloniexAPITests
     {
         private static ExchangePoloniexAPI CreateAPI()
         {

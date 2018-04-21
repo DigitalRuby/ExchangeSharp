@@ -20,7 +20,10 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    public class WebSocketWrapper : IDisposable
+    /// <summary>
+    /// Wraps a web socket for easy dispose later
+    /// </summary>
+    public sealed class WebSocketWrapper : IDisposable
     {
         private const int receiveChunkSize = 8192;
 

@@ -29,7 +29,7 @@ namespace ExchangeSharp
             {
                 payload.Remove("nonce");
                 string body = GetJsonForPayload(payload);
-                string timestamp = ((int)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()).ToString();
+                string timestamp = ((int)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()).ToStringInvariant();
                 string msg = timestamp + request.Method + request.RequestUri.PathAndQuery + (request.Method.Equals("POST") ? body : string.Empty);
                 string sign = CryptoUtility.SHA256SignBase64(msg, CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey));
 
@@ -146,70 +146,45 @@ namespace ExchangeSharp
 
             // { "time": "2017-09-21T12:33:03Z", "trade_id": "553794", "price": "14167.99328000", "size": "0.00035000", "side": "buy"}
             JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades");
-            if (obj.HasValues) foreach (JToken token in obj) trades.Add(parseExchangeTrade(token));
+            if (obj.HasValues) foreach (JToken token in obj) trades.Add(ParseExchangeTrade(token));
             return trades;
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            long? lastTradeID = null;
+            long? lastTradeId = null;
+            JToken obj;
+            bool running = true;
+
             // Abucoins uses a page curser based on trade_id to iterate history. Keep paginating until startDate is reached or we run out of data
-            JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades");
-            if (obj.HasValues)
+            while (running)
             {
-                foreach (JToken token in obj)
+                obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades" + (lastTradeId == null ? string.Empty : "?before=" + lastTradeId));
+                if (obj.HasValues)
                 {
-                    ExchangeTrade trade = parseExchangeTrade(token);
-                    lastTradeID = trade.Id;
-                    if (sinceDateTime != null)
+                    lastTradeId = obj.First()["trade_id"].ConvertInvariant<long>();
+                    foreach (JToken token in obj)
                     {
-                        if (trade.Timestamp > sinceDateTime) trades.Add(trade);
+                        ExchangeTrade trade = ParseExchangeTrade(token);
+                        if (sinceDateTime == null || trade.Timestamp >= sinceDateTime)
+                        {
+                            trades.Add(trade);
+                        }
                         else
                         {
-                            if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
-                            return;
+                            // sinceDateTime has been passed, no more paging
+                            running = false;
+                            break;
                         }
                     }
-                    else trades.Add(trade);
                 }
-
-                if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
-                else return;
-
-                trades.Clear();
-
-                while (true)
+                if (trades.Count != 0 && !callback(trades.OrderBy(t => t.Timestamp)))
                 {
-                    obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades?before=" + lastTradeID);
-                    if (obj.HasValues)
-                    {
-                        foreach (JToken token in obj)
-                        {
-                            ExchangeTrade trade = parseExchangeTrade(token);
-                            lastTradeID = trade.Id;
-                            if (sinceDateTime != null)
-                            {
-                                if (trade.Timestamp > sinceDateTime) trades.Add(trade);
-                                else
-                                {
-                                    if (callback != null && trades.Count > 0) callback(trades.OrderBy(t => t.Timestamp));
-                                    return;
-                                }
-                            }
-                            else trades.Add(trade);
-                        }
-                    }
-                    else return;
-
-                    if (callback != null && trades.Count > 0)
-                    {
-                        callback(trades.OrderBy(t => t.Timestamp));
-                        trades.Clear();
-                    }
-                    else return;
-                    await Task.Delay(2000);   // two seconds seems like a lot and unnecessary. The RateGate should time this
+                    return;
                 }
+                trades.Clear();
+                await Task.Delay(1000);
             }
         }
 
@@ -231,13 +206,14 @@ namespace ExchangeSharp
                     {
                         ExchangeName = this.Name,
                         Name = symbol,
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(array[0].ConvertInvariant<long>()),
+                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[0].ConvertInvariant<long>()),
                         PeriodSeconds = periodSeconds,
                         LowPrice = array[1].ConvertInvariant<decimal>(),
                         HighPrice = array[2].ConvertInvariant<decimal>(),
                         OpenPrice = array[3].ConvertInvariant<decimal>(),
                         ClosePrice = array[4].ConvertInvariant<decimal>(),
-                        VolumeQuantity = array[5].ConvertInvariant<double>()
+                        VolumeQuantity = array[5].ConvertInvariant<double>(),
+                        VolumePrice = array[4].ConvertInvariant<double>()
                     });
                 }
             }
@@ -540,7 +516,7 @@ namespace ExchangeSharp
                         {
                             new KeyValuePair<string, ExchangeTicker>(token.Value<string>("product_id"), new ExchangeTicker()
                             {
-                                Id = token["trade_id"].ConvertInvariant<long>().ToString(),
+                                Id = token["trade_id"].ConvertInvariant<long>().ToStringInvariant(),
                                 Last = token["price"].ConvertInvariant<decimal>(),
                                 Ask = token["best_ask"].ConvertInvariant<decimal>(),
                                 Bid = token["best_bid"].ConvertInvariant<decimal>(),
@@ -566,7 +542,7 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTrade parseExchangeTrade(JToken token)
+        private ExchangeTrade ParseExchangeTrade(JToken token)
         {
             return new ExchangeTrade()
             {

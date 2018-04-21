@@ -15,7 +15,7 @@ namespace ExchangeSharp
     using System;
 
     /// <summary>Result of an exchange order</summary>
-    public class ExchangeOrderResult
+    public sealed class ExchangeOrderResult
     {
         /// <summary>Order id</summary>
         public string OrderId { get; set; }

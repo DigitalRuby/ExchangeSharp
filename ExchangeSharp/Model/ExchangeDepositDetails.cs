@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace ExchangeSharp
 {
     /// <summary>Class to encapsulate details required to make a deposit.</summary>
-    public class ExchangeDepositDetails
+    public sealed class ExchangeDepositDetails
     {
         /// <summary>The symbol of the currency. Ex. ETH</summary>
         public string Symbol;

@@ -15,7 +15,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Class encapsulating a withdrawal response from an exchange
     /// </summary>
-    public class ExchangeWithdrawalResponse
+    public sealed class ExchangeWithdrawalResponse
     {
         /// <summary>The message of the transacion.</summary>
         public string Message { get; set; }

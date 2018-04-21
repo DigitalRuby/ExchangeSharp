@@ -22,7 +22,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public class ExchangeBinanceAPI : ExchangeAPI
+    public sealed class ExchangeBinanceAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";

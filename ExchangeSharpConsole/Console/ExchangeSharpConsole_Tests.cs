@@ -42,7 +42,7 @@ namespace ExchangeSharpConsoleApp
             {
                 return api.NormalizeSymbol("BTC-LTC");
             }
-            else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI)
+            else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI || api is ExchangeBleutradeAPI)
             {
                 return api.NormalizeSymbol("ETH-BTC");
             }
@@ -133,7 +133,7 @@ namespace ExchangeSharpConsoleApp
             {
                 // store keys
                 string path = Path.Combine(Path.GetTempPath(), "keystore.test.bin");
-                string publicKey  = "public key test aa45c0";
+                string publicKey = "public key test aa45c0";
                 string privateKey = "private key test bb270a";
                 string[] keys = new string[] { publicKey, privateKey };
 
@@ -186,7 +186,7 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
-        private static void TestExchanges()
+        private static void TestExchanges(string nameRegex = null)
         {
             ExchangeTrade[] trades = null;
             bool histTradeCallback(IEnumerable<ExchangeTrade> tradeEnum)
@@ -198,6 +198,11 @@ namespace ExchangeSharpConsoleApp
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIDictionary().Values.ToArray();
             foreach (IExchangeAPI api in apis)
             {
+                if (nameRegex != null && !System.Text.RegularExpressions.Regex.IsMatch(api.Name, nameRegex, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    continue;
+                }
+
                 // test all public API for each exchange
                 try
                 {
@@ -249,14 +254,14 @@ namespace ExchangeSharpConsoleApp
         }
 
         private static void TestMovingAverageCalculator()
-	{
+        {
             // no change
             const int len1 = 10;
             var ma1 = new MovingAverageCalculator(len1);
-            for (int i=0; i<len1*2; i++)
-	    {
+            for (int i = 0; i < len1 * 2; i++)
+            {
                 ma1.NextValue(5.0);
-                Assert((i < len1-1) != ma1.IsMature);
+                Assert((i < len1 - 1) != ma1.IsMature);
                 Assert(ma1.MovingAverage == 5.0);
             }
             Assert(ma1.IsMature);
@@ -269,10 +274,10 @@ namespace ExchangeSharpConsoleApp
             const int len2 = 10;
             var ma2 = new MovingAverageCalculator(len2);
             for (int i = 0; i < len2; i++)
-	    {
+            {
                 ma2.NextValue(i);
-                Assert(ma2.MovingAverage == i/2.0);
-                Assert((i<len2-1) != ma2.IsMature);
+                Assert(ma2.MovingAverage == i / 2.0);
+                Assert((i < len2 - 1) != ma2.IsMature);
             }
             Assert(ma2.IsMature);
             Assert(ma2.MovingAverage == 4.5);
@@ -281,7 +286,7 @@ namespace ExchangeSharpConsoleApp
             Assert(ma2.ExponentialSlope == 0.83569589330639626);
 
             for (int i = len2; i < len2 * 2; i++)
-	    {
+            {
                 ma2.NextValue(i);
                 Assert(ma2.MovingAverage == i - 4.5);
             }
@@ -290,7 +295,7 @@ namespace ExchangeSharpConsoleApp
             const int len3 = 10;
             var ma3 = new MovingAverageCalculator(len3);
             for (int i = 0; i < len3; i++)
-	    {
+            {
                 ma3.NextValue(i < 5 ? 0 : 1.0);
             }
             Assert(ma3.MovingAverage == 0.5);
@@ -301,8 +306,8 @@ namespace ExchangeSharpConsoleApp
             // inverse step function
             const int len4 = 10;
             var ma4 = new MovingAverageCalculator(len4);
-            for(int i = 0; i < len4; i++)
-	    {
+            for (int i = 0; i < len4; i++)
+            {
                 ma4.NextValue(i < 5 ? 1.0 : 0);
             }
             Assert(ma4.MovingAverage == 0.5);
@@ -315,7 +320,9 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
-            TestExchanges();
+            string exchangeNameRegex;
+            dict.TryGetValue("exchangeName", out exchangeNameRegex);
+            TestExchanges(exchangeNameRegex);
             TestMovingAverageCalculator();
             TestRSAFromFile();
             TestAESEncryption();
@@ -324,3 +331,4 @@ namespace ExchangeSharpConsoleApp
         }
     }
 }
+

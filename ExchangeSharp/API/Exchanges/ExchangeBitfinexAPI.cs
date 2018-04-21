@@ -23,7 +23,7 @@ namespace ExchangeSharp
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
 
-    public class ExchangeBitfinexAPI : ExchangeAPI
+    public sealed class ExchangeBitfinexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";

@@ -22,7 +22,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public class ExchangeKrakenAPI : ExchangeAPI
+    public sealed class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
         public override string Name => ExchangeName.Kraken;
