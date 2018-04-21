@@ -571,7 +571,7 @@ namespace ExchangeSharp
     public static class ExchangeName
     {
         /// <summary>
-        /// Binance
+        /// Abucoins
         /// </summary>
         public const string Abucoins = "Abucoins";
 
@@ -601,7 +601,7 @@ namespace ExchangeSharp
         public const string Bittrex = "Bittrex";
 
         /// <summary>
-        /// Bittrex
+        /// Bleutrade
         /// </summary>
         public const string Bleutrade = "Bleutrade";
 
