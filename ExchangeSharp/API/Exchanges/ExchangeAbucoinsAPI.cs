@@ -161,7 +161,7 @@ namespace ExchangeSharp
             while (running)
             {
                 obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/trades" + (lastTradeId == null ? string.Empty : "?before=" + lastTradeId));
-                if (obj.HasValues)
+                if ((running = obj.HasValues))
                 {
                     lastTradeId = obj.First()["trade_id"].ConvertInvariant<long>();
                     foreach (JToken token in obj)

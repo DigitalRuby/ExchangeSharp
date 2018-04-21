@@ -320,8 +320,7 @@ namespace ExchangeSharpConsoleApp
 
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
-            string exchangeNameRegex;
-            dict.TryGetValue("exchangeName", out exchangeNameRegex);
+            dict.TryGetValue("exchangeName", out string exchangeNameRegex);
             TestExchanges(exchangeNameRegex);
             TestMovingAverageCalculator();
             TestRSAFromFile();
