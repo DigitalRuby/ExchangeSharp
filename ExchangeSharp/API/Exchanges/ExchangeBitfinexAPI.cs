@@ -710,6 +710,11 @@ namespace ExchangeSharp
             }
         }
 
+        protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        {
+            throw new NotSupportedException("Bitfinex does not provide data about its currencies via the API");
+        }
+
         private async Task<IEnumerable<ExchangeOrderResult>> GetOrderDetailsInternalAsync(string url, string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
