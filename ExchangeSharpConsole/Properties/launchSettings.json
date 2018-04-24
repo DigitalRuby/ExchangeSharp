@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "ExchangeSharpConsole": {
-      "commandName": "Project",
-      "commandLineArgs": "test exchangeName=abucoins"
-    }
-  }
-}

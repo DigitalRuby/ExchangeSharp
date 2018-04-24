@@ -52,8 +52,8 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("example - simple example showing how to create an API instance and get the ticker, and place an order.");
             Console.WriteLine(" example currently has no additional arguments.");
             Console.WriteLine();
-            Console.WriteLine("poloniex-websocket - Poloniex, shows how to connect via web socket and listen to tickers.");
-            Console.WriteLine("bittrex-websocket - Bittrex, shows how to connect via web socket and listen to tickers.");
+            Console.WriteLine("websocket - Shows how to connect via web socket and listen to tickers.");
+            Console.WriteLine(" websocket exchangeName - name of Exchange to show websocket tickers for.");
             Console.WriteLine();
         }
     }

@@ -73,7 +73,7 @@ namespace ExchangeSharp
         {
             try
             {
-                _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).Wait();
+                _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
             }
             catch
             {
@@ -87,7 +87,7 @@ namespace ExchangeSharp
         /// <param name="message">The message to send</param>
         public void SendMessage(string message)
         {
-            SendMessageAsync(message).Wait();
+            SendMessageAsync(message).GetAwaiter().GetResult();
         }
 
         private async Task SendMessageAsync(string message)
@@ -140,6 +140,7 @@ namespace ExchangeSharp
             bool wasClosed = true;
             TimeSpan keepAlive = _ws.Options.KeepAliveInterval;
             MemoryStream stream = new MemoryStream();
+            WebSocketReceiveResult result;
 
             while (!_disposed)
             {
@@ -150,29 +151,27 @@ namespace ExchangeSharp
                         // re-open the socket
                         wasClosed = false;
                         _ws = new ClientWebSocket();
-                        _ws.ConnectAsync(_uri, CancellationToken.None).Wait();
+                        _ws.ConnectAsync(_uri, CancellationToken.None).GetAwaiter().GetResult();
                         QueueActionWithNoExceptions(_onConnected);
                     }
 
                     while (_ws.State == WebSocketState.Open)
                     {
-                        Task<WebSocketReceiveResult> result;
                         do
                         {
-                            result = _ws.ReceiveAsync(receiveBuffer, _cancellationToken);
-                            result.Wait();
-                            if (result.Result.MessageType == WebSocketMessageType.Close)
+                            result = _ws.ReceiveAsync(receiveBuffer, _cancellationToken).GetAwaiter().GetResult();
+                            if (result.MessageType == WebSocketMessageType.Close)
                             {
-                                _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).Wait();
+                                _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
                                 QueueAction(_onDisconnected);
                             }
                             else
                             {
-                                stream.Write(receiveBuffer.Array, 0, result.Result.Count);
+                                stream.Write(receiveBuffer.Array, 0, result.Count);
                             }
 
                         }
-                        while (!result.Result.EndOfMessage);
+                        while (!result.EndOfMessage);
                         if (stream.Length != 0)
                         {
                             string messageString = Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);

@@ -90,9 +90,9 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunPoloniexWebSocket();
                 }
-                else if (dict.ContainsKey("bittrex-websocket"))
+                else if (dict.ContainsKey("websocket"))
                 {
-                    RunBittrexWebSocket();
+                    RunWebSocket(dict);
                 }
                 else
                 {

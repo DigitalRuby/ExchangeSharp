@@ -64,10 +64,14 @@ namespace ExchangeSharpConsoleApp
             wss.Dispose();
         }
 
-        private static void RunBittrexWebSocket()
+        private static void RunWebSocket(Dictionary<string, string> dict)
         {
-            var bittrex = new ExchangeBittrexAPI();
-            IDisposable bitSocket = bittrex.GetTickersWebSocket(freshTickers =>
+            var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
+            if (api == null)
+            {
+                throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+            }
+            IDisposable socket = api.GetTickersWebSocket(freshTickers =>
             {
                 foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
                 {
@@ -77,7 +81,7 @@ namespace ExchangeSharpConsoleApp
 
             Console.WriteLine("Press any key to quit.");
             Console.ReadKey();
-            bitSocket.Dispose();
+            socket.Dispose();
         }
 
         public static void RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)
