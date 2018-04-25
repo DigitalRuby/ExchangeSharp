@@ -626,11 +626,6 @@ namespace ExchangeSharp
         public const string Hitbtc = "Hitbtc";
 
         /// <summary>
-        /// Kucoin
-        /// </summary>
-        public const string Kucoin = "Kucoin";
-
-        /// <summary>
         /// Kraken
         /// </summary>
         public const string Kraken = "Kraken";
