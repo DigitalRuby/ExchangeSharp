@@ -631,6 +631,11 @@ namespace ExchangeSharp
         public const string Kraken = "Kraken";
 
         /// <summary>
+        /// Kucoin
+        /// </summary>
+        public const string Kucoin = "Kucoin";
+
+        /// <summary>
         /// Okex
         /// </summary>
         public const string Okex = "Okex";
