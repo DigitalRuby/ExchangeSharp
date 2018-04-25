@@ -264,4 +264,3 @@ __pycache__/
 *.bin
 *.log*
 ExchangeSharpConsole/Properties/launchSettings.json
-/ExchangeSharp/API/Exchanges/ExchangeTemplateAPI.cs
