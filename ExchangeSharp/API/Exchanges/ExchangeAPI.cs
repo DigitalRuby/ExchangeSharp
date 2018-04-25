@@ -188,7 +188,7 @@ namespace ExchangeSharp
         /// <returns>Normalized global symbol</returns>
         public virtual string NormalizeSymbolGlobal(string symbol)
         {
-            return symbol?.Replace("_", "-").Replace("/", "-").ToLowerInvariant();
+            return (symbol ?? string.Empty).Replace("_", "-").Replace("/", "-").ToLowerInvariant();
         }
 
         /// <summary>

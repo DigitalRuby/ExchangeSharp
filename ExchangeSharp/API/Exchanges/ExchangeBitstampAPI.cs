@@ -103,7 +103,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.Replace("/", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
+            return (symbol ?? string.Empty).Replace("/", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()

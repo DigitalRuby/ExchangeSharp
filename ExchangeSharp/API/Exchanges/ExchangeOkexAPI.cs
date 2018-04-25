@@ -30,7 +30,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.ToLowerInvariant().Replace('-', '_');
+            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
         }
 
         private void CheckError(JToken result)

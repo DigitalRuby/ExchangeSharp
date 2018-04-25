@@ -32,11 +32,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            if (symbol != null)
-            {
-                symbol = symbol.Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
-            }
-            return symbol;
+            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
         }
 
         public ExchangeBinanceAPI()

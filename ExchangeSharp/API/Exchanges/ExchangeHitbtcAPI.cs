@@ -25,11 +25,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            if (string.IsNullOrWhiteSpace(symbol))
-            {
-                return symbol;
-            }
-            return symbol.Replace("-", string.Empty).Replace("/", string.Empty).Replace("_", string.Empty);
+            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("/", string.Empty).Replace("_", string.Empty);
         }
 
         #region ProcessRequest 
@@ -352,15 +348,17 @@ namespace ExchangeSharp
                 {
                     if (token["currency"].ToStringInvariant().Equals(symbol))
                     {
-                        ExchangeTransaction transaction = new ExchangeTransaction();
-                        transaction.PaymentId = token["id"].ToStringInvariant();
-                        transaction.Symbol = token["currency"].ToStringInvariant();
-                        transaction.Address = token["address"].ToStringInvariant();               // Address Tag isn't returned
-                        transaction.BlockchainTxId = token["hash"].ToStringInvariant();           // not sure about this
-                        transaction.Amount = token["amount"].ConvertInvariant<decimal>();
-                        transaction.Notes = token["type"].ToStringInvariant();                    // since no notes are returned, we'll use this to show the transaction type
-                        transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
-                        transaction.TimestampUTC = token["createdAt"].ConvertInvariant<DateTime>();
+                        ExchangeTransaction transaction = new ExchangeTransaction
+                        {
+                            PaymentId = token["id"].ToStringInvariant(),
+                            Symbol = token["currency"].ToStringInvariant(),
+                            Address = token["address"].ToStringInvariant(),               // Address Tag isn't returned
+                            BlockchainTxId = token["hash"].ToStringInvariant(),           // not sure about this
+                            Amount = token["amount"].ConvertInvariant<decimal>(),
+                            Notes = token["type"].ToStringInvariant(),                    // since no notes are returned, we'll use this to show the transaction type
+                            TxFee = token["fee"].ConvertInvariant<decimal>(),
+                            TimestampUTC = token["createdAt"].ConvertInvariant<DateTime>()
+                        };
 
                         string status = token["status"].ToStringInvariant();
                         if (status.Equals("pending")) transaction.Status = TransactionStatus.Processing;

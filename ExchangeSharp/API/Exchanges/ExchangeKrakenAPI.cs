@@ -183,7 +183,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
+            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
         }
 
         public override string NormalizeSymbolGlobal(string symbol)

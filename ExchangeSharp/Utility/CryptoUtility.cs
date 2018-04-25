@@ -89,7 +89,7 @@ namespace ExchangeSharp
 
         public static string NormalizeSymbol(string symbol)
         {
-            return symbol?.Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
+            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
         }
 
         public static string ToUnsecureString(this SecureString s)

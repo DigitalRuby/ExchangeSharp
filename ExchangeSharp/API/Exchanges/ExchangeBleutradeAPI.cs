@@ -20,11 +20,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            if (string.IsNullOrWhiteSpace(symbol))
-            {
-                return symbol;
-            }
-            return symbol.Replace('/', '_').Replace('-', '_');
+            return (symbol ?? string.Empty).Replace('/', '_').Replace('-', '_');
         }
 
         #region ProcessRequest 

@@ -83,7 +83,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.Replace("-", string.Empty).ToUpperInvariant();
+            return (symbol ?? string.Empty).Replace("-", string.Empty).ToUpperInvariant();
         }
 
         public override string NormalizeSymbolGlobal(string symbol)
@@ -97,7 +97,7 @@ namespace ExchangeSharp
 
         public string NormalizeSymbolV1(string symbol)
         {
-            return symbol?.Replace("-", string.Empty).ToLowerInvariant();
+            return (symbol ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant();
         }
 
         public async Task<IEnumerable<ExchangeOrderResult>> GetOrderDetailsInternalV2(string url, string symbol = null)

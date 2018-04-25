@@ -166,7 +166,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.ToUpperInvariant();
+            return (symbol ?? string.Empty).ToUpperInvariant();
         }
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()

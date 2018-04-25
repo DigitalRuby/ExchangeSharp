@@ -133,7 +133,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.Replace('_', '-').ToUpperInvariant();
+            return (symbol ?? string.Empty).Replace('_', '-').ToUpperInvariant();
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()

@@ -245,7 +245,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return symbol?.ToUpperInvariant().Replace('-', '_');
+            return (symbol ?? string.Empty).ToUpperInvariant().Replace('-', '_');
         }
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()

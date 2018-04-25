@@ -24,6 +24,11 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
+        public override string NormalizeSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty).Replace('/', '_').Replace('-', '_');
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
@@ -120,7 +125,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JToken result = await MakeJsonRequestAsync<JToken>("/GetMarket/" + DeNormalizeSymbolGlobal(symbol));
+            JToken result = await MakeJsonRequestAsync<JToken>("/GetMarket/" + NormalizeSymbol(symbol));
             result = CheckError(result);
             return ParseTicker(result);
         }
@@ -138,7 +143,7 @@ namespace ExchangeSharp
         {
             ExchangeOrderBook orders = new ExchangeOrderBook();
             // {"TradePairId":100,"Label":"DOT/BTC","Price":0.00000317,"Volume":333389.57231468,"Total":1.05684494}
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + DeNormalizeSymbolGlobal(symbol) + "/" + maxCount.ToString());
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + NormalizeSymbol(symbol) + "/" + maxCount.ToString());
             token = CheckError(token);
             if (token.HasValues)
             {
@@ -152,7 +157,7 @@ namespace ExchangeSharp
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // [{ "TradePairId":100,"Label":"LTC/BTC","Type":"Sell","Price":0.00006000, "Amount":499.99640000,"Total":0.02999978,"Timestamp": 1418297368}, ...]
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + DeNormalizeSymbolGlobal(symbol));      // Default is last 24 hours
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbol(symbol));      // Default is last 24 hours
             token = CheckError(token);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
             return trades;
@@ -162,7 +167,7 @@ namespace ExchangeSharp
         {
             string hours = sinceDateTime == null ? "24" : ((DateTime.Now - sinceDateTime).Value.TotalHours).ToString();
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + DeNormalizeSymbolGlobal(symbol) + "/" + hours);      
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbol(symbol) + "/" + hours);      
             token = CheckError(token);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
             var rc = callback?.Invoke(trades);
@@ -421,7 +426,6 @@ namespace ExchangeSharp
 
         #endregion
 
-
         #region Private Functions
 
         private JToken CheckError(JToken result)
@@ -433,14 +437,6 @@ namespace ExchangeSharp
             }
             return result["Data"];
         }
-
-
-        private string DeNormalizeSymbolGlobal(string symbol)
-        {
-            // The Cryptopia Markets are returned with a forward slash, but of course we can't pass this in a URL. They will accecpt an uderscore, so...
-            return symbol?.Replace("/", "_");
-        }
-
 
         private ExchangeTicker ParseTicker(JToken token)
         {
