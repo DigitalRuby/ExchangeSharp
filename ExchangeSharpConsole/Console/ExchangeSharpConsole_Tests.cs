@@ -32,23 +32,6 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
-        private static string GetSymbol(IExchangeAPI api)
-        {
-            if (api is ExchangeKrakenAPI)
-            {
-                return api.NormalizeSymbol("XXBTZUSD");
-            }
-            else if (api is ExchangeBittrexAPI || api is ExchangePoloniexAPI)
-            {
-                return api.NormalizeSymbol("BTC-LTC");
-            }
-            else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI || api is ExchangeBleutradeAPI)
-            {
-                return api.NormalizeSymbol("ETH-BTC");
-            }
-            return api.NormalizeSymbol("BTC-USD");
-        }
-
         private static void TestRateGate()
         {
             try
@@ -188,6 +171,28 @@ namespace ExchangeSharpConsoleApp
 
         private static void TestExchanges(string nameRegex = null)
         {
+            string GetSymbol(IExchangeAPI api)
+            {
+                if (api is ExchangeCryptopiaAPI)
+                {
+                    return "LTC/BTC";
+                }
+                else if (api is ExchangeKrakenAPI)
+                {
+                    return api.NormalizeSymbol("XXBTZUSD");
+                }
+                else if (api is ExchangeBittrexAPI || api is ExchangePoloniexAPI)
+                {
+                    return api.NormalizeSymbol("BTC-LTC");
+                }
+                else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI || api is ExchangeBleutradeAPI ||
+                    api is ExchangeKucoinAPI)
+                {
+                    return api.NormalizeSymbol("ETH-BTC");
+                }
+                return api.NormalizeSymbol("BTC-USD");
+            }
+
             ExchangeTrade[] trades = null;
             bool histTradeCallback(IEnumerable<ExchangeTrade> tradeEnum)
             {
@@ -244,6 +249,14 @@ namespace ExchangeSharpConsoleApp
                     catch (NotImplementedException)
                     {
                         Console.WriteLine($"API {api.Name} GetCandles not implemented");
+                    }
+                    catch
+                    {
+                        // These API require private access to get candles end points
+                        if (!(api is ExchangeKucoinAPI))
+                        {
+                            throw;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -322,11 +335,14 @@ namespace ExchangeSharpConsoleApp
         {
             dict.TryGetValue("exchangeName", out string exchangeNameRegex);
             TestExchanges(exchangeNameRegex);
-            TestMovingAverageCalculator();
-            TestRSAFromFile();
-            TestAESEncryption();
-            TestKeyStore();
-            TestRateGate();
+            if (string.IsNullOrWhiteSpace(exchangeNameRegex))
+            {
+                TestMovingAverageCalculator();
+                TestRSAFromFile();
+                TestAESEncryption();
+                TestKeyStore();
+                TestRateGate();
+            }
         }
     }
 }

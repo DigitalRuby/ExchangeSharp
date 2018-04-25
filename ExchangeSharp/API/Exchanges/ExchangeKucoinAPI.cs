@@ -258,7 +258,8 @@ namespace ExchangeSharp
                         HighPrice = token["h"][i].ConvertInvariant<decimal>(),
                         LowPrice = token["l"][i].ConvertInvariant<decimal>(),
                         OpenPrice = token["o"][i].ConvertInvariant<decimal>(),
-                        VolumeQuantity = token["v"][i].ConvertInvariant<double>()
+                        VolumeQuantity = token["v"][i].ConvertInvariant<double>(),
+                        VolumePrice = token["v"][i].ConvertInvariant<double>() * token["c"][i].ConvertInvariant<double>()
                     });
                 }
             }
@@ -416,7 +417,7 @@ namespace ExchangeSharp
             ExchangeOrderResult order = new ExchangeOrderResult()
             {
                 OrderId = token["oid"].ToStringInvariant(),
-                Symbol = token["coinType"].ToStringInvariant() + "-" + token["CoinTypePair"].ToStringInvariant(),
+                Symbol = token["coinType"].ToStringInvariant() + "-" + token["coinTypePair"].ToStringInvariant(),
                 IsBuy = token["direction"].ToStringInvariant().Equals("BUY"),
                 AveragePrice = token["price"].ConvertInvariant<decimal>(),
                 OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).Date

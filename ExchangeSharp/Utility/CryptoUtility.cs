@@ -84,7 +84,12 @@ namespace ExchangeSharp
             {
                 return defaultValue;
             }
-            return (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
+            T result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
+            if (typeof(T) == typeof(decimal))
+            {
+                return (T)(object)((decimal)(object)result).Normalize();
+            }
+            return result;
         }
 
         public static string NormalizeSymbol(string symbol)

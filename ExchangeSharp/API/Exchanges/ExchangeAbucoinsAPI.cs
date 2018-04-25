@@ -87,16 +87,23 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/ticker");
-            if (!token.HasValues) return null;
+            if (!token.HasValues)
+            {
+                return null;
+            }
+            decimal size = token["size"].ConvertInvariant<decimal>();
+            decimal price = token["price"].ConvertInvariant<decimal>();
             return new ExchangeTicker
             {
                 Ask = token["ask"].ConvertInvariant<decimal>(),
                 Bid = token["bid"].ConvertInvariant<decimal>(),
-                Last = decimal.Parse(token["price"].ToStringLowerInvariant(), System.Globalization.NumberStyles.Float),
+                Last = price,
                 Volume = new ExchangeVolume()
                 {
-                    PriceAmount = decimal.Parse(token["size"].ToStringLowerInvariant(), NumberStyles.Float),
-                    QuantityAmount = token["volume"].ConvertInvariant<decimal>(),
+                    PriceAmount = size,
+                    PriceSymbol = symbol,
+                    QuantityAmount = size * price,
+                    QuantitySymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }
             };
