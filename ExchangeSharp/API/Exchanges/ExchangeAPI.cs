@@ -606,6 +606,11 @@ namespace ExchangeSharp
         public const string Bleutrade = "Bleutrade";
 
         /// <summary>
+        /// Cryptopia
+        /// </summary>
+        public const string Cryptopia = "Cryptopia";
+
+        /// <summary>
         /// GDAX
         /// </summary>
         public const string GDAX = "GDAX";
