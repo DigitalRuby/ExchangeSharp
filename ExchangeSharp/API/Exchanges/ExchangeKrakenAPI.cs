@@ -202,11 +202,32 @@ namespace ExchangeSharp
             return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        {
+            var symbols = await GetSymbolsAsync();
+            var normalizedPairsList = symbols.Select(symbol => NormalizeSymbol(symbol)).ToList();
+            var csvPairsList = string.Join(",", normalizedPairsList);
+            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", csvPairsList } });
+            JToken apiTickers = CheckError(json);
+            var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            foreach (string symbol in symbols)
+            {
+                JToken ticker = apiTickers[symbol];
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ConvertToExchangeTicker(symbol, ticker)));
+            }
+            return tickers;
+        }
+
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
-            JToken ticker = CheckError(json);
-            ticker = ticker[symbol];
+            JToken apiTickers = CheckError(json);
+            JToken ticker = apiTickers[symbol];
+            return ConvertToExchangeTicker(symbol, ticker);
+        }
+
+        private static ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
+        {
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();
             return new ExchangeTicker
             {
