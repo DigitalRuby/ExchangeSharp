@@ -644,5 +644,10 @@ namespace ExchangeSharp
         /// Poloniex
         /// </summary>
         public const string Poloniex = "Poloniex";
+
+        /// <summary>
+        /// TuxExchange
+        /// </summary>
+        public const string TuxExchange = "TuxExchange";
     }
 }

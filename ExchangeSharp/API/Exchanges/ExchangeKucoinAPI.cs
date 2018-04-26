@@ -424,10 +424,8 @@ namespace ExchangeSharp
             };
 
             // Amount and Filled are returned as Sold and Pending, so we'll adjust
-            decimal pending = token["pendingAmount"].ConvertInvariant<decimal>();
-            decimal sold = token["dealAmount"].ConvertInvariant<decimal>();
-            order.Amount = pending + sold;
-            order.AmountFilled = sold - pending;
+            order.AmountFilled = token["dealAmount"].ConvertInvariant<decimal>();
+            order.Amount = token["pendingAmount"].ConvertInvariant<decimal>() + order.AmountFilled;
 
             if (order.Amount == order.AmountFilled) order.Result = ExchangeAPIOrderResult.Filled;
             else if (order.AmountFilled == 0m) order.Result = ExchangeAPIOrderResult.Pending;
