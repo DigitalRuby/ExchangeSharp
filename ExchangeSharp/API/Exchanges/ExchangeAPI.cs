@@ -649,5 +649,11 @@ namespace ExchangeSharp
         /// TuxExchange
         /// </summary>
         public const string TuxExchange = "TuxExchange";
+
+        /// <summary>
+        /// Yobit
+        /// </summary>
+        public const string Yobit = "Yobit";
+
     }
 }

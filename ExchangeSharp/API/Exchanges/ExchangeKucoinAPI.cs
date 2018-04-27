@@ -132,7 +132,7 @@ namespace ExchangeSharp
                     Last = token["lastDealPrice"].Value<decimal>(),
                     Volume = new ExchangeVolume()
                     {
-                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(token["datetime"].ConvertInvariant<long>()).Date,
+                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(token["datetime"].ConvertInvariant<long>()).DateTime,
                         QuantityAmount = token["vol"].ConvertInvariant<decimal>(),
                         QuantitySymbol = token["coinType"].ToStringInvariant(),
                         PriceAmount = token["vol"].ConvertInvariant<decimal>(),
@@ -158,7 +158,7 @@ namespace ExchangeSharp
                     Last = tick["lastDealPrice"].Value<decimal>(),
                     Volume = new ExchangeVolume()
                     {
-                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tick["datetime"].ConvertInvariant<long>()).Date,
+                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tick["datetime"].ConvertInvariant<long>()).DateTime,
                         QuantityAmount = tick["vol"].ConvertInvariant<decimal>(),
                         QuantitySymbol = tick["coinType"].ToStringInvariant(),
                         PriceAmount = tick["vol"].ConvertInvariant<decimal>(),
@@ -180,7 +180,7 @@ namespace ExchangeSharp
             {
                 trades.Add(new ExchangeTrade()
                 {
-                    Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(trade[0].ConvertInvariant<long>()).Date,
+                    Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(trade[0].ConvertInvariant<long>()).DateTime,
                     IsBuy = trade[1].ToStringInvariant().Equals("BUY"),
                     Amount = trade[3].ConvertInvariant<decimal>(),
                     Price = trade[2].ConvertInvariant<decimal>()
@@ -198,7 +198,7 @@ namespace ExchangeSharp
             {
                 trades.Add(new ExchangeTrade()
                 {
-                    Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(trade[0].ConvertInvariant<long>()).Date,
+                    Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(trade[0].ConvertInvariant<long>()).DateTime,
                     IsBuy = trade[1].ToStringInvariant().Equals("BUY"),
                     Amount = trade[3].ConvertInvariant<decimal>(),
                     Price = trade[2].ConvertInvariant<decimal>()
@@ -253,7 +253,7 @@ namespace ExchangeSharp
                         ExchangeName = this.Name,
                         Name = symbol,
                         PeriodSeconds = periodSeconds,
-                        Timestamp = DateTimeOffset.FromUnixTimeSeconds(token["t"][i].ConvertInvariant<long>()).Date,
+                        Timestamp = DateTimeOffset.FromUnixTimeSeconds(token["t"][i].ConvertInvariant<long>()).DateTime,
                         ClosePrice = token["c"][i].ConvertInvariant<decimal>(),
                         HighPrice = token["h"][i].ConvertInvariant<decimal>(),
                         LowPrice = token["l"][i].ConvertInvariant<decimal>(),
@@ -420,7 +420,7 @@ namespace ExchangeSharp
                 Symbol = token["coinType"].ToStringInvariant() + "-" + token["coinTypePair"].ToStringInvariant(),
                 IsBuy = token["direction"].ToStringInvariant().Equals("BUY"),
                 AveragePrice = token["price"].ConvertInvariant<decimal>(),
-                OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).Date
+                OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).DateTime
             };
 
             // Amount and Filled are returned as Sold and Pending, so we'll adjust
@@ -449,7 +449,7 @@ namespace ExchangeSharp
                 AveragePrice = token["dealPrice"].ConvertInvariant<decimal>(),
                 Message = string.Format("Original Order ID: {0}", token["orderOid"].ToStringInvariant()),           // each new order is given an order ID. As it is filled, possibly across multipl orders, a new oid is created. Here we put the orginal orderid
                 Fees = decimal.Parse(token["fee"].ToStringInvariant(), System.Globalization.NumberStyles.Float),     // returned with exponent so have to parse
-                OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).Date,
+                OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).DateTime,
                 Result = ExchangeAPIOrderResult.Filled
             };
         }
