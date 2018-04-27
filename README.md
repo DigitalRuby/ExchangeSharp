@@ -18,29 +18,34 @@
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.0 ```  
 </a> 
 
-ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for stocks or cryptocurrency assets.
+ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
 Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 
 The following cryptocurrency exchanges are supported:
 
+- Abucoins (public REST, basic private REST, public web socket (tickers), private web socket (orders))
 - Binance (public REST, basic private REST, public web socket (tickers))
 - Bitfinex (public REST, basic private REST, public web socket (tickers), private web socket (orders))
 - Bithumb (public REST)
 - Bitstamp (public REST, basic private REST)
 - Bittrex (public REST, basic private REST, public web socket (tickers))
+- Bleutrade (public REST, basic private REST)
+- Cryptopia (public REST, basic private REST)
 - Gemini (public REST, basic private REST)
 - GDAX (public REST, basic private REST, public web socket (tickers))
+- Hitbtc (public REST, basic private REST)
 - Kraken (public REST, basic private REST)
+- Kucoin (public REST, basic private REST)
 - Okex (basic public REST)
 - Poloniex (public REST, basic private REST, public web socket (tickers))
+- TuxExchange (public REST, basic private REST)
+- Yobit (public REST, basic private REST)
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
 
-// TODO: Consider adding eTrade, although stocks are a low priority right now... :)
-
-Please send pull requests if you have made a change that you feel is worthwhile.
+Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
 Nuget package: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
 

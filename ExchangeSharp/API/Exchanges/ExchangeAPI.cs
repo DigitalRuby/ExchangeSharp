@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -570,6 +571,24 @@ namespace ExchangeSharp
     /// </summary>
     public static class ExchangeName
     {
+        private static readonly string[] exchangeNames;
+
+        static ExchangeName()
+        {
+            List<string> names = new List<string>();
+            foreach (FieldInfo field in typeof(ExchangeName).GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                names.Add(field.GetValue(null).ToString());
+            }
+            names.Sort();
+            exchangeNames = names.ToArray();
+        }
+
+        /// <summary>
+        /// Get a list of all exchange names
+        /// </summary>
+        public static IReadOnlyList<string> ExchangeNames { get { return exchangeNames; } }
+
         /// <summary>
         /// Abucoins
         /// </summary>

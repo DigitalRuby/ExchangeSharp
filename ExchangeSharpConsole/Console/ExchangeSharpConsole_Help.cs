@@ -49,6 +49,8 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine(" Display a key file:");
             Console.WriteLine("  keys mode=display path=pathToKeyFile.bin");               
             Console.WriteLine();
+            Console.WriteLine("getExchangeNames - get a list of all supported exchange names (no arguments)");
+            Console.WriteLine();
             Console.WriteLine("example - simple example showing how to create an API instance and get the ticker, and place an order.");
             Console.WriteLine(" example currently has no additional arguments.");
             Console.WriteLine();

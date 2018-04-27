@@ -94,6 +94,10 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunWebSocket(dict);
                 }
+                else if (dict.ContainsKey("getExchangeNames"))
+                {
+                    Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));
+                }
                 else
                 {
                     Console.WriteLine("Unrecognized command line arguments.");
