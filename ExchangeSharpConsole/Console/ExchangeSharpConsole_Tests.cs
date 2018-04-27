@@ -190,6 +190,10 @@ namespace ExchangeSharpConsoleApp
                 {
                     return api.NormalizeSymbol("ETH-BTC");
                 }
+                else if (api is ExchangeYobitAPI)
+                {
+                    return api.NormalizeSymbol("LTC_BTC");
+                }
                 return api.NormalizeSymbol("BTC-USD");
             }
 

@@ -50,6 +50,11 @@ namespace ExchangeSharp
 
         #region Public APIs
 
+        public override string NormalizeSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty).Replace('-', '_').Replace('/', '_').ToLowerInvariant();
+        }
+
         protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             throw new NotSupportedException("Yobit does not provide data about its currencies via the API");
@@ -87,7 +92,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/ticker/" + symbol, null, null, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/ticker/" + NormalizeSymbol(symbol), null, null, "POST");
             if (token != null && token.HasValues) return ParseTicker(token.First as JProperty);
             return null;
         }
@@ -106,6 +111,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
+            symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null, "GET");
             foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("asks")) orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
@@ -116,6 +122,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
+            symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + symbol + "?limit=10", null, null, "POST");    // default is 150, max: 2000, let's do another arbitrary 10 for consistency
             foreach (JToken prop in token.First.First) trades.Add(ParseTrade(prop));      
@@ -124,6 +131,7 @@ namespace ExchangeSharp
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
+            symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Not directly supported, but we'll return the max and filter if necessary
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + symbol + "?limit=2000", null, null, "POST");
@@ -331,6 +339,11 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(JProperty prop)
         {
             var split = prop.Name.ToUpper().Split('_');
+            if (split.Length != 2)
+            {
+                split = new string[2];
+            }
+
             // "ltc_btc":{ "high":105.41,"low":104.67,"avg":105.04,"vol":43398.22251455,"vol_cur":4546.26962359,"last":105.11,"buy":104.2,"sell":105.11,"updated":1418654531 }
             return new ExchangeTicker
             {
@@ -340,7 +353,9 @@ namespace ExchangeSharp
                 Volume = new ExchangeVolume
                 {
                     QuantityAmount = prop.First["vol_cur"].ConvertInvariant<decimal>(),
+                    PriceAmount = prop.First["vol"].ConvertInvariant<decimal>(),
                     QuantitySymbol = split[0],
+                    PriceSymbol = split[1],
                     Timestamp = DateTimeOffset.FromUnixTimeSeconds(prop.First["updated"].ConvertInvariant<long>()).DateTime
                 }
             };
@@ -381,7 +396,5 @@ namespace ExchangeSharp
         }
 
         #endregion
-
-
     }
 }
