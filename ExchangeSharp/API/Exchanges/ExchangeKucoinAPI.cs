@@ -42,7 +42,7 @@ namespace ExchangeSharp
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers.Add("KC-API-KEY", PublicApiKey.ToUnsecureString());
-                request.Headers.Add("KC-API-NONCE", payload["nonce"].ToString());
+                request.Headers.Add("KC-API-NONCE", payload["nonce"].ToStringInvariant());
 
                 var endpoint = request.RequestUri.PathAndQuery;
                 var message = string.Format("{0}/{1}/{2}", endpoint, payload["nonce"], GetFormForPayload(payload, false));

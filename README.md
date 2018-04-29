@@ -40,6 +40,7 @@ The following cryptocurrency exchanges are supported:
 - Hitbtc (public REST, basic private REST)
 - Kraken (public REST, basic private REST)
 - Kucoin (public REST, basic private REST)
+- Livecoin (public REST, basic private REST)
 - Okex (basic public REST)
 - Poloniex (public REST, basic private REST, public web socket (tickers))
 - TuxExchange (public REST, basic private REST)

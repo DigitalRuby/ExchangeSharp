@@ -173,7 +173,7 @@ namespace ExchangeSharpConsoleApp
         {
             string GetSymbol(IExchangeAPI api)
             {
-                if (api is ExchangeCryptopiaAPI)
+                if (api is ExchangeCryptopiaAPI || api is ExchangeLivecoinAPI)
                 {
                     return "LTC/BTC";
                 }

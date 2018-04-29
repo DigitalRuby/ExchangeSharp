@@ -43,7 +43,7 @@ namespace ExchangeSharp
             if (CanMakeAuthenticatedRequest(payload))
             {
                 // ensure nonce is the last parameter
-                string nonce = payload["nonce"].ToString();
+                string nonce = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
 
                 var msg = GetFormForPayload(payload) + "&nonce=" + nonce;

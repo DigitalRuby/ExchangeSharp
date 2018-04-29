@@ -47,7 +47,7 @@ namespace ExchangeSharp
         public bool ShouldRoundAmount { get; set; } = true;
 
         /// <summary>
-        /// The type of order - only limit is supported for now
+        /// The type of order
         /// </summary>
         public OrderType OrderType { get; set; } = OrderType.Limit;
 

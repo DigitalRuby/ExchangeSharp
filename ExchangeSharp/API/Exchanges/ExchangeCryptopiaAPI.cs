@@ -155,7 +155,7 @@ namespace ExchangeSharp
         {
             ExchangeOrderBook orders = new ExchangeOrderBook();
             // {"TradePairId":100,"Label":"DOT/BTC","Price":0.00000317,"Volume":333389.57231468,"Total":1.05684494}
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + NormalizeSymbol(symbol) + "/" + maxCount.ToString());
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + NormalizeSymbol(symbol) + "/" + maxCount.ToStringInvariant());
             token = CheckError(token);
             if (token.HasValues)
             {
@@ -177,7 +177,7 @@ namespace ExchangeSharp
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
         {
-            string hours = sinceDateTime == null ? "24" : ((DateTime.Now - sinceDateTime).Value.TotalHours).ToString();
+            string hours = sinceDateTime == null ? "24" : ((DateTime.Now - sinceDateTime).Value.TotalHours).ToStringInvariant();
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbol(symbol) + "/" + hours);      
             token = CheckError(token);
@@ -383,7 +383,7 @@ namespace ExchangeSharp
                          Amount = data["Amount"].ConvertInvariant<decimal>(),
                          BlockchainTxId = data["TxId"].ToStringInvariant(),
                          Notes = data["Type"].ToStringInvariant(),
-                         PaymentId = data["Id"].ConvertInvariant<int>().ToString(),
+                         PaymentId = data["Id"].ToStringInvariant(),
                          TimestampUTC = data["TimeStamp"].ConvertInvariant<DateTime>(),
                          Symbol = data["Currency"].ToStringInvariant(),
                          TxFee = data["Fee"].ConvertInvariant<decimal>()

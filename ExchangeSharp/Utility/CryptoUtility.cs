@@ -84,10 +84,21 @@ namespace ExchangeSharp
             {
                 return defaultValue;
             }
-            T result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
-            if (typeof(T) == typeof(decimal))
+            T result;
+            try
             {
-                return (T)(object)((decimal)(object)result).Normalize();
+                result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
+                if (typeof(T) == typeof(decimal))
+                {
+                    return (T)(object)((decimal)(object)result).Normalize();
+                }
+            }
+            catch
+            {
+                // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
+                string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
+                decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float);
+                return (T)Convert.ChangeType(decimalValue, typeof(T));
             }
             return result;
         }

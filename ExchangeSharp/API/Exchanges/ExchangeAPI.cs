@@ -657,7 +657,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Livecoin
         /// </summary>
-        public const string Okex = "Livecoin";
+        public const string Livecoin = "Livecoin";
 
         /// <summary>
         /// Okex

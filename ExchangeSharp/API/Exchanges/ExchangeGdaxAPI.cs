@@ -415,7 +415,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce",GenerateNonce() },
-                { "type", order.OrderType.ToString().ToLowerInvariant() },
+                { "type", order.OrderType.ToStringLowerInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "product_id", symbol },
                 { "size", order.RoundAmount().ToStringInvariant() }
