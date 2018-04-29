@@ -344,7 +344,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             var orders = await GetCompletedOrderDetailsAsync();
             return orders?.Where(o => o.OrderId == orderId).FirstOrDefault();
@@ -367,7 +367,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">The Original Order Id return from Place Order</param>
         /// <returns></returns>
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = GetNoncePayload();
             payload["orderOid"] = orderId;

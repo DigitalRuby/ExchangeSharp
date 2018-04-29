@@ -317,7 +317,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             var orders = await GetCompletedOrderDetailsAsync();
             return orders.Where(o => o.OrderId == orderId).FirstOrDefault();
@@ -345,7 +345,7 @@ namespace ExchangeSharp
         }
 
         // This should have a return value for success
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = GetNoncePayload();
             payload["Type"] = "Trade";          // Cancel All by Market is supported. Here we're canceling by single Id

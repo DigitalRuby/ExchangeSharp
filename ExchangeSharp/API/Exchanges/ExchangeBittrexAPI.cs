@@ -613,7 +613,7 @@ namespace ExchangeSharp
             return new ExchangeOrderResult { Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
@@ -683,7 +683,7 @@ namespace ExchangeSharp
             return withdrawalResponse;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             JObject obj = await MakeJsonRequestAsync<JObject>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
             CheckError(obj);

@@ -399,23 +399,23 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
-            string[] pieces = orderId.Split(',');
-            if (pieces.Length != 2)
+            if (string.IsNullOrEmpty(symbol))
             {
-                throw new InvalidOperationException("Binance single order details request requires the symbol and order id. The order id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Binance single order details request requires symbol");
             }
-            payload["symbol"] = pieces[0];
-            payload["orderId"] = pieces[1];
+            symbol = NormalizeSymbol(symbol);
+            payload["symbol"] = symbol;
+            payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
             CheckError(token);
             ExchangeOrderResult result = ParseOrder(token);
 
             // Add up the fees from each trade in the order
             Dictionary<string, object> feesPayload = GetNoncePayload();
-            feesPayload["symbol"] = pieces[0];
+            feesPayload["symbol"] = symbol;
             JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, feesPayload);
             CheckError(feesToken);
             ParseFees(feesToken, result);
@@ -526,16 +526,15 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
-            string[] pieces = orderId.Split(',');
-            if (pieces.Length != 2)
+            if (string.IsNullOrEmpty(symbol))
             {
-                throw new InvalidOperationException("Binance cancel order request requires the order id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Binance cancel order request requires symbol");
             }
-            payload["symbol"] = pieces[0];
-            payload["orderId"] = pieces[1];
+            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
             CheckError(token);
         }

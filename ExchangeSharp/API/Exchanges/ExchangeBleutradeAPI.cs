@@ -279,7 +279,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             // "result" : { "OrderId" : "65489","Exchange" : "LTC_BTC", "Type" : "BUY", "Quantity" : 20.00000000, "QuantityRemaining" : 5.00000000, "QuantityBaseTraded" : "0.16549400", "Price" : 0.01268311, "Status" : "OPEN", "Created" : "2014-08-03 13:55:20", "Comments" : "My optional comment, eg function id #123"  }
             JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId , null, GetNoncePayload());
@@ -325,7 +325,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             JToken result = await MakeJsonRequestAsync<JToken>("/market/cancel?orderid=" + orderId, null, GetNoncePayload());
             CheckError(result);

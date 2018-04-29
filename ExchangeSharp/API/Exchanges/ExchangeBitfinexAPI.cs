@@ -435,7 +435,7 @@ namespace ExchangeSharp
             return ParseOrder(obj);
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
@@ -518,7 +518,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["order_id"] = long.Parse(orderId);

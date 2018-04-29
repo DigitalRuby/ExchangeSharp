@@ -436,7 +436,7 @@ namespace ExchangeSharp
             return ParseOrder(result);
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JObject obj = await MakeJsonRequestAsync<JObject>("/orders/" + orderId, null, GetNoncePayload(), "GET");
             return ParseOrder(obj);
@@ -472,7 +472,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, GetNoncePayload(), "DELETE");
         }

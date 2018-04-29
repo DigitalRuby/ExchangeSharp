@@ -131,10 +131,10 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAsync() => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
-        protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId) => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
-        protected virtual Task OnCancelOrderAsync(string orderId) => throw new NotImplementedException();
+        protected virtual Task OnCancelOrderAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
 
         #endregion API implementation
@@ -482,17 +482,17 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">Order id to get details for</param>
         /// <returns>Order details</returns>
-        public ExchangeOrderResult GetOrderDetails(string orderId) => GetOrderDetailsAsync(orderId).GetAwaiter().GetResult();
+        public ExchangeOrderResult GetOrderDetails(string orderId, string symbol = null) => GetOrderDetailsAsync(orderId, symbol).GetAwaiter().GetResult();
 
         /// <summary>
         /// ASYNC - Get order details
         /// </summary>
         /// <param name="orderId">Order id to get details for</param>
         /// <returns>Order details</returns>
-        public async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId)
+        public async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string symbol = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetOrderDetailsAsync(orderId);
+            return await OnGetOrderDetailsAsync(orderId, symbol);
         }
 
         /// <summary>
@@ -537,16 +537,16 @@ namespace ExchangeSharp
         /// Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        public void CancelOrder(string orderId) => CancelOrderAsync(orderId).GetAwaiter().GetResult();
+        public void CancelOrder(string orderId, string symbol = null) => CancelOrderAsync(orderId, symbol).GetAwaiter().GetResult();
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        public async Task CancelOrderAsync(string orderId)
+        public async Task CancelOrderAsync(string orderId, string symbol = null)
         {
             await new SynchronizationContextRemover();
-            await OnCancelOrderAsync(orderId);
+            await OnCancelOrderAsync(orderId, symbol);
         }
 
         /// <summary>
@@ -673,7 +673,7 @@ namespace ExchangeSharp
         /// TuxExchange
         /// </summary>
         public const string TuxExchange = "TuxExchange";
-      
+
         /// <summary>
         /// Yobit
         /// </summary>

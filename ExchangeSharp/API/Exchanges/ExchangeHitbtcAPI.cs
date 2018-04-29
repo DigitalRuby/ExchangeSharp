@@ -263,7 +263,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, GetNoncePayload(), "GET");
             if (obj != null && obj.HasValues) return ParseCompletedOrder(obj);
@@ -323,7 +323,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             // this call returns info about the success of the cancel. Sure would be nice have a return type on this method.
             JToken token = await MakeJsonRequestAsync<JToken>("/order/" + orderId, null, GetNoncePayload(), "DELETE");

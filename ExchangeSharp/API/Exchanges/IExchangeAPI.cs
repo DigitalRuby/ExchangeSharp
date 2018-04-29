@@ -326,14 +326,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">order id</param>
         /// <returns>Order details</returns>
-        ExchangeOrderResult GetOrderDetails(string orderId);
+        ExchangeOrderResult GetOrderDetails(string orderId, string symbol = null);
 
         /// <summary>
         /// ASYNC - Get details of an order
         /// </summary>
         /// <param name="orderId">order id</param>
         /// <returns>Order details</returns>
-        Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId);
+        Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string symbol = null);
 
         /// <summary>
         /// Get the details of all open orders
@@ -376,13 +376,15 @@ namespace ExchangeSharp
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        void CancelOrder(string orderId);
+        /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
+        void CancelOrder(string orderId, string symbol = null);
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        Task CancelOrderAsync(string orderId);
+        /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
+        Task CancelOrderAsync(string orderId, string symbol = null);
     }
 
     /// <summary>
@@ -395,7 +397,7 @@ namespace ExchangeSharp
         /// A limit order, the order will not buy or sell beyond the price you specify
         /// </summary>
         Limit,
-        
+
         /// <summary>
         /// A market order, you will buy or sell the full amount - use with caution as this will give you a terrible deal if the order book is thin
         /// </summary>

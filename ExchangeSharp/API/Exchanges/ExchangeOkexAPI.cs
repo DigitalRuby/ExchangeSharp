@@ -323,31 +323,29 @@ namespace ExchangeSharp
             return ParsePlaceOrder(obj, order);
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
-            string[] pieces = orderId.Split(',');
-            if (pieces.Length != 2)
+            if (string.IsNullOrEmpty(symbol))
             {
-                throw new InvalidOperationException("Okex cancel order request requires the order id be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Okex cancel order request requires symbol");
             }
-            payload["symbol"] = pieces[0];
-            payload["order_id"] = pieces[1];
+            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["order_id"] = orderId;
             JObject result = await MakeJsonRequestAsync<JObject>("/cancel_order.do", BaseUrl, payload, "POST");
             CheckError(result);
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = GetNoncePayload();
-            string[] pieces = orderId.Split(',');
-            if (pieces.Length != 2)
+            if (string.IsNullOrEmpty(symbol))
             {
-                throw new InvalidOperationException("Okex single order details request requires the symbol and order id. The order id needs to be the symbol,orderId. I am sorry for this, I cannot control their API implementation which is really bad here.");
+                throw new InvalidOperationException("Okex single order details request requires symbol");
             }
-            payload["symbol"] = pieces[0];
-            payload["order_id"] = pieces[1];
+            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["order_id"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
             CheckError(token);
             foreach (JToken order in token["orders"])
