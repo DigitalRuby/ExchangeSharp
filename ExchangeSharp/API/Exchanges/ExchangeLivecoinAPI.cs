@@ -18,7 +18,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMillisecondsString;
             try
             {
-                // As of 2018 they haven't updated their SSL, so we'll fallback from the default - this is required
+                // TODO: Check later, as of 2018 they haven't updated their SSL, so we'll fallback from the default - this is required
                 System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
             }
             catch
