@@ -257,6 +257,14 @@ namespace ExchangeSharp
             return Convert.ToBase64String(hashmessage);
         }
 
+        public static string MD5Sign(string message)
+        {
+            var md5 = new MD5CryptoServiceProvider();
+            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var hashmessage = md5.ComputeHash(messagebyte);
+            return BitConverter.ToString(hashmessage).Replace("-", "");
+        }
+
         public static byte[] GenerateSalt(int length)
         {
             byte[] salt = new byte[length];
@@ -358,6 +366,47 @@ namespace ExchangeSharp
                 return seconds / minuteThreshold + "m";
             }
             return seconds + "s";
+        }
+
+        /// <summary>
+        /// Convert seconds to a period string, i.e. 5sec, 1min, 2hour, 3day, 1week, 1month, 1year etc.
+        /// </summary>
+        /// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <returns>Period string</returns>
+        public static string SecondsToPeriodStringLong(int seconds)
+        {
+            const int minuteThreshold = 60;
+            const int hourThreshold = 60 * 60;
+            const int dayThreshold = 60 * 60 * 24;
+            const int weekThreshold = dayThreshold * 7;
+            const int monthThreshold = dayThreshold * 30;
+            const int yearThreshold = monthThreshold * 12;
+
+            if (seconds >= yearThreshold)
+            {
+                return seconds / yearThreshold + "year";
+            }
+            else if (seconds >= monthThreshold)
+            {
+                return seconds / monthThreshold + "mon";
+            }
+            else if (seconds >= weekThreshold)
+            {
+                return seconds / weekThreshold + "week";
+            }
+            else if (seconds >= dayThreshold)
+            {
+                return seconds / dayThreshold + "day";
+            }
+            else if (seconds >= hourThreshold)
+            {
+                return seconds / hourThreshold + "hour";
+            }
+            else if (seconds >= minuteThreshold)
+            {
+                return seconds / minuteThreshold + "min";
+            }
+            return seconds + "sec";
         }
 
         /// <summary>
