@@ -291,7 +291,10 @@ namespace ExchangeSharp
 
             if (order.OrderType == OrderType.Market)
             {
-                throw new APIException("Okex confuse price with amount while send market order, so we disable it");
+                // TODO: Fix later once Okex fixes this on their end
+                throw new NotSupportedException("Okex confuses price with amount while sending a market order, so market orders are disabled for now");
+
+                /*
                 payload["type"] += "_market";
                 if (order.IsBuy)
                 {
@@ -304,6 +307,7 @@ namespace ExchangeSharp
                     // For market buy roders, the amount is not required
                     payload["amount"] = outputQuantity;
                 }
+                */
             }
             else
             {

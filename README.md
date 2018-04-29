@@ -41,7 +41,7 @@ The following cryptocurrency exchanges are supported:
 - Kraken (public REST, basic private REST)
 - Kucoin (public REST, basic private REST)
 - Livecoin (public REST, basic private REST)
-- Okex (basic public REST)
+- Okex (public REST, basic private REST)
 - Poloniex (public REST, basic private REST, public web socket (tickers))
 - TuxExchange (public REST, basic private REST)
 - Yobit (public REST, basic private REST)
