@@ -376,14 +376,14 @@ namespace ExchangeSharp
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        /// <param name="symbol">Order symbol of the order to cancel</param>
+        /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
         void CancelOrder(string orderId, string symbol = null);
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
-        /// <param name="symbol">Order symbol of the order to cancel</param>
+        /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
         Task CancelOrderAsync(string orderId, string symbol = null);
     }
 
