@@ -505,20 +505,5 @@ namespace ExchangeSharp
             return result;
         }
         #endregion
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 }

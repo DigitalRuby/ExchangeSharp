@@ -481,6 +481,7 @@ namespace ExchangeSharp
         /// Get order details
         /// </summary>
         /// <param name="orderId">Order id to get details for</param>
+        /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
         /// <returns>Order details</returns>
         public ExchangeOrderResult GetOrderDetails(string orderId, string symbol = null) => GetOrderDetailsAsync(orderId, symbol).GetAwaiter().GetResult();
 
@@ -488,6 +489,7 @@ namespace ExchangeSharp
         /// ASYNC - Get order details
         /// </summary>
         /// <param name="orderId">Order id to get details for</param>
+        /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
         /// <returns>Order details</returns>
         public async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string symbol = null)
         {
@@ -537,12 +539,14 @@ namespace ExchangeSharp
         /// Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
+        /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
         public void CancelOrder(string orderId, string symbol = null) => CancelOrderAsync(orderId, symbol).GetAwaiter().GetResult();
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if error
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
+        /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
         public async Task CancelOrderAsync(string orderId, string symbol = null)
         {
             await new SynchronizationContextRemover();
