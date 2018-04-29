@@ -71,6 +71,11 @@ namespace ExchangeSharp
             };
         }
 
+        public override string NormalizeSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty).ToUpperInvariant();
+        }
+
         /// <summary>
         /// Gets the BittrexSocketClient for this API
         /// </summary>
@@ -162,11 +167,6 @@ namespace ExchangeSharp
                 string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey.ToUnsecureString());
                 request.Headers["apisign"] = sign;
             }
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToUpperInvariant();
         }
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()

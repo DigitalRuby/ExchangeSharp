@@ -27,7 +27,52 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
         public override string Name => ExchangeName.Kraken;
 
-        private readonly Dictionary<string, string> symbolNormalizerGlobal = new Dictionary<string, string>
+        static ExchangeKrakenAPI()
+        {
+            Dictionary<string, string> d = normalizedSymbolToExchangeSymbol as Dictionary<string, string>;
+            foreach (KeyValuePair<string, string> kv in exchangeSymbolToNormalizedSymbol)
+            {
+                if (!d.ContainsKey(kv.Value))
+                {
+                    d.Add(kv.Value, kv.Key);
+                }
+            }
+        }
+
+        public ExchangeKrakenAPI()
+        {
+            RequestMethod = "POST";
+            RequestContentType = "application/x-www-form-urlencoded";
+            SymbolSeparator = string.Empty;
+        }
+
+        public override string NormalizeSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
+        }
+
+        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        {
+            if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
+            {
+                return base.ExchangeSymbolToGlobalSymbolWithSeparator(normalizedSymbol.Substring(0, 3) + GlobalSymbolSeparator + normalizedSymbol.Substring(3), GlobalSymbolSeparator);
+            }
+            throw new ArgumentException($"Symbol {symbol} not found in Kraken lookup table");
+        }
+
+        public override string GlobalSymbolToExchangeSymbol(string symbol)
+        {
+            if (normalizedSymbolToExchangeSymbol.TryGetValue(symbol.Replace(GlobalSymbolSeparator.ToString(), string.Empty), out string exchangeSymbol))
+            {
+                return exchangeSymbol;
+            }
+            throw new ArgumentException($"Symbol {symbol} not found in Kraken lookup table");
+        }
+
+        /// <summary>
+        /// Change Kraken symbols to more common sense symbols
+        /// </summary>
+        private static readonly IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>
         {
             { "BCHEUR", "bcheur" },
             { "BCHUSD", "bchusd" },
@@ -77,7 +122,7 @@ namespace ExchangeSharp
             { "XXBTZUSD", "btcusd" },
             { "XXBTZUSD.d", "btcusd" },
             { "XXDGXXBT", "dogebtc" },
-            { "XXLMXXBT", "xmlbtc" },
+            { "XXLMXXBT", "xlmbtc" },
             { "XXMRXXBT", "xmrbtc" },
             { "XXMRZEUR", "xmreur" },
             { "XXMRZUSD", "xmrusd" },
@@ -88,6 +133,7 @@ namespace ExchangeSharp
             { "XZECZEUR", "zeceur" },
             { "XZECZUSD", "zecusd" }
         };
+        private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>();
 
         private JToken CheckError(JToken json)
         {
@@ -173,26 +219,6 @@ namespace ExchangeSharp
                 request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
                 WriteFormToRequest(request, form);
             }
-        }
-
-        public ExchangeKrakenAPI()
-        {
-            RequestMethod = "POST";
-            RequestContentType = "application/x-www-form-urlencoded";
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
-        }
-
-        public override string NormalizeSymbolGlobal(string symbol)
-        {
-            if (symbolNormalizerGlobal.TryGetValue(symbol, out string normalized))
-            {
-                symbol = normalized;
-            }
-            return base.NormalizeSymbolGlobal(symbol);
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()

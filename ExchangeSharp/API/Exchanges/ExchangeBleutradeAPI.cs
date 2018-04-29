@@ -26,9 +26,19 @@ namespace ExchangeSharp
         public override string Name => ExchangeName.Bleutrade;
         public override string BaseUrl { get; set; } = "https://bleutrade.com/api/v2";
 
+        static ExchangeBleutradeAPI()
+        {
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBleutradeAPI)] = new KeyValuePair<string, string>[]
+            {
+                new KeyValuePair<string, string>("BCC", "BCH")
+            };
+        }
+
         public ExchangeBleutradeAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
+            SymbolSeparator = "_";
+            SymbolIsReversed = true;
         }
 
         public override string NormalizeSymbol(string symbol)

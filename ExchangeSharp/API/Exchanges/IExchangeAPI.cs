@@ -65,11 +65,21 @@ namespace ExchangeSharp
         string NormalizeSymbol(string symbol);
 
         /// <summary>
-        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btcusd
+        /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
+        /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
+        /// Global symbols list the base currency first (i.e. BTC) and conversion currency
+        /// second (i.e. USD). Example BTC-USD, read as x BTC is worth y USD.
         /// </summary>
-        /// <param name="symbol"></param>
-        /// <returns>Normalized global symbol</returns>
-        string NormalizeSymbolGlobal(string symbol);
+        /// <param name="symbol">Exchange symbol</param>
+        /// <returns>Global symbol</returns>
+        string ExchangeSymbolToGlobalSymbol(string symbol);
+
+        /// <summary>
+        /// Convert a global symbol into an exchange symbol, which will potentially be different from other exchanges.
+        /// </summary>
+        /// <param name="symbol">Global symbol</param>
+        /// <returns>Exchange symbol</returns>
+        string GlobalSymbolToExchangeSymbol(string symbol);
 
         /// <summary>
         /// Request timeout

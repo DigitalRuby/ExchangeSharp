@@ -23,6 +23,11 @@ namespace ExchangeSharp
     /// </summary>
     public abstract class ExchangeAPI : BaseAPI, IExchangeAPI
     {
+        /// <summary>
+        /// Separator for global symbols
+        /// </summary>
+        public const char GlobalSymbolSeparator = '-';
+
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
         private IEnumerable<ExchangeMarket> exchangeMarkets;
@@ -140,6 +145,49 @@ namespace ExchangeSharp
         #endregion API implementation
 
         /// <summary>
+        /// Separator for exchange symbol, derived classes can change in constructor. This should be a single char string or empty string.
+        /// </summary>
+        protected string SymbolSeparator { get; set; } = "-";
+
+        /// <summary>
+        /// Whether the exchange symbol is reversed from most other exchanges, derived classes can change to true in constructor
+        /// </summary>
+        protected bool SymbolIsReversed { get; set; }
+
+        /// <summary>
+        /// Whether the exchange symbol is uppercase
+        /// </summary>
+        protected bool SymbolIsUppercase { get; set; } = true;
+
+        /// <summary>
+        /// List of exchange to global currency conversions. Exchange currency is key, global currency is value.
+        /// </summary>
+        protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
+
+        /// <summary>
+        /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
+        /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
+        /// Global symbols list the base currency first (i.e. BTC) and conversion currency
+        /// second (i.e. USD). Example BTC-USD, read as x BTC is worth y USD.
+        /// </summary>
+        /// <param name="symbol">Exchange symbol</param>
+        /// <param name="separator">Separator</param>
+        /// <returns>Global symbol</returns>
+        protected string ExchangeSymbolToGlobalSymbolWithSeparator(string symbol, char separator = GlobalSymbolSeparator)
+        {
+            if (string.IsNullOrEmpty(symbol))
+            {
+                throw new ArgumentException("Symbol must be non null and non empty");
+            }
+            string[] pieces = NormalizeSymbol(symbol).Split(separator);
+            if (SymbolIsReversed)
+            {
+                return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();
+            }
+            return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
+        }
+
+        /// <summary>
         /// Static constructor
         /// </summary>
         static ExchangeAPI()
@@ -148,6 +196,7 @@ namespace ExchangeSharp
             {
                 ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI;
                 apis[api.Name] = api;
+                ExchangeGlobalCurrencyReplacements[type] = new KeyValuePair<string, string>[0];
             }
         }
 
@@ -176,20 +225,89 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Normalize a symbol for use on this exchange
+        /// Normalize a symbol for use on this exchange. The symbol should already be in the correct order,
+        /// this method just deals with casing and putting in the right separator.
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Normalized symbol</returns>
-        public virtual string NormalizeSymbol(string symbol) { return symbol; }
+        public virtual string NormalizeSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty);
+        }
 
         /// <summary>
-        /// Normalize a symbol to a global standard symbol that is the same with all exchange symbols, i.e. btc-usd. This base method standardizes with a hyphen separator.
+        /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
+        /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
+        /// Global symbols list the base currency first (i.e. BTC) and conversion currency
+        /// second (i.e. USD). Example BTC-USD, read as x BTC is worth y USD.
         /// </summary>
-        /// <param name="symbol"></param>
-        /// <returns>Normalized global symbol</returns>
-        public virtual string NormalizeSymbolGlobal(string symbol)
+        /// <param name="symbol">Exchange symbol</param>
+        /// <returns>Global symbol</returns>
+        public virtual string ExchangeSymbolToGlobalSymbol(string symbol)
         {
-            return (symbol ?? string.Empty).Replace("_", "-").Replace("/", "-").ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(SymbolSeparator))
+            {
+                throw new ArgumentException("Exchange has set an empty SymbolSeparator, the exchange must override this method");
+            }
+            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol, SymbolSeparator[0]);
+        }
+
+        /// <summary>
+        /// Convert a global symbol into an exchange symbol, which will potentially be different from other exchanges.
+        /// </summary>
+        /// <param name="symbol">Global symbol</param>
+        /// <returns>Exchange symbol</returns>
+        public virtual string GlobalSymbolToExchangeSymbol(string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new ArgumentException("Symbol must be non null and non empty");
+            }
+            int pos = symbol.IndexOf(GlobalSymbolSeparator);
+            if (SymbolIsReversed)
+            {
+                symbol = GlobalCurrencyToExchangeCurrency(symbol.Substring(pos + 1)) + SymbolSeparator + GlobalCurrencyToExchangeCurrency(symbol.Substring(0, pos));
+            }
+            else
+            {
+                symbol = GlobalCurrencyToExchangeCurrency(symbol.Substring(0, pos)) + SymbolSeparator + GlobalCurrencyToExchangeCurrency(symbol.Substring(pos + 1));
+            }
+            return (SymbolIsUppercase ? symbol.ToUpperInvariant() : symbol.ToLowerInvariant());
+        }
+
+        /// <summary>
+        /// Convert an exchange currency to a global currency. For example, on Binance,
+        /// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
+        /// the global symbol is BCH.
+        /// </summary>
+        /// <param name="currency">Exchange currency</param>
+        /// <returns>Global currency</returns>
+        public string ExchangeCurrencyToGlobalCurrency(string currency)
+        {
+            currency = (currency ?? string.Empty);
+            foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
+            {
+                currency = currency.Replace(kv.Key, kv.Value);
+            }
+            return currency.ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// Convert a global currency to exchange currency. For example, on Binance,
+        /// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
+        /// the global symbol BCH would convert to BCC for Binance, but stay BCH
+        /// for most other exchanges.
+        /// </summary>
+        /// <param name="currency">Global currency</param>
+        /// <returns>Exchange currency</returns>
+        public string GlobalCurrencyToExchangeCurrency(string currency)
+        {
+            currency = (currency ?? string.Empty);
+            foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
+            {
+                currency = currency.Replace(kv.Value, kv.Key);
+            }
+            return (SymbolIsUppercase ? currency.ToUpperInvariant() : currency.ToLowerInvariant());
         }
 
         /// <summary>

@@ -27,10 +27,20 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://yobit.net/api/3";
         public string PrivateURL { get; set; } = "https://yobit.net/tapi";
 
+        static ExchangeYobitAPI()
+        {
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangeYobitAPI)] = new KeyValuePair<string, string>[]
+            {
+                new KeyValuePair<string, string>("BCC", "BCH")
+            };
+        }
+
         public ExchangeYobitAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixSecondsString;   // not used, see below
+            SymbolSeparator = "_";
+            SymbolIsUppercase = false;
         }
 
         #region ProcessRequest 

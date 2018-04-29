@@ -33,11 +33,17 @@ namespace ExchangeSharp
         {
             RequestContentType = "x-www-form-urlencoded";
             NonceStyle = ExchangeSharp.NonceStyle.UnixMillisecondsString;
+            SymbolSeparator = string.Empty;
         }
 
         public override string NormalizeSymbol(string symbol)
         {
             return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("/", string.Empty).Replace("_", string.Empty);
+        }
+
+        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        {
+            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + symbol.Substring(symbol.Length - 3, 3), GlobalSymbolSeparator);
         }
 
         #region ProcessRequest 

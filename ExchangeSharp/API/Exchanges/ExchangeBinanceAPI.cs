@@ -30,9 +30,12 @@ namespace ExchangeSharp
         public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
         public override string Name => ExchangeName.Binance;
 
-        public override string NormalizeSymbol(string symbol)
+        static ExchangeBinanceAPI()
         {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBinanceAPI)] = new KeyValuePair<string, string>[]
+            {
+                new KeyValuePair<string, string>("BCC", "BCH")
+            };
         }
 
         public ExchangeBinanceAPI()
@@ -41,6 +44,28 @@ namespace ExchangeSharp
             RequestWindow = TimeSpan.FromMinutes(15.0);
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
+            SymbolSeparator = string.Empty;
+        }
+
+        public override string NormalizeSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).Replace("/", string.Empty).ToUpperInvariant();
+        }
+
+        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        {
+            // All pairs in Binance begin or end with BTC, ETH, or BNB
+            if (symbol.Length == 6)
+            {
+                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Substring(0, 3) + GlobalSymbolSeparator + symbol.Substring(3)), GlobalSymbolSeparator);
+            }
+            else if (symbol.StartsWith("BTC") || symbol.StartsWith("ETH") || symbol.StartsWith("BNB"))
+            {
+                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Substring(3) + GlobalSymbolSeparator + symbol.Substring(0, 3)), GlobalSymbolSeparator);
+            }
+
+            // reversed
+            return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Substring(symbol.Length - 3, 3) + GlobalSymbolSeparator + symbol.Substring(0, symbol.Length - 3)), GlobalSymbolSeparator);
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()

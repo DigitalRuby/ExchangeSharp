@@ -86,15 +86,6 @@ namespace ExchangeSharp
             return (symbol ?? string.Empty).Replace("-", string.Empty).ToUpperInvariant();
         }
 
-        public override string NormalizeSymbolGlobal(string symbol)
-        {
-            if (symbol != null && symbol.Length > 1 && symbol[0] == 't' && char.IsUpper(symbol[1]))
-            {
-                symbol = symbol.Substring(1);
-            }
-            return symbol.ToLowerInvariant();
-        }
-
         public string NormalizeSymbolV1(string symbol)
         {
             return (symbol ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant();

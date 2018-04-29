@@ -163,20 +163,30 @@ namespace ExchangeSharp
         /// </summary>
         static BaseAPI()
         {
-            try
-            {
 
 #pragma warning disable CS0618
 
+            try
+            {
+
+#if HAS_WINDOWS_FORMS // NET47
+
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+#else
+
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3;
 
-#pragma warning restore CS0618
+#endif
 
             }
             catch
             {
 
             }
+
+#pragma warning restore CS0618
+
         }
 
         /// <summary>

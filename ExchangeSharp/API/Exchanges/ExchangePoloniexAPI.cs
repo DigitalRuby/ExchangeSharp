@@ -45,11 +45,18 @@ namespace ExchangeSharp
                 }
             }
             WithdrawalFieldCount = fieldCount;
+
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangePoloniexAPI)] = new KeyValuePair<string, string>[]
+            {
+                new KeyValuePair<string, string>("STR", "XLM")
+            };
         }
 
         public ExchangePoloniexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
+            SymbolSeparator = "_";
+            SymbolIsReversed = true;
         }
 
         /// <summary>

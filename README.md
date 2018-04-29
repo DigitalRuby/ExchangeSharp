@@ -49,6 +49,8 @@ The following cryptocurrency exchanges are supported:
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
 
+ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
+
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
 Nuget package: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/

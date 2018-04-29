@@ -32,6 +32,7 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMillisecondsString;
+            SymbolSeparator = "/";
         }
 
         #region ProcessRequest 

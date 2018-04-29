@@ -42,6 +42,16 @@ namespace ExchangeSharp
             return symbol;
         }
 
+        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        {
+            return symbol + GlobalSymbolSeparator + "BTC";
+        }
+
+        public override string GlobalSymbolToExchangeSymbol(string symbol)
+        {
+            return symbol.Substring(0, symbol.IndexOf(GlobalSymbolSeparator));
+        }
+
         private string StatusToError(string status)
         {
             switch (status)
