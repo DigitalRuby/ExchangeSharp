@@ -242,7 +242,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             //{
             //    "status": "Finished",
@@ -291,7 +291,7 @@ namespace ExchangeSharp
                 excludeStrings.Add(marketCurrency);
                 baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
             }
-            string symbol = $"{marketCurrency}-{baseCurrency}";
+            string _symbol = $"{marketCurrency}-{baseCurrency}";
 
             decimal amountFilled = 0, spentBaseCurrency = 0, price = 0;
 
@@ -312,7 +312,7 @@ namespace ExchangeSharp
             return new ExchangeOrderResult()
             {
                 AmountFilled = amountFilled,
-                Symbol = symbol,
+                Symbol = _symbol,
                 AveragePrice = spentBaseCurrency / amountFilled,
                 Price = price,
             };
@@ -402,7 +402,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {

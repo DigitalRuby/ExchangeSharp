@@ -317,7 +317,7 @@ namespace ExchangeSharp
             throw new NotImplementedException("API Interface Incomplete");
         }
 
-        protected override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             // see OnGetCompletedOrderDetailsAsync
             throw new NotImplementedException("API Interface Incomplete");
@@ -343,7 +343,7 @@ namespace ExchangeSharp
         }
 
         // This should have a return value for success
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = GetNoncePayload();
             payload.Add("method", "cancelorder");

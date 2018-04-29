@@ -268,7 +268,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/orders?orderID", null, GetNoncePayload(), "GET");
             ExchangeOrderResult eor = new ExchangeOrderResult()
@@ -389,7 +389,7 @@ namespace ExchangeSharp
         }
 
         // This should have a return value for success
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             await MakeJsonRequestAsync<JArray>("/orders/" + orderId, null, GetNoncePayload(), "DELETE");
         }

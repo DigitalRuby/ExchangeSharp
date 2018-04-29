@@ -240,7 +240,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order?orderId=" + orderId, null, GetNoncePayload(), "GET");
             token = CheckError(token);
@@ -294,7 +294,7 @@ namespace ExchangeSharp
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             // can only cancel limit orders, which kinda makes sense, but we also need the currency pair, which requires a lookup
             var order = await OnGetOrderDetailsAsync(orderId);
