@@ -89,7 +89,7 @@ namespace ExchangeSharp
             }
             catch
             {
-                
+
             }
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             api.ProcessRequest(request, payload);
@@ -116,6 +116,12 @@ namespace ExchangeSharp
                 responseString = new StreamReader(responseStream).ReadToEnd();
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
+                    // 404 maybe return empty responseString
+                    if (string.IsNullOrWhiteSpace(responseString))
+                    {
+                        throw new APIException(string.Format("{0} - {1}",
+                            response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
+                    }
                     throw new APIException(responseString);
                 }
                 api.ProcessResponse(response);

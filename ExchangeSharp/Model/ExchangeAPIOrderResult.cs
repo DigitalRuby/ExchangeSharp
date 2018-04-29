@@ -31,6 +31,9 @@ namespace ExchangeSharp
         Error,
 
         /// <summary>Order was cancelled</summary>
-        Canceled
+        Canceled,
+
+        /// <summary>Order is pending cancel</summary>
+        PendingCancel,
     }
 }
