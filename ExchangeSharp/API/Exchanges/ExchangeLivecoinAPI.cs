@@ -16,9 +16,14 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMillisecondsString;
-
-            // As of 2018 they haven't updated their SSL, so we'll fallback from the default - this is required
-            System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
+            try
+            {
+                // As of 2018 they haven't updated their SSL, so we'll fallback from the default - this is required
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
+            }
+            catch
+            {
+            }
         }
 
         #region ProcessRequest 
