@@ -11,13 +11,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System;
+using System.IO;
+using System.Linq;
+
 using ExchangeSharp;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExchangeSharpTests
 {
+    using System.Diagnostics;
     using System.Globalization;
+    using System.Security;
+    using System.Security.Cryptography;
 
     [TestClass]
     public class CryptoUtilityTests
@@ -128,6 +134,93 @@ namespace ExchangeSharpTests
             CryptoUtility.CalculatePrecision("1.123456789").Should().Be(0.000000001m);
             CryptoUtility.CalculatePrecision("1.0").Should().Be(0.1m);
             CryptoUtility.CalculatePrecision("0.00000").Should().Be(0.00001m);
+        }
+
+        [TestMethod]
+        public void AESEncryption()
+        {
+            byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
+            byte[] data = new byte[255];
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = (byte)i;
+            }
+            byte[] password = new byte[16];
+            for (int i = password.Length - 1; i >= 0; i--)
+            {
+                password[i] = (byte)i;
+            }
+            byte[] encrypted = CryptoUtility.AesEncryption(data, password, salt);
+            byte[] decrypted = CryptoUtility.AesDecryption(encrypted, password, salt);
+            Assert.IsTrue(decrypted.SequenceEqual(data));
+
+            byte[] protectedData = DataProtector.Protect(salt);
+            byte[] unprotectedData = DataProtector.Unprotect(protectedData);
+            Assert.IsTrue(unprotectedData.SequenceEqual(salt));
+        }
+
+        [TestMethod]
+        public void RSAFromFile()
+        {
+            byte[] originalValue = new byte[256];
+            new System.Random().NextBytes(originalValue);
+
+            for (int i = 0; i < 4; i++)
+            {
+                DataProtector.DataProtectionScope scope = (i < 2 ? DataProtector.DataProtectionScope.CurrentUser : DataProtector.DataProtectionScope.LocalMachine);
+                RSA rsa = DataProtector.RSAFromFile(scope);
+                byte[] encrypted = rsa.Encrypt(originalValue, RSAEncryptionPadding.Pkcs1);
+                byte[] decrypted = rsa.Decrypt(encrypted, RSAEncryptionPadding.Pkcs1);
+                Assert.IsTrue(originalValue.SequenceEqual(decrypted));
+            }
+        }
+
+        [TestMethod]
+        public void KeyStore()
+        {
+            // store keys
+            string path = Path.Combine(Path.GetTempPath(), "keystore.test.bin");
+            string publicKey = "public key test aa45c0";
+            string privateKey = "private key test bb270a";
+            string[] keys = new string[] { publicKey, privateKey };
+
+            CryptoUtility.SaveUnprotectedStringsToFile(path, keys);
+
+            // read keys
+            SecureString[] keysRead = CryptoUtility.LoadProtectedStringsFromFile(path);
+            string publicKeyRead = CryptoUtility.SecureStringToString(keysRead[0]);
+            string privateKeyRead = CryptoUtility.SecureStringToString(keysRead[1]);
+
+            Assert.AreEqual(privateKeyRead, privateKey);
+            Assert.AreEqual(publicKeyRead, publicKey);
+        }
+
+        [TestMethod]
+        public void RateGate()
+        {
+            const int timesPerPeriod = 1;
+            const int ms = 100;
+            const int loops = 5;
+            double msMax = (double)ms * 1.5;
+            double msMin = (double)ms * (1.0 / 1.5);
+            RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
+            if (!gate.WaitToProceed(0))
+            {
+                throw new APIException("Rate gate should have allowed immediate access to first attempt");
+            }
+            for (int i = 0; i < loops; i++)
+            {
+                Stopwatch timer = Stopwatch.StartNew();
+                gate.WaitToProceed();
+                timer.Stop();
+
+                if (i > 0)
+                {
+                    // check for too much elapsed time with a little fudge
+                    Assert.IsTrue(timer.Elapsed.TotalMilliseconds <= msMax, "Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                    Assert.IsTrue(timer.Elapsed.TotalMilliseconds >= msMin, "Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
+                }
+            }
         }
     }
 }
