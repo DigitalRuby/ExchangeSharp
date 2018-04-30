@@ -44,6 +44,7 @@ namespace ExchangeSharp
             RequestMethod = "POST";
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = string.Empty;
+            SymbolIsReversed = true;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -66,13 +67,22 @@ namespace ExchangeSharp
             {
                 return exchangeSymbol;
             }
+
+            // not found, reverse the pair
+            int idx = symbol.IndexOf(GlobalSymbolSeparator);
+            symbol = symbol.Substring(idx + 1) + symbol.Substring(0, idx);
+            if (normalizedSymbolToExchangeSymbol.TryGetValue(symbol.Replace(GlobalSymbolSeparator.ToString(), string.Empty), out exchangeSymbol))
+            {
+                return exchangeSymbol;
+            }
+
             throw new ArgumentException($"Symbol {symbol} not found in Kraken lookup table");
         }
 
         /// <summary>
         /// Change Kraken symbols to more common sense symbols
         /// </summary>
-        private static readonly IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>
+        private static readonly IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "BCHEUR", "bcheur" },
             { "BCHUSD", "bchusd" },
@@ -133,7 +143,7 @@ namespace ExchangeSharp
             { "XZECZEUR", "zeceur" },
             { "XZECZUSD", "zecusd" }
         };
-        private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>();
+        private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         private JToken CheckError(JToken json)
         {

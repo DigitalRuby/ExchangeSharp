@@ -179,7 +179,7 @@ namespace ExchangeSharp
             {
                 throw new ArgumentException("Symbol must be non null and non empty");
             }
-            string[] pieces = NormalizeSymbol(symbol).Split(separator);
+            string[] pieces = symbol.Split(separator);
             if (SymbolIsReversed)
             {
                 return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();

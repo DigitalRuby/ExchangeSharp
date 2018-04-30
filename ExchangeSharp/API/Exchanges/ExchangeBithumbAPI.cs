@@ -44,7 +44,7 @@ namespace ExchangeSharp
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
-            return symbol + GlobalSymbolSeparator + "BTC";
+            return symbol + GlobalSymbolSeparator + "KRW";
         }
 
         public override string GlobalSymbolToExchangeSymbol(string symbol)
