@@ -29,6 +29,8 @@ namespace ExchangeSharp
         public ExchangeOkexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
+            SymbolSeparator = "_";
+            SymbolIsUppercase = false;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -37,6 +39,14 @@ namespace ExchangeSharp
         }
 
         #region ProcessRequest
+        class StringComparer : IComparer<string>
+        {
+            public int Compare(string x, string y)
+            {
+                return string.Compare(x, y, StringComparison.Ordinal);
+            }
+        }
+
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
@@ -44,7 +54,8 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
                 payload["api_key"] = PublicApiKey.ToUnsecureString();
                 var msg = GetFormForPayload(payload, false);
-                msg = string.Join("&", new SortedSet<string>(msg.Split('&')));
+                // fix StringComparison.OrdinalIgnoreCase to StringComparison.Ordinal
+                msg = string.Join("&", new SortedSet<string>(msg.Split('&'), new StringComparer()));
                 var sign = msg + "&secret_key=" + PrivateApiKey.ToUnsecureString();
                 sign = CryptoUtility.MD5Sign(sign);
                 msg += "&sign=" + sign;
