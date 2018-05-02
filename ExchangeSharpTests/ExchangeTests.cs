@@ -11,14 +11,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System;
+using System.Globalization;
+
 using ExchangeSharp;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExchangeSharpTests
 {
-    using System.Globalization;
-
     [TestClass]
     public class ExchangeTests
     {

@@ -103,11 +103,6 @@ namespace ExchangeSharp
             return result;
         }
 
-        public static string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
-        }
-
         public static string ToUnsecureString(this SecureString s)
         {
             return SecureStringToString(s);
@@ -118,7 +113,7 @@ namespace ExchangeSharp
             return StringToSecureString(s);
         }
 
-        public static string SecureStringToString(SecureString s)
+        public static string SecureStringToString(this SecureString s)
         {
             if (s == null)
             {
@@ -136,23 +131,31 @@ namespace ExchangeSharp
             }
         }
 
-        public static byte[] SecureStringToBytes(SecureString s)
+        public static byte[] SecureStringToBytes(this SecureString s)
         {
+            if (s == null)
+            {
+                return null;
+            }
             string unsecure = SecureStringToString(s);
             byte[] bytes = Encoding.ASCII.GetBytes(unsecure);
             unsecure = null;
             return bytes;
         }
 
-        public static byte[] SecureStringToBytesBase64Decode(SecureString s)
+        public static byte[] SecureStringToBytesBase64Decode(this SecureString s)
         {
+            if (s == null)
+            {
+                return null;
+            }
             string unsecure = SecureStringToString(s);
             byte[] bytes = Convert.FromBase64String(unsecure);
             unsecure = null;
             return bytes;
         }
 
-        public static SecureString StringToSecureString(string unsecure)
+        public static SecureString StringToSecureString(this string unsecure)
         {
             if (unsecure == null)
             {

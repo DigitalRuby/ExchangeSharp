@@ -1,4 +1,16 @@
-﻿using Newtonsoft.Json.Linq;
+﻿/*
+MIT LICENSE
+
+Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -15,8 +27,7 @@ namespace ExchangeSharp
         public string BaseUrlV1 { get; set; } = "https://api.huobipro.com/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
         public string PrivateUrlV1 { get; set; } = "https://api.huobipro.com/v1";
-
-        public string account_type = "spot";
+        public string AccountType { get; set; } = "spot";
 
         public ExchangeHuobiAPI()
         {
@@ -24,6 +35,20 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixSecondsString;   // not used, see below
             SymbolSeparator = string.Empty;
             SymbolIsUppercase = false;
+            SymbolIsReversed = true;
+        }
+
+        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        {
+            if (symbol.Length < 6)
+            {
+                throw new ArgumentException("Invalid symbol " + symbol);
+            }
+            else if (symbol.Length == 6)
+            {
+                return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, 3) + GlobalSymbolSeparator + symbol.Substring(3, 3), GlobalSymbolSeparator);
+            }
+            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(3) + GlobalSymbolSeparator + symbol.Substring(0, 3), GlobalSymbolSeparator);
         }
 
         #region ProcessRequest 
@@ -54,11 +79,13 @@ namespace ExchangeSharp
                 string method = payload["method"].ToStringInvariant();
                 payload.Remove("method");
 
-                var dict = new Dictionary<string, object>();
-                dict["Timestamp"] = DateTime.UtcNow.ToString("s");
-                dict["AccessKeyId"] = PublicApiKey.ToUnsecureString();
-                dict["SignatureMethod"] = "HmacSHA256";
-                dict["SignatureVersion"] = "2";
+                var dict = new Dictionary<string, object>
+                {
+                    ["Timestamp"] = DateTime.UtcNow.ToString("s"),
+                    ["AccessKeyId"] = PublicApiKey.ToUnsecureString(),
+                    ["SignatureMethod"] = "HmacSHA256",
+                    ["SignatureVersion"] = "2"
+                };
 
                 string msg = null;
                 if (method == "GET")
@@ -67,7 +94,8 @@ namespace ExchangeSharp
                 }
 
                 msg = GetFormForPayload(dict, false);
-                // must sort
+
+                // must sort case sensitive
                 msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
 
                 StringBuilder sb = new StringBuilder();
@@ -76,7 +104,7 @@ namespace ExchangeSharp
                     .Append(url.Path).Append("\n")
                     .Append(msg);
 
-                var sig = CryptoUtility.SHA256SignBase64(sb.ToString(), CryptoUtility.SecureStringToBytes(PrivateApiKey));
+                var sig = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.SecureStringToBytes());
                 msg += "&Signature=" + Uri.EscapeDataString(sig);
 
                 url.Query = msg;
@@ -199,9 +227,9 @@ namespace ExchangeSharp
         }
 
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            throw new NotImplementedException("There are a lot of pairs");
+            throw new NotImplementedException("Too many pairs and this exchange does not support a single call to get all the tickers");
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
@@ -371,7 +399,7 @@ namespace ExchangeSharp
       },
              */
             var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[account_type];
+            var account_id = accounts[AccountType];
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = GetNoncePayload();
@@ -402,7 +430,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[account_type];
+            var account_id = accounts[AccountType];
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = GetNoncePayload();
@@ -507,7 +535,7 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbol(order.Symbol);
 
             var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[account_type];
+            var account_id = accounts[AccountType];
 
             var payload = GetNoncePayload();
             payload.Add("account-id", account_id);
@@ -564,13 +592,14 @@ namespace ExchangeSharp
 
         protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
-            throw new NotImplementedException("Huobi does not provide a deposit history via the API");
+            throw new NotImplementedException("Huobi does not provide a deposit API");
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            throw new NotImplementedException("Huobi does not provide a deposit history via the API");
+            throw new NotImplementedException("Huobi does not provide a deposit API");
 
+            /*
             var payload = GetNoncePayload();
             payload.Add("need_new", forceRegenerate ? 1 : 0);
             payload.Add("method", "GetDepositAddress");
@@ -583,11 +612,12 @@ namespace ExchangeSharp
                 Address = token["address"].ToStringInvariant(),
                 Symbol = symbol
             };
+            */
         }
 
-        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            throw new NotImplementedException("Huobi does not provide a deposit history via the API");
+            throw new NotImplementedException("Huobi does not provide a withdraw API");
         }
 
 
