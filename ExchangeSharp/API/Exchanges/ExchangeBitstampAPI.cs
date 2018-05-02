@@ -128,10 +128,10 @@ namespace ExchangeSharp
                 Last = token["last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = token["volume"].ConvertInvariant<decimal>(),
-                    PriceSymbol = symbol,
-                    QuantityAmount = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = symbol,
+                    BaseVolume = token["volume"].ConvertInvariant<decimal>(),
+                    BaseSymbol = symbol,
+                    ConvertedVolume = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = symbol,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["timestamp"].ConvertInvariant<long>())
                 }
             };

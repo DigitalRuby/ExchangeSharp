@@ -176,8 +176,8 @@ namespace ExchangeSharp
                     ClosePrice = token["close"].ConvertInvariant<decimal>(),
                     LowPrice = token["min"].ConvertInvariant<decimal>(),
                     HighPrice = token["max"].ConvertInvariant<decimal>(),
-                    VolumeQuantity = token["volume"].ConvertInvariant<double>(),
-                    VolumePrice = token["volumeQuote"].ConvertInvariant<double>(),
+                    ConvertedVolume = token["volume"].ConvertInvariant<double>(),
+                    BaseVolume = token["volumeQuote"].ConvertInvariant<double>(),
                     PeriodSeconds = periodSeconds
                 });
             }
@@ -463,8 +463,8 @@ namespace ExchangeSharp
                 Volume = new ExchangeVolume()
                 {
                     Timestamp = token["timestamp"].ConvertInvariant<DateTime>(),
-                    PriceAmount = token["volumeQuote"].ConvertInvariant<decimal>(),
-                    QuantityAmount = token["volume"].ConvertInvariant<decimal>()
+                    BaseVolume = token["volumeQuote"].ConvertInvariant<decimal>(),
+                    ConvertedVolume = token["volume"].ConvertInvariant<decimal>()
                 }
             };
         }

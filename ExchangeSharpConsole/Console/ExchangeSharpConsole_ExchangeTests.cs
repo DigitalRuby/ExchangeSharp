@@ -49,7 +49,7 @@ namespace ExchangeSharpConsoleApp
                     return api.NormalizeSymbol("BTC-LTC");
                 }
                 else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI || api is ExchangeBleutradeAPI ||
-                    api is ExchangeKucoinAPI)
+                    api is ExchangeKucoinAPI || api is ExchangeHuobiAPI)
                 {
                     return api.NormalizeSymbol("ETH-BTC");
                 }
@@ -84,32 +84,45 @@ namespace ExchangeSharpConsoleApp
                     Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
                     Console.WriteLine($"API {api.Name} GetSymbols OK (default: {symbol}; {symbols.Count} symbols)");
 
-                    api.GetHistoricalTrades(histTradeCallback, symbol);
-
-                    Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
-                    Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
-
                     var book = api.GetOrderBook(symbol);
                     Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks[0].Amount > 0m &&
                         book.Asks[0].Price > 0m && book.Bids[0].Amount > 0m && book.Bids[0].Price > 0m);
                     Console.WriteLine($"API {api.Name} GetOrderBook OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
 
-                    trades = api.GetRecentTrades(symbol).ToArray();
-                    Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
-                    Console.WriteLine($"API {api.Name} GetRecentTrades OK ({trades.Length} trades)");
-
                     var ticker = api.GetTicker(symbol);
                     Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-                        ticker.Volume != null && ticker.Volume.PriceAmount > 0m && ticker.Volume.QuantityAmount > 0m);
+                        ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
                     Console.WriteLine($"API {api.Name} GetTicker OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
+
+                    try
+                    {
+                        api.GetHistoricalTrades(histTradeCallback, symbol);
+                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                        Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
+
+                        trades = api.GetRecentTrades(symbol).ToArray();
+                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                        Console.WriteLine($"API {api.Name} GetRecentTrades OK ({trades.Length} trades)");
+                    }
+                    catch (NotImplementedException)
+                    {
+                        if (api is ExchangeHuobiAPI)
+                        {
+                            Console.WriteLine($"API {api.Name} GetHistoricalTrades/GetRecentTrades not implemented");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
 
                     try
                     {
                         var candles = api.GetCandles(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).ToArray();
                         Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
                             candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
-                            !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].VolumePrice > 0.0 &&
-                            candles[0].VolumeQuantity > 0.0 && candles[0].WeightedAverage >= 0m);
+                            !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseVolume > 0.0 &&
+                            candles[0].ConvertedVolume > 0.0 && candles[0].WeightedAverage >= 0m);
 
                         Console.WriteLine($"API {api.Name} GetCandles OK ({candles.Length})");
                     }

@@ -209,7 +209,7 @@ namespace ExchangeSharp
                     HighPrice = array[2].ConvertInvariant<decimal>(),
                     LowPrice = array[3].ConvertInvariant<decimal>(),
                     ClosePrice = array[4].ConvertInvariant<decimal>(),
-                    VolumePrice = array[5].ConvertInvariant<double>(),
+                    BaseVolume = array[5].ConvertInvariant<double>(),
                     ExchangeName = Name,
                     Name = symbol,
                     PeriodSeconds = periodSeconds,
@@ -400,10 +400,10 @@ namespace ExchangeSharp
                 Last = last,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = vol,
-                    PriceSymbol = symbol,
-                    QuantityAmount = vol * last,
-                    QuantitySymbol = symbol,
+                    BaseVolume = vol,
+                    BaseSymbol = symbol,
+                    ConvertedVolume = vol * last,
+                    ConvertedSymbol = symbol,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(data["date"].ConvertInvariant<long>())
                 }
             };

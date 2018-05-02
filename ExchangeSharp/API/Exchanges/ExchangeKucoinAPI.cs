@@ -145,10 +145,10 @@ namespace ExchangeSharp
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(token["datetime"].ConvertInvariant<long>()).DateTime,
-                        QuantityAmount = token["vol"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = token["coinType"].ToStringInvariant(),
-                        PriceAmount = token["vol"].ConvertInvariant<decimal>(),
-                        PriceSymbol = token["coinType"].ToStringInvariant()
+                        ConvertedVolume = token["vol"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = token["coinType"].ToStringInvariant(),
+                        BaseVolume = token["vol"].ConvertInvariant<decimal>(),
+                        BaseSymbol = token["coinType"].ToStringInvariant()
                     }
                 };
             }
@@ -171,10 +171,10 @@ namespace ExchangeSharp
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tick["datetime"].ConvertInvariant<long>()).DateTime,
-                        QuantityAmount = tick["vol"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = tick["coinType"].ToStringInvariant(),
-                        PriceAmount = tick["vol"].ConvertInvariant<decimal>(),
-                        PriceSymbol = tick["coinType"].ToStringInvariant()
+                        ConvertedVolume = tick["vol"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = tick["coinType"].ToStringInvariant(),
+                        BaseVolume = tick["vol"].ConvertInvariant<decimal>(),
+                        BaseSymbol = tick["coinType"].ToStringInvariant()
                     }
                 }));
             }
@@ -270,8 +270,8 @@ namespace ExchangeSharp
                         HighPrice = token["h"][i].ConvertInvariant<decimal>(),
                         LowPrice = token["l"][i].ConvertInvariant<decimal>(),
                         OpenPrice = token["o"][i].ConvertInvariant<decimal>(),
-                        VolumeQuantity = token["v"][i].ConvertInvariant<double>(),
-                        VolumePrice = token["v"][i].ConvertInvariant<double>() * token["c"][i].ConvertInvariant<double>()
+                        ConvertedVolume = token["v"][i].ConvertInvariant<double>(),
+                        BaseVolume = token["v"][i].ConvertInvariant<double>() * token["c"][i].ConvertInvariant<double>()
                     });
                 }
             }

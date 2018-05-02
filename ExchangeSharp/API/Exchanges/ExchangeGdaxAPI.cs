@@ -192,7 +192,7 @@ namespace ExchangeSharp
                 Ask = Convert.ToDecimal(ticker["ask"], System.Globalization.CultureInfo.InvariantCulture),
                 Bid = Convert.ToDecimal(ticker["bid"], System.Globalization.CultureInfo.InvariantCulture),
                 Last = price,
-                Volume = new ExchangeVolume { PriceAmount = volume, PriceSymbol = symbol, QuantityAmount = volume * price, QuantitySymbol = symbol, Timestamp = timestamp }
+                Volume = new ExchangeVolume { BaseVolume = volume, BaseSymbol = symbol, ConvertedVolume = volume * price, ConvertedSymbol = symbol, Timestamp = timestamp }
             };
         }
 
@@ -246,10 +246,10 @@ namespace ExchangeSharp
                 Last = price,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = lastSize * price,
-                    PriceSymbol = symbol.Split(new char[] { '-' })[1],
-                    QuantityAmount = lastSize,
-                    QuantitySymbol = symbol.Split(new char[] { '-' })[0],
+                    BaseVolume = lastSize * price,
+                    BaseSymbol = symbol.Split(new char[] { '-' })[1],
+                    ConvertedVolume = lastSize,
+                    ConvertedSymbol = symbol.Split(new char[] { '-' })[0],
                     Timestamp = time
                 }
             };
@@ -370,8 +370,8 @@ namespace ExchangeSharp
                     OpenPrice = candle[3].ConvertInvariant<decimal>(),
                     PeriodSeconds = periodSeconds,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(candle[0].ConvertInvariant<long>()),
-                    VolumePrice = candle[5].ConvertInvariant<double>(),
-                    VolumeQuantity = candle[5].ConvertInvariant<double>() * candle[4].ConvertInvariant<double>()
+                    BaseVolume = candle[5].ConvertInvariant<double>(),
+                    ConvertedVolume = candle[5].ConvertInvariant<double>() * candle[4].ConvertInvariant<double>()
                 });
             }
             // re-sort in ascending order

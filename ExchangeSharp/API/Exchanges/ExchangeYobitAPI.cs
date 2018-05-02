@@ -375,10 +375,10 @@ namespace ExchangeSharp
                 Last = prop.First["last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    QuantityAmount = prop.First["vol_cur"].ConvertInvariant<decimal>(),
-                    PriceAmount = prop.First["vol"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = split[0],
-                    PriceSymbol = split[1],
+                    ConvertedVolume = prop.First["vol_cur"].ConvertInvariant<decimal>(),
+                    BaseVolume = prop.First["vol"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = split[0],
+                    BaseSymbol = split[1],
                     Timestamp = DateTimeOffset.FromUnixTimeSeconds(prop.First["updated"].ConvertInvariant<long>()).DateTime
                 }
             };

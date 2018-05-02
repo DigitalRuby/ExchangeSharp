@@ -76,8 +76,8 @@ namespace ExchangeSharp
                         LowPrice = array[3].ConvertInvariant<decimal>(),
                         OpenPrice = array[1].ConvertInvariant<decimal>(),
                         PeriodSeconds = prop.Name.ConvertInvariant<int>(),
-                        VolumePrice = array[5].ConvertInvariant<double>(),
-                        VolumeQuantity = array[5].ConvertInvariant<double>() * array[4].ConvertInvariant<double>()
+                        BaseVolume = array[5].ConvertInvariant<double>(),
+                        ConvertedVolume = array[5].ConvertInvariant<double>() * array[4].ConvertInvariant<double>()
                     });
                 }
             }

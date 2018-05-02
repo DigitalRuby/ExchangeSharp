@@ -465,10 +465,10 @@ namespace ExchangeSharp
                 // This is a quess as to ambiguous intent of these fields.
                 Volume = new ExchangeVolume()
                 {
-                    PriceSymbol = symbols[0],
-                    QuantitySymbol = symbols[1],
-                    PriceAmount = token["Volume"].ConvertInvariant<decimal>(),
-                    QuantityAmount = token["BaseVolume"].ConvertInvariant<decimal>(),
+                    BaseSymbol = symbols[0],
+                    ConvertedSymbol = symbols[1],
+                    BaseVolume = token["Volume"].ConvertInvariant<decimal>(),
+                    ConvertedVolume = token["BaseVolume"].ConvertInvariant<decimal>(),
                     Timestamp = DateTime.UtcNow           // No TimeStamp is returned, but Now seems appropriate
                 }
             };

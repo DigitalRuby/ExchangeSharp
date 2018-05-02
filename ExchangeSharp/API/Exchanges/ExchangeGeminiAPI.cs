@@ -37,10 +37,10 @@ namespace ExchangeSharp
             JProperty[] props = token.Children<JProperty>().ToArray();
             if (props.Length == 3)
             {
-                vol.PriceSymbol = props[0].Name;
-                vol.PriceAmount = props[0].Value.ConvertInvariant<decimal>();
-                vol.QuantitySymbol = props[1].Name;
-                vol.QuantityAmount = props[1].Value.ConvertInvariant<decimal>();
+                vol.BaseSymbol = props[0].Name;
+                vol.BaseVolume = props[0].Value.ConvertInvariant<decimal>();
+                vol.ConvertedSymbol = props[1].Name;
+                vol.ConvertedVolume = props[1].Value.ConvertInvariant<decimal>();
                 vol.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(props[2].Value.ConvertInvariant<long>());
             }
 

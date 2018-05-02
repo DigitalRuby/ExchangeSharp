@@ -211,7 +211,7 @@ namespace ExchangeSharp
                     foreach (JToken childToken in token["data"])
                     {
                         ticker = ParseTickerWebSocket(childToken);
-                        tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.PriceSymbol, ticker));
+                        tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.BaseSymbol, ticker));
                     }
                     if (tickerList.Count != 0)
                     {
@@ -353,8 +353,8 @@ namespace ExchangeSharp
                     OpenPrice = array[1].ConvertInvariant<decimal>(),
                     PeriodSeconds = periodSeconds,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(array[0].ConvertInvariant<long>()),
-                    VolumePrice = array[5].ConvertInvariant<double>(),
-                    VolumeQuantity = array[7].ConvertInvariant<double>(),
+                    BaseVolume = array[5].ConvertInvariant<double>(),
+                    ConvertedVolume = array[7].ConvertInvariant<double>(),
                     WeightedAverage = 0m
                 });
             }
@@ -652,10 +652,10 @@ namespace ExchangeSharp
                 Last = token["lastPrice"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = token["volume"].ConvertInvariant<decimal>(),
-                    PriceSymbol = symbol,
-                    QuantityAmount = token["quoteVolume"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = symbol,
+                    BaseVolume = token["volume"].ConvertInvariant<decimal>(),
+                    BaseSymbol = symbol,
+                    ConvertedVolume = token["quoteVolume"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = symbol,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["closeTime"].ConvertInvariant<long>())
                 }
             };
@@ -670,10 +670,10 @@ namespace ExchangeSharp
                 Last = token["c"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = token["v"].ConvertInvariant<decimal>(),
-                    PriceSymbol = token["s"].ToStringInvariant(),
-                    QuantityAmount = token["q"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = token["s"].ToStringInvariant(),
+                    BaseVolume = token["v"].ConvertInvariant<decimal>(),
+                    BaseSymbol = token["s"].ToStringInvariant(),
+                    ConvertedVolume = token["q"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = token["s"].ToStringInvariant(),
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
                 }
             };

@@ -388,10 +388,10 @@ namespace ExchangeSharp
                    Volume = new ExchangeVolume()
                    {
                         // TODO: This is a guess. Need to verify the use of these values
-                        QuantityAmount = token["volume"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = split[0],
-                        PriceSymbol = split[1],
-                        PriceAmount = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
+                        ConvertedVolume = token["volume"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = split[0],
+                        BaseSymbol = split[1],
+                        BaseVolume = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
                         Timestamp = DateTime.UtcNow
                    }
             };

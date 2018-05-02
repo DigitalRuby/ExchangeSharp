@@ -138,8 +138,8 @@ namespace ExchangeSharp
                     Volume = new ExchangeVolume()
                     {
                         // not sure which is which here
-                         QuantityAmount = prop.First["quoteVolume"].ConvertInvariant<decimal>(),
-                         PriceAmount = prop.First["baseVolume"].ConvertInvariant<decimal>(),
+                         ConvertedVolume = prop.First["quoteVolume"].ConvertInvariant<decimal>(),
+                         BaseVolume = prop.First["baseVolume"].ConvertInvariant<decimal>(),
                     }
                 }));
             }

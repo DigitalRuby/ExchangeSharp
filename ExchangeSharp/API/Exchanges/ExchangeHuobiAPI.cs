@@ -118,7 +118,7 @@ namespace ExchangeSharp
 
         public override string NormalizeSymbol(string symbol)
         {
-            return (symbol ?? string.Empty).Replace("-", "").Replace("/", "").ToLowerInvariant();
+            return (symbol ?? string.Empty).Replace("-", "").Replace("/", "").Replace("_", "").ToLowerInvariant();
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
@@ -331,7 +331,8 @@ namespace ExchangeSharp
                     OpenPrice = array["open"].ConvertInvariant<decimal>(),
                     PeriodSeconds = periodSeconds,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array["id"].ConvertInvariant<long>()),
-                    VolumePrice = array["vol"].ConvertInvariant<double>(),
+                    BaseVolume = array["vol"].ConvertInvariant<double>() / array["close"].ConvertInvariant<double>(),
+                    ConvertedVolume = array["vol"].ConvertInvariant<double>(),
                     WeightedAverage = 0m
                 });
             }
@@ -666,10 +667,10 @@ namespace ExchangeSharp
                 Id = token["id"].ToStringInvariant(),
                 Volume = new ExchangeVolume
                 {
-                    QuantityAmount = token["vol"].ConvertInvariant<decimal>(),
-                    PriceAmount = token["amount"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = symbol,
-                    PriceSymbol = symbol,
+                    ConvertedVolume = token["vol"].ConvertInvariant<decimal>(),
+                    BaseVolume = token["amount"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = symbol,
+                    BaseSymbol = symbol,
                     Timestamp = ts,
                 }
             };

@@ -272,10 +272,10 @@ namespace ExchangeSharp
                 Last = last,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = ticker["v"][1].ConvertInvariant<decimal>(),
-                    PriceSymbol = symbol,
-                    QuantityAmount = ticker["v"][1].ConvertInvariant<decimal>() * last,
-                    QuantitySymbol = symbol,
+                    BaseVolume = ticker["v"][1].ConvertInvariant<decimal>(),
+                    BaseSymbol = symbol,
+                    ConvertedVolume = ticker["v"][1].ConvertInvariant<decimal>() * last,
+                    ConvertedSymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }
             };
@@ -393,8 +393,8 @@ namespace ExchangeSharp
                         OpenPrice = jsonCandle[1].ConvertInvariant<decimal>(),
                         PeriodSeconds = periodSeconds,
                         Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(jsonCandle[0].ConvertInvariant<long>()),
-                        VolumePrice = jsonCandle[6].ConvertInvariant<double>(),
-                        VolumeQuantity = jsonCandle[6].ConvertInvariant<double>() * jsonCandle[4].ConvertInvariant<double>(),
+                        BaseVolume = jsonCandle[6].ConvertInvariant<double>(),
+                        ConvertedVolume = jsonCandle[6].ConvertInvariant<double>() * jsonCandle[4].ConvertInvariant<double>(),
                         WeightedAverage = jsonCandle[5].ConvertInvariant<decimal>()
                     };
                     if (candle.Timestamp >= startDate.Value && candle.Timestamp <= endDate.Value)

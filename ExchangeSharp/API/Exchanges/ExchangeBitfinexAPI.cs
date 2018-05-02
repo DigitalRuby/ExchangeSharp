@@ -176,7 +176,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             decimal[] ticker = await MakeJsonRequestAsync<decimal[]>("/ticker/t" + symbol);
-            return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { PriceAmount = ticker[7], PriceSymbol = symbol, QuantityAmount = ticker[7] * ticker[6], QuantitySymbol = symbol, Timestamp = DateTime.UtcNow } };
+            return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { BaseVolume = ticker[7], BaseSymbol = symbol, ConvertedVolume = ticker[7] * ticker[6], ConvertedSymbol = symbol, Timestamp = DateTime.UtcNow } };
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -204,10 +204,10 @@ namespace ExchangeSharp
                         Last = array[7].ConvertInvariant<decimal>(),
                         Volume = new ExchangeVolume
                         {
-                            PriceAmount = array[8].ConvertInvariant<decimal>(),
-                            PriceSymbol = array[0].ToStringInvariant(),
-                            QuantityAmount = array[8].ConvertInvariant<decimal>() * array[7].ConvertInvariant<decimal>(),
-                            QuantitySymbol = array[0].ToStringInvariant(),
+                            BaseVolume = array[8].ConvertInvariant<decimal>(),
+                            BaseSymbol = array[0].ToStringInvariant(),
+                            ConvertedVolume = array[8].ConvertInvariant<decimal>() * array[7].ConvertInvariant<decimal>(),
+                            ConvertedSymbol = array[0].ToStringInvariant(),
                             Timestamp = now
                         }
                     }));
@@ -358,8 +358,8 @@ namespace ExchangeSharp
                     OpenPrice = candle[1].ConvertInvariant<decimal>(),
                     PeriodSeconds = periodSeconds,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(candle[0].ConvertInvariant<long>()),
-                    VolumePrice = candle[5].ConvertInvariant<double>(),
-                    VolumeQuantity = candle[5].ConvertInvariant<double>() * candle[2].ConvertInvariant<double>()
+                    BaseVolume = candle[5].ConvertInvariant<double>(),
+                    ConvertedVolume = candle[5].ConvertInvariant<double>() * candle[2].ConvertInvariant<double>()
                 });
             }
 
@@ -898,10 +898,10 @@ namespace ExchangeSharp
                 Last = last,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = volume,
-                    PriceSymbol = symbol,
-                    QuantityAmount = volume * last,
-                    QuantitySymbol = symbol,
+                    BaseVolume = volume,
+                    BaseSymbol = symbol,
+                    ConvertedVolume = volume * last,
+                    ConvertedSymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }
             };

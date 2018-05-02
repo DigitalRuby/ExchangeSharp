@@ -135,10 +135,10 @@ namespace ExchangeSharp
                 Last = result["Last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = result["Volume"].ConvertInvariant<decimal>(),
-                    PriceSymbol = result["BaseCurrency"].ToStringInvariant(),
-                    QuantityAmount = result["BaseVolume"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = result["MarketCurrency"].ToStringInvariant(),
+                    BaseVolume = result["Volume"].ConvertInvariant<decimal>(),
+                    BaseSymbol = result["BaseCurrency"].ToStringInvariant(),
+                    ConvertedVolume = result["BaseVolume"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = result["MarketCurrency"].ToStringInvariant(),
                     Timestamp = result["TimeStamp"].ConvertInvariant<DateTime>()
                 }
             };
@@ -160,10 +160,10 @@ namespace ExchangeSharp
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = token["TimeStamp"].ConvertInvariant<DateTime>(),
-                        PriceSymbol = token["BaseCurrency"].ToStringInvariant(),
-                        PriceAmount = token["BaseVolume"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = token["MarketCurrency"].ToStringInvariant(),
-                        QuantityAmount = token["Volume"].ConvertInvariant<decimal>()
+                        BaseSymbol = token["BaseCurrency"].ToStringInvariant(),
+                        BaseVolume = token["BaseVolume"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = token["MarketCurrency"].ToStringInvariant(),
+                        ConvertedVolume = token["Volume"].ConvertInvariant<decimal>()
                     }
                 };
                 tickers.Add(new  KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
@@ -207,8 +207,8 @@ namespace ExchangeSharp
                         LowPrice = jsonCandle["Low"].ConvertInvariant<decimal>(),
                         ClosePrice = jsonCandle["Close"].ConvertInvariant<decimal>(),
                         PeriodSeconds = periodSeconds,
-                        VolumePrice = jsonCandle["BaseVolume"].ConvertInvariant<double>(),
-                        VolumeQuantity = jsonCandle["Volume"].ConvertInvariant<double>()
+                        BaseVolume = jsonCandle["BaseVolume"].ConvertInvariant<double>(),
+                        ConvertedVolume = jsonCandle["Volume"].ConvertInvariant<double>()
                     };
                     if (candle.Timestamp >= startDate && candle.Timestamp <= endDate) candles.Add(candle);
                 }

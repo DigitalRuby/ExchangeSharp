@@ -252,10 +252,10 @@ namespace ExchangeSharp
                     Last = ticker["Last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = ticker["Volume"].ConvertInvariant<decimal>(),
-                        PriceSymbol = symbol,
-                        QuantityAmount = ticker["BaseVolume"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = symbol,
+                        BaseVolume = ticker["Volume"].ConvertInvariant<decimal>(),
+                        BaseSymbol = symbol,
+                        ConvertedVolume = ticker["BaseVolume"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = symbol,
                         Timestamp = ticker["TimeStamp"].ConvertInvariant<DateTime>()
                     }
                 };
@@ -279,10 +279,10 @@ namespace ExchangeSharp
                     Last = ticker["Last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = ticker["BaseVolume"].ConvertInvariant<decimal>(),
-                        PriceSymbol = symbol,
-                        QuantityAmount = ticker["Volume"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = symbol,
+                        BaseVolume = ticker["BaseVolume"].ConvertInvariant<decimal>(),
+                        BaseSymbol = symbol,
+                        ConvertedVolume = ticker["Volume"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = symbol,
                         Timestamp = ticker["TimeStamp"].ConvertInvariant<DateTime>(DateTime.UtcNow)
                     }
                 };
@@ -334,10 +334,10 @@ namespace ExchangeSharp
                             Last = last,
                             Volume = new ExchangeVolume
                             {
-                                QuantityAmount = quantityAmount,
-                                QuantitySymbol = market.MarketName,
-                                PriceAmount = market.BaseVolume.ConvertInvariant<decimal>(quantityAmount * last),
-                                PriceSymbol = market.MarketName,
+                                ConvertedVolume = quantityAmount,
+                                ConvertedSymbol = market.MarketName,
+                                BaseVolume = market.BaseVolume.ConvertInvariant<decimal>(quantityAmount * last),
+                                BaseSymbol = market.MarketName,
                                 Timestamp = market.TimeStamp
                             }
                         };
@@ -536,8 +536,8 @@ namespace ExchangeSharp
                         OpenPrice = jsonCandle["O"].ConvertInvariant<decimal>(),
                         PeriodSeconds = periodSeconds,
                         Timestamp = jsonCandle["T"].ConvertInvariant<DateTime>(),
-                        VolumePrice = jsonCandle["BV"].ConvertInvariant<double>(),
-                        VolumeQuantity = jsonCandle["V"].ConvertInvariant<double>()
+                        BaseVolume = jsonCandle["BV"].ConvertInvariant<double>(),
+                        ConvertedVolume = jsonCandle["V"].ConvertInvariant<double>()
                     };
                     if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                     {

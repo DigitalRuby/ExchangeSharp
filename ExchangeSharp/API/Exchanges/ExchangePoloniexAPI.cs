@@ -229,10 +229,10 @@ namespace ExchangeSharp
                 Last = token[1].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = token[5].ConvertInvariant<decimal>(),
-                    PriceSymbol = symbol,
-                    QuantityAmount = token[6].ConvertInvariant<decimal>(),
-                    QuantitySymbol = symbol,
+                    BaseVolume = token[5].ConvertInvariant<decimal>(),
+                    BaseSymbol = symbol,
+                    ConvertedVolume = token[6].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }
             };
@@ -378,10 +378,10 @@ namespace ExchangeSharp
                     Last = values["last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume
                     {
-                        PriceAmount = values["baseVolume"].ConvertInvariant<decimal>(),
-                        PriceSymbol = symbol,
-                        QuantityAmount = values["quoteVolume"].ConvertInvariant<decimal>(),
-                        QuantitySymbol = symbol,
+                        BaseVolume = values["baseVolume"].ConvertInvariant<decimal>(),
+                        BaseSymbol = symbol,
+                        ConvertedVolume = values["quoteVolume"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = symbol,
                         Timestamp = DateTime.UtcNow
                     }
                 }));
@@ -553,8 +553,8 @@ namespace ExchangeSharp
                     Name = symbol,
                     PeriodSeconds = periodSeconds,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(candle["date"].ConvertInvariant<long>()),
-                    VolumePrice = candle["volume"].ConvertInvariant<double>(),
-                    VolumeQuantity = candle["quoteVolume"].ConvertInvariant<double>(),
+                    BaseVolume = candle["volume"].ConvertInvariant<double>(),
+                    ConvertedVolume = candle["quoteVolume"].ConvertInvariant<double>(),
                     WeightedAverage = candle["weightedAverage"].ConvertInvariant<decimal>()
                 });
             }

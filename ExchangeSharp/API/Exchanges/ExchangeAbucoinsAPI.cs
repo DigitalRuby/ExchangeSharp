@@ -113,10 +113,10 @@ namespace ExchangeSharp
                 Last = price,
                 Volume = new ExchangeVolume()
                 {
-                    PriceAmount = size,
-                    PriceSymbol = symbol,
-                    QuantityAmount = size * price,
-                    QuantitySymbol = symbol,
+                    BaseVolume = size,
+                    BaseSymbol = symbol,
+                    ConvertedVolume = size * price,
+                    ConvertedSymbol = symbol,
                     Timestamp = DateTime.UtcNow
                 }
             };
@@ -138,8 +138,8 @@ namespace ExchangeSharp
                     };
                     // sometimes the size is null and sometimes it is returned using exponent notation and sometimes not. 
                     // We therefore parse as string and convert to decimal with float option
-                    if ((string)token["size"] != null) ticker.Volume.PriceAmount = decimal.Parse((string)token["size"], NumberStyles.Float);
-                    ticker.Volume.QuantityAmount = token.Value<decimal>("volume");
+                    if ((string)token["size"] != null) ticker.Volume.BaseVolume = decimal.Parse((string)token["size"], NumberStyles.Float);
+                    ticker.Volume.ConvertedVolume = token.Value<decimal>("volume");
                     if ((string)token["price"] != null) ticker.Last = decimal.Parse(token.Value<string>("price"), System.Globalization.NumberStyles.Float);
 
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Value<string>("product_id"), ticker));
@@ -232,8 +232,8 @@ namespace ExchangeSharp
                         HighPrice = array[2].ConvertInvariant<decimal>(),
                         OpenPrice = array[3].ConvertInvariant<decimal>(),
                         ClosePrice = array[4].ConvertInvariant<decimal>(),
-                        VolumeQuantity = array[5].ConvertInvariant<double>(),
-                        VolumePrice = array[4].ConvertInvariant<double>()
+                        ConvertedVolume = array[5].ConvertInvariant<double>(),
+                        BaseVolume = array[4].ConvertInvariant<double>()
                     });
                 }
             }
@@ -542,8 +542,8 @@ namespace ExchangeSharp
                                 Bid = token["best_bid"].ConvertInvariant<decimal>(),
                                 Volume = new ExchangeVolume()
                                 {
-                                    QuantitySymbol = token["product_id"].ToStringInvariant(),
-                                    QuantityAmount = token["last_size"].ConvertInvariant<decimal>(),
+                                    ConvertedSymbol = token["product_id"].ToStringInvariant(),
+                                    ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
                                     Timestamp = token["time"].ConvertInvariant<DateTime>()
                                 }
                             })

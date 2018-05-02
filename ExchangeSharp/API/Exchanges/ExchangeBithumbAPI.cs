@@ -93,10 +93,10 @@ namespace ExchangeSharp
                 Last = data["buy_price"].ConvertInvariant<decimal>(), // Silly Bithumb doesn't provide the last actual trade value in the ticker,
                 Volume = new ExchangeVolume
                 {
-                    PriceAmount = data["average_price"].ConvertInvariant<decimal>(),
-                    PriceSymbol = "KRW",
-                    QuantityAmount = data["units_traded"].ConvertInvariant<decimal>(),
-                    QuantitySymbol = symbol,
+                    BaseVolume = data["average_price"].ConvertInvariant<decimal>(),
+                    BaseSymbol = "KRW",
+                    ConvertedVolume = data["units_traded"].ConvertInvariant<decimal>(),
+                    ConvertedSymbol = symbol,
                     Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>())
                 }
             };
