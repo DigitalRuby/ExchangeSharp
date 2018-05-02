@@ -44,7 +44,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
                 payload["api_key"] = PublicApiKey.ToUnsecureString();
                 var msg = GetFormForPayload(payload, false);
-                msg = string.Join("&", new SortedSet<string>(msg.Split('&')));
+                msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
                 var sign = msg + "&secret_key=" + PrivateApiKey.ToUnsecureString();
                 sign = CryptoUtility.MD5Sign(sign);
                 msg += "&sign=" + sign;
