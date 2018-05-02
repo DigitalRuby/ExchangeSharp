@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.0;net47</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
-    <Title>Exchange Sharp - C# API for multiple cryptocurrency exchanges</Title>
+    <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
     <PackageVersion>0.4.1.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
@@ -12,7 +12,7 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>TONS of new exchanges, some refactoring and renaming of properties. Thanks to everyone who submitted new exchanges.</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
-    <PackageTags>C# crypto cryptocurrency trade trader exchange socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
+    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
