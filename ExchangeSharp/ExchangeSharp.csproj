@@ -4,14 +4,15 @@
     <TargetFrameworks>netstandard2.0;netcoreapp2.0;net47</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>Exchange Sharp - C# API for multiple cryptocurrency exchanges</Title>
-    <PackageVersion>0.4.0.0</PackageVersion>
+    <PackageVersion>0.4.1.0</PackageVersion>
     <Authors>jjxtra</Authors>
-    <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges including Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Gdax, Gemini, Kraken, Okex, Poloniex. Web sockets are also supported.</Description>
+    <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
+    <Summary>Supported exchanges: Abucoins, Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Bleutrade, Cryptopia, Gdax, Gemini, Gitbtc, Huobi, Kraken, Kucoin, Livecoin, Okex, Poloniex, TuxExchange, Yobit. Pull request welcome.</Summary>
     <PackageIconUrl>https://github.com/jjxtra/ExchangeSharp/raw/master/icon.png</PackageIconUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Async code refactor - all methods marked async do not create new tasks by default anymore.</PackageReleaseNotes>
+    <PackageReleaseNotes>TONS of new exchanges, some refactoring and renaming of properties. Thanks to everyone who submitted new exchanges.</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
-    <PackageTags>C# API Binance Bitfinex Bithumb Bitstamp Bittrex Gdax Gemini Kraken Okex Poloniex crypto cryptocurrency trade trader exchange socket web socket websocket signalr secure</PackageTags>
+    <PackageTags>C# crypto cryptocurrency trade trader exchange socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -28,7 +29,7 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Authors>jjxtra</Authors>
-    <PackageReleaseNotes>Async code refactor - all methods marked async do not create new tasks by default anymore.</PackageReleaseNotes>
+    <PackageReleaseNotes>TONS of new exchanges, some refactoring and renaming of properties.</PackageReleaseNotes>
     <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
     <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>

@@ -38,6 +38,7 @@ The following cryptocurrency exchanges are supported:
 - Gemini (public REST, basic private REST)
 - GDAX (public REST, basic private REST, public web socket (tickers))
 - Hitbtc (public REST, basic private REST)
+- Huobi (public REST, basic private REST)
 - Kraken (public REST, basic private REST)
 - Kucoin (public REST, basic private REST)
 - Livecoin (public REST, basic private REST)
