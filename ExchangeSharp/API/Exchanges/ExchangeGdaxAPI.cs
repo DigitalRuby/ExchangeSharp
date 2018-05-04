@@ -51,7 +51,7 @@ namespace ExchangeSharp
                 Price = price,
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
-                OrderDate = result["created_at"].ConvertInvariant<DateTime>(),
+                OrderDate = ConvertDateTimeInvariant(result["created_at"]),
                 Symbol = result["product_id"].ToStringInvariant(),
                 OrderId = result["id"].ToStringInvariant()
             };

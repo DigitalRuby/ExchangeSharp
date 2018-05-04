@@ -190,7 +190,7 @@ namespace ExchangeSharp
             {
                 trades.Add(new ExchangeTrade()
                 {
-                     Timestamp = trade["date"].ConvertInvariant<DateTime>(),
+                     Timestamp = ConvertDateTimeInvariant(trade["date"]),
                      Id = trade["tradeid"].ConvertInvariant<long>(),
                      IsBuy = trade["type"].ToStringInvariant().Equals("buy"),
                      Amount = trade["amount"].ConvertInvariant<decimal>(),
@@ -215,7 +215,7 @@ namespace ExchangeSharp
             {
                 trades.Add(new ExchangeTrade()
                 {
-                    Timestamp = trade["date"].ConvertInvariant<DateTime>(),
+                    Timestamp = ConvertDateTimeInvariant(trade["date"]),
                     Id = trade["tradeid"].ConvertInvariant<long>(),
                     IsBuy = trade["type"].ToStringInvariant().Equals("buy"),
                     Amount = trade["amount"].ConvertInvariant<decimal>(),
@@ -369,7 +369,7 @@ namespace ExchangeSharp
                 if (deposit["symbol"].ToStringInvariant().Equals(symbol)) deposits.Add(new ExchangeTransaction()
                 {
                     Symbol = symbol,
-                    TimestampUTC = deposit["date"].ConvertInvariant<DateTime>(),
+                    Timestamp = ConvertDateTimeInvariant(deposit["date"]),
                     Address = deposit["coin"].ToStringInvariant(),
                     BlockchainTxId = deposit["txid"].ToStringInvariant(),
                     Amount = deposit["amount"].ConvertInvariant<decimal>(),

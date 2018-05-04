@@ -30,10 +30,11 @@ namespace ExchangeSharpTests
     [TestClass]
     public sealed class ExchangePoloniexAPITests
     {
-        private static ExchangePoloniexAPI CreateAPI()
+        private static ExchangePoloniexAPI CreatePoloniexAPI()
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
             var polo = new ExchangePoloniexAPI { RequestMaker = requestMaker };
+            polo.DateTimeAreLocal = false; // just for unit tests, pretend dates are UTC instead of local time
             return polo;
         }
 
@@ -53,12 +54,12 @@ namespace ExchangeSharpTests
 }";
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeTrue();
             order.Amount.Should().Be(338.8732m);
-            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 03, 21));
+            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 3, 21, DateTimeKind.Utc));
             order.AveragePrice.Should().Be(0.00000173m);
             order.AmountFilled.Should().Be(338.8732m);
             order.FeesCurrency.Should().BeNullOrEmpty();
@@ -81,12 +82,12 @@ namespace ExchangeSharpTests
 }";
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeFalse();
             order.Amount.Should().Be(338.8732m);
-            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 03, 21));
+            order.OrderDate.Should().Be(new DateTime(2014, 10, 18, 23, 3, 21));
             order.AveragePrice.Should().Be(0.00000173m);
             order.AmountFilled.Should().Be(338.8732m);
             order.FeesCurrency.Should().BeNullOrEmpty();
@@ -98,7 +99,7 @@ namespace ExchangeSharpTests
         {
             var order = new ExchangeOrderResult();
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTradesSell);
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.Amount.Should().Be(143.14m);
             order.AmountFilled.Should().Be(order.Amount);
@@ -116,7 +117,7 @@ namespace ExchangeSharpTests
         {
             var order = new ExchangeOrderResult();
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_SimpleBuy);
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.OrderId.Should().BeNullOrEmpty();
             order.Amount.Should().Be(19096.46996880m);
@@ -134,7 +135,7 @@ namespace ExchangeSharpTests
         {
             var order = new ExchangeOrderResult();
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_GasBuy);
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.AveragePrice.Should().Be(0.0397199908083616777777777778m);
             order.IsBuy.Should().BeTrue();
@@ -156,7 +157,7 @@ namespace ExchangeSharpTests
             ""amount"": ""100"",
             ""total"": ""4""
         }]";
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             var marketOrders = JsonConvert.DeserializeObject<JToken>(marketOrdersJson);
 
             var orders = new List<ExchangeOrderResult>();
@@ -178,14 +179,14 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void ReturnOpenOrders_Unfilled_IsCorrect()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             var marketOrders = JsonConvert.DeserializeObject<JToken>(Unfilled);
             ExchangeOrderResult order = polo.ParseOpenOrder(marketOrders[0]);
             order.OrderId.Should().Be("35329211614");
             order.IsBuy.Should().BeTrue();
             order.AmountFilled.Should().Be(0);
             order.Amount.Should().Be(0.01m);
-            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
+            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45, DateTimeKind.Utc));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
             order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
@@ -194,7 +195,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOpenOrderDetails_Unfilled_IsCorrect()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(Unfilled);
 
             IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetails("ETH_BCH");
@@ -203,7 +204,7 @@ namespace ExchangeSharpTests
             order.IsBuy.Should().BeTrue();
             order.AmountFilled.Should().Be(0);
             order.Amount.Should().Be(0.01m);
-            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
+            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45, DateTimeKind.Utc));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
             order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
@@ -212,7 +213,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOpenOrderDetails_AllUnfilled_IsCorrect()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(AllUnfilledOrders);
 
             IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetails(); // all
@@ -221,7 +222,7 @@ namespace ExchangeSharpTests
             order.IsBuy.Should().BeTrue();
             order.AmountFilled.Should().Be(0);
             order.Amount.Should().Be(0.01m);
-            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45));
+            order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45, DateTimeKind.Utc));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
             order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
@@ -230,7 +231,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOrderDetails_HappyPath()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(ReturnOrderTrades_SimpleBuy);
             ExchangeOrderResult order = polo.GetOrderDetails("1");
 
@@ -249,7 +250,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOrderDetails_OrderNotFound_DoesNotThrow()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(@"{""error"":""Order not found, or you are not the person who placed it.""}");
             polo.GetOrderDetails("1").Should().BeNull();
         }
@@ -257,7 +258,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOrderDetails_OtherErrors_ThrowAPIException()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(@"{""error"":""Big scary error.""}");
 
             void a() => polo.GetOrderDetails("1");
@@ -267,7 +268,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetCompletedOrderDetails_MultipleOrders()
         {
-            var polo = CreateAPI();
+            var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(ReturnOrderTrades_AllGas);
             IEnumerable<ExchangeOrderResult> orders = polo.GetCompletedOrderDetails("ETH_GAS");
             orders.Should().HaveCount(2);

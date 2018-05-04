@@ -876,7 +876,7 @@ namespace ExchangeSharp
             {
                 var transaction = new ExchangeTransaction
                 {
-                    TimestampUTC = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(),
+                    Timestamp = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
                     Symbol = token["asset"].ToStringUpperInvariant(),
                     Address = token["address"].ToStringInvariant(),

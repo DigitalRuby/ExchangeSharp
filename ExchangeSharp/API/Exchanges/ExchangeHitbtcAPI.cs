@@ -171,7 +171,7 @@ namespace ExchangeSharp
                 {
                     ExchangeName = this.Name,
                     Name = symbol,
-                    Timestamp = token["timestamp"].ConvertInvariant<DateTime>(),
+                    Timestamp = ConvertDateTimeInvariant(token["timestamp"]),
                     OpenPrice = token["open"].ConvertInvariant<decimal>(),
                     ClosePrice = token["close"].ConvertInvariant<decimal>(),
                     LowPrice = token["min"].ConvertInvariant<decimal>(),
@@ -316,7 +316,7 @@ namespace ExchangeSharp
                 {
                     result.OrderId = token["ClientOrderId"].ToStringInvariant();
                     result.Symbol = token["symbol"].ToStringInvariant();
-                    result.OrderDate = token["createdAt"].ConvertInvariant<DateTime>();
+                    result.OrderDate = ConvertDateTimeInvariant(token["createdAt"]);
                     result.Amount = token["quantity"].ConvertInvariant<decimal>();
                     result.Price = token["price"].ConvertInvariant<decimal>();
                     result.AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>();
@@ -375,7 +375,7 @@ namespace ExchangeSharp
                             Amount = token["amount"].ConvertInvariant<decimal>(),
                             Notes = token["type"].ToStringInvariant(),                    // since no notes are returned, we'll use this to show the transaction type
                             TxFee = token["fee"].ConvertInvariant<decimal>(),
-                            TimestampUTC = token["createdAt"].ConvertInvariant<DateTime>()
+                            Timestamp = ConvertDateTimeInvariant(token["createdAt"])
                         };
 
                         string status = token["status"].ToStringInvariant();
@@ -462,7 +462,7 @@ namespace ExchangeSharp
                 Last = token["last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume()
                 {
-                    Timestamp = token["timestamp"].ConvertInvariant<DateTime>(),
+                    Timestamp = ConvertDateTimeInvariant(token["timestamp"]),
                     BaseVolume = token["volumeQuote"].ConvertInvariant<decimal>(),
                     ConvertedVolume = token["volume"].ConvertInvariant<decimal>()
                 }
@@ -475,7 +475,7 @@ namespace ExchangeSharp
             return new ExchangeTrade()
             {
                 Id = token["id"].ConvertInvariant<long>(),
-                Timestamp = token["timestamp"].ConvertInvariant<DateTime>(),
+                Timestamp = ConvertDateTimeInvariant(token["timestamp"]),
                 Price = token["price"].ConvertInvariant<decimal>(),
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
                 IsBuy = token["side"].ToStringInvariant().Equals("buy")
@@ -494,7 +494,7 @@ namespace ExchangeSharp
                 AmountFilled = token["quantity"].ConvertInvariant<decimal>(),   // these are closed, so I guess the filled quantity matches the order quantiity
                 Price = token["price"].ConvertInvariant<decimal>(),
                 Fees = token["fee"].ConvertInvariant<decimal>(),
-                OrderDate = token["timestamp"].ConvertInvariant<DateTime>(),
+                OrderDate = ConvertDateTimeInvariant(token["timestamp"]),
                 Result = ExchangeAPIOrderResult.Filled
             };
         }
@@ -510,7 +510,7 @@ namespace ExchangeSharp
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
                 AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
-                OrderDate = token["createdAt"].ConvertInvariant<DateTime>(),
+                OrderDate = ConvertDateTimeInvariant(token["createdAt"]),
                 Message = string.Format("OrderType: {0}, TimeInForce: {1}", token["type"].ToStringInvariant(), token["timeInForce"].ToStringInvariant())   // A bit arbitrary, but this will show the ordertype and timeinforce
             };
             // new, suspended, partiallyFilled, filled, canceled, expired

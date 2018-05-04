@@ -338,7 +338,7 @@ namespace ExchangeSharp
                 orders.Add(new ExchangeOrderResult()
                 {
                     OrderId = token["id"].ToStringInvariant(),
-                    OrderDate = token["datetime"].ConvertInvariant<DateTime>(),
+                    OrderDate = ConvertDateTimeInvariant(token["datetime"]),
                     IsBuy = token["type"].ConvertInvariant<int>() == 0,
                     Price = token["price"].ConvertInvariant<decimal>(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
@@ -380,7 +380,7 @@ namespace ExchangeSharp
                     OrderId = transaction["order_id"].ToStringInvariant(),
                     IsBuy = resultMarketCurrency > 0,
                     Symbol = NormalizeSymbol(tradingPair),
-                    OrderDate = transaction["datetime"].ConvertInvariant<DateTime>(),
+                    OrderDate = ConvertDateTimeInvariant(transaction["datetime"]),
                     AmountFilled = Math.Abs(resultMarketCurrency),
                     AveragePrice = Math.Abs(transaction[baseCurrency].ConvertInvariant<decimal>() / resultMarketCurrency)
                 };

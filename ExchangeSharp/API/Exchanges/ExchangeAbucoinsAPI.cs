@@ -371,7 +371,7 @@ namespace ExchangeSharp
                 result.AveragePrice = token["price"].ConvertInvariant<decimal>();
                 result.Fees = token["fill_fees"].ConvertInvariant<decimal>();
                 result.IsBuy = token["buy"].ToStringInvariant().Equals("buy");
-                result.OrderDate = token["created_at"].ConvertInvariant<DateTime>();
+                result.OrderDate = ConvertDateTimeInvariant(token["created_at"]);
                 result.Price = token["price"].ConvertInvariant<decimal>();
                 result.Symbol = token["product_id"].ToStringInvariant();
                 result.Message = token["reject_reason"].ToStringInvariant();
@@ -410,7 +410,7 @@ namespace ExchangeSharp
                 {
                     Symbol = token["currency"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
-                    TimestampUTC = token["date"].ConvertInvariant<DateTime>(),
+                    Timestamp = ConvertDateTimeInvariant(token["date"]),
                     PaymentId = token["deposit_id"].ToStringInvariant(),
                     TxFee = token["fee"].ConvertInvariant<decimal>()
                 };
@@ -502,7 +502,7 @@ namespace ExchangeSharp
                         {
                             OrderId = token["order_id"].ToStringInvariant(),
                             Symbol = token["product_id"].ToStringInvariant(),
-                            OrderDate = token["time"].ConvertInvariant<DateTime>(),
+                            OrderDate = ConvertDateTimeInvariant(token["time"]),
                             Message = token["reason"].ToStringInvariant(),
                             IsBuy = token["side"].ToStringInvariant().Equals("buy"),
                             Price = token["price"].ConvertInvariant<decimal>()
@@ -544,7 +544,7 @@ namespace ExchangeSharp
                                 {
                                     ConvertedSymbol = token["product_id"].ToStringInvariant(),
                                     ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
-                                    Timestamp = token["time"].ConvertInvariant<DateTime>()
+                                    Timestamp = ConvertDateTimeInvariant(token["time"])
                                 }
                             })
                         });
@@ -567,7 +567,7 @@ namespace ExchangeSharp
             return new ExchangeTrade()
             {
                 Id = token["trade_id"].ConvertInvariant<long>(),
-                Timestamp = token["time"].ConvertInvariant<DateTime>(),
+                Timestamp = ConvertDateTimeInvariant(token["time"]),
                 Amount = token["size"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
                 IsBuy = token["buy"].ToStringLowerInvariant().Equals("buy")

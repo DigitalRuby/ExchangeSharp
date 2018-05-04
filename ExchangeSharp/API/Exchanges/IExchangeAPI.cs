@@ -102,6 +102,11 @@ namespace ExchangeSharp
         System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
 
         /// <summary>
+        /// Whether the DateTime values from the api are in local time. Most API use UTC, but there are some (Poloniex) that return local DateTime for some odd reason.
+        /// </summary>
+        bool DateTimeAreLocal { get; set; }
+
+        /// <summary>
         /// Generate a nonce
         /// </summary>
         /// <returns>Nonce</returns>

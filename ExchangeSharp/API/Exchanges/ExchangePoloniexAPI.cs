@@ -57,6 +57,7 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
             SymbolIsReversed = true;
+            DateTimeAreLocal = true;
         }
 
         /// <summary>
@@ -130,7 +131,7 @@ namespace ExchangeSharp
             {
                 Amount = result["startingAmount"].ConvertInvariant<decimal>(),
                 IsBuy = result["type"].ToStringLowerInvariant() != "sell",
-                OrderDate = result["date"].ConvertInvariant<DateTime>(),
+                OrderDate = ConvertDateTimeInvariant(result["date"]),
                 OrderId = result["orderNumber"].ToStringInvariant(),
                 Price = result["rate"].ConvertInvariant<decimal>(),
                 Result = ExchangeAPIOrderResult.Pending,
@@ -177,7 +178,7 @@ namespace ExchangeSharp
 
                 if (order.OrderDate == DateTime.MinValue)
                 {
-                    order.OrderDate = trade["date"].ConvertInvariant<DateTime>();
+                    order.OrderDate = ConvertDateTimeInvariant(trade["date"]);
                 }
 
                 // fee is a percentage taken from the traded amount rounded to 8 decimals
@@ -492,7 +493,7 @@ namespace ExchangeSharp
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = (obj[0]["date"].ConvertInvariant<DateTime>()).AddSeconds(1.0);
+                    sinceDateTime = ConvertDateTimeInvariant(obj[0]["date"]).AddSeconds(1.0);
                 }
                 foreach (JToken child in obj.Children())
                 {
@@ -812,7 +813,7 @@ namespace ExchangeSharp
                     Address = token["address"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
                     BlockchainTxId = token["txid"].ToStringInvariant(),
-                    TimestampUTC = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds()
+                    Timestamp = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds()
                 };
 
                 string status = token["status"].ToStringUpperInvariant();

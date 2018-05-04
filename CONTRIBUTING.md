@@ -6,5 +6,9 @@ Please follow these guidelines...
   - Override the protected methods of ExchangeAPI that you want to implement.
   - Ensure that the unit tests and integrations tests (ExchangeSharpConsole.exe test exchangeName=[name]) pass before submitting a pull request.
   - Easiest way is find another exchange and copy the file and customize as needed.
+  - For any DateTime conversions, please use the ConvertDateTimeInvariant (BaseAPI.cs), and that you have set DateTimeAreLocal in constructor to true if needed.
+  - Set additional protected and public properties in constructor as needed (SymbolSeparator, SymbolIsReversed, SymbolIsUppercase, etc.).
+ 
+
 
 

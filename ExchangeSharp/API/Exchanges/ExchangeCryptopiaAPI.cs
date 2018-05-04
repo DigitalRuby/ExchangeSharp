@@ -270,7 +270,7 @@ namespace ExchangeSharp
                     AmountFilled = order["Amount"].ConvertInvariant<decimal>(),       // It doesn't look like partial fills are supplied on closed orders
                     Price = order["Rate"].ConvertInvariant<decimal>(),
                     AveragePrice = order["Rate"].ConvertInvariant<decimal>(),
-                    OrderDate = order["TimeStamp"].ConvertInvariant<DateTime>(),
+                    OrderDate = ConvertDateTimeInvariant(order["TimeStamp"]),
                     IsBuy = order["Type"].ToStringInvariant().Equals("Buy"),
                     Fees = order["Fee"].ConvertInvariant<decimal>(),
                     Result = ExchangeAPIOrderResult.Filled
@@ -294,11 +294,11 @@ namespace ExchangeSharp
                 ExchangeOrderResult order = new ExchangeOrderResult()
                 {
                     OrderId = data["OrderId"].ConvertInvariant<int>().ToStringInvariant(),
-                    OrderDate = data.Value<DateTime>("TimeStamp"),
-                    Symbol = data.Value<String>("Market"),
+                    OrderDate = ConvertDateTimeInvariant(data["TimeStamp"]),
+                    Symbol = data.Value<string>("Market"),
                     Amount = data["Amount"].ConvertInvariant<decimal>(),
                     Price = data["Rate"].ConvertInvariant<decimal>(),
-                    IsBuy = data.Value<String>("Type") == "Buy"  
+                    IsBuy = data.Value<string>("Type") == "Buy"  
                 };
                 order.AveragePrice = order.Price;
                 order.AmountFilled = order.Amount - data["Remaining"].ConvertInvariant<decimal>();
@@ -385,7 +385,7 @@ namespace ExchangeSharp
                          BlockchainTxId = data["TxId"].ToStringInvariant(),
                          Notes = data["Type"].ToStringInvariant(),
                          PaymentId = data["Id"].ToStringInvariant(),
-                         TimestampUTC = data["TimeStamp"].ConvertInvariant<DateTime>(),
+                         Timestamp = ConvertDateTimeInvariant(data["TimeStamp"]),
                          Symbol = data["Currency"].ToStringInvariant(),
                          TxFee = data["Fee"].ConvertInvariant<decimal>()
                     };

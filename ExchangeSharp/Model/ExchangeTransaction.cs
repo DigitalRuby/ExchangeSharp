@@ -38,8 +38,8 @@ namespace ExchangeSharp
         /// <summary>A value indicating whether the transaction is pending</summary>
         public TransactionStatus Status { get; set; } = TransactionStatus.Unknown;
 
-        /// <summary>The timestamp of the transaction</summary>
-        public DateTime TimestampUTC { get; set; }
+        /// <summary>The timestamp of the transaction, should be in UTC</summary>
+        public DateTime Timestamp { get; set; }
 
         /// <summary>The fee on the transaction</summary>
         public decimal TxFee { get; set; }
@@ -50,7 +50,7 @@ namespace ExchangeSharp
         public override string ToString()
         {
             return
-                $"{Amount} {Symbol} (fee: {TxFee}) sent to Address: {Address ?? "null"} with AddressTag: {AddressTag ?? "null"} BlockchainTxId: {BlockchainTxId ?? "null"} sent at {TimestampUTC} UTC. Status: {Status}. Exchange paymentId: {PaymentId ?? "null"}. Notes: {Notes ?? "null"}";
+                $"{Amount} {Symbol} (fee: {TxFee}) sent to Address: {Address ?? "null"} with AddressTag: {AddressTag ?? "null"} BlockchainTxId: {BlockchainTxId ?? "null"} sent at {Timestamp} UTC. Status: {Status}. Exchange paymentId: {PaymentId ?? "null"}. Notes: {Notes ?? "null"}";
         }
     }
 }

@@ -125,7 +125,7 @@ namespace ExchangeSharp
             order.Message = string.Empty;
             order.OrderId = token["OrderUuid"].ToStringInvariant();
             order.Result = amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially);
-            order.OrderDate = token["Opened"].ConvertInvariant<DateTime>(token["TimeStamp"].ConvertInvariant<DateTime>());
+            order.OrderDate = ConvertDateTimeInvariant(token["Opened"], ConvertDateTimeInvariant(token["TimeStamp"]));
             order.Symbol = token["Exchange"].ToStringInvariant();
             order.Fees = token["CommissionPaid"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
 
@@ -256,7 +256,7 @@ namespace ExchangeSharp
                         BaseSymbol = symbol,
                         ConvertedVolume = ticker["BaseVolume"].ConvertInvariant<decimal>(),
                         ConvertedSymbol = symbol,
-                        Timestamp = ticker["TimeStamp"].ConvertInvariant<DateTime>()
+                        Timestamp = ConvertDateTimeInvariant(ticker["TimeStamp"])
                     }
                 };
             }
@@ -283,7 +283,7 @@ namespace ExchangeSharp
                         BaseSymbol = symbol,
                         ConvertedVolume = ticker["Volume"].ConvertInvariant<decimal>(),
                         ConvertedSymbol = symbol,
-                        Timestamp = ticker["TimeStamp"].ConvertInvariant<DateTime>(DateTime.UtcNow)
+                        Timestamp = ConvertDateTimeInvariant(ticker["TimeStamp"])
                     }
                 };
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
@@ -401,7 +401,7 @@ namespace ExchangeSharp
                 };
 
                 DateTime.TryParse(token["LastUpdated"].ToStringInvariant(), out DateTime timestamp);
-                deposit.TimestampUTC = timestamp;
+                deposit.Timestamp = timestamp;
 
                 transactions.Add(deposit);
             }
@@ -433,7 +433,7 @@ namespace ExchangeSharp
                 }
                 if (sinceDateTime != null)
                 {
-                    sinceDateTime = array.Last["T"].ConvertInvariant<DateTime>();
+                    sinceDateTime = ConvertDateTimeInvariant(array.Last["T"]);
                 }
                 foreach (JToken trade in array)
                 {
@@ -442,7 +442,7 @@ namespace ExchangeSharp
                     {
                         Amount = trade["V"].ConvertInvariant<decimal>(),
                         Price = trade["C"].ConvertInvariant<decimal>(),
-                        Timestamp = trade["T"].ConvertInvariant<DateTime>(),
+                        Timestamp = ConvertDateTimeInvariant(trade["T"]),
                         Id = -1,
                         IsBuy = true
                     });
@@ -477,7 +477,7 @@ namespace ExchangeSharp
                         Amount = token["Quantity"].ConvertInvariant<decimal>(),
                         IsBuy = token["OrderType"].ToStringUpperInvariant() == "BUY",
                         Price = token["Price"].ConvertInvariant<decimal>(),
-                        Timestamp = token["TimeStamp"].ConvertInvariant<DateTime>(),
+                        Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
                         Id = token["Id"].ConvertInvariant<long>()
                     });
                 }
@@ -535,7 +535,7 @@ namespace ExchangeSharp
                         Name = symbol,
                         OpenPrice = jsonCandle["O"].ConvertInvariant<decimal>(),
                         PeriodSeconds = periodSeconds,
-                        Timestamp = jsonCandle["T"].ConvertInvariant<DateTime>(),
+                        Timestamp = ConvertDateTimeInvariant(jsonCandle["T"]),
                         BaseVolume = jsonCandle["BV"].ConvertInvariant<double>(),
                         ConvertedVolume = jsonCandle["V"].ConvertInvariant<double>()
                     };

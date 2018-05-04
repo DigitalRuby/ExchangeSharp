@@ -68,13 +68,13 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert an object to another type invariant
+        /// Convert a DateTime and set the kind using the DateTimeKind property.
         /// </summary>
-        /// <param name="obj">Object</param>
-        /// <param name="kind">DateTime kind to convert the converted DateTime to, unspecified kind for no conversion</param>
-        /// <param name="defaultValue">Default value</param>
-        /// <returns>Converted DateTime or defaultValue if no conversion was possible</returns>
-        public static DateTime ToDateTimeInvariant(this object obj, DateTimeKind kind = DateTimeKind.Unspecified, DateTime defaultValue = default(DateTime))
+        /// <param name="obj">Object to convert</param>
+        /// <param name="isLocalDateTime">True if the obj has a date time that is a local date time, false if it is UTC</param>
+        /// <param name="defaultValue">Default value if no conversion is possible</param>
+        /// <returns>DateTime with DateTimeKind kind or defaultValue if no conversion possible</returns>
+        public static DateTime ToDateTimeInvariant(this object obj, bool isLocalDateTime, DateTime defaultValue = default(DateTime))
         {
             if (obj == null)
             {
@@ -86,15 +86,14 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-            switch (kind)
+            if (isLocalDateTime)
             {
-                case DateTimeKind.Local:
-                    dt = dt.ToLocalTime();
-                    break;
-
-                case DateTimeKind.Utc:
-                    dt = dt.ToUniversalTime();
-                    break;
+                dt = DateTime.SpecifyKind(dt, DateTimeKind.Local);
+                dt = dt.ToUniversalTime();
+            }
+            else
+            {
+                dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
             }
             return dt;
         }
@@ -104,7 +103,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <typeparam name="T">Type</typeparam>
         /// <param name="obj">Object</param>
-        /// <param name="defaultValue">Default value</param>
+        /// <param name="defaultValue">Default value if no conversion is possible</param>
         /// <returns>Converted value or defaultValue if not conversion was possible</returns>
         public static T ConvertInvariant<T>(this object obj, T defaultValue = default(T))
         {
@@ -289,23 +288,23 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get a local date time from a unix epoch in seconds
+        /// Get a utc date time from a local unix epoch in seconds
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in seconds</param>
-        /// <returns>Local DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeSecondsLocal(this double unixTimeStampSeconds)
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampLocalToDateTimeSeconds(this double unixTimeStampSeconds)
         {
-            return unixEpochLocal.AddSeconds(unixTimeStampSeconds);
+            return unixEpochLocal.AddSeconds(unixTimeStampSeconds).ToUniversalTime();
         }
 
         /// <summary>
-        /// Get a local date time from a unix epoch in milliseconds
+        /// Get a utc date time from a local unix epoch in milliseconds
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
         /// <returns>Local DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeMillisecondsLocal(this double unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
-            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds);
+            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
         }
 
         /// <summary>

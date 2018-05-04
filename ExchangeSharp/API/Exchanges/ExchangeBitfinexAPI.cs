@@ -606,7 +606,7 @@ namespace ExchangeSharp
                 }
 
                 double unixTimestamp = token["timestamp"].ConvertInvariant<double>();
-                transaction.TimestampUTC = unixTimestamp.UnixTimeStampToDateTimeSeconds();
+                transaction.Timestamp = unixTimestamp.UnixTimeStampToDateTimeSeconds();
                 transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
 
                 transactions.Add(transaction);

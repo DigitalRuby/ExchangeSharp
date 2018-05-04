@@ -186,7 +186,7 @@ namespace ExchangeSharp
                     Price = token["price"].ConvertInvariant<decimal>(),
                     Id = -1,
                     IsBuy = token["type"].ToStringInvariant() == "bid",
-                    Timestamp = token["transaction_date"].ConvertInvariant<DateTime>()
+                    Timestamp = ConvertDateTimeInvariant(token["transaction_date"])
                 });
             }
             callback(trades);
