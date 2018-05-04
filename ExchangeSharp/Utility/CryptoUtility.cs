@@ -70,10 +70,42 @@ namespace ExchangeSharp
         /// <summary>
         /// Convert an object to another type invariant
         /// </summary>
+        /// <param name="obj">Object</param>
+        /// <param name="kind">DateTime kind</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <returns>Converted DateTime or defaultValue if no conversion was possible</returns>
+        public static DateTime ToDateTimeInvariant(this object obj, DateTimeKind kind, DateTime defaultValue = default(DateTime))
+        {
+            if (obj == null)
+            {
+                return defaultValue;
+            }
+            JValue jValue = obj as JValue;
+            if (jValue != null && jValue.Value == null)
+            {
+                return defaultValue;
+            }
+            DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
+            switch (kind)
+            {
+                case DateTimeKind.Local:
+                    dt = dt.ToLocalTime();
+                    break;
+
+                case DateTimeKind.Utc:
+                    dt = dt.ToUniversalTime();
+                    break;
+            }
+            return dt;
+        }
+
+        /// <summary>
+        /// Convert an object to another type using invariant culture. Consider using the string or DateTime conversions if you are dealing with those types.
+        /// </summary>
         /// <typeparam name="T">Type</typeparam>
         /// <param name="obj">Object</param>
         /// <param name="defaultValue">Default value</param>
-        /// <returns>Converted value or defaultValue if not found in token</returns>
+        /// <returns>Converted value or defaultValue if not conversion was possible</returns>
         public static T ConvertInvariant<T>(this object obj, T defaultValue = default(T))
         {
             if (obj == null)
@@ -86,11 +118,6 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             T result;
-            if (typeof(T) == typeof(DateTime))
-            {
-                result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
-                return (T)(object)(((DateTime)(object)result).ToUniversalTime());
-            }
             try
             {
                 result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
