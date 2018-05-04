@@ -71,7 +71,7 @@ namespace ExchangeSharp
         /// Convert an object to another type invariant
         /// </summary>
         /// <param name="obj">Object</param>
-        /// <param name="kind">DateTime kind</param>
+        /// <param name="kind">DateTime kind to convert the converted DateTime to, unspecified kind for no conversion</param>
         /// <param name="defaultValue">Default value</param>
         /// <returns>Converted DateTime or defaultValue if no conversion was possible</returns>
         public static DateTime ToDateTimeInvariant(this object obj, DateTimeKind kind, DateTime defaultValue = default(DateTime))
