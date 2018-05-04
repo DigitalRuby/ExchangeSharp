@@ -86,6 +86,11 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             T result;
+            if (typeof(T) == typeof(DateTime))
+            {
+                result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
+                return (T)(object)(((DateTime)(object)result).ToUniversalTime());
+            }
             try
             {
                 result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
