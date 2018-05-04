@@ -26,6 +26,7 @@ namespace ExchangeSharp
     public static class CryptoUtility
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime unixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
 
         /// <summary>
         /// Static constructor
@@ -103,16 +104,31 @@ namespace ExchangeSharp
             return result;
         }
 
+        /// <summary>
+        /// Convert a secure string to a non-secure string
+        /// </summary>
+        /// <param name="s">SecureString</param>
+        /// <returns>Non-secure string</returns>
         public static string ToUnsecureString(this SecureString s)
         {
             return SecureStringToString(s);
         }
 
+        /// <summary>
+        /// Convert a string to secure string
+        /// </summary>
+        /// <param name="s">Non-secure string</param>
+        /// <returns>SecureString</returns>
         public static SecureString ToSecureString(this string s)
         {
             return StringToSecureString(s);
         }
 
+        /// <summary>
+        /// Covnert a secure string to a non-secure string
+        /// </summary>
+        /// <param name="s">SecureString</param>
+        /// <returns>Non-secure string</returns>
         public static string SecureStringToString(this SecureString s)
         {
             if (s == null)
@@ -131,6 +147,11 @@ namespace ExchangeSharp
             }
         }
 
+        /// <summary>
+        /// Convert a secure string to binary data
+        /// </summary>
+        /// <param name="s">SecureString</param>
+        /// <returns>Binary data</returns>
         public static byte[] SecureStringToBytes(this SecureString s)
         {
             if (s == null)
@@ -143,6 +164,11 @@ namespace ExchangeSharp
             return bytes;
         }
 
+        /// <summary>
+        /// Decode a secure string that is in base64 format to binary data
+        /// </summary>
+        /// <param name="s">SecureString in base64 format</param>
+        /// <returns>Binary data</returns>
         public static byte[] SecureStringToBytesBase64Decode(this SecureString s)
         {
             if (s == null)
@@ -155,6 +181,11 @@ namespace ExchangeSharp
             return bytes;
         }
 
+        /// <summary>
+        /// Convert a string to a secure string
+        /// </summary>
+        /// <param name="unsecure">Plain text string</param>
+        /// <returns>SecureString</returns>
         public static SecureString StringToSecureString(this string unsecure)
         {
             if (unsecure == null)
@@ -169,6 +200,14 @@ namespace ExchangeSharp
             return secure;
         }
 
+        /// <summary>
+        /// Clamp a decimal to a min and max value
+        /// </summary>
+        /// <param name="minValue">Min value</param>
+        /// <param name="maxValue">Max value</param>
+        /// <param name="stepSize">Smallest unit value should be evenly divisible by</param>
+        /// <param name="value">Value to clamp</param>
+        /// <returns>Clamped value</returns>
         public static decimal ClampDecimal(decimal minValue, decimal maxValue, decimal? stepSize, decimal value)
         {
             if (minValue < 0) throw new ArgumentOutOfRangeException(nameof(minValue));
@@ -197,56 +236,154 @@ namespace ExchangeSharp
             return value / 1.000000000000000000000000000000000m;
         }
 
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in seconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in seconds</param>
+        /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
         {
             return unixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
             return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
 
+        /// <summary>
+        /// Get a local date time from a unix epoch in seconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in seconds</param>
+        /// <returns>Local DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeSecondsLocal(this double unixTimeStampSeconds)
+        {
+            return unixEpochLocal.AddSeconds(unixTimeStampSeconds);
+        }
+
+        /// <summary>
+        /// Get a local date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>Local DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMillisecondsLocal(this double unixTimeStampMilliseconds)
+        {
+            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds);
+        }
+
+        /// <summary>
+        /// Get a unix timestamp in seconds from a DateTime
+        /// </summary>
+        /// <param name="dt">DateTime</param>
+        /// <returns>Unix epoch in seconds</returns>
         public static double UnixTimestampFromDateTimeSeconds(this DateTime dt)
         {
+            if (dt.Kind == DateTimeKind.Local)
+            {
+                dt = dt.ToUniversalTime();
+            }
+            else if (dt.Kind == DateTimeKind.Unspecified)
+            {
+                throw new InvalidOperationException("Unable to create unix epoch from DateTime with unspecified date time kind");
+            }
             return (dt - unixEpoch).TotalSeconds;
         }
 
+        /// <summary>
+        /// Get a unix timestamp in milliseconds from a DateTime
+        /// </summary>
+        /// <param name="dt">DateTime</param>
+        /// <returns>Unix timestamp in milliseconds</returns>
         public static double UnixTimestampFromDateTimeMilliseconds(this DateTime dt)
         {
+            if (dt.Kind == DateTimeKind.Local)
+            {
+                dt = dt.ToUniversalTime();
+            }
+            else if (dt.Kind == DateTimeKind.Unspecified)
+            {
+                throw new InvalidOperationException("Unable to create unix epoch from DateTime with unspecified date time kind");
+            }
             return (dt - unixEpoch).TotalMilliseconds;
         }
 
+        /// <summary>
+        /// Sign a message with SHA256 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key</param>
+        /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, string key)
         {
             return new HMACSHA256(Encoding.UTF8.GetBytes(key)).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
+        /// <summary>
+        /// Sign a message with SHA256 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key bytes</param>
+        /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, byte[] key)
         {
             return new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
+        /// <summary>
+        /// Sign a message with SHA256 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key bytes</param>
+        /// <returns>Signature in base64</returns>
         public static string SHA256SignBase64(string message, byte[] key)
         {
             return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
         }
 
+        /// <summary>
+        /// Sign a message with SHA384 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key</param>
+        /// <returns>Signature in hex</returns>
         public static string SHA384Sign(string message, string key)
         {
             return new HMACSHA384(Encoding.UTF8.GetBytes(key)).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
+        /// <summary>
+        /// Sign a message with SHA384 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key bytes</param>
+        /// <returns>Signature</returns>
         public static string SHA384Sign(string message, byte[] key)
         {
             return new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
+        /// <summary>
+        /// Sign a message with SHA384 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key bytes</param>
+        /// <returns>Signature in base64</returns>
         public static string SHA384SignBase64(string message, byte[] key)
         {
             return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
         }
 
+        /// <summary>
+        /// Sign a message with SHA512 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key</param>
+        /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
             var hmac = new HMACSHA512(Encoding.ASCII.GetBytes(key));
@@ -255,6 +392,12 @@ namespace ExchangeSharp
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
+        /// <summary>
+        /// Sign a message with SHA512 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key bytes</param>
+        /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
@@ -263,6 +406,12 @@ namespace ExchangeSharp
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
+        /// <summary>
+        /// Sign a message with SHA512 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <param name="key">Private key bytes</param>
+        /// <returns>Signature in base64</returns>
         public static string SHA512SignBase64(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
@@ -271,6 +420,11 @@ namespace ExchangeSharp
             return Convert.ToBase64String(hashmessage);
         }
 
+        /// <summary>
+        /// Sign a message with MD5 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <returns>Signature in hex</returns>
         public static string MD5Sign(string message)
         {
             var md5 = new MD5CryptoServiceProvider();
@@ -279,6 +433,11 @@ namespace ExchangeSharp
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
+        /// <summary>
+        /// Generate random salt
+        /// </summary>
+        /// <param name="length">Length of salt</param>
+        /// <returns>Salt</returns>
         public static byte[] GenerateSalt(int length)
         {
             byte[] salt = new byte[length];
@@ -289,6 +448,13 @@ namespace ExchangeSharp
             return salt;
         }
 
+        /// <summary>
+        /// AES encrypt data with a password and salt
+        /// </summary>
+        /// <param name="input">Data to encrypt</param>
+        /// <param name="password">Password</param>
+        /// <param name="salt">Salt</param>
+        /// <returns>Encrypted data</returns>
         public static byte[] AesEncryption(byte[] input, byte[] password, byte[] salt)
         {
             if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
@@ -313,6 +479,13 @@ namespace ExchangeSharp
             return encrypted.ToArray();
         }
 
+        /// <summary>
+        /// AES decrypt data with a password and salt
+        /// </summary>
+        /// <param name="input">Data to decrypt</param>
+        /// <param name="password">Password</param>
+        /// <param name="salt">Salt</param>
+        /// <returns>Decrypted data</returns>
         public static byte[] AesDecryption(byte[] input, byte[] password, byte[] salt)
         {
             if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
@@ -425,7 +598,6 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Load protected data as strings from file. Call this function in your production environment, loading in a securely encrypted file which will stay encrypted in memory.
-        /// On non-Windows platforms, the file is plain text and must be secured using file permissions.
         /// </summary>
         /// <param name="path">Path to load from</param>
         /// <returns>Protected data</returns>
@@ -464,7 +636,6 @@ namespace ExchangeSharp
         /// <summary>
         /// Save unprotected data as strings to a file, where it will be encrypted for the current user account. Call this method offline with the data you need to secure.
         /// Call CryptoUtility.LoadProtectedStringsFromFile to later load these strings from the file.
-        /// On non-Windows platforms, the file is plain text and must be secured using file permissions.
         /// </summary>
         /// <param name="path">Path to save to</param>
         /// <param name="strings">Strings to save.</param>
@@ -484,7 +655,6 @@ namespace ExchangeSharp
             MemoryStream memory = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(memory, Encoding.UTF8);
             char[] chars;
-
             foreach (string s in strings)
             {
                 chars = s.ToArray();
@@ -556,7 +726,14 @@ namespace ExchangeSharp
             return Math.Floor(amount * adjustment) / adjustment;
         }
 
+        /// <summary>
+        /// True if platform is Windows, false otherwise
+        /// </summary>
         public static bool IsWindows { get; private set; }
+
+        /// <summary>
+        /// True if running under Mono (https://www.mono-project.com/), false if not
+        /// </summary>
         public static bool IsMono { get; private set; }
 
         /// <summary>Calculates the precision allowed based on the number of decimal points in a number.</summary>
