@@ -481,8 +481,8 @@ namespace ExchangeSharp
                 url = baseUrl;
                 if (sinceDateTime != null)
                 {
-                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(sinceDateTime.Value.ToLocalTime()) + "&end=" +
-                        (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(sinceDateTime.Value.ToLocalTime().AddDays(1.0));
+                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(sinceDateTime.Value) + "&end=" +
+                        (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(sinceDateTime.Value.AddDays(1.0));
                 }
                 JArray obj = await MakeJsonRequestAsync<JArray>(url);
                 if (obj == null || obj.Count == 0)
@@ -532,9 +532,9 @@ namespace ExchangeSharp
             string url = "/public?command=returnChartData&currencyPair=" + symbol;
             if (startDate != null)
             {
-                url += "&start=" + (long)startDate.Value.ToLocalTime().UnixTimestampFromDateTimeSeconds();
+                url += "&start=" + (long)startDate.Value.UnixTimestampFromDateTimeSeconds();
             }
-            url += "&end=" + (endDate == null ? long.MaxValue : (long)endDate.Value.ToLocalTime().UnixTimestampFromDateTimeSeconds());
+            url += "&end=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
             url += "&period=" + periodSeconds;
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             CheckError(token);
@@ -550,7 +550,7 @@ namespace ExchangeSharp
                     OpenPrice = candle["open"].ConvertInvariant<decimal>(),
                     Name = symbol,
                     PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampLocalToDateTimeSeconds(candle["date"].ConvertInvariant<long>()),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(candle["date"].ConvertInvariant<long>()),
                     BaseVolume = candle["volume"].ConvertInvariant<double>(),
                     ConvertedVolume = candle["quoteVolume"].ConvertInvariant<double>(),
                     WeightedAverage = candle["weightedAverage"].ConvertInvariant<decimal>()
