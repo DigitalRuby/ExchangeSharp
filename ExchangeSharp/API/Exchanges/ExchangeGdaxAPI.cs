@@ -185,7 +185,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, string> ticker = await MakeJsonRequestAsync<Dictionary<string, string>>("/products/" + symbol + "/ticker");
             decimal volume = Convert.ToDecimal(ticker["volume"], System.Globalization.CultureInfo.InvariantCulture);
-            DateTime timestamp = DateTime.Parse(ticker["time"]);
+            DateTime timestamp = ConvertDateTimeInvariant(ticker["time"]);
             decimal price = Convert.ToDecimal(ticker["price"], System.Globalization.CultureInfo.InvariantCulture);
             return new ExchangeTicker
             {

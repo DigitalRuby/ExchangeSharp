@@ -34,7 +34,6 @@ namespace ExchangeSharpTests
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
             var polo = new ExchangePoloniexAPI { RequestMaker = requestMaker };
-            polo.DateTimeAreLocal = false; // just for unit tests, pretend dates are UTC instead of local time
             return polo;
         }
 
