@@ -19,7 +19,7 @@ using System.Web;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
-{ 
+{
 
     public sealed class ExchangeBleutradeAPI : ExchangeAPI
     {
@@ -87,7 +87,7 @@ namespace ExchangeSharp
                     MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
                     Name = token["Currency"].ToStringUpperInvariant(),
                     Notes = token["Notice"].ToStringInvariant(),
-                   TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                    TxFee = token["TxFee"].ConvertInvariant<decimal>(),
                 };
                 currencies[coin.Name] = coin;
             }
@@ -113,11 +113,11 @@ namespace ExchangeSharp
             {
                 markets.Add(new ExchangeMarket()
                 {
-                     MarketName = token["MarketName"].ToStringInvariant(),
-                     BaseCurrency = token["BaseCurrency"].ToStringInvariant(),
-                     MarketCurrency = token["MarketCurrency"].ToStringInvariant(),
-                     IsActive = token["IsActive"].ToStringInvariant().Equals("true"),
-                     MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+                    MarketName = token["MarketName"].ToStringInvariant(),
+                    BaseCurrency = token["BaseCurrency"].ToStringInvariant(),
+                    MarketCurrency = token["MarketCurrency"].ToStringInvariant(),
+                    IsActive = token["IsActive"].ToStringInvariant().Equals("true"),
+                    MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
                 });
             }
             return markets;
@@ -166,7 +166,7 @@ namespace ExchangeSharp
                         ConvertedVolume = token["Volume"].ConvertInvariant<decimal>()
                     }
                 };
-                tickers.Add(new  KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
             }
             return tickers;
         }
@@ -195,23 +195,23 @@ namespace ExchangeSharp
             //"result":[{"TimeStamp":"2014-07-31 10:15:00","Open":"0.00000048","High":"0.00000050","Low":"0.00000048","Close":"0.00000049","Volume":"594804.73036048","BaseVolume":"0.11510368" }, ...
             JToken result = await MakeJsonRequestAsync<JObject>("/public/getcandles?market=" + symbol + "&period=" + periodString + (limit == null ? string.Empty : "&lasthours=" + limit));
             result = CheckError(result);
-                foreach (JToken jsonCandle in result)
+            foreach (JToken jsonCandle in result)
+            {
+                MarketCandle candle = new MarketCandle
                 {
-                    MarketCandle candle = new MarketCandle
-                    {
-                        ExchangeName = this.Name,
-                        Name = symbol,
-                        Timestamp = ConvertDateTimeInvariant(jsonCandle["TimeStamp"]),
-                        OpenPrice = jsonCandle["Open"].ConvertInvariant<decimal>(),
-                        HighPrice = jsonCandle["High"].ConvertInvariant<decimal>(),
-                        LowPrice = jsonCandle["Low"].ConvertInvariant<decimal>(),
-                        ClosePrice = jsonCandle["Close"].ConvertInvariant<decimal>(),
-                        PeriodSeconds = periodSeconds,
-                        BaseVolume = jsonCandle["BaseVolume"].ConvertInvariant<double>(),
-                        ConvertedVolume = jsonCandle["Volume"].ConvertInvariant<double>()
-                    };
-                    if (candle.Timestamp >= startDate && candle.Timestamp <= endDate) candles.Add(candle);
-                }
+                    ExchangeName = this.Name,
+                    Name = symbol,
+                    Timestamp = ConvertDateTimeInvariant(jsonCandle["TimeStamp"]),
+                    OpenPrice = jsonCandle["Open"].ConvertInvariant<decimal>(),
+                    HighPrice = jsonCandle["High"].ConvertInvariant<decimal>(),
+                    LowPrice = jsonCandle["Low"].ConvertInvariant<decimal>(),
+                    ClosePrice = jsonCandle["Close"].ConvertInvariant<decimal>(),
+                    PeriodSeconds = periodSeconds,
+                    BaseVolume = jsonCandle["BaseVolume"].ConvertInvariant<double>(),
+                    ConvertedVolume = jsonCandle["Volume"].ConvertInvariant<double>()
+                };
+                if (candle.Timestamp >= startDate && candle.Timestamp <= endDate) candles.Add(candle);
+            }
             return candles;
         }
 
@@ -222,7 +222,7 @@ namespace ExchangeSharp
             //"result" : [{ "TimeStamp" : "2014-07-29 18:08:00","Quantity" : 654971.69417461,"Price" : 0.00000055,"Total" : 0.360234432,"OrderType" : "BUY"}, ...  ]
             JToken result = await MakeJsonRequestAsync<JObject>("/public/getmarkethistory?market=" + symbol);
             result = CheckError(result);
-            foreach(JToken token in result) trades.Add(ParseTrade(token));
+            foreach (JToken token in result) trades.Add(ParseTrade(token));
             return trades;
         }
 
@@ -292,7 +292,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             // "result" : { "OrderId" : "65489","Exchange" : "LTC_BTC", "Type" : "BUY", "Quantity" : 20.00000000, "QuantityRemaining" : 5.00000000, "QuantityBaseTraded" : "0.16549400", "Price" : 0.01268311, "Status" : "OPEN", "Created" : "2014-08-03 13:55:20", "Comments" : "My optional comment, eg function id #123"  }
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId , null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId, null, GetNoncePayload());
             result = CheckError(result);
             return ParseOrder(result);
         }
@@ -324,7 +324,8 @@ namespace ExchangeSharp
         {
             ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
             // Only limit order is supported - no indication on how it is filled
-            JToken token = await MakeJsonRequestAsync<JToken>((order.IsBuy ? "/market/buylimit?" : "market/selllimit?") + "market=" + order.Symbol + "&rate=" + order.Price + "&quantity=" + order.Amount, null, GetNoncePayload());
+            JToken token = await MakeJsonRequestAsync<JToken>((order.IsBuy ? "/market/buylimit?" : "market/selllimit?") + "market=" + order.Symbol +
+                "&rate=" + order.Price.ToStringInvariant() + "&quantity=" + order.Amount.ToStringInvariant(), null, GetNoncePayload());
             token = CheckError(token);
             if (token.HasValues)
             {
@@ -350,9 +351,9 @@ namespace ExchangeSharp
                 // At this time, according to Bleutrade support, they don't support any currency requiring an Address Tag, but they will add this feature in the future
                 return new ExchangeDepositDetails()
                 {
-                     Symbol = token["Currency"].ToStringInvariant(),
-                     Address = token["Address"].ToStringInvariant()
-                 };
+                    Symbol = token["Currency"].ToStringInvariant(),
+                    Address = token["Address"].ToStringInvariant()
+                };
             }
             return null;
         }
@@ -368,14 +369,14 @@ namespace ExchangeSharp
             {
                 transactions.Add(new ExchangeTransaction()
                 {
-                     PaymentId = token["Id"].ToStringInvariant(),
-                     BlockchainTxId = token["TransactionId"].ToStringInvariant(),
-                     Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
-                     Symbol = token["Coin"].ToStringInvariant(),
-                     Amount = token["Amount"].ConvertInvariant<decimal>(),
-                     Notes = token["Label"].ToStringInvariant(),
-                     TxFee = token["fee"].ConvertInvariant<decimal>(),
-                     Status = TransactionStatus.Unknown
+                    PaymentId = token["Id"].ToStringInvariant(),
+                    BlockchainTxId = token["TransactionId"].ToStringInvariant(),
+                    Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
+                    Symbol = token["Coin"].ToStringInvariant(),
+                    Amount = token["Amount"].ConvertInvariant<decimal>(),
+                    Notes = token["Label"].ToStringInvariant(),
+                    TxFee = token["fee"].ConvertInvariant<decimal>(),
+                    Status = TransactionStatus.Unknown
                 });
             }
             return transactions;
@@ -388,7 +389,7 @@ namespace ExchangeSharp
             payload["quantity"] = withdrawalRequest.Amount;
             payload["address"] = withdrawalRequest.Address;
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["comments"] = withdrawalRequest.AddressTag;
-            
+
             JToken token = await MakeJsonRequestAsync<JToken>("/account/withdraw", BaseUrl, payload, "GET");
             CheckError(token);
             // Bleutrade doesn't return any info, just an empty string on success. The CheckError will throw an exception if there's an error
