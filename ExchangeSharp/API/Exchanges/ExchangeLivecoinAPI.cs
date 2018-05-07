@@ -295,7 +295,7 @@ namespace ExchangeSharp
 
             //{ "success": true, "added": true, "orderId": 4912
             JToken token = await MakeJsonRequestAsync<JToken>(string.Format("{0}?currencyPair={1}&price={2}&quantity={3}",
-                orderType, WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)), order.Price.ToStringInvariant(), order.Amount.ToStringInvariant()), null, GetNoncePayload(), "POST");
+                orderType, WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)), order.Price.ToStringInvariant(), order.RoundAmount().ToStringInvariant()), null, GetNoncePayload(), "POST");
             token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
