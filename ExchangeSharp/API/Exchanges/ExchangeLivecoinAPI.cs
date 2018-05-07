@@ -289,12 +289,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string ordertype = "/exchange/";
-            if (order.OrderType == OrderType.Market) ordertype += order.IsBuy ? "buymarket" : "sellmarket";
-            else ordertype += order.IsBuy ? "buylimit" : "selllimit";
+            string orderType = "/exchange/";
+            if (order.OrderType == OrderType.Market) orderType += order.IsBuy ? "buymarket" : "sellmarket";
+            else orderType += order.IsBuy ? "buylimit" : "selllimit";
 
             //{ "success": true, "added": true, "orderId": 4912
-            JToken token = await MakeJsonRequestAsync<JToken>(string.Format("{0}?currencyPair={1}&price={2}&quantity={3}", ordertype, order.Symbol, order.Price, order.Amount), null, GetNoncePayload(), "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>(string.Format("{0}?currencyPair={1}&price={2}&quantity={3}",
+                orderType, WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)), order.Price.ToStringInvariant(), order.Amount.ToStringInvariant()), null, GetNoncePayload(), "POST");
             token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
@@ -306,7 +307,8 @@ namespace ExchangeSharp
             if (order != null)
             {
                 // { "success": true,"cancelled": true,"message": null,"quantity": 0.0005,"tradeQuantity": 0}
-                JToken token = await MakeJsonRequestAsync<JToken>("/exchange/cancel_limit?currencyPair=" + order.Symbol + "&orderId=" + orderId, null, GetNoncePayload(), "GET");
+                JToken token = await MakeJsonRequestAsync<JToken>("/exchange/cancel_limit?currencyPair=" +
+                    WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)) + "&orderId=" + orderId, null, GetNoncePayload(), "GET");
                 CheckError(token); // will throw exception on error
             }
         }
