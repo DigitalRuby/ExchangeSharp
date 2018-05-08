@@ -305,7 +305,7 @@ namespace ExchangeSharp
             var rc = CheckError(obj);
             foreach (JToken child in rc["datas"])
             {
-                decimal amount = child.Value<decimal>("blance");
+                decimal amount = child.Value<decimal>("balance");
                 if (amount > 0m) amounts.Add(child.Value<string>("coinType"), amount);
             }
             return amounts;
