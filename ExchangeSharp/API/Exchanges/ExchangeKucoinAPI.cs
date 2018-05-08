@@ -46,7 +46,7 @@ namespace ExchangeSharp
                 request.Headers.Add("KC-API-KEY", PublicApiKey.ToUnsecureString());
                 request.Headers.Add("KC-API-NONCE", payload["nonce"].ToStringInvariant());
 
-                var endpoint = request.RequestUri.PathAndQuery;
+                var endpoint = request.RequestUri.AbsolutePath;
                 var message = string.Format("{0}/{1}/{2}", endpoint, payload["nonce"], GetFormForPayload(payload, false));
                 var sig = CryptoUtility.SHA256Sign(Convert.ToBase64String(Encoding.UTF8.GetBytes(message)), PrivateApiKey.ToUnsecureString());
 
@@ -357,9 +357,10 @@ namespace ExchangeSharp
             var payload = GetNoncePayload();
             payload["amount"] = order.Amount;
             payload["price"] = order.Price;
+            payload["symbol"] = order.Symbol;
             payload["type"] = order.IsBuy ? "BUY" : "SELL";
             // {"orderOid": "596186ad07015679730ffa02" }
-            JToken token = await MakeJsonRequestAsync<JToken>("/order?symbol=" + order.Symbol, null, payload, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order?" + GetFormForPayload(payload, false), null, payload, "POST");
             token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderOid"].ToStringInvariant() };       // this is different than the oid created when filled
         }
