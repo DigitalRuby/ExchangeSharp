@@ -286,6 +286,13 @@ namespace ExchangeSharpTests
             buyOrder.Result.Should().Be(ExchangeAPIOrderResult.Filled);
         }
 
+        [TestMethod]
+        public void OnGetDepositHistory_DoesNotFailOnMinTimestamp()
+        {
+            var polo = CreatePoloniexAPI();
+            Invoking(() => polo.GetDepositHistory("doesntmatter")).Should().Throw<APIException>().And.Message.Should().Contain("No result");
+        }
+
         private static Action Invoking(Action action) => action;
 
         #region RealResponseJSON

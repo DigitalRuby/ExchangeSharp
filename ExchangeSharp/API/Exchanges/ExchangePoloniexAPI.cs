@@ -794,7 +794,7 @@ namespace ExchangeSharp
             JToken result = await MakePrivateAPIRequestAsync("returnDepositsWithdrawals",
                 new object[]
                 {
-                    "start", DateTime.MinValue.UnixTimestampFromDateTimeSeconds(),
+                    "start", DateTime.MinValue.ToUniversalTime().UnixTimestampFromDateTimeSeconds(),
                     "end", DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()
                 });
 
