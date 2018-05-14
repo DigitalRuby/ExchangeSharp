@@ -287,7 +287,7 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void OnGteDepositHistory_DoesNotFailOnMinTimestamp()
+        public void OnGetDepositHistory_DoesNotFailOnMinTimestamp()
         {
             var polo = CreatePoloniexAPI();
             Invoking(() => polo.GetDepositHistory("doesntmatter")).Should().Throw<APIException>().And.Message.Should().Contain("No result");
