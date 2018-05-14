@@ -791,10 +791,10 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeCoinTransfers</returns>
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
-            JToken result = await MakePrivateAPIRequestAsync("returnDepositsWithdrawals",
+            JToken result = await this.MakePrivateAPIRequestAsync("returnDepositsWithdrawals",
                 new object[]
                 {
-                    "start", DateTime.MinValue.UnixTimestampFromDateTimeSeconds(),
+                    "start", DateTime.MinValue.ToUniversalTime().UnixTimestampFromDateTimeSeconds(),
                     "end", DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()
                 });
 
