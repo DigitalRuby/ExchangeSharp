@@ -141,9 +141,9 @@ namespace ExchangeSharp
             {
                 return new ExchangeTicker
                 {
-                    Ask = (decimal?)token["sell"] ?? 0,
-                    Bid = (decimal?)token["buy"] ?? 0,
-                    Last = (decimal?)token["lastDealPrice"] ?? 0,
+                    Ask = token["sell"].ConvertInvariant<decimal>(),
+                    Bid = token["buy"].ConvertInvariant<decimal>(),
+                    Last = token["lastDealPrice"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(token["datetime"].ConvertInvariant<long>()).DateTime,
@@ -167,9 +167,9 @@ namespace ExchangeSharp
             {
                 tickers.Add(new KeyValuePair<string, ExchangeTicker>(tick["coinType"].ToStringInvariant() + "-" + tick["coinTypePair"].ToStringInvariant(), new ExchangeTicker()
                 {
-                    Ask = (decimal?)tick["sell"] ?? 0,
-                    Bid = (decimal?)tick["buy"] ?? 0,
-                    Last = (decimal?)tick["lastDealPrice"] ?? 0,
+                    Ask = tick["sell"].ConvertInvariant<decimal>(),
+                    Bid = tick["buy"].ConvertInvariant<decimal>(),
+                    Last = tick["lastDealPrice"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tick["datetime"].ConvertInvariant<long>()).DateTime,
