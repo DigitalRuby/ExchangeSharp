@@ -94,6 +94,10 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunWebSocket(dict);
                 }
+                else if (dict.ContainsKey("orderbook-websocket"))
+                {
+                    RunOrderBookWebSocket(dict);
+                }
                 else if (dict.ContainsKey("getExchangeNames"))
                 {
                     Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));

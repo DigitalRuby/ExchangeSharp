@@ -84,6 +84,30 @@ namespace ExchangeSharpConsoleApp
             socket.Dispose();
         }
 
+        private static void RunOrderBookWebSocket(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName", "symbol");
+            var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
+            if (api == null)
+            {
+                throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+            }
+
+            var symbol = dict["symbol"];
+
+            IDisposable socket = api.GetOrderBookWebSocket(symbol, message => 
+            {
+                //print the top bid and ask with amount
+                var topBid = message.Data.Bids.FirstOrDefault();
+                var topAsk = message.Data.Asks.FirstOrDefault();
+                Console.WriteLine($"[{symbol}:{message.SequenceNumber}] {topBid.Price} ({topBid.Amount}) | {topAsk.Price} ({topAsk.Amount})");
+            });
+
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
+            socket.Dispose();
+        }
+
         public static void RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "path", "mode");
