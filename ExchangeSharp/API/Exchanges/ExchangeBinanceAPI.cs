@@ -224,6 +224,30 @@ namespace ExchangeSharp
             });
         }
 
+        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            var normalizedSymbol = NormalizeSymbol(symbol).ToLowerInvariant();
+
+            return ConnectWebSocket($"/ws/{normalizedSymbol}@depth{maxCount}", (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    var orderBook = ParseOrderBook(token);
+                    var sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
+                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(sequenceNumber, orderBook));
+                }
+                catch
+                {
+                }
+            });
+        }
+
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
