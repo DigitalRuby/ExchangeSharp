@@ -44,7 +44,7 @@ namespace ExchangeSharp
             decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
             decimal price = result["price"].ConvertInvariant<decimal>();
             decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
-            decimal fees = result["fill_fees"].ConvertInvariant();
+            decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
             
             ExchangeOrderResult order = new ExchangeOrderResult
             {
