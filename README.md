@@ -18,7 +18,7 @@ Donation totals:
 0.25 LTC
 
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.1 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.2 ```  
 </a> 
 
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
@@ -130,7 +130,7 @@ Donation totals:
 0.25 LTC
 
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.1 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.2 ```  
 </a> 
 
 Thanks for visiting!
