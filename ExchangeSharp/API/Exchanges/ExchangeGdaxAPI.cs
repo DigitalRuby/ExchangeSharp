@@ -45,17 +45,19 @@ namespace ExchangeSharp
             decimal price = result["price"].ConvertInvariant<decimal>();
             decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
             decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
-            
+            string symbol = result["id"].ToStringInvariant();
+
             ExchangeOrderResult order = new ExchangeOrderResult
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
                 Price = price,
                 Fees = fees,
+                FeesCurrency = symbol.Substring(0, symbol.IndexOf('-')),
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = ConvertDateTimeInvariant(result["created_at"]),
-                Symbol = result["product_id"].ToStringInvariant(),
+                Symbol = symbol,
                 OrderId = result["id"].ToStringInvariant()
             };
             switch (result["status"].ToStringInvariant())
