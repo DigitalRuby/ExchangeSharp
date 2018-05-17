@@ -321,6 +321,15 @@ namespace ExchangeSharp
         public virtual IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
 
         /// <summary>
+        /// Get top bids and asks via web socket
+        /// </summary>
+        /// <param name="symbol">Ticker symbol</param>
+        /// <param name="callback">Callback</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20) => throw new NotImplementedException();
+
+        /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>

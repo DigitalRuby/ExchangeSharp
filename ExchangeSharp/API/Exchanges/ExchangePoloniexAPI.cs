@@ -428,6 +428,57 @@ namespace ExchangeSharp
             });
         }
 
+        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            var normalizedSymbol = NormalizeSymbol(symbol);
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    //return if this is a heartbeat message
+                    if (token[0].ConvertInvariant<int>() == 1010)
+                        return;
+
+                    var seq = token[1].ConvertInvariant<int>();
+                    var dataArray = token[2];
+                    var orderBook = new ExchangeOrderBook();
+                    foreach (var data in dataArray)
+                    {
+                        var dataType = data[0];
+                        switch (dataType.ToStringInvariant())
+                        {
+                            //poloniex will initially send the entire order book, followed by updates
+                            case "i":
+                                var marketInfo = data[1];
+                                orderBook.Asks.AddRange(marketInfo["orderBook"][0].Cast<JProperty>().Select(jToken => new ExchangeOrderPrice() { Amount = jToken.Name.ConvertInvariant<decimal>(), Price = jToken.Value.ToString().ConvertInvariant<decimal>() }));
+                                orderBook.Bids.AddRange(marketInfo["orderBook"][1].Cast<JProperty>().Select(jToken => new ExchangeOrderPrice() { Amount = jToken.Name.ConvertInvariant<decimal>(), Price = jToken.Value.ToString().ConvertInvariant<decimal>() }));
+                                break;
+                            //removes or modifies an existing item on the order books
+                            case "o":
+                                (data[1].ConvertInvariant<int>() == 1 ? orderBook.Bids : orderBook.Asks)
+                                   .Add(new ExchangeOrderPrice(){ Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>()});
+                                break;
+                        }
+                    }
+                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                // subscribe to order book and trades channel for given symbol
+                _socket.SendMessage($"{{\"command\":\"subscribe\",\"channel\":\"{normalizedSymbol}\"}}");
+            });
+        }
+
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             // {"asks":[["0.01021997",22.83117932],["0.01022000",82.3204],["0.01022480",140],["0.01023054",241.06436945],["0.01023057",140]],"bids":[["0.01020233",164.195],["0.01020232",66.22565096],["0.01020200",5],["0.01020010",66.79296968],["0.01020000",490.19563761]],"isFrozen":"0","seq":147171861}

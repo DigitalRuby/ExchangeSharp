@@ -217,6 +217,15 @@ namespace ExchangeSharp
         IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
 
         /// <summary>
+        /// Get top bids and asks via web socket
+        /// </summary>
+        /// <param name="symbol">Ticker symbol</param>
+        /// <param name="callback">Callback</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20);
+
+        /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="symbol">Symbol</param>
