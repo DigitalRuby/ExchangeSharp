@@ -144,7 +144,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
@@ -154,18 +154,18 @@ namespace ExchangeSharp
             while (true)
             {
                 url = baseUrl;
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    url += "&timestamp=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value).ToStringInvariant();
+                    url += "&timestamp=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(startDate.Value).ToStringInvariant();
                 }
                 JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>(url);
                 if (obj == null || obj.Count == 0)
                 {
                     break;
                 }
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["timestampms"].ConvertInvariant<long>());
+                    startDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["timestampms"].ConvertInvariant<long>());
                 }
                 foreach (JToken token in obj)
                 {
@@ -184,7 +184,7 @@ namespace ExchangeSharp
                     break;
                 }
                 trades.Clear();
-                if (obj.Count < maxCount || sinceDateTime == null)
+                if (obj.Count < maxCount || startDate == null)
                 {
                     break;
                 }

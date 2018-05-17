@@ -132,7 +132,7 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeTicker> OnGetTickerAsync(string symbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100) => throw new NotImplementedException();
-        protected virtual Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null) => throw new NotImplementedException();
+        protected virtual Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
@@ -144,6 +144,123 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
         protected virtual Task OnCancelOrderAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+
+        protected class HistoricalTradeHelperState
+        {
+            public System.Func<IEnumerable<ExchangeTrade>, bool> Callback { get; set; }
+            public string Symbol { get; set; }
+            public DateTime? StartDate { get; set; }
+            public DateTime? EndDate { get; set; }
+            public string Url { get; set; } // url with format [symbol], {0} = start timestamp, {1} = end timestamp
+            public int DelayMilliseconds { get; set; } = 1000;
+            public TimeSpan BlockTime { get; set; } = TimeSpan.FromHours(1.0); // how much time to move for each block of data, default 1 hour
+
+            public System.Func<DateTime, string> TimestampFunction { get; set; } // change date time to a url timestamp, use TimestampFunction or UrlFunction
+            public System.Func<HistoricalTradeHelperState, string> UrlFunction { get; set; } // allows returning a custom url, use TimestampFunction or UrlFunction
+            public System.Func<JToken, ExchangeTrade> ParseFunction { get; set; }
+        };
+
+        protected async Task HistoricalTradeHelperAsync(HistoricalTradeHelperState state)
+        {
+            state.Symbol = NormalizeSymbol(state.Symbol);
+            string url;
+            state.Url = state.Url.Replace("[symbol]", state.Symbol);
+            List<ExchangeTrade> trades = new List<ExchangeTrade>();
+            ExchangeTrade trade;
+            state.EndDate = (state.EndDate ?? DateTime.UtcNow);
+            state.StartDate = (state.StartDate ?? state.EndDate.Value.Subtract(state.BlockTime));
+            DateTime endDateMoving = state.EndDate.Value;
+            DateTime startDateMoving = endDateMoving.Subtract(state.BlockTime);
+            string startTimestamp;
+            string endTimestamp;
+            bool running = true;
+            if (startDateMoving < state.StartDate.Value)
+            {
+                startDateMoving = state.StartDate.Value;
+            }
+            HashSet<long> previousTrades = new HashSet<long>();
+            HashSet<long> tempTradeIds = new HashSet<long>();
+            HashSet<long> tmpIds;
+
+            while (running)
+            {
+                // format url and make request
+                if (state.TimestampFunction != null)
+                {
+                    startTimestamp = state.TimestampFunction(startDateMoving);
+                    endTimestamp = state.TimestampFunction(endDateMoving);
+                    url = string.Format(state.Url, startTimestamp, endTimestamp);
+                }
+                else if (state.UrlFunction != null)
+                {
+                    url = state.UrlFunction(state);
+                }
+                else
+                {
+                    throw new InvalidOperationException("TimestampFunction or UrlFunction must be specified");
+                }
+                JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>(url);
+                if (obj == null || obj.Count == 0)
+                {
+                    break;
+                }
+
+                // set end date to the date of the first trade, use for next request
+                trade = state.ParseFunction(obj.First);
+                endDateMoving = trade.Timestamp.AddMilliseconds(-1.0);
+
+                // don't add this temp trade as it may be outside of the date/time range
+                tempTradeIds.Clear();
+                foreach (JToken token in obj)
+                {
+                    trade = state.ParseFunction(token);
+                    if (!previousTrades.Contains(trade.Id) && trade.Timestamp >= state.StartDate.Value && trade.Timestamp <= state.EndDate.Value)
+                    {
+                        trades.Add(trade);
+                    }
+                    else
+                    {
+                        running = (trade.Timestamp >= state.StartDate);
+                    }
+                    if (trade.Id != 0)
+                    {
+                        tempTradeIds.Add(trade.Id);
+                    }
+                }
+                previousTrades.Clear();
+                tmpIds = previousTrades;
+                previousTrades = tempTradeIds;
+                tempTradeIds = previousTrades;
+
+                // set dates to next block
+                if (trades.Count != 0)
+                {
+                    // sort trades in descending order and callback
+                    trades.Sort((t1, t2) => t2.Timestamp.CompareTo(t1.Timestamp));
+                    if (!state.Callback(trades))
+                    {
+                        break;
+                    }
+
+                    // set next date / time
+                    trades.Clear();
+                }
+
+                startDateMoving = endDateMoving.Subtract(state.BlockTime);
+                if (running)
+                {
+                    if ((endDateMoving - startDateMoving) < state.BlockTime)
+                    {
+                        break;
+                    }
+                    if (startDateMoving < state.StartDate.Value)
+                    {
+                        startDateMoving = state.StartDate.Value;
+                    }
+                    await Task.Delay(state.DelayMilliseconds);
+                }
+            }
+        }
 
         #endregion API implementation
 
@@ -452,19 +569,22 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
         /// <param name="symbol">Symbol to get historical data for</param>
-        /// <param name="sinceDateTime">Optional date time to start getting the historical data at, null for the most recent data</param>
-        public void GetHistoricalTrades(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null) => GetHistoricalTradesAsync(callback, symbol, sinceDateTime).GetAwaiter().GetResult();
+        /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
+        /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
+        public void GetHistoricalTrades(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) =>
+            GetHistoricalTradesAsync(callback, symbol, startDate, endDate).GetAwaiter().GetResult();
 
         /// <summary>
         /// ASYNC - Get historical trades for the exchange
         /// </summary>
         /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
         /// <param name="symbol">Symbol to get historical data for</param>
-        /// <param name="sinceDateTime">Optional date time to start getting the historical data at, null for the most recent data</param>
-        public async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
+        /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
+        public async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             await new SynchronizationContextRemover();
-            await OnGetHistoricalTradesAsync(callback, symbol, sinceDateTime);
+            await OnGetHistoricalTradesAsync(callback, symbol, startDate, endDate);
         }
 
         /// <summary>

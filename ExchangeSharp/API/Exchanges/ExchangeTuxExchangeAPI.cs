@@ -201,11 +201,11 @@ namespace ExchangeSharp
             else return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
 
-            long start = sinceDateTime == null ? (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)sinceDateTime).ToUnixTimeSeconds();
+            long start = startDate == null ? (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
             long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
             string cur = symbol.Split('_')[1];
 

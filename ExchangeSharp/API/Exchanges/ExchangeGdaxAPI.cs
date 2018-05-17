@@ -126,8 +126,8 @@ namespace ExchangeSharp
         protected override void ProcessResponse(HttpWebResponse response)
         {
             base.ProcessResponse(response);
-            cursorAfter = response.Headers["cb-after"];
-            cursorBefore = response.Headers["cb-before"];
+            cursorAfter = response.Headers["CB-AFTER"];
+            cursorBefore = response.Headers["CB-BEFORE"];
         }
 
         public ExchangeGdaxAPI()
@@ -260,45 +260,48 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/candles?granularity=" + (sinceDateTime == null ? "3600.0" : "60.0");
-            string url;
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            decimal[][] tradeChunk;
-            while (true)
+            /*
+            [{
+                "time": "2014-11-07T22:19:28.578544Z",
+                "trade_id": 74,
+                "price": "10.00000000",
+                "size": "0.01000000",
+                "side": "buy"
+            }, {
+                "time": "2014-11-07T01:08:43.642366Z",
+                "trade_id": 73,
+                "price": "100.00000000",
+                "size": "0.01000000",
+                "side": "sell"
+            }]
+            */
+
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState
             {
-                url = baseUrl;
-                if (sinceDateTime != null)
+                Callback = callback,
+                EndDate = endDate,
+                ParseFunction = (JToken token) =>
                 {
-                    url += "&start=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture));
-                    url += "&end=" + System.Web.HttpUtility.UrlEncode(sinceDateTime.Value.AddMinutes(5.0).ToString("s", System.Globalization.CultureInfo.InvariantCulture));
-                }
-                tradeChunk = await MakeJsonRequestAsync<decimal[][]>(url);
-                if (tradeChunk == null || tradeChunk.Length == 0)
+                    return new ExchangeTrade
+                    {
+                        Amount = token["size"].ConvertInvariant<decimal>(),
+                        Id = token["trade_id"].ConvertInvariant<long>(),
+                        IsBuy = token["side"].ToStringInvariant() == "buy",
+                        Price = token["price"].ConvertInvariant<decimal>(),
+                        Timestamp = ConvertDateTimeInvariant(token["time"])
+                    };
+                },
+                StartDate = startDate,
+                Symbol = symbol,
+                Url = "/products/[symbol]/trades",
+                UrlFunction = (HistoricalTradeHelperState _state) =>
                 {
-                    break;
+                    return _state.Url + (string.IsNullOrWhiteSpace(cursorBefore) ? string.Empty : "?before=" + cursorBefore.ToStringInvariant());
                 }
-                if (sinceDateTime != null)
-                {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeSeconds((double)tradeChunk[0][0]);
-                }
-                foreach (decimal[] tradeChunkPiece in tradeChunk)
-                {
-                    trades.Add(new ExchangeTrade { Amount = tradeChunkPiece[5], IsBuy = true, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((double)tradeChunkPiece[0]), Id = 0 });
-                }
-                trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                if (!callback(trades))
-                {
-                    break;
-                }
-                trades.Clear();
-                if (sinceDateTime == null)
-                {
-                    break;
-                }
-                Task.Delay(1000).Wait();
-            }
+            };
+            await HistoricalTradeHelperAsync(state);
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

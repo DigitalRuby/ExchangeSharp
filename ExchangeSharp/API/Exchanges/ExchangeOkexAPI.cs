@@ -153,7 +153,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> allTrades = new List<ExchangeTrade>();
             var trades = await MakeRequestOkexAsync(symbol, "/trades.do?symbol=$SYMBOL$");
@@ -202,14 +202,17 @@ namespace ExchangeSharp
             CheckError(obj);
             foreach (JArray array in obj)
             {
+                decimal closePrice = array[4].ConvertInvariant<decimal>();
+                double baseVolume = array[5].ConvertInvariant<double>();
                 candles.Add(new MarketCandle
                 {
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(array[0].ConvertInvariant<long>()),
                     OpenPrice = array[1].ConvertInvariant<decimal>(),
                     HighPrice = array[2].ConvertInvariant<decimal>(),
                     LowPrice = array[3].ConvertInvariant<decimal>(),
-                    ClosePrice = array[4].ConvertInvariant<decimal>(),
-                    BaseVolume = array[5].ConvertInvariant<double>(),
+                    ClosePrice = closePrice,
+                    BaseVolume = baseVolume,
+                    ConvertedVolume = ((double)closePrice * baseVolume),
                     ExchangeName = Name,
                     Name = symbol,
                     PeriodSeconds = periodSeconds,

@@ -57,6 +57,10 @@ namespace ExchangeSharpConsoleApp
                 {
                     return api.NormalizeSymbol("LTC_BTC");
                 }
+                else if (api is ExchangeTuxExchangeAPI)
+                {
+                    return api.NormalizeSymbol("BTC_ETH");
+                }
                 return api.NormalizeSymbol("BTC-USD");
             }
 

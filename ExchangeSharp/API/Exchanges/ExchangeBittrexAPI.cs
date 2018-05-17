@@ -409,7 +409,7 @@ namespace ExchangeSharp
             return transactions;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // TODO: sinceDateTime is ignored
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=oneMin&_=1499127220008
@@ -420,7 +420,7 @@ namespace ExchangeSharp
             while (true)
             {
                 url = baseUrl;
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
                     url += "&_=" + DateTime.UtcNow.Ticks;
                 }
@@ -431,9 +431,9 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    sinceDateTime = ConvertDateTimeInvariant(array.Last["T"]);
+                    startDate = ConvertDateTimeInvariant(array.Last["T"]);
                 }
                 foreach (JToken trade in array)
                 {
@@ -453,7 +453,7 @@ namespace ExchangeSharp
                     break;
                 }
                 trades.Clear();
-                if (sinceDateTime == null)
+                if (startDate == null)
                 {
                     break;
                 }

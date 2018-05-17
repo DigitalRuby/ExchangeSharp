@@ -98,6 +98,10 @@ namespace ExchangeSharpConsoleApp
                 {
                     Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));
                 }
+                else if (dict.ContainsKey("showHistoricalTrades"))
+                {
+                    RunGetHistoricalTrades(dict);
+                }
                 else
                 {
                     Console.WriteLine("Unrecognized command line arguments.");

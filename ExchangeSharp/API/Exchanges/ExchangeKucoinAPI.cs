@@ -203,10 +203,10 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/open/deal-orders?symbol=" + symbol + (sinceDateTime == null ? string.Empty : "&since=" + sinceDateTime.Value.UnixTimestampFromDateTimeMilliseconds()));
+            JToken token = await MakeJsonRequestAsync<JToken>("/open/deal-orders?symbol=" + symbol + (startDate == null ? string.Empty : "&since=" + startDate.Value.UnixTimestampFromDateTimeMilliseconds()));
             token = CheckError(token);
             foreach (JArray trade in token)
             {

@@ -282,29 +282,29 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             const int maxCount = 100;
             symbol = NormalizeSymbol(symbol);
-            string baseUrl = "/trades/t" + symbol + "/hist?sort=" + (sinceDateTime == null ? "-1" : "1") + "&limit=" + maxCount;
+            string baseUrl = "/trades/t" + symbol + "/hist?sort=" + (startDate == null ? "-1" : "1") + "&limit=" + maxCount;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             decimal[][] tradeChunk;
             while (true)
             {
                 url = baseUrl;
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value);
+                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(startDate.Value);
                 }
                 tradeChunk = await MakeJsonRequestAsync<decimal[][]>(url);
                 if (tradeChunk == null || tradeChunk.Length == 0)
                 {
                     break;
                 }
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((double)tradeChunk[tradeChunk.Length - 1][1]);
+                    startDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((double)tradeChunk[tradeChunk.Length - 1][1]);
                 }
                 foreach (decimal[] tradeChunkPiece in tradeChunk)
                 {
@@ -316,7 +316,7 @@ namespace ExchangeSharp
                     break;
                 }
                 trades.Clear();
-                if (tradeChunk.Length < 500 || sinceDateTime == null)
+                if (tradeChunk.Length < 500 || startDate == null)
                 {
                     break;
                 }

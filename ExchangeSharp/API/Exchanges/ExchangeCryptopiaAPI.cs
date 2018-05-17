@@ -176,9 +176,9 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            string hours = sinceDateTime == null ? "24" : ((DateTime.Now - sinceDateTime).Value.TotalHours).ToStringInvariant();
+            string hours = startDate == null ? "24" : ((DateTime.Now - startDate).Value.TotalHours).ToStringInvariant();
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbol(symbol) + "/" + hours);      
             token = CheckError(token);

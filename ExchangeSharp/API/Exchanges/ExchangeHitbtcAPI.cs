@@ -206,7 +206,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             long? lastTradeID = null;
@@ -219,7 +219,7 @@ namespace ExchangeSharp
                 {
                     ExchangeTrade trade = ParseExchangeTrade(token);
                     lastTradeID = trade.Id;
-                    if (sinceDateTime == null || trade.Timestamp >= sinceDateTime)
+                    if (startDate == null || trade.Timestamp >= startDate)
                     {
                         trades.Add(trade);
                     }

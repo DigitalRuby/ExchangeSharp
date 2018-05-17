@@ -170,9 +170,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback"></param>
         /// <param name="symbol"></param>
-        /// <param name="sinceDateTime"></param>
+        /// <param name="startDate"></param>
         /// <returns></returns>
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -182,7 +182,7 @@ namespace ExchangeSharp
             foreach (JToken trade in token)
             {
                 ExchangeTrade rc = ParseTrade(trade);
-                if (sinceDateTime != null) { if (rc.Timestamp > sinceDateTime) trades.Add(rc); }
+                if (startDate != null) { if (rc.Timestamp > startDate) trades.Add(rc); }
                 else trades.Add(rc);
             }
             callback?.Invoke(trades);

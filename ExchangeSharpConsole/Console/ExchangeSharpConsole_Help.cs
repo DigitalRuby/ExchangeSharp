@@ -49,6 +49,10 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine(" Display a key file:");
             Console.WriteLine("  keys mode=display path=pathToKeyFile.bin");               
             Console.WriteLine();
+            Console.WriteLine("showHistoricalTrades - output historical trades to console");
+            Console.WriteLine(" showHistoricalTrades exchangeName=Binance symbol=btcusdt \"startDate=2018-05-17T11:00:00\" \"endDate=2018-05-17T12:00:00\"");
+            Console.WriteLine(" startDate and endDate are optional.");
+            Console.WriteLine();
             Console.WriteLine("getExchangeNames - get a list of all supported exchange names (no arguments)");
             Console.WriteLine();
             Console.WriteLine("example - simple example showing how to create an API instance and get the ticker, and place an order.");

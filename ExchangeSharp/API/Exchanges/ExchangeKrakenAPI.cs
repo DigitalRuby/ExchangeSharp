@@ -307,7 +307,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/0/public/Trades?pair=" + symbol;
@@ -317,9 +317,9 @@ namespace ExchangeSharp
             while (true)
             {
                 url = baseUrl;
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    url += "&since=" + (long)(CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value) * 1000000.0);
+                    url += "&since=" + (long)(CryptoUtility.UnixTimestampFromDateTimeMilliseconds(startDate.Value) * 1000000.0);
                 }
                 JObject obj = await MakeJsonRequestAsync<JObject>(url);
                 if (obj == null)
@@ -332,9 +332,9 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["last"].ConvertInvariant<double>() / 1000000.0d);
+                    startDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["last"].ConvertInvariant<double>() / 1000000.0d);
                 }
                 foreach (JArray array in outerArray.Children<JArray>())
                 {
@@ -354,7 +354,7 @@ namespace ExchangeSharp
                     break;
                 }
                 trades.Clear();
-                if (sinceDateTime == null)
+                if (startDate == null)
                 {
                     break;
                 }

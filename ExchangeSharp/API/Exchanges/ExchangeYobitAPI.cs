@@ -152,7 +152,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -162,7 +162,7 @@ namespace ExchangeSharp
             foreach (JToken prop in token)
             {
                 ExchangeTrade trade = ParseTrade(prop);
-                if (sinceDateTime != null) { if (trade.Timestamp >= sinceDateTime) trades.Add(trade); }
+                if (startDate != null) { if (trade.Timestamp >= startDate) trades.Add(trade); }
                 else trades.Add(trade);
             }
             var rc = callback?.Invoke(trades);

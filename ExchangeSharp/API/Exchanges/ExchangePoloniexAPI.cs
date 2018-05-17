@@ -467,7 +467,7 @@ namespace ExchangeSharp
             return books;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // [{"globalTradeID":245321705,"tradeID":11501281,"date":"2017-10-20 17:39:17","type":"buy","rate":"0.01022188","amount":"0.00954454","total":"0.00009756"},...]
             // https://poloniex.com/public?command=returnTradeHistory&currencyPair=BTC_LTC&start=1410158341&end=1410499372
@@ -479,19 +479,19 @@ namespace ExchangeSharp
             while (true)
             {
                 url = baseUrl;
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(sinceDateTime.Value) + "&end=" +
-                        (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(sinceDateTime.Value.AddDays(1.0));
+                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(startDate.Value) + "&end=" +
+                        (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(startDate.Value.AddDays(1.0));
                 }
                 JArray obj = await MakeJsonRequestAsync<JArray>(url);
                 if (obj == null || obj.Count == 0)
                 {
                     break;
                 }
-                if (sinceDateTime != null)
+                if (startDate != null)
                 {
-                    sinceDateTime = ConvertDateTimeInvariant(obj[0]["date"]).AddSeconds(1.0);
+                    startDate = ConvertDateTimeInvariant(obj[0]["date"]).AddSeconds(1.0);
                 }
                 foreach (JToken child in obj.Children())
                 {
@@ -511,7 +511,7 @@ namespace ExchangeSharp
                     break;
                 }
                 trades.Clear();
-                if (sinceDateTime == null)
+                if (startDate == null)
                 {
                     break;
                 }

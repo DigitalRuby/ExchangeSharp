@@ -232,7 +232,7 @@ namespace ExchangeSharp
             return ParseOrderBook(obj);
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             /* [ {
             "a": 26129,         // Aggregate tradeId
@@ -245,66 +245,28 @@ namespace ExchangeSharp
 		    "M": true           // Was the trade the best price match?
             } ] */
 
-            symbol = NormalizeSymbol(symbol);
-            string baseUrl = "/aggTrades?symbol=" + symbol;
-            string url;
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            DateTime cutoff;
-            if (sinceDateTime == null)
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState
             {
-                cutoff = DateTime.UtcNow;
-            }
-            else
-            {
-                cutoff = sinceDateTime.Value;
-                sinceDateTime = DateTime.UtcNow;
-            }
-            url = baseUrl;
-
-            while (true)
-            {
-                JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>(url);
-                if (obj == null || obj.Count == 0)
+                Callback = callback,
+                EndDate = endDate,
+                ParseFunction = (JToken token) =>
                 {
-                    break;
-                }
-                if (sinceDateTime != null)
-                {
-                    sinceDateTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["T"].ConvertInvariant<long>());
-                    if (sinceDateTime.Value < cutoff)
-                    {
-                        sinceDateTime = null;
-                    }
-                }
-                if (sinceDateTime != null)
-                {
-                    url = baseUrl + "&startTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value - TimeSpan.FromHours(1.0))).ToStringInvariant() +
-                        "&endTime=" + ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(sinceDateTime.Value)).ToStringInvariant();
-                }
-                foreach (JToken token in obj)
-                {
-                    // TODO: Binance doesn't provide a buy or sell type, I've put in a request for them to add this
-                    trades.Add(new ExchangeTrade
+                    DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["T"].ConvertInvariant<long>());
+                    return new ExchangeTrade
                     {
                         Amount = token["q"].ConvertInvariant<decimal>(),
                         Price = token["p"].ConvertInvariant<decimal>(),
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["T"].ConvertInvariant<long>()),
+                        Timestamp = timestamp,
                         Id = token["a"].ConvertInvariant<long>(),
                         IsBuy = token["m"].ConvertInvariant<bool>()
-                    });
-                }
-                trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                if (!callback(trades))
-                {
-                    break;
-                }
-                trades.Clear();
-                if (sinceDateTime == null)
-                {
-                    break;
-                }
-                await Task.Delay(1000);
-            }
+                    };
+                },
+                StartDate = startDate,
+                Symbol = symbol,
+                TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
+                Url = "/aggTrades?symbol=[symbol]&startTime={0}&endTime={1}",
+            };
+            await HistoricalTradeHelperAsync(state);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)

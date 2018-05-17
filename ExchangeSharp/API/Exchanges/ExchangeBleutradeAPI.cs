@@ -226,7 +226,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? sinceDateTime = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // TODO: Not directly supported so the best we can do is get their Max 200 and check the timestamp if necessary
@@ -235,7 +235,7 @@ namespace ExchangeSharp
             foreach (JToken token in result)
             {
                 ExchangeTrade trade = ParseTrade(token);
-                if (sinceDateTime == null || trade.Timestamp >= sinceDateTime)
+                if (startDate == null || trade.Timestamp >= startDate)
                 {
                     trades.Add(trade);
                 }
