@@ -65,31 +65,6 @@ namespace ExchangeSharp
         /// </summary>
         public static IReadOnlyDictionary<string, int> WithdrawalFieldCount { get; set; }
 
-        private void CheckError(JObject json)
-        {
-            if (json == null)
-            {
-                throw new APIException("No response from server");
-            }
-            JToken error = json["error"];
-            if (error != null)
-            {
-                throw new APIException(error.ToStringInvariant());
-            }
-        }
-
-        private void CheckError(JToken result)
-        {
-            if (result == null)
-            {
-                throw new APIException("No result");
-            }
-            else if (!(result is JArray) && result["error"] != null)
-            {
-                throw new APIException(result["error"].ToStringInvariant());
-            }
-        }
-
         private async Task<JToken> MakePrivateAPIRequestAsync(string command, IReadOnlyList<object> parameters = null)
         {
             Dictionary<string, object> payload = GetNoncePayload();
@@ -521,53 +496,28 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // [{"globalTradeID":245321705,"tradeID":11501281,"date":"2017-10-20 17:39:17","type":"buy","rate":"0.01022188","amount":"0.00954454","total":"0.00009756"},...]
-            // https://poloniex.com/public?command=returnTradeHistory&currencyPair=BTC_LTC&start=1410158341&end=1410499372
-            symbol = NormalizeSymbol(symbol);
-            string baseUrl = "/public?command=returnTradeHistory&currencyPair=" + symbol;
-            string url;
-            DateTime timestamp;
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            while (true)
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState
             {
-                url = baseUrl;
-                if (startDate != null)
+                Callback = callback,
+                EndDate = endDate,
+                MillisecondGranularity = false,
+                ParseFunction = (JToken token) =>
                 {
-                    url += "&start=" + (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(startDate.Value) + "&end=" +
-                        (long)CryptoUtility.UnixTimestampFromDateTimeSeconds(startDate.Value.AddDays(1.0));
-                }
-                JArray obj = await MakeJsonRequestAsync<JArray>(url);
-                if (obj == null || obj.Count == 0)
-                {
-                    break;
-                }
-                if (startDate != null)
-                {
-                    startDate = ConvertDateTimeInvariant(obj[0]["date"]).AddSeconds(1.0);
-                }
-                foreach (JToken child in obj.Children())
-                {
-                    timestamp = ConvertDateTimeInvariant(child["date"]);
-                    trades.Add(new ExchangeTrade
+                    return new ExchangeTrade
                     {
-                        Amount = child["amount"].ConvertInvariant<decimal>(),
-                        Price = child["rate"].ConvertInvariant<decimal>(),
-                        Timestamp = timestamp,
-                        Id = child["globalTradeID"].ConvertInvariant<long>(),
-                        IsBuy = child["type"].ToStringInvariant() == "buy"
-                    });
-                }
-                trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                if (!callback(trades))
-                {
-                    break;
-                }
-                trades.Clear();
-                if (startDate == null)
-                {
-                    break;
-                }
-                Task.Delay(2000).Wait();
-            }
+                        Amount = token["amount"].ConvertInvariant<decimal>(),
+                        Price = token["rate"].ConvertInvariant<decimal>(),
+                        Timestamp = ConvertDateTimeInvariant(token["date"]),
+                        Id = token["globalTradeID"].ConvertInvariant<long>(),
+                        IsBuy = token["type"].ToStringInvariant() == "buy"
+                    };
+                },
+                StartDate = startDate,
+                Symbol = NormalizeSymbol(symbol),
+                TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(dt)).ToStringInvariant(),
+                Url = "/public?command=returnTradeHistory&currencyPair=[symbol]&start={0}&end={1}"
+            };
+            await HistoricalTradeHelperAsync(state);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)

@@ -66,14 +66,6 @@ namespace ExchangeSharp
             };
         }
 
-        private void CheckError(JToken result)
-        {
-            if (result != null && !(result is JArray) && result["result"] != null && result["result"].ToStringInvariant() == "error")
-            {
-                throw new APIException(result["reason"].ToStringInvariant());
-            }
-        }
-
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))

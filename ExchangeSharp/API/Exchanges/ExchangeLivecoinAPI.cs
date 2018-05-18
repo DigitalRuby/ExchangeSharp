@@ -369,15 +369,6 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private JToken CheckError(JToken result)
-        {
-            if (result == null || (!(result is JArray) && result["success"] != null && result["success"].ConvertInvariant<bool>() == false))
-            {
-                throw new APIException((result != null && result["errorMessage"] != null) ? (result["errorMessage"] ?? result["exception"]).ToStringInvariant() : "Unknown Error");
-            }
-            return result;
-        }
-
         private ExchangeTicker ParseTicker(JToken token)
         {
             // [{"symbol": "LTC/BTC","last": 0.00805061,"high": 0.00813633,"low": 0.00784855,"volume": 14729.48452951,"vwap": 0.00795126,"max_bid": 0.00813633,"min_ask": 0.00784855,"best_bid": 0.00798,"best_ask": 0.00811037}, ... ]

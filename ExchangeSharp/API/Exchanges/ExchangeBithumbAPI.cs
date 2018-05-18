@@ -68,12 +68,13 @@ namespace ExchangeSharp
             }
         }
 
-        private void CheckError(JToken result)
+        protected override JToken CheckError(JToken result)
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["status"].ToStringInvariant() != "0000")
             {
                 throw new APIException(result["status"].ToStringInvariant() + ": " + result["message"].ToStringInvariant());
             }
+            return result;
         }
         
         private async Task<Tuple<JToken, string>> MakeRequestBithumbAsync(string symbol, string subUrl)

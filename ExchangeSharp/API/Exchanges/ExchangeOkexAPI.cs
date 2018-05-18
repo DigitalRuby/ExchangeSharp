@@ -380,14 +380,6 @@ namespace ExchangeSharp
         #endregion
 
         #region Private Functions
-        private void CheckError(JToken result)
-        {
-            if (result != null && !(result is JArray) && result["error_code"] != null)
-            {
-                // throw new APIException(result["error_code"].ToStringInvariant() + ", see https://www.okex.com/rest_request.html error codes");
-                throw new APIException(result["error_code"].ToStringInvariant() + ", see https://github.com/okcoin-okex/API-docs-OKEx.com/tree/master/API-For-Spot-CN error codes");
-            }
-        }
 
         private ExchangeTicker ParseTicker(string symbol, JToken data)
         {

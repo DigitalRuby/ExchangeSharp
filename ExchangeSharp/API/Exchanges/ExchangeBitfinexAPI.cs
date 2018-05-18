@@ -760,14 +760,6 @@ namespace ExchangeSharp
             return orders.Values.OrderByDescending(o => o.OrderDate);
         }
 
-        private void CheckError(JToken result)
-        {
-            if (result != null && !(result is JArray) && result["result"] != null && result["result"].ToStringInvariant() == "error")
-            {
-                throw new APIException(result["reason"].ToStringInvariant());
-            }
-        }
-
         private ExchangeOrderResult ParseOrder(JToken order)
         {
             decimal amount = order["original_amount"].ConvertInvariant<decimal>();

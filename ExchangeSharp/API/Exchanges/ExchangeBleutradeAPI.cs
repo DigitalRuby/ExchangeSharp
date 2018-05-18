@@ -401,15 +401,6 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private JToken CheckError(JToken result)
-        {
-            if (result == null || (result["success"] != null && result["success"].Value<bool>() != true))
-            {
-                throw new APIException((result["message"] != null ? result["message"].Value<string>() : "Unknown Error"));
-            }
-            return result["result"];
-        }
-
         private ExchangeTrade ParseTrade(JToken token)
         {
             return new ExchangeTrade()

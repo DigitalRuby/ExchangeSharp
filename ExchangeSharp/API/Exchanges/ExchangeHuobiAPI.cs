@@ -626,7 +626,7 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private JToken CheckError(JToken result)
+        protected override JToken CheckError(JToken result)
         {
             if (result == null || (result["status"] != null && result["status"].Value<string>() != "ok"))
             {

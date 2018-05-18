@@ -613,21 +613,6 @@ namespace ExchangeSharp
             return isActive;
         }
 
-        private void CheckError(JToken result)
-        {
-            if (result != null && !(result is JArray))
-            {
-                if (result["status"] != null && result["code"] != null)
-                {
-                    throw new APIException("Code: " + result["code"].ToStringInvariant() + ", error: " + (result["msg"] != null ? result["msg"].ToStringInvariant() : "Unknown Error"));
-                }
-                else if (result["success"] != null && !result["success"].ConvertInvariant<bool>())
-                {
-                    throw new APIException("Success was false, error: " + result["msg"].ToStringInvariant());
-                }
-            }
-        }
-
         private ExchangeTicker ParseTicker(string symbol, JToken token)
         {
             // {"priceChange":"-0.00192300","priceChangePercent":"-4.735","weightedAvgPrice":"0.03980955","prevClosePrice":"0.04056700","lastPrice":"0.03869000","lastQty":"0.69300000","bidPrice":"0.03858500","bidQty":"38.35000000","askPrice":"0.03869000","askQty":"31.90700000","openPrice":"0.04061300","highPrice":"0.04081900","lowPrice":"0.03842000","volume":"128015.84300000","quoteVolume":"5096.25362239","openTime":1512403353766,"closeTime":1512489753766,"firstId":4793094,"lastId":4921546,"count":128453}

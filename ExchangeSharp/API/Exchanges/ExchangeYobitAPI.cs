@@ -350,15 +350,6 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private JToken CheckError(JToken result)
-        {
-            if (result == null || (result["success"] != null && result["success"].Value<int>() == 0))
-            {
-                throw new APIException((result["message"] != null ? result["message"].ToStringInvariant() : "Unknown Error"));
-            }
-            return result["return"];
-        }
-
         private ExchangeTicker ParseTicker(JProperty prop)
         {
             var split = prop.Name.ToUpper().Split('_');

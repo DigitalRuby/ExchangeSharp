@@ -145,7 +145,7 @@ namespace ExchangeSharp
         };
         private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        private JToken CheckError(JToken json)
+        protected override JToken CheckError(JToken json)
         {
             if (!(json is JArray) && json["error"] is JArray error && error.Count != 0)
             {

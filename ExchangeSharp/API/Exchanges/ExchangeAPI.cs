@@ -127,6 +127,44 @@ namespace ExchangeSharp
             return trades;
         }
 
+        /// <summary>
+        /// Throw an exception if token represents an error condition.
+        /// For most exchanges this method does not need to be overriden if:
+        /// - Exchange passes an 'error', 'errorCode' or 'error_code' child element if the call fails
+        /// - Exchange passes a 'status' element of 'error' if the call fails
+        /// - Exchange passes a 'success' element of 'false' if the call fails
+        /// This call also looks for 'result', 'data', 'return' child elements and returns those if
+        /// found, otherwise the result parameter is returned.
+        /// For all other cases, override CheckError for the exchange.
+        /// </summary>
+        /// <param name="result">Result</param>
+        protected virtual JToken CheckError(JToken result)
+        {
+            if (result == null)
+            {
+                throw new APIException("No result from server");
+            }
+            else if (!(result is JArray))
+            {
+                if
+                (
+                    (!string.IsNullOrWhiteSpace(result["error"].ToStringInvariant())) ||
+                    (!string.IsNullOrWhiteSpace(result["errorCode"].ToStringInvariant())) ||
+                    (!string.IsNullOrWhiteSpace(result["error_code"].ToStringInvariant())) ||
+                    (result["status"].ToStringInvariant() == "error") ||
+                    (result["Status"].ToStringInvariant() == "error") ||
+                    (result["success"] != null && result["success"].Value<bool>() != true) ||
+                    (result["Success"] != null && result["Success"].Value<bool>() != true)
+                )
+                {
+                    throw new APIException(result.ToStringInvariant());
+                }
+                result = (result["result"] ?? result["data"] ?? result["return"] ??
+                    result["Result"] ?? result["Data"] ?? result["Return"] ?? result);
+            }
+            return result;
+        }
+
         protected virtual Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync() => throw new NotImplementedException();
         protected virtual Task<IEnumerable<string>> OnGetSymbolsAsync() => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync() => throw new NotImplementedException();
@@ -154,7 +192,7 @@ namespace ExchangeSharp
             public string Url { get; set; } // url with format [symbol], {0} = start timestamp, {1} = end timestamp
             public int DelayMilliseconds { get; set; } = 1000;
             public TimeSpan BlockTime { get; set; } = TimeSpan.FromHours(1.0); // how much time to move for each block of data, default 1 hour
-
+            public bool MillisecondGranularity { get; set; } = true;
             public System.Func<DateTime, string> TimestampFunction { get; set; } // change date time to a url timestamp, use TimestampFunction or UrlFunction
             public System.Func<HistoricalTradeHelperState, string> UrlFunction { get; set; } // allows returning a custom url, use TimestampFunction or UrlFunction
             public System.Func<JToken, ExchangeTrade> ParseFunction { get; set; }
@@ -199,15 +237,12 @@ namespace ExchangeSharp
                 {
                     throw new InvalidOperationException("TimestampFunction or UrlFunction must be specified");
                 }
-                JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>(url);
-                if (obj == null || obj.Count == 0)
+                JToken obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JToken>(url);
+                obj = CheckError(obj);
+                if (obj == null || obj.Count() == 0)
                 {
                     break;
                 }
-
-                // set end date to the date of the first trade, use for next request
-                trade = state.ParseFunction(obj.First);
-                endDateMoving = trade.Timestamp.AddMilliseconds(-1.0);
 
                 // don't add this temp trade as it may be outside of the date/time range
                 tempTradeIds.Clear();
@@ -233,7 +268,12 @@ namespace ExchangeSharp
                 tempTradeIds = previousTrades;
 
                 // set dates to next block
-                if (trades.Count != 0)
+                if (trades.Count == 0)
+                {
+                    // no trades found, move the whole block back
+                    endDateMoving = startDateMoving.Subtract(state.BlockTime);
+                }
+                else
                 {
                     // sort trades in descending order and callback
                     trades.Sort((t1, t2) => t2.Timestamp.CompareTo(t1.Timestamp));
@@ -242,20 +282,26 @@ namespace ExchangeSharp
                         break;
                     }
 
-                    // set next date / time
+                    // set end date to the date of the earliest trade of the block, use for next request
+                    trade = trades[trades.Count - 1];
+                    if (state.MillisecondGranularity)
+                    {
+                        endDateMoving = trade.Timestamp.AddMilliseconds(-1.0);
+                    }
+                    else
+                    {
+                        endDateMoving = trade.Timestamp.AddSeconds(-1.0);
+                    }
+
                     trades.Clear();
                 }
 
                 startDateMoving = endDateMoving.Subtract(state.BlockTime);
                 if (running)
                 {
-                    if ((endDateMoving - startDateMoving) < state.BlockTime)
+                    if (endDateMoving < state.StartDate.Value)
                     {
                         break;
-                    }
-                    if (startDateMoving < state.StartDate.Value)
-                    {
-                        startDateMoving = state.StartDate.Value;
                     }
                     await Task.Delay(state.DelayMilliseconds);
                 }

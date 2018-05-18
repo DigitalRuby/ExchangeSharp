@@ -74,23 +74,6 @@ namespace ExchangeSharp
             }
         }
 
-        private JToken CheckError(JToken token)
-        {
-            if (token == null)
-            {
-                throw new APIException("Null result");
-            }
-            if (token is JObject && token["status"] != null && token["status"].ToStringInvariant().Equals("error"))
-            {
-                throw new APIException(token["reason"].ToStringInvariant());
-            }
-            if (token is JObject && token["error"] != null)
-            {
-                throw new APIException(token["error"].ToStringInvariant());
-            }
-            return token;
-        }
-
         private async Task<JToken> MakeBitstampRequestAsync(string subUrl)
         {
             JToken token = await MakeJsonRequestAsync<JToken>(subUrl);

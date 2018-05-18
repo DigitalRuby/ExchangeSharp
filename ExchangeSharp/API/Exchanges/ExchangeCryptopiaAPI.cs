@@ -441,16 +441,6 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private JToken CheckError(JToken result)
-        {
-            if (result == null || !result.HasValues || (result["Success"] != null && result["Success"].Value<bool>() != true))
-            {
-                if (!result.HasValues) throw new APIException("Unknown Error");
-                else throw new APIException((result["Error"] != null ? result["Error"].Value<string>() : "Unknown Error"));
-            }
-            return result["Data"];
-        }
-
         private ExchangeTicker ParseTicker(JToken token)
         {
             // [{ "TradePairId":100,"Label":"LTC/BTC","AskPrice":0.00006000,"BidPrice":0.02000000,"Low":0.00006000,"High":0.00006000,"Volume":1000.05639978,"LastPrice":0.00006000,"BuyVolume":34455.678,"SellVolume":67003436.37658233,"Change":-400.00000000,"Open": 0.00000500,"Close": 0.00000600, "BaseVolume": 3.58675866,"BaseBuyVolume": 11.25364758, "BaseSellVolume": 3456.06746543 }, ... ]

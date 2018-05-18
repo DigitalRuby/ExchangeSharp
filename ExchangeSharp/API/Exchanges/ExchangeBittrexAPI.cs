@@ -98,20 +98,6 @@ namespace ExchangeSharp
             }
         }
 
-        private JToken CheckError(JToken obj)
-        {
-            if (obj["success"] == null || !obj["success"].ConvertInvariant<bool>())
-            {
-                throw new APIException(obj["message"].ToStringInvariant());
-            }
-            JToken token = obj["result"];
-            if (token == null)
-            {
-                throw new APIException("Null result");
-            }
-            return token;
-        }
-
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             ExchangeOrderResult order = new ExchangeOrderResult();

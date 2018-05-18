@@ -441,16 +441,6 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private JToken CheckError(JToken result)
-        {
-            if (result == null || (result["success"] != null && result["success"].Value<bool>() != true))
-            {
-                throw new APIException((result["msg"] != null ? result["msg"].Value<string>() : "Unknown Error"));
-            }
-            return result["data"];
-        }
-
-
         // { "oid": "59e59b279bd8d31d093d956e", "type": "SELL", "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "SELL","price": 0.1,"dealAmount": 0,"pendingAmount": 100, "createdAt": 1508219688000, "updatedAt": 1508219688000 }
         private ExchangeOrderResult ParseOpenOrder(JToken token)
         {

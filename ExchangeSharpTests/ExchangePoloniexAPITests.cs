@@ -251,7 +251,8 @@ namespace ExchangeSharpTests
         {
             var polo = CreatePoloniexAPI();
             polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(@"{""error"":""Order not found, or you are not the person who placed it.""}");
-            polo.GetOrderDetails("1").Should().BeNull();
+            void a() => polo.GetOrderDetails("1");
+            Invoking(a).Should().Throw<APIException>();
         }
 
         [TestMethod]
