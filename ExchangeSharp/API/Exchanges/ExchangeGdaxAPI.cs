@@ -209,7 +209,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     if (token["type"].ToStringInvariant() != "ticker") return;
                     ExchangeTicker ticker = ParseTickerWebSocket(token);
                     callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });

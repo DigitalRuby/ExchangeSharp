@@ -84,6 +84,16 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Convenience method to get utf-8 string from bytes
+        /// </summary>
+        /// <param name="bytes">Bytes</param>
+        /// <returns>UTF-8 string or empty string if bytes is null or empty</returns>
+        public static string UTF8String(this byte[] bytes)
+        {
+            return (bytes == null ? string.Empty : Encoding.UTF8.GetString(bytes));
+        }
+
+        /// <summary>
         /// Convert a DateTime and set the kind using the DateTimeKind property.
         /// </summary>
         /// <param name="obj">Object to convert</param>

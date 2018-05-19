@@ -193,7 +193,7 @@ namespace ExchangeSharp
                  */
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     token = token[0];
                     var channel = token["channel"];
                     if (channel.ToStringInvariant().EqualsWithOption("addChannel"))

@@ -495,7 +495,7 @@ namespace ExchangeSharp
                 try
                 {
                     //{"type":"done","time":"2018-02-20T14:59:45Z","product_id":"BTC-PLN","sequence":648771,"price":"39034.08000000","order_id":"277370262","reason":"canceled",  "side":"sell","remaining_size":0.503343}
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     if ((string)token["type"] == "done")
                     {
                         callback.Invoke(new ExchangeOrderResult()
@@ -529,7 +529,7 @@ namespace ExchangeSharp
                 try
                 {
                     //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     if ((string)token["type"] == "ticker")
                     {
                         tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>

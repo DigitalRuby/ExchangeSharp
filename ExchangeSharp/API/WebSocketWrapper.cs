@@ -33,7 +33,7 @@ namespace ExchangeSharp
         private readonly CancellationToken _cancellationToken;
         private readonly BlockingCollection<object> _messageQueue = new BlockingCollection<object>(new ConcurrentQueue<object>());
 
-        private System.Action<string, WebSocketWrapper> _onMessage;
+        private System.Action<byte[], WebSocketWrapper> _onMessage;
         private System.Action<WebSocketWrapper> _onConnected;
         private System.Action<WebSocketWrapper> _onDisconnected;
         private TimeSpan _connectInterval;
@@ -49,9 +49,15 @@ namespace ExchangeSharp
         /// to do setup, such as creating lookup dictionaries, etc. This method will re-execute until it executes without exceptions thrown.</param>
         /// <param name="onDisconnect">Disconnect callback</param>
         /// <param name="connectInterval">How often to call the onConnect action (default is 1 hour)</param>
-        public WebSocketWrapper(string uri, Action<string, WebSocketWrapper> onMessage, TimeSpan? keepAlive = null,
-            Action<WebSocketWrapper> onConnect = null, Action<WebSocketWrapper> onDisconnect = null,
-            TimeSpan? connectInterval = null)
+        public WebSocketWrapper
+        (
+            string uri,
+            Action<byte[], WebSocketWrapper> onMessage,
+            TimeSpan? keepAlive = null,
+            Action<WebSocketWrapper> onConnect = null,
+            Action<WebSocketWrapper> onDisconnect = null,
+            TimeSpan? connectInterval = null
+        )
         {
             _ws = new ClientWebSocket();
             _ws.Options.KeepAliveInterval = (keepAlive ?? TimeSpan.FromSeconds(30.0));
@@ -174,9 +180,11 @@ namespace ExchangeSharp
                         while (!result.EndOfMessage);
                         if (stream.Length != 0)
                         {
-                            string messageString = Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
+                            // make a copy of the bytes, the memory stream will be re-used and could potentially corrupt in multi-threaded environments
+                            byte[] bytesCopy = new byte[stream.Length];
+                            Array.Copy(stream.GetBuffer(), bytesCopy, stream.Length);
                             stream.SetLength(0);
-                            _messageQueue.Add(messageString);
+                            _messageQueue.Add(bytesCopy);
                         }
                     }
                 }
@@ -217,9 +225,9 @@ namespace ExchangeSharp
                         {
                             action();
                         }
-                        else if (message is string messageString)
+                        else if (message is byte[] messageBytes)
                         {
-                            _onMessage?.Invoke(messageString, this);
+                            _onMessage?.Invoke(messageBytes, this);
                         }
                     }
                     catch

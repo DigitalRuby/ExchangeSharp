@@ -375,7 +375,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     if (token[0].ConvertInvariant<int>() == 1002)
                     {
                         if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array && array.Count > 9 &&
@@ -416,7 +416,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     //return if this is a heartbeat message
                     if (token[0].ConvertInvariant<int>() == 1010)
                         return;

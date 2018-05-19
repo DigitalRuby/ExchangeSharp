@@ -227,7 +227,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     if (token is JArray array)
                     {
                         if (array.Count > 10)
@@ -480,7 +480,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
                     {
                         foreach (JToken orderToken in array[2])

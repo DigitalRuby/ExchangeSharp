@@ -205,7 +205,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
                     ExchangeTicker ticker;
                     foreach (JToken childToken in token["data"])
@@ -237,7 +237,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg);
+                    JToken token = JToken.Parse(msg.UTF8String());
                     var orderBook = ParseOrderBook(token);
                     var sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
                     callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(sequenceNumber, orderBook));
