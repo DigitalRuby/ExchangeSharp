@@ -490,7 +490,7 @@ namespace ExchangeSharp
             var orders = GetOpenOrderDetails().Select(o => o.OrderId).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(orders));
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 try
                 {
@@ -524,7 +524,7 @@ namespace ExchangeSharp
             var symbols = GetTickers().Select(t => t.Key).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(symbols));
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 try
                 {

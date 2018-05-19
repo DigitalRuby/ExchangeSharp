@@ -205,7 +205,7 @@ namespace ExchangeSharp
         {
             if (callback == null) return null;
 
-            var wrapper = ConnectWebSocket("/", (msg, _socket) =>
+            var wrapper = ConnectWebSocket("/", (msg, raw, _socket) =>
             {
                 try
                 {

@@ -371,7 +371,7 @@ namespace ExchangeSharp
                 return null;
             }
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 try
                 {
@@ -412,7 +412,7 @@ namespace ExchangeSharp
 
             var normalizedSymbol = NormalizeSymbol(symbol);
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 try
                 {
@@ -438,7 +438,7 @@ namespace ExchangeSharp
                             //removes or modifies an existing item on the order books
                             case "o":
                                 (data[1].ConvertInvariant<int>() == 1 ? orderBook.Bids : orderBook.Asks)
-                                   .Add(new ExchangeOrderPrice(){ Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>()});
+                                   .Add(new ExchangeOrderPrice() { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() });
                                 break;
                         }
                     }
