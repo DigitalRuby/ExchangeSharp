@@ -201,7 +201,7 @@ namespace ExchangeSharp
             {
                 return null;
             }
-            return ConnectWebSocket("/stream?streams=!ticker@arr", (msg, _socket) =>
+            return ConnectWebSocket("/stream?streams=!ticker@arr", (msg, raw, _socket) =>
             {
                 try
                 {
@@ -233,7 +233,7 @@ namespace ExchangeSharp
 
             var normalizedSymbol = NormalizeSymbol(symbol).ToLowerInvariant();
 
-            return ConnectWebSocket($"/ws/{normalizedSymbol}@depth{maxCount}", (msg, _socket) =>
+            return ConnectWebSocket($"/ws/{normalizedSymbol}@depth{maxCount}", (msg, raw, _socket) =>
             {
                 try
                 {

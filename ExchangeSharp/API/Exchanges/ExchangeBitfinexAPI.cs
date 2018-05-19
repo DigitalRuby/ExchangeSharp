@@ -223,7 +223,7 @@ namespace ExchangeSharp
                 return null;
             }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 try
                 {
@@ -476,7 +476,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 try
                 {
@@ -718,7 +718,7 @@ namespace ExchangeSharp
                 {
                     if (symbol == null || token["symbol"].ToStringInvariant() == symbol)
                     {
-                       orders.Add(ParseOrder(token));
+                        orders.Add(ParseOrder(token));
                     }
                 }
             }

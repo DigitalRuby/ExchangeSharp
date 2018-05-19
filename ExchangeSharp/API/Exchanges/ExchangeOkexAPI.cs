@@ -147,7 +147,7 @@ namespace ExchangeSharp
 
             var normalizedSymbol = NormalizeSymbol(symbol);
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (msg, raw, _socket) =>
             {
                 /*
 {[
