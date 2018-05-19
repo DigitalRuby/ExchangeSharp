@@ -22,6 +22,7 @@ namespace ExchangeSharp
     public sealed class ExchangeOkexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
+        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
         public override string Name => ExchangeName.Okex;
 
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2";
@@ -135,6 +136,95 @@ namespace ExchangeSharp
         {
             var data = await MakeRequestOkexAsync(symbol, "/ticker.do?symbol=$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1);
+        }
+
+        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            var normalizedSymbol = NormalizeSymbol(symbol);
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                /*
+{[
+  {
+    "binary": 0,
+    "channel": "addChannel",
+    "data": {
+      "result": true,
+      "channel": "ok_sub_spot_bch_btc_depth_5"
+    }
+  }
+]}
+
+
+
+{[
+  {
+    "data": {
+      "asks": [
+        [
+          "8364.1163",
+          "0.005"
+        ],
+  
+      ],
+      "bids": [
+        [
+          "8335.99",
+          "0.01837999"
+        ],
+        [
+          "8335.9899",
+          "0.06"
+        ],
+      ],
+      "timestamp": 1526734386064
+    },
+    "binary": 0,
+    "channel": "ok_sub_spot_btc_usdt_depth_20"
+  }
+]}
+                 
+                 */
+                try
+                {
+                    JToken token = JToken.Parse(msg);
+                    token = token[0];
+                    var channel = token["channel"];
+                    if(channel.ToStringInvariant().Equals("addChannel",StringComparison.CurrentCultureIgnoreCase))
+                        return;
+
+                    var data = token["data"];
+
+                    var seq = data["timestamp"].ConvertInvariant<long>();
+                    var orderBook = new ExchangeOrderBook();
+                    foreach (JArray array in data["asks"])
+                    {
+                        orderBook.Asks.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                    }
+                    orderBook.Asks.Sort((a1, a2) => a1.Price.CompareTo(a2.Price));
+                    foreach (JArray array in data["bids"])
+                    {
+                        orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                    }
+                    
+                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                // subscribe to order book and trades channel for given symbol
+                string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
+                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                _socket.SendMessage(msg);
+            });
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
