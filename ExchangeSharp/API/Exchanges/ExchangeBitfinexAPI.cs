@@ -216,7 +216,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
@@ -469,7 +469,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback)
+        public override IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
             if (callback == null)
             {

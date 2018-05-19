@@ -214,7 +214,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="tickers">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
+        IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
 
         /// <summary>
         /// Get top bids and asks via web socket
@@ -396,7 +396,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback);
+        IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
 
         /// <summary>
         /// Cancel an order, an exception is thrown if failure

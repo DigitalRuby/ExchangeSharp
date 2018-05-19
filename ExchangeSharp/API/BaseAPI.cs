@@ -357,7 +357,7 @@ namespace ExchangeSharp
         /// <param name="messageCallback">Callback for messages</param>
         /// <param name="connectCallback">Connect callback</param>
         /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-        public WebSocketWrapper ConnectWebSocket(string url, System.Action<byte[], WebSocketWrapper> messageCallback, System.Action<WebSocketWrapper> connectCallback = null)
+        public WebSocketWrapper ConnectWebSocket(string url, Action<byte[], WebSocketWrapper> messageCallback, Action<WebSocketWrapper> connectCallback = null)
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
             return new WebSocketWrapper(fullUrl, messageCallback, TimeSpan.FromSeconds(30.0), connectCallback);

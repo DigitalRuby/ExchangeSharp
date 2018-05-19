@@ -203,10 +203,10 @@ namespace ExchangeSharp
         /// <param name="terminateAction">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</param>
         /// <param name="compress">Whether to compress the log files</param>
         /// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
-        public static void LogExchanges(string path, float intervalSeconds, out System.Action terminateAction, bool compress, params string[] exchangeNamesAndSymbols)
+        public static void LogExchanges(string path, float intervalSeconds, out Action terminateAction, bool compress, params string[] exchangeNamesAndSymbols)
         {
             bool terminating = false;
-            System.Action terminator = null;
+            Action terminator = null;
             path = (string.IsNullOrWhiteSpace(path) ? "./" : path);
             Dictionary<ExchangeLogger, int> errors = new Dictionary<ExchangeLogger, int>();
             List<ExchangeLogger> loggers = new List<ExchangeLogger>();
@@ -323,12 +323,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Event that fires when there is an error
         /// </summary>
-        public event System.Action<ExchangeLogger, Exception> Error;
+        public event Action<ExchangeLogger, Exception> Error;
 
         /// <summary>
         /// Event that fires when new log data is available
         /// </summary>
-        public event System.Action<ExchangeLogger> DataAvailable;
+        public event Action<ExchangeLogger> DataAvailable;
 
         /// <summary>
         /// Latest tickers

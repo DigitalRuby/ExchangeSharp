@@ -29,7 +29,7 @@ namespace ExchangeSharp
         /// <param name="basePath">Base path to export to, should not contain symbol, symbol will be appended</param>
         /// <param name="sinceDateTime">Start date to begin export at</param>
         /// <param name="callback">Callback if api is not null to notify of progress</param>
-        public static void ExportExchangeTrades(IExchangeAPI api, string symbol, string basePath, DateTime sinceDateTime, System.Action<long> callback = null)
+        public static void ExportExchangeTrades(IExchangeAPI api, string symbol, string basePath, DateTime sinceDateTime, Action<long> callback = null)
         {
             basePath = Path.Combine(basePath, symbol);
             Directory.CreateDirectory(basePath);

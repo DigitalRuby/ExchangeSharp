@@ -51,7 +51,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.2.3" />
-    <PackageReference Include="Bittrex.Net" Version="2.1.2" />
+    <PackageReference Include="Bittrex.Net" Version="2.1.5" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 

@@ -563,7 +563,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="tickers">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetTickersWebSocket(System.Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
+        public virtual IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
 
         /// <summary>
         /// Get top bids and asks via web socket
@@ -579,7 +579,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetCompletedOrderDetailsWebSocket(System.Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+        public virtual IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         /// <summary>
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)

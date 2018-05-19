@@ -33,9 +33,9 @@ namespace ExchangeSharp
         private readonly CancellationToken _cancellationToken;
         private readonly BlockingCollection<object> _messageQueue = new BlockingCollection<object>(new ConcurrentQueue<object>());
 
-        private System.Action<byte[], WebSocketWrapper> _onMessage;
-        private System.Action<WebSocketWrapper> _onConnected;
-        private System.Action<WebSocketWrapper> _onDisconnected;
+        private Action<byte[], WebSocketWrapper> _onMessage;
+        private Action<WebSocketWrapper> _onConnected;
+        private Action<WebSocketWrapper> _onDisconnected;
         private TimeSpan _connectInterval;
         private bool _disposed;
 
@@ -102,11 +102,11 @@ namespace ExchangeSharp
             await _ws.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, _cancellationToken);
         }
 
-        private void QueueAction(System.Action<WebSocketWrapper> action)
+        private void QueueAction(Action<WebSocketWrapper> action)
         {
             if (action != null)
             {
-                _messageQueue.Add((System.Action)(() =>
+                _messageQueue.Add((Action)(() =>
                 {
                     try
                     {
@@ -119,11 +119,11 @@ namespace ExchangeSharp
             }
         }
 
-        private void QueueActionWithNoExceptions(System.Action<WebSocketWrapper> action)
+        private void QueueActionWithNoExceptions(Action<WebSocketWrapper> action)
         {
             if (action != null)
             {
-                _messageQueue.Add((System.Action)(() =>
+                _messageQueue.Add((Action)(() =>
                 {
                     while (true)
                     {
@@ -221,7 +221,7 @@ namespace ExchangeSharp
                 {
                     try
                     {
-                        if (message is System.Action action)
+                        if (message is Action action)
                         {
                             action();
                         }
