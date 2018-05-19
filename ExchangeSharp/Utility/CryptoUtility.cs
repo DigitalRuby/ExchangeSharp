@@ -68,6 +68,22 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Convenience method to compare strings. The default uses OrginalIgnoreCase.
+        /// </summary>
+        /// <param name="s">String</param>
+        /// <param name="other">Other string</param>
+        /// <param name="option">Option</param>
+        /// <returns>True if equal, false if not</returns>
+        public static bool EqualsWithOption(this string s, string other, StringComparison option = StringComparison.OrdinalIgnoreCase)
+        {
+            if (s == null || other == null)
+            {
+                return false;
+            }
+            return s.Equals(other, option);
+        }
+
+        /// <summary>
         /// Convert a DateTime and set the kind using the DateTimeKind property.
         /// </summary>
         /// <param name="obj">Object to convert</param>

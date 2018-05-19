@@ -278,7 +278,7 @@ namespace ExchangeSharp
             }]
             */
 
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
             {
                 Callback = callback,
                 EndDate = endDate,
@@ -301,7 +301,7 @@ namespace ExchangeSharp
                     return _state.Url + (string.IsNullOrWhiteSpace(cursorBefore) ? string.Empty : "?before=" + cursorBefore.ToStringInvariant());
                 }
             };
-            await HistoricalTradeHelperAsync(state);
+            await state.ProcessHistoricalTrades();
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

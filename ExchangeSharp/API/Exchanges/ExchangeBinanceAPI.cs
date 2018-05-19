@@ -269,7 +269,7 @@ namespace ExchangeSharp
 		    "M": true           // Was the trade the best price match?
             } ] */
 
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
             {
                 Callback = callback,
                 EndDate = endDate,
@@ -290,7 +290,7 @@ namespace ExchangeSharp
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
                 Url = "/aggTrades?symbol=[symbol]&startTime={0}&endTime={1}",
             };
-            await HistoricalTradeHelperAsync(state);
+            await state.ProcessHistoricalTrades();
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)

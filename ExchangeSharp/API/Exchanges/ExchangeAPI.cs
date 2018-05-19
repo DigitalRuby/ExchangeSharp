@@ -185,6 +185,8 @@ namespace ExchangeSharp
 
         protected class HistoricalTradeHelperState
         {
+            private ExchangeAPI api;
+
             public System.Func<IEnumerable<ExchangeTrade>, bool> Callback { get; set; }
             public string Symbol { get; set; }
             public DateTime? StartDate { get; set; }
@@ -198,7 +200,163 @@ namespace ExchangeSharp
             public System.Func<JToken, ExchangeTrade> ParseFunction { get; set; }
             public bool DirectionIsBackwards { get; set; } = true; // some exchanges support going from most recent to oldest, but others, like Gemini must go from oldest to newest
 
-            public void SetDates(out DateTime startDateMoving, out DateTime endDateMoving)
+            public HistoricalTradeHelperState(ExchangeAPI api)
+            {
+                this.api = api;
+            }
+
+            public async Task ProcessHistoricalTrades()
+            {
+                if (Callback == null)
+                {
+                    throw new ArgumentException("Missing required parameter", nameof(Callback));
+                }
+                else if (TimestampFunction == null && UrlFunction == null)
+                {
+                    throw new ArgumentException("Missing required parameters", nameof(TimestampFunction) + "," + nameof(UrlFunction));
+                }
+                else if (ParseFunction == null)
+                {
+                    throw new ArgumentException("Missing required parameter", nameof(ParseFunction));
+                }
+                else if (string.IsNullOrWhiteSpace(Url))
+                {
+                    throw new ArgumentException("Missing required parameter", nameof(Url));
+                }
+
+                Symbol = api.NormalizeSymbol(Symbol);
+                string url;
+                Url = Url.Replace("[symbol]", Symbol);
+                List<ExchangeTrade> trades = new List<ExchangeTrade>();
+                ExchangeTrade trade;
+                EndDate = (EndDate ?? DateTime.UtcNow);
+                StartDate = (StartDate ?? EndDate.Value.Subtract(BlockTime));
+                string startTimestamp;
+                string endTimestamp;
+                HashSet<long> previousTrades = new HashSet<long>();
+                HashSet<long> tempTradeIds = new HashSet<long>();
+                HashSet<long> tmpIds;
+                SetDates(out DateTime startDateMoving, out DateTime endDateMoving);
+
+                while (true)
+                {
+                    // format url and make request
+                    if (TimestampFunction != null)
+                    {
+                        startTimestamp = TimestampFunction(startDateMoving);
+                        endTimestamp = TimestampFunction(endDateMoving);
+                        url = string.Format(Url, startTimestamp, endTimestamp);
+                    }
+                    else if (UrlFunction != null)
+                    {
+                        url = UrlFunction(this);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("TimestampFunction or UrlFunction must be specified");
+                    }
+                    JToken obj = await api.MakeJsonRequestAsync<Newtonsoft.Json.Linq.JToken>(url);
+                    obj = api.CheckError(obj);
+
+                    // don't add this temp trade as it may be outside of the date/time range
+                    tempTradeIds.Clear();
+                    foreach (JToken token in obj)
+                    {
+                        trade = ParseFunction(token);
+                        if (!previousTrades.Contains(trade.Id) && trade.Timestamp >= StartDate.Value && trade.Timestamp <= EndDate.Value)
+                        {
+                            trades.Add(trade);
+                        }
+                        if (trade.Id != 0)
+                        {
+                            tempTradeIds.Add(trade.Id);
+                        }
+                    }
+                    previousTrades.Clear();
+                    tmpIds = previousTrades;
+                    previousTrades = tempTradeIds;
+                    tempTradeIds = previousTrades;
+
+                    // set dates to next block
+                    if (trades.Count == 0)
+                    {
+                        if (DirectionIsBackwards)
+                        {
+                            // no trades found, move the whole block back
+                            endDateMoving = startDateMoving.Subtract(BlockTime);
+                        }
+                        else
+                        {
+                            // no trades found, move the whole block forward
+                            startDateMoving = endDateMoving.Add(BlockTime);
+                        }
+                    }
+                    else
+                    {
+                        // sort trades in descending order and callback
+                        if (DirectionIsBackwards)
+                        {
+                            trades.Sort((t1, t2) => t2.Timestamp.CompareTo(t1.Timestamp));
+                        }
+                        else
+                        {
+                            trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
+                        }
+                        if (!Callback(trades))
+                        {
+                            break;
+                        }
+
+                        trade = trades[trades.Count - 1];
+                        if (DirectionIsBackwards)
+                        {
+                            // set end date to the date of the earliest trade of the block, use for next request
+                            if (MillisecondGranularity)
+                            {
+                                endDateMoving = trade.Timestamp.AddMilliseconds(-1.0);
+                            }
+                            else
+                            {
+                                endDateMoving = trade.Timestamp.AddSeconds(-1.0);
+                            }
+                            startDateMoving = endDateMoving.Subtract(BlockTime);
+                        }
+                        else
+                        {
+                            // set start date to the date of the latest trade of the block, use for next request
+                            if (MillisecondGranularity)
+                            {
+                                startDateMoving = trade.Timestamp.AddMilliseconds(1.0);
+                            }
+                            else
+                            {
+                                startDateMoving = trade.Timestamp.AddSeconds(1.0);
+                            }
+                            endDateMoving = startDateMoving.Add(BlockTime);
+                        }
+                        trades.Clear();
+                    }
+                    // check for exit conditions
+                    if (DirectionIsBackwards)
+                    {
+                        if (endDateMoving < StartDate.Value)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (startDateMoving > EndDate.Value)
+                        {
+                            break;
+                        }
+                    }
+                    ClampDates(ref startDateMoving, ref endDateMoving);
+                    await Task.Delay(DelayMilliseconds);
+                }
+            }
+
+            private void SetDates(out DateTime startDateMoving, out DateTime endDateMoving)
             {
                 if (DirectionIsBackwards)
                 {
@@ -213,7 +371,7 @@ namespace ExchangeSharp
                 ClampDates(ref startDateMoving, ref endDateMoving);
             }
 
-            public void ClampDates(ref DateTime startDateMoving, ref DateTime endDateMoving)
+            private void ClampDates(ref DateTime startDateMoving, ref DateTime endDateMoving)
             {
                 if (DirectionIsBackwards)
                 {
@@ -231,140 +389,6 @@ namespace ExchangeSharp
                 }
             }
         };
-
-        protected async Task HistoricalTradeHelperAsync(HistoricalTradeHelperState state)
-        {
-            state.Symbol = NormalizeSymbol(state.Symbol);
-            string url;
-            state.Url = state.Url.Replace("[symbol]", state.Symbol);
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            ExchangeTrade trade;
-            state.EndDate = (state.EndDate ?? DateTime.UtcNow);
-            state.StartDate = (state.StartDate ?? state.EndDate.Value.Subtract(state.BlockTime));
-            string startTimestamp;
-            string endTimestamp;
-            HashSet<long> previousTrades = new HashSet<long>();
-            HashSet<long> tempTradeIds = new HashSet<long>();
-            HashSet<long> tmpIds;
-            state.SetDates(out DateTime startDateMoving, out DateTime endDateMoving);
-
-            while (true)
-            {
-                // format url and make request
-                if (state.TimestampFunction != null)
-                {
-                    startTimestamp = state.TimestampFunction(startDateMoving);
-                    endTimestamp = state.TimestampFunction(endDateMoving);
-                    url = string.Format(state.Url, startTimestamp, endTimestamp);
-                }
-                else if (state.UrlFunction != null)
-                {
-                    url = state.UrlFunction(state);
-                }
-                else
-                {
-                    throw new InvalidOperationException("TimestampFunction or UrlFunction must be specified");
-                }
-                JToken obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JToken>(url);
-                obj = CheckError(obj);
-
-                // don't add this temp trade as it may be outside of the date/time range
-                tempTradeIds.Clear();
-                foreach (JToken token in obj)
-                {
-                    trade = state.ParseFunction(token);
-                    if (!previousTrades.Contains(trade.Id) && trade.Timestamp >= state.StartDate.Value && trade.Timestamp <= state.EndDate.Value)
-                    {
-                        trades.Add(trade);
-                    }
-                    if (trade.Id != 0)
-                    {
-                        tempTradeIds.Add(trade.Id);
-                    }
-                }
-                previousTrades.Clear();
-                tmpIds = previousTrades;
-                previousTrades = tempTradeIds;
-                tempTradeIds = previousTrades;
-
-                // set dates to next block
-                if (trades.Count == 0)
-                {
-                    if (state.DirectionIsBackwards)
-                    {
-                        // no trades found, move the whole block back
-                        endDateMoving = startDateMoving.Subtract(state.BlockTime);
-                    }
-                    else
-                    {
-                        // no trades found, move the whole block forward
-                        startDateMoving = endDateMoving.Add(state.BlockTime);
-                    }
-                }
-                else
-                {
-                    // sort trades in descending order and callback
-                    if (state.DirectionIsBackwards)
-                    {
-                        trades.Sort((t1, t2) => t2.Timestamp.CompareTo(t1.Timestamp));
-                    }
-                    else
-                    {
-                        trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                    }
-                    if (!state.Callback(trades))
-                    {
-                        break;
-                    }
-
-                    trade = trades[trades.Count - 1];
-                    if (state.DirectionIsBackwards)
-                    {
-                        // set end date to the date of the earliest trade of the block, use for next request
-                        if (state.MillisecondGranularity)
-                        {
-                            endDateMoving = trade.Timestamp.AddMilliseconds(-1.0);
-                        }
-                        else
-                        {
-                            endDateMoving = trade.Timestamp.AddSeconds(-1.0);
-                        }
-                        startDateMoving = endDateMoving.Subtract(state.BlockTime);
-                    }
-                    else
-                    {
-                        // set start date to the date of the latest trade of the block, use for next request
-                        if (state.MillisecondGranularity)
-                        {
-                            startDateMoving = trade.Timestamp.AddMilliseconds(1.0);
-                        }
-                        else
-                        {
-                            startDateMoving = trade.Timestamp.AddSeconds(1.0);
-                        }
-                        endDateMoving = startDateMoving.Add(state.BlockTime);
-                    }
-                    trades.Clear();
-                }
-                // check for exit conditions
-                if (state.DirectionIsBackwards)
-                {
-                    if (endDateMoving < state.StartDate.Value)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    if (startDateMoving > state.EndDate.Value)
-                    {
-                        break;
-                    }
-                }
-                state.ClampDates(ref startDateMoving, ref endDateMoving);
-                await Task.Delay(state.DelayMilliseconds);
-            }
-        }
 
         #endregion API implementation
 

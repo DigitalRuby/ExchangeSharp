@@ -138,7 +138,7 @@ namespace ExchangeSharp
 
         protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
             {
                 Callback = callback,
                 DirectionIsBackwards = false,
@@ -159,7 +159,7 @@ namespace ExchangeSharp
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
                 Url = "/trades/[symbol]?limit_trades=100&timestamp={0}"
             };
-            await HistoricalTradeHelperAsync(state);
+            await state.ProcessHistoricalTrades();
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()

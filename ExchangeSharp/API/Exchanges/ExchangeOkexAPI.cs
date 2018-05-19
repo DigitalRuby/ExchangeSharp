@@ -196,8 +196,10 @@ namespace ExchangeSharp
                     JToken token = JToken.Parse(msg);
                     token = token[0];
                     var channel = token["channel"];
-                    if(channel.ToStringInvariant().Equals("addChannel",StringComparison.CurrentCultureIgnoreCase))
+                    if (channel.ToStringInvariant().EqualsWithOption("addChannel"))
+                    {
                         return;
+                    }
 
                     var data = token["data"];
 
@@ -212,7 +214,7 @@ namespace ExchangeSharp
                     {
                         orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
                     }
-                    
+
                     callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
                 }
                 catch
