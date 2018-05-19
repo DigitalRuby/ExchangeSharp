@@ -513,7 +513,7 @@ namespace ExchangeSharp
                     };
                 },
                 StartDate = startDate,
-                Symbol = NormalizeSymbol(symbol),
+                Symbol = symbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(dt)).ToStringInvariant(),
                 Url = "/public?command=returnTradeHistory&currencyPair=[symbol]&start={0}&end={1}"
             };

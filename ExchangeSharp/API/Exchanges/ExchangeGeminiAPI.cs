@@ -138,50 +138,28 @@ namespace ExchangeSharp
 
         protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            const int maxCount = 100;
-            symbol = NormalizeSymbol(symbol);
-            string baseUrl = "/trades/" + symbol + "?limit_trades=" + maxCount;
-            string url;
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            while (true)
+            HistoricalTradeHelperState state = new HistoricalTradeHelperState
             {
-                url = baseUrl;
-                if (startDate != null)
+                Callback = callback,
+                DirectionIsBackwards = false,
+                EndDate = endDate,
+                ParseFunction = (JToken token) =>
                 {
-                    url += "&timestamp=" + CryptoUtility.UnixTimestampFromDateTimeMilliseconds(startDate.Value).ToStringInvariant();
-                }
-                JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>(url);
-                if (obj == null || obj.Count == 0)
-                {
-                    break;
-                }
-                if (startDate != null)
-                {
-                    startDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj.First["timestampms"].ConvertInvariant<long>());
-                }
-                foreach (JToken token in obj)
-                {
-                    trades.Add(new ExchangeTrade
+                    return new ExchangeTrade
                     {
                         Amount = token["amount"].ConvertInvariant<decimal>(),
                         Price = token["price"].ConvertInvariant<decimal>(),
                         Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestampms"].ConvertInvariant<long>()),
                         Id = token["tid"].ConvertInvariant<long>(),
                         IsBuy = token["type"].ToStringInvariant() == "buy"
-                    });
-                }
-                trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                if (!callback(trades))
-                {
-                    break;
-                }
-                trades.Clear();
-                if (obj.Count < maxCount || startDate == null)
-                {
-                    break;
-                }
-                Task.Delay(1000).Wait();
-            }
+                    };
+                },
+                StartDate = startDate,
+                Symbol = symbol,
+                TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
+                Url = "/trades/[symbol]?limit_trades=100&timestamp={0}"
+            };
+            await HistoricalTradeHelperAsync(state);
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
