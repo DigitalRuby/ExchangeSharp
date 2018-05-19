@@ -17,6 +17,8 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
+using System.IO;
+using System.IO.Compression;
 
 namespace ExchangeSharp
 {
@@ -28,6 +30,8 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
         public string PrivateUrlV1 { get; set; } = "https://api.huobipro.com/v1";
         public string AccountType { get; set; } = "spot";
+
+        private int SubId = 0;
 
         public ExchangeHuobiAPI()
         {
@@ -230,6 +234,97 @@ namespace ExchangeSharp
         protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             throw new NotImplementedException("Too many pairs and this exchange does not support a single call to get all the tickers");
+        }
+
+        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            var normalizedSymbol = NormalizeSymbol(symbol);
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                /*
+{{
+  "id": "id1",
+  "status": "ok",
+  "subbed": "market.btcusdt.depth.step0",
+  "ts": 1526749164133
+}}
+
+
+{{
+  "ch": "market.btcusdt.depth.step0",
+  "ts": 1526749254037,
+  "tick": {
+    "bids": [
+      [
+        8268.3,
+        0.101
+      ],
+      [
+        8268.29,
+        0.8248
+      ],
+      
+    ],
+    "asks": [
+      [
+        8275.07,
+        0.1961
+      ],
+	  
+      [
+        8337.1,
+        0.5803
+      ]
+    ],
+    "ts": 1526749254016,
+    "version": 7664175145
+  }
+}}
+                 */
+                try
+                {
+                    var str = Encoding.UTF8.GetString(Decompress(msg));
+                    JToken token = JToken.Parse(str);
+
+                    if (token["status"] != null)
+                        return;
+                    if (token["ping"] != null)
+                    {
+                        _socket.SendMessage(str.Replace("ping", "pong"));
+                        return;
+                    }
+
+                    var tick = token["tick"];
+
+                    var seq = token["ts"].ConvertInvariant<long>();
+                    var orderBook = new ExchangeOrderBook();
+                    foreach (JArray array in tick["bids"])
+                    {
+                        orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                    }
+                    foreach (JArray array in tick["asks"])
+                    {
+                        orderBook.Asks.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                    }
+
+                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
+                }
+                catch (Exception ex)
+                {
+                }
+            }, (_socket) =>
+            {
+                // subscribe to order book and trades channel for given symbol
+                string channel = $"market.{normalizedSymbol}.depth.step0";
+                string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{++SubId}\"}}";
+                _socket.SendMessage(msg);
+            });
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
@@ -712,6 +807,21 @@ namespace ExchangeSharp
             };
 
             return result;
+        }
+
+        public static byte[] Decompress(byte[] bytes)
+        {
+            using (var compressStream = new MemoryStream(bytes))
+            {
+                using (var zipStream = new GZipStream(compressStream, CompressionMode.Decompress))
+                {
+                    using (var resultStream = new MemoryStream())
+                    {
+                        zipStream.CopyTo(resultStream);
+                        return resultStream.ToArray();
+                    }
+                }
+            }
         }
 
         #endregion
