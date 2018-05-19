@@ -2,7 +2,7 @@
 {
     public class ExchangeSequencedWebsocketMessage<T>
     {
-        public ExchangeSequencedWebsocketMessage(int sequenceNumber, T data)
+        public ExchangeSequencedWebsocketMessage(long sequenceNumber, T data)
         {
             SequenceNumber = sequenceNumber;
             Data = data;
@@ -10,7 +10,7 @@
 
         #region Properties
 
-        public int SequenceNumber { get; }
+        public long SequenceNumber { get; }
 
         public T Data { get; }
 
