@@ -17,6 +17,7 @@ namespace ExchangeSharp
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
+    using System.IO.Compression;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Security;
@@ -91,6 +92,36 @@ namespace ExchangeSharp
         public static string UTF8String(this byte[] bytes)
         {
             return (bytes == null ? string.Empty : Encoding.UTF8.GetString(bytes));
+        }
+
+        /// <summary>
+        /// Convenience method to get utf-8 string from gzipped bytes
+        /// </summary>
+        /// <param name="bytes">Gzipped bytes</param>
+        /// <returns>UTF-8 string or empty string if bytes is null or empty</returns>
+        public static string UTF8StringFromGzip(this byte[] bytes)
+        {
+            return (bytes == null ? string.Empty : Encoding.UTF8.GetString(DecompressGzip(bytes)));
+        }
+
+        /// <summary>
+        /// Decompress gzip bytes
+        /// </summary>
+        /// <param name="bytes">Bytes that are gzipped</param>
+        /// <returns>Uncompressed bytes</returns>
+        public static byte[] DecompressGzip(byte[] bytes)
+        {
+            using (var compressStream = new MemoryStream(bytes))
+            {
+                using (var zipStream = new GZipStream(compressStream, CompressionMode.Decompress))
+                {
+                    using (var resultStream = new MemoryStream())
+                    {
+                        zipStream.CopyTo(resultStream);
+                        return resultStream.ToArray();
+                    }
+                }
+            }
         }
 
         /// <summary>

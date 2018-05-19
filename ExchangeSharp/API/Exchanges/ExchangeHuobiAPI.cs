@@ -289,19 +289,20 @@ namespace ExchangeSharp
                  */
                 try
                 {
-                    var str = Encoding.UTF8.GetString(Decompress(msg));
+                    var str = msg.UTF8StringFromGzip();
                     JToken token = JToken.Parse(str);
 
                     if (token["status"] != null)
+                    {
                         return;
-                    if (token["ping"] != null)
+                    }
+                    else if (token["ping"] != null)
                     {
                         _socket.SendMessage(str.Replace("ping", "pong"));
                         return;
                     }
 
                     var tick = token["tick"];
-
                     var seq = token["ts"].ConvertInvariant<long>();
                     var orderBook = new ExchangeOrderBook();
                     foreach (JArray array in tick["bids"])
@@ -315,8 +316,9 @@ namespace ExchangeSharp
 
                     callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
                 }
-                catch (Exception ex)
+                catch
                 {
+                    // TODO: Why are we catching and not handling exceptions here?
                 }
             }, (_socket) =>
             {
@@ -807,21 +809,6 @@ namespace ExchangeSharp
             };
 
             return result;
-        }
-
-        public static byte[] Decompress(byte[] bytes)
-        {
-            using (var compressStream = new MemoryStream(bytes))
-            {
-                using (var zipStream = new GZipStream(compressStream, CompressionMode.Decompress))
-                {
-                    using (var resultStream = new MemoryStream())
-                    {
-                        zipStream.CopyTo(resultStream);
-                        return resultStream.ToArray();
-                    }
-                }
-            }
         }
 
         #endregion
