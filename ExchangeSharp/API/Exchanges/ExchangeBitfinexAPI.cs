@@ -409,12 +409,12 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = GetNoncePayload();
             payload["symbol"] = symbol;
-            payload["amount"] = order.RoundAmount().ToStringInvariant();
+            payload["amount"] = ClampOrderQuantity(symbol, order.Amount).ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
             payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
             if (order.OrderType != OrderType.Market)
             {
-                payload["price"] = order.Price.ToStringInvariant();
+                payload["price"] = ClampOrderPrice(symbol, order.Price).ToStringInvariant();
             }
             foreach (var kv in order.ExtraParameters)
             {
