@@ -43,7 +43,7 @@ namespace ExchangeSharp
         protected ExchangeMarket GetExchangeMarket(string symbol)
         {
             PopulateExchangeMarkets();
-            return exchangeMarkets.FirstOrDefault(x => x.MarketName == symbol);
+            return exchangeMarkets.FirstOrDefault(x => string.Equals(x.MarketName, symbol, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
