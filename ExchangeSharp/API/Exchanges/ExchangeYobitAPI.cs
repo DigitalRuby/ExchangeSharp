@@ -361,8 +361,8 @@ namespace ExchangeSharp
             // "ltc_btc":{ "high":105.41,"low":104.67,"avg":105.04,"vol":43398.22251455,"vol_cur":4546.26962359,"last":105.11,"buy":104.2,"sell":105.11,"updated":1418654531 }
             return new ExchangeTicker
             {
-                Ask = prop.First["buy"].ConvertInvariant<decimal>(),
-                Bid = prop.First["sell"].ConvertInvariant<decimal>(),
+                Ask = prop.First["sell"].ConvertInvariant<decimal>(),
+                Bid = prop.First["buy"].ConvertInvariant<decimal>(),
                 Last = prop.First["last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume
                 {

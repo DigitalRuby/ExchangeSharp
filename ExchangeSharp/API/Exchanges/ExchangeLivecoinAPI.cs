@@ -375,8 +375,8 @@ namespace ExchangeSharp
             var split = token["symbol"].ToStringInvariant().Split('/');
             return new ExchangeTicker()
             {
-                   Ask = token["best_bid"].ConvertInvariant<decimal>(),
-                   Bid = token["best_ask"].ConvertInvariant<decimal>(),
+                   Ask = token["best_ask"].ConvertInvariant<decimal>(),
+                   Bid = token["best_bid"].ConvertInvariant<decimal>(),
                    Last = token["last"].ConvertInvariant<decimal>(),
                    Volume = new ExchangeVolume()
                    {
