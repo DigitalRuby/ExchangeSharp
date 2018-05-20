@@ -48,23 +48,7 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
 
-        public static void RunPoloniexWebSocket()
-        {
-            var api = new ExchangePoloniexAPI();
-            var wss = api.GetTickersWebSocket((t) =>
-            {
-                // depending on the exchange, the (t) parameter (a collection of tickers) may have one ticker or all of them
-                foreach (var ticker in t)
-                {
-                    Console.WriteLine(ticker);
-                }
-            });
-            Console.WriteLine("Press any key to quit.");
-            Console.ReadKey();
-            wss.Dispose();
-        }
-
-        private static void RunWebSocket(Dictionary<string, string> dict)
+        private static void RunWebSocketTickers(Dictionary<string, string> dict)
         {
             var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
             if (api == null)

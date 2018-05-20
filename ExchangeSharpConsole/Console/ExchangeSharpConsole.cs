@@ -86,15 +86,11 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunProcessEncryptedAPIKeys(dict);
                 }
-                else if (dict.ContainsKey("poloniex-websocket"))
+                else if (dict.ContainsKey("websocket-ticker"))
                 {
-                    RunPoloniexWebSocket();
+                    RunWebSocketTickers(dict);
                 }
-                else if (dict.ContainsKey("websocket"))
-                {
-                    RunWebSocket(dict);
-                }
-                else if (dict.ContainsKey("orderbook-websocket"))
+                else if (dict.ContainsKey("websocket-orderbook"))
                 {
                     RunOrderBookWebSocket(dict);
                 }

@@ -23,7 +23,7 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("------------------------------------------------------------");
             Console.WriteLine("ExchangeSharpConsole v. {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version);
             Console.WriteLine("------------------------------------------------------------");
-            Console.WriteLine("Command line arguments should be key=value pairs, separated by space. Please add quotes around any key/value pair with a space in it.");
+            Console.WriteLine("Command line arguments should be key=value pairs, separated by space. Please add quotes around any key=value pair with a space in it.");
             Console.WriteLine();
             Console.WriteLine("Command categories:");
             Console.WriteLine("------------------------------------------------------------");
@@ -58,8 +58,11 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("example - simple example showing how to create an API instance and get the ticker, and place an order.");
             Console.WriteLine(" example currently has no additional arguments.");
             Console.WriteLine();
-            Console.WriteLine("websocket - Shows how to connect via web socket and listen to tickers.");
-            Console.WriteLine(" websocket exchangeName - name of Exchange to show websocket tickers for.");
+            Console.WriteLine("websocket-ticker - Shows how to connect via web socket and listen to tickers.");
+            Console.WriteLine(" websocket exchangeName=Binance");
+            Console.WriteLine();
+            Console.WriteLine("websocket-orderbook - Shows how to connect via web socket and listen to the order book.");
+            Console.WriteLine(" websocket exchangeName=Binance symbol=btcusdt");
             Console.WriteLine();
         }
     }
