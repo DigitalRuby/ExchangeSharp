@@ -10,6 +10,9 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+// if you can't use ASP.NET signalr nuget package, comment this out
+#define HAS_SIGNALR
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,13 +24,21 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
-using Microsoft.AspNet.SignalR.Client;
 using Newtonsoft.Json.Linq;
+
+#if HAS_SIGNALR
+
+using Microsoft.AspNet.SignalR.Client;
+
+#endif
 
 namespace ExchangeSharp
 {
     public sealed class ExchangeBittrexAPI : ExchangeAPI
     {
+
+#if HAS_SIGNALR
+
         public sealed class BittrexWebSocket : IDisposable
         {
             // https://bittrex.github.io/
@@ -260,11 +271,13 @@ namespace ExchangeSharp
             }
         }
 
+        private BittrexWebSocket webSocket;
+
+#endif
+
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
         public override string Name => ExchangeName.Bittrex;
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
-
-        private BittrexWebSocket webSocket;
 
         /// <summary>Coin types that both an address and a tag to make the deposit</summary>
         public HashSet<string> TwoFieldDepositCoinTypes { get; }
@@ -312,6 +325,8 @@ namespace ExchangeSharp
             return (symbol ?? string.Empty).ToUpperInvariant();
         }
 
+#if HAS_SIGNALR
+
         /// <summary>
         /// Gets the BittrexSocketClient for this API
         /// </summary>
@@ -332,6 +347,8 @@ namespace ExchangeSharp
                 return webSocket;
             }
         }
+
+#endif
 
         private ExchangeOrderResult ParseOrder(JToken token)
         {
@@ -371,11 +388,17 @@ namespace ExchangeSharp
 
         protected override void OnDispose()
         {
+
+#if HAS_SIGNALR
+
             if (webSocket != null)
             {
                 webSocket.Dispose();
                 webSocket = null;
             }
+
+#endif
+
         }
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
@@ -521,6 +544,8 @@ namespace ExchangeSharp
             return tickerList;
         }
 
+#if HAS_SIGNALR
+
         public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
@@ -588,6 +613,8 @@ namespace ExchangeSharp
             var client = SocketClient;
             return client.SubscribeToSummaryDeltas(innerCallback);
         }
+
+#endif
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
