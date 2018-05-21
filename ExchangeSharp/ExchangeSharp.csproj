@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netcoreapp2.0;net47</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netcoreapp2.0;net471</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
     <PackageVersion>0.4.2.0</PackageVersion>
@@ -37,10 +37,6 @@
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net47'">
-    <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <None Remove="API\Exchanges\PoloWithdrawalFields.csv" />
   </ItemGroup>
@@ -51,18 +47,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.2.3" />
-    <PackageReference Include="Bittrex.Net" Version="2.1.5" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Properties\" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
-    <Reference Include="System.Web" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Windows.Forms.DataVisualization" />
   </ItemGroup>
 
   <ItemGroup>
@@ -80,5 +69,16 @@
       <CustomToolNamespace>ExchangeSharp</CustomToolNamespace>
     </EmbeddedResource>
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
+    <Reference Include="System.Runtime.InteropServices" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net471'">
+    <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
+  </PropertyGroup>
 
 </Project>

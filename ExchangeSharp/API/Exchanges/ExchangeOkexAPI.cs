@@ -245,7 +245,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> allTrades = new List<ExchangeTrade>();
             var trades = await MakeRequestOkexAsync(symbol, "/trades.do?symbol=$SYMBOL$");

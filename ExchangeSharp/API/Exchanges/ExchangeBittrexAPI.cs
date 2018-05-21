@@ -10,25 +10,261 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using System.Web;
+
+using Microsoft.AspNet.SignalR.Client;
+using Newtonsoft.Json.Linq;
+
 namespace ExchangeSharp
 {
-    using Bittrex.Net;
-    using Bittrex.Net.Objects;
-    using Newtonsoft.Json.Linq;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Net;
-    using System.Threading.Tasks;
-    using System.Web;
-
     public sealed class ExchangeBittrexAPI : ExchangeAPI
     {
+        public sealed class BittrexWebSocket : IDisposable
+        {
+            // https://bittrex.github.io/
+
+            private sealed class BittrexSocketClientConnection : IDisposable
+            {
+                private BittrexWebSocket client;
+                private Action<string> callback;
+                private string functionName;
+
+                /// <summary>
+                /// Constructor
+                /// </summary>
+                /// <param name="client">Socket client</param>
+                /// <param name="functionName">Function code, uS is supported</param>
+                /// <param name="callback"></param>
+                /// <param name="param"></param>
+                /// <returns>Connection</returns>
+                public async Task<IDisposable> OpenAsync(BittrexWebSocket client, string functionName, Action<string> callback, params object[] param)
+                {
+                    if (callback != null)
+                    {
+                        string functionFullName = null;
+                        switch (functionName)
+                        {
+                            case "uS": functionFullName = "SubscribeToSummaryDeltas"; break;
+                            default: throw new InvalidOperationException("Only 'uS' function is supported");
+                        }
+                        if (functionFullName != null)
+                        {
+                            client.AddListener(functionName, callback);
+                            bool result = await client.hubProxy.Invoke<bool>(functionFullName, param).ConfigureAwait(false);
+                            if (result)
+                            {
+                                this.client = client;
+                                this.callback = callback;
+                                this.functionName = functionName;
+                                return this;
+                            }
+                            else
+                            {
+                                client.RemoveListener(functionName, callback);
+                            }
+                        }
+                    }
+                    throw new APIException("Unable to open web socket to Bittrex");
+                }
+
+                public void Dispose()
+                {
+                    try
+                    {
+                        client.RemoveListener(functionName, callback);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+
+            private HubConnection hubConnection;
+            private IHubProxy hubProxy;
+            private readonly Dictionary<string, List<Action<string>>> listeners = new Dictionary<string, List<Action<string>>>();
+            private bool reconnecting;
+
+            private void AddListener(string functionName, Action<string> callback)
+            {
+                Start();
+                lock (listeners)
+                {
+                    if (!listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
+                    {
+                        listeners[functionName] = callbacks = new List<Action<string>>();
+                    }
+                    if (!callbacks.Contains(callback))
+                    {
+                        callbacks.Add(callback);
+                    }
+                }
+            }
+
+            private void RemoveListener(string functionName, Action<string> callback)
+            {
+                lock (listeners)
+                {
+                    if (listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
+                    {
+                        callbacks.Remove(callback);
+                        if (callbacks.Count == 0)
+                        {
+                            listeners.Remove(functionName);
+                        }
+                    }
+                    if (listeners.Count == 0)
+                    {
+                        Stop();
+                    }
+                }
+            }
+
+            private void HandleResponse(string functionName, string data)
+            {
+                data = Decode(data);
+                lock (listeners)
+                {
+                    if (listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
+                    {
+                        Parallel.ForEach(callbacks, (callback) =>
+                        {
+                            try
+                            {
+                                callback(data);
+                            }
+                            catch
+                            {
+                            }
+                        });
+                    }
+                }
+            }
+
+            private void SocketClosed()
+            {
+                if (reconnecting || listeners.Count == 0)
+                {
+                    return;
+                }
+                reconnecting = true;
+                try
+                {
+                    // if hubConnection is null, exception will throw out
+                    while (hubConnection.State != ConnectionState.Connected)
+                    {
+                        Start();
+                    }
+                    Task.Delay(1000).ConfigureAwait(false).GetAwaiter().GetResult();
+                }
+                catch
+                {
+                }
+                reconnecting = false;
+            }
+
+            public BittrexWebSocket()
+            {
+                const string connectionUrl = "https://socket.bittrex.com";
+                hubConnection = new HubConnection(connectionUrl);
+                hubConnection.Closed += SocketClosed;
+                hubProxy = hubConnection.CreateHubProxy("c2");
+                hubProxy.On("uS", (string data) => HandleResponse("uS", data));
+            }
+
+            public void Start()
+            {
+                while (hubConnection.State != ConnectionState.Connected)
+                {
+                    hubConnection.Start().ConfigureAwait(false).GetAwaiter().GetResult();
+                }
+            }
+
+            public void Stop()
+            {
+                hubConnection.Stop(TimeSpan.FromSeconds(1.0));
+            }
+
+            ~BittrexWebSocket()
+            {
+                Dispose();
+            }
+
+            public void Dispose()
+            {
+                if (hubConnection == null)
+                {
+                    return;
+                }
+                listeners.Clear();
+
+                // null out hub so we don't try to reconnect
+                var tmp = hubConnection;
+                hubConnection = null;
+                tmp.Stop(TimeSpan.FromSeconds(1.0));
+            }
+
+            /// <summary>
+            /// Subscribe to all market summaries
+            /// </summary>
+            /// <param name="callback">Callback</param>
+            /// <returns>IDisposable or null if error</returns>
+            public IDisposable SubscribeToSummaryDeltas(Action<string> callback)
+            {
+                BittrexSocketClientConnection client = new BittrexSocketClientConnection();
+                return client.OpenAsync(this, "uS", callback).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+
+            // The return of GetAuthContext is a challenge string. Call CreateSignature(apiSecret, challenge)
+            // for the response to the challenge, and pass it to Authenticate().
+            public async Task<string> GetAuthContext(string apiKey) => await hubProxy.Invoke<string>("GetAuthContext", apiKey);
+
+            public async Task<bool> Authenticate(string apiKey, string signedChallenge) => await hubProxy.Invoke<bool>("Authenticate", apiKey, signedChallenge);
+
+            // Decode converts Bittrex CoreHub2 socket wire protocol data into JSON.
+            // Data goes from base64 encoded to gzip (byte[]) to minifed JSON.
+            public static string Decode(string wireData)
+            {
+                // Step 1: Base64 decode the wire data into a gzip blob
+                byte[] gzipData = Convert.FromBase64String(wireData);
+
+                // Step 2: Decompress gzip blob into minified JSON
+                using (var decompressedStream = new MemoryStream())
+                using (var compressedStream = new MemoryStream(gzipData))
+                using (var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress))
+                {
+                    deflateStream.CopyTo(decompressedStream);
+                    decompressedStream.Position = 0;
+
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        return streamReader.ReadToEnd();
+                    }
+                }
+            }
+
+            public static string CreateSignature(string apiSecret, string challenge)
+            {
+                // Get hash by using apiSecret as key, and challenge as data
+                var hmacSha512 = new HMACSHA512(Encoding.ASCII.GetBytes(apiSecret));
+                var hash = hmacSha512.ComputeHash(Encoding.ASCII.GetBytes(challenge));
+                return BitConverter.ToString(hash).Replace("-", string.Empty);
+            }
+        }
+
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
         public override string Name => ExchangeName.Bittrex;
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
-        private BittrexSocketClient socketClient;
+        private BittrexWebSocket webSocket;
 
         /// <summary>Coin types that both an address and a tag to make the deposit</summary>
         public HashSet<string> TwoFieldDepositCoinTypes { get; }
@@ -79,22 +315,21 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the BittrexSocketClient for this API
         /// </summary>
-        private BittrexSocketClient SocketClient
+        private BittrexWebSocket SocketClient
         {
             get
             {
-                if (socketClient == null)
+                if (webSocket == null)
                 {
                     lock (this)
                     {
-                        if (socketClient == null)
+                        if (webSocket == null)
                         {
-                            socketClient = new BittrexSocketClient();
+                            webSocket = new BittrexWebSocket();
                         }
                     }
                 }
-
-                return socketClient;
+                return webSocket;
             }
         }
 
@@ -132,6 +367,15 @@ namespace ExchangeSharp
             }
             order.IsBuy = type.IndexOf("BUY", StringComparison.OrdinalIgnoreCase) >= 0;
             return order;
+        }
+
+        protected override void OnDispose()
+        {
+            if (webSocket != null)
+            {
+                webSocket.Dispose();
+                webSocket = null;
+            }
         }
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
@@ -279,65 +523,70 @@ namespace ExchangeSharp
 
         public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            // Eat the streamId and rely on .Dispose to clean up all streams
-            return GetTickersWebSocket(callback, out int streamId);
-        }
-
-        /// <summary>
-        /// Attach Bittrex AllMarketDeltaStream websocket stream to tickers processor.
-        /// This is a delta stream, sending only the changes since the last tick.
-        /// </summary>
-        /// <param name="callback">The callback.</param>
-        /// <param name="streamId">The stream identifier which can be used to dispose this stream without killing all other socket subscriptions.</param>
-        /// <returns>
-        /// The BittrexSocketClient
-        /// Note that this socketclient handles all subscriptions. 
-        /// To unsubscribe a single subscription, use UnsubscribeFromStream(int streamId)
-        /// </returns>
-        public BittrexSocketClient GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, out int streamId)
-        {
-            streamId = -1;
-
             if (callback == null)
             {
                 return null;
             }
 
-            CryptoExchange.Net.CallResult<int> result = SocketClient.SubscribeToMarketSummariesUpdate
-            (
-                summaries =>
-                {
-                    // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
-                    var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
-                    foreach (BittrexStreamMarketSummary market in summaries)
-                    {
-                        decimal quantityAmount = market.Volume.ConvertInvariant<decimal>();
-                        decimal last = market.Last.ConvertInvariant<decimal>();
-                        var ticker = new ExchangeTicker
-                        {
-                            Ask = market.Ask,
-                            Bid = market.Bid,
-                            Last = last,
-                            Volume = new ExchangeVolume
-                            {
-                                ConvertedVolume = quantityAmount,
-                                ConvertedSymbol = market.MarketName,
-                                BaseVolume = market.BaseVolume.ConvertInvariant<decimal>(quantityAmount * last),
-                                BaseSymbol = market.MarketName,
-                                Timestamp = market.TimeStamp
-                            }
-                        };
-                        freshTickers[market.MarketName] = ticker;
-                    }
-                    callback(freshTickers);
-                }
-            );
-            if (result.Success)
+            void innerCallback(string json)
             {
-                streamId = result.Data;
-            }
+                /*
+                {
+                    Nonce : int,
+                    Deltas : 
+                    [
+                        {
+                            MarketName     : string,
+                            High           : decimal,
+                            Low            : decimal,
+                            Volume         : decimal,
+                            Last           : decimal,
+                            BaseVolume     : decimal,
+                            TimeStamp      : date,
+                            Bid            : decimal,
+                            Ask            : decimal,
+                            OpenBuyOrders  : int,
+                            OpenSellOrders : int,
+                            PrevDay        : decimal,
+                            Created        : date
+                        }
+                    ]
+                }
+                */
 
-            return SocketClient;
+                // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
+                var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
+                JToken token = JToken.Parse(json);
+                token = token["D"];
+                foreach (JToken ticker in token)
+                {
+                    string marketName = ticker["M"].ToStringInvariant();
+                    decimal last = ticker["l"].ConvertInvariant<decimal>();
+                    decimal ask = ticker["A"].ConvertInvariant<decimal>();
+                    decimal bid = ticker["B"].ConvertInvariant<decimal>();
+                    decimal volume = ticker["V"].ConvertInvariant<decimal>();
+                    decimal baseVolume = ticker["m"].ConvertInvariant<decimal>();
+                    DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["T"].ConvertInvariant<long>());
+                    var t = new ExchangeTicker
+                    {
+                        Ask = ask,
+                        Bid = bid,
+                        Last = last,
+                        Volume = new ExchangeVolume
+                        {
+                            ConvertedVolume = volume,
+                            ConvertedSymbol = marketName,
+                            BaseVolume = baseVolume,
+                            BaseSymbol = marketName,
+                            Timestamp = timestamp
+                        }
+                    };
+                    freshTickers[marketName] = t;
+                }
+                callback(freshTickers);
+            }
+            var client = SocketClient;
+            return client.SubscribeToSummaryDeltas(innerCallback);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
@@ -395,7 +644,7 @@ namespace ExchangeSharp
             return transactions;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // TODO: sinceDateTime is ignored
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=oneMin&_=1499127220008

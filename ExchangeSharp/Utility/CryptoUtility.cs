@@ -131,7 +131,7 @@ namespace ExchangeSharp
         /// <param name="isLocalDateTime">True if the obj has a date time that is a local date time, false if it is UTC</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
         /// <returns>DateTime with DateTimeKind kind or defaultValue if no conversion possible</returns>
-        public static DateTime ToDateTimeInvariant(this object obj, bool isLocalDateTime, DateTime defaultValue = default(DateTime))
+        public static DateTime ToDateTimeInvariant(this object obj, bool isLocalDateTime = false, DateTime defaultValue = default(DateTime))
         {
             if (obj == null)
             {

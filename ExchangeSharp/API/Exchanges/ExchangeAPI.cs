@@ -34,6 +34,7 @@ namespace ExchangeSharp
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
         private IEnumerable<ExchangeMarket> exchangeMarkets;
+        private bool disposed;
 
         /// <summary>
         /// Gets the exchange market from this exchange's SymbolsMetadata cache.
@@ -63,6 +64,11 @@ namespace ExchangeSharp
                 }
             }
         }
+
+        /// <summary>
+        /// Override to dispose of resources when the exchange is disposed
+        /// </summary>
+        protected virtual void OnDispose() { }
 
         /// <summary>
         /// Clamp price using market info
@@ -170,7 +176,7 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeTicker> OnGetTickerAsync(string symbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100) => throw new NotImplementedException();
-        protected virtual Task OnGetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
+        protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
@@ -187,7 +193,7 @@ namespace ExchangeSharp
         {
             private ExchangeAPI api;
 
-            public System.Func<IEnumerable<ExchangeTrade>, bool> Callback { get; set; }
+            public Func<IEnumerable<ExchangeTrade>, bool> Callback { get; set; }
             public string Symbol { get; set; }
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
@@ -195,9 +201,9 @@ namespace ExchangeSharp
             public int DelayMilliseconds { get; set; } = 1000;
             public TimeSpan BlockTime { get; set; } = TimeSpan.FromHours(1.0); // how much time to move for each block of data, default 1 hour
             public bool MillisecondGranularity { get; set; } = true;
-            public System.Func<DateTime, string> TimestampFunction { get; set; } // change date time to a url timestamp, use TimestampFunction or UrlFunction
-            public System.Func<HistoricalTradeHelperState, string> UrlFunction { get; set; } // allows returning a custom url, use TimestampFunction or UrlFunction
-            public System.Func<JToken, ExchangeTrade> ParseFunction { get; set; }
+            public Func<DateTime, string> TimestampFunction { get; set; } // change date time to a url timestamp, use TimestampFunction or UrlFunction
+            public Func<HistoricalTradeHelperState, string> UrlFunction { get; set; } // allows returning a custom url, use TimestampFunction or UrlFunction
+            public Func<JToken, ExchangeTrade> ParseFunction { get; set; }
             public bool DirectionIsBackwards { get; set; } = true; // some exchanges support going from most recent to oldest, but others, like Gemini must go from oldest to newest
 
             public HistoricalTradeHelperState(ExchangeAPI api)
@@ -445,6 +451,26 @@ namespace ExchangeSharp
                 ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI;
                 apis[api.Name] = api;
                 ExchangeGlobalCurrencyReplacements[type] = new KeyValuePair<string, string>[0];
+            }
+        }
+
+        /// <summary>
+        /// Finalizer
+        /// </summary>
+        ~ExchangeAPI()
+        {
+            Dispose();
+        }
+
+        /// <summary>
+        /// Dispose and cleanup all resources
+        /// </summary>
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                OnDispose();
             }
         }
 
@@ -708,7 +734,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get historical data for</param>
         /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        public void GetHistoricalTrades(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) =>
+        public void GetHistoricalTrades(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) =>
             GetHistoricalTradesAsync(callback, symbol, startDate, endDate).GetAwaiter().GetResult();
 
         /// <summary>
@@ -718,7 +744,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get historical data for</param>
         /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        public async Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             await new SynchronizationContextRemover();
             await OnGetHistoricalTradesAsync(callback, symbol, startDate, endDate);

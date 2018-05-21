@@ -50,22 +50,24 @@ namespace ExchangeSharpConsoleApp
 
         private static void RunWebSocketTickers(Dictionary<string, string> dict)
         {
-            var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
-            if (api == null)
+            using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
             {
-                throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
-            }
-            IDisposable socket = api.GetTickersWebSocket(freshTickers =>
-            {
-                foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                if (api == null)
                 {
-                    Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                    throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
                 }
-            });
-
-            Console.WriteLine("Press any key to quit.");
-            Console.ReadKey();
-            socket.Dispose();
+                using (var socket = api.GetTickersWebSocket(freshTickers =>
+                {
+                    foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                    {
+                        Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                    }
+                }))
+                {
+                    Console.WriteLine("Press any key to quit.");
+                    Console.ReadKey();
+                }
+            }
         }
 
         private static void RunOrderBookWebSocket(Dictionary<string, string> dict)

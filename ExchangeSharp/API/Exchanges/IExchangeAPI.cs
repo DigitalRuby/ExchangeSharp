@@ -20,7 +20,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Interface for communicating with an exchange over the Internet
     /// </summary>
-    public interface IExchangeAPI
+    public interface IExchangeAPI : IDisposable
     {
         /// <summary>
         /// Get the name of the exchange this API connects to
@@ -262,7 +262,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get historical data for</param>
         /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        void GetHistoricalTrades(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null);
+        void GetHistoricalTrades(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
         /// ASYNC - Get historical trades for the exchange
@@ -271,7 +271,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get historical data for</param>
         /// <param name="startDate">Optional start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        Task GetHistoricalTradesAsync(System.Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null);
+        Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
         /// Get recent trades on the exchange - this implementation simply calls GetHistoricalTrades with a null sinceDateTime.

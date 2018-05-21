@@ -194,7 +194,7 @@ namespace ExchangeSharp
                     if (!_disposed)
                     {
                         // wait one half second before attempting reconnect
-                        Task.Delay(500).Wait();
+                        Task.Delay(500).ConfigureAwait(false).GetAwaiter().GetResult();
                     }
                 }
                 finally
