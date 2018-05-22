@@ -28,10 +28,10 @@ Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 The following cryptocurrency exchanges are supported:
 (Web socket key: T = tickers, B = order book, O = orders)
 
-|Exchange Name     |public REST|Private REST |Web Socket |
+|Exchange Name     |Public REST|Private REST |Web Socket |
 | ---------------- | --------- | ----------- | --------- |
 | Abucoins         | x         | x           | TO        |
-| Binance          | x         | x           | T         |
+| Binance          | x         | x           | TB        |
 | Bitfinex         | x         | x           | TO        |
 | Bithumb          | x         |             |           |
 | Bitstamp         | x         | x           |           |
@@ -45,8 +45,8 @@ The following cryptocurrency exchanges are supported:
 | Kraken           | x         | x           |           |
 | Kucoin           | x         | x           |           |
 | Livecoin         | x         | x           |           |
-| Okex             | x         | x           |           |
-| Poloniex         | x         | x           | T         |
+| Okex             | x         | x           | B         |
+| Poloniex         | x         | x           | TB        |
 | TuxExchange      | x         | x           |           |
 | Yobit            | x         | x           |           |
 
