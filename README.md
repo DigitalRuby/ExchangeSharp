@@ -26,26 +26,30 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 
 The following cryptocurrency exchanges are supported:
+(Web socket key: T = tickers, B = order book, O = orders)
 
-- Abucoins (public REST, basic private REST, public web socket (tickers), private web socket (orders))
-- Binance (public REST, basic private REST, public web socket (tickers))
-- Bitfinex (public REST, basic private REST, public web socket (tickers), private web socket (orders))
-- Bithumb (public REST)
-- Bitstamp (public REST, basic private REST)
-- Bittrex (public REST, basic private REST, public web socket (tickers))
-- Bleutrade (public REST, basic private REST)
-- Cryptopia (public REST, basic private REST)
-- Gemini (public REST, basic private REST)
-- GDAX (public REST, basic private REST, public web socket (tickers))
-- Hitbtc (public REST, basic private REST)
-- Huobi (public REST, basic private REST)
-- Kraken (public REST, basic private REST)
-- Kucoin (public REST, basic private REST)
-- Livecoin (public REST, basic private REST)
-- Okex (public REST, basic private REST)
-- Poloniex (public REST, basic private REST, public web socket (tickers))
-- TuxExchange (public REST, basic private REST)
-- Yobit (public REST, basic private REST)
+|Exchange Name     |public REST|Private REST |Web Socket |
+|--------------------------------------------------------|
+| Abucoins         |     x     |      x      |    TO     |
+| Binance          |     x     |      x      |    T      |
+| Bitfinex         |     x     |      x      |    TO     |
+| Bithumb          |     x     |             |           |
+| Bitstamp         |     x     |      x      |           |
+| Bittrex          |     x     |      x      |    T      |
+| Bleutrade        |     x     |      x      |           |
+| Cryptopia        |     x     |      x      |           |
+| Gemini           |     x     |      x      |           |
+| GDAX             |     x     |      x      |    T      |
+| Hitbtc           |     x     |      x      |           |
+| Huobi            |     x     |      x      |           |
+| Kraken           |     x     |      x      |           |
+| Kucoin           |     x     |      x      |           |
+| Livecoin         |     x     |      x      |           |
+| Okex             |     x     |      x      |           |
+| Poloniex         |     x     |      x      |    T      |
+| TuxExchange      |     x     |      x      |           |
+| Yobit            |     x     |      x      |           |
+|--------------------------------------------------------|
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
