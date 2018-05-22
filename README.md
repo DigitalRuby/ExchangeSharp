@@ -29,27 +29,26 @@ The following cryptocurrency exchanges are supported:
 (Web socket key: T = tickers, B = order book, O = orders)
 
 |Exchange Name     |public REST|Private REST |Web Socket |
-|--------------------------------------------------------|
-| Abucoins         |     x     |      x      |    TO     |
-| Binance          |     x     |      x      |    T      |
-| Bitfinex         |     x     |      x      |    TO     |
-| Bithumb          |     x     |             |           |
-| Bitstamp         |     x     |      x      |           |
-| Bittrex          |     x     |      x      |    T      |
-| Bleutrade        |     x     |      x      |           |
-| Cryptopia        |     x     |      x      |           |
-| Gemini           |     x     |      x      |           |
-| GDAX             |     x     |      x      |    T      |
-| Hitbtc           |     x     |      x      |           |
-| Huobi            |     x     |      x      |           |
-| Kraken           |     x     |      x      |           |
-| Kucoin           |     x     |      x      |           |
-| Livecoin         |     x     |      x      |           |
-| Okex             |     x     |      x      |           |
-| Poloniex         |     x     |      x      |    T      |
-| TuxExchange      |     x     |      x      |           |
-| Yobit            |     x     |      x      |           |
-|--------------------------------------------------------|
+| ---------------- | --------- | ----------- | --------- |
+| Abucoins         | x         | x           | TO        |
+| Binance          | x         | x           | T         |
+| Bitfinex         | x         | x           | TO        |
+| Bithumb          | x         |             |           |
+| Bitstamp         | x         | x           |           |
+| Bittrex          | x         | x           | T         |
+| Bleutrade        | x         | x           |           |
+| Cryptopia        | x         | x           |           |
+| Gemini           | x         | x           |           |
+| GDAX             | x         | x           | T         |
+| Hitbtc           | x         | x           |           |
+| Huobi            | x         | x           |           |
+| Kraken           | x         | x           |           |
+| Kucoin           | x         | x           |           |
+| Livecoin         | x         | x           |           |
+| Okex             | x         | x           |           |
+| Poloniex         | x         | x           | T         |
+| TuxExchange      | x         | x           |           |
+| Yobit            | x         | x           |           |
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
