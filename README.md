@@ -25,7 +25,7 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 
 Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 
-The following cryptocurrency exchanges are supported:
+The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, B = order book, O = orders)
 
 |Exchange Name     |Public REST|Private REST |Web Socket |
