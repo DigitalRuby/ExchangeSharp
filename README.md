@@ -25,6 +25,8 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 
 Visual Studio 2017 is required, along with either .NET 4.7 or .NET standard 2.0.
 
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, B = order book, O = orders)
 
@@ -117,7 +119,7 @@ public static void Main(string[] args)
 ```
 ---
 
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (jeff@digitalruby.com).
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
 
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
@@ -130,7 +132,7 @@ If you want help with your project, have questions that need answering or this p
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
 Donation totals:
-0.25 LTC
+0.25 LTC, 0.0185 BTC
 
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.2 ```  
