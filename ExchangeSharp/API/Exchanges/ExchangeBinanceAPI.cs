@@ -55,7 +55,7 @@ namespace ExchangeSharp
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
-            // All pairs in Binance end with BTC, ETH, BNB or USTD
+            // All pairs in Binance end with BTC, ETH, BNB or USDT
             if (symbol.EndsWith("BTC") || symbol.EndsWith("ETH") || symbol.EndsWith("BNB"))
             {
                 string baseSymbol = symbol.Substring(3);
