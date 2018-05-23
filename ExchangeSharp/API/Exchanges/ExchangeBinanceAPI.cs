@@ -45,6 +45,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
             SymbolSeparator = string.Empty;
+            SymbolIsReversed = true;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -54,18 +55,19 @@ namespace ExchangeSharp
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
-            // All pairs in Binance begin or end with BTC, ETH, or BNB
-            if (symbol.Length == 6)
+            // All pairs in Binance begin or end with BTC, ETH, BNB or USTD
+            if (symbol.EndsWith("BTC") || symbol.EndsWith("ETH") || symbol.EndsWith("BNB"))
             {
-                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Substring(0, 3) + GlobalSymbolSeparator + symbol.Substring(3)), GlobalSymbolSeparator);
+                string baseSymbol = symbol.Substring(3);
+                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Replace(baseSymbol, "") + GlobalSymbolSeparator + baseSymbol), GlobalSymbolSeparator);
             }
-            else if (symbol.StartsWith("BTC") || symbol.StartsWith("ETH") || symbol.StartsWith("BNB"))
+            if (symbol.EndsWith("USDT"))
             {
-                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Substring(3) + GlobalSymbolSeparator + symbol.Substring(0, 3)), GlobalSymbolSeparator);
+                string baseSymbol = symbol.Substring(4);
+                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Replace(baseSymbol, "") + GlobalSymbolSeparator + baseSymbol), GlobalSymbolSeparator);
             }
 
-            // reversed
-            return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Substring(symbol.Length - 3, 3) + GlobalSymbolSeparator + symbol.Substring(0, symbol.Length - 3)), GlobalSymbolSeparator);
+            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + (symbol.Substring(symbol.Length - 3, 3)), GlobalSymbolSeparator);
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
