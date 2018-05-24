@@ -365,7 +365,7 @@ namespace ExchangeSharp
             order.Result = amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially);
             order.OrderDate = ConvertDateTimeInvariant(token["Opened"], ConvertDateTimeInvariant(token["TimeStamp"]));
             order.Symbol = token["Exchange"].ToStringInvariant();
-            order.Fees = token["CommissionPaid"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
+            order.Fees = token["Commission"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
 
             string exchangePair = token["Exchange"].ToStringInvariant();
             if (!string.IsNullOrWhiteSpace(exchangePair))
