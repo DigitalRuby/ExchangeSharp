@@ -58,12 +58,12 @@ namespace ExchangeSharp
             // All pairs in Binance end with BTC, ETH, BNB or USDT
             if (symbol.EndsWith("BTC") || symbol.EndsWith("ETH") || symbol.EndsWith("BNB"))
             {
-                string baseSymbol = symbol.Substring(3);
+                string baseSymbol = symbol.Substring(symbol.Length - 3);
                 return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Replace(baseSymbol, "") + GlobalSymbolSeparator + baseSymbol), GlobalSymbolSeparator);
             }
             if (symbol.EndsWith("USDT"))
             {
-                string baseSymbol = symbol.Substring(4);
+                string baseSymbol = symbol.Substring(symbol.Length - 4);
                 return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Replace(baseSymbol, "") + GlobalSymbolSeparator + baseSymbol), GlobalSymbolSeparator);
             }
 
