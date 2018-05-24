@@ -30,7 +30,7 @@
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Authors>jjxtra</Authors>
     <PackageReleaseNotes>Bug fixes</PackageReleaseNotes>
-    <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cordana ripple xrp tron socket web socket websocket</PackageTags>
+    <PackageTags>C# API bitcoin exchange cryptocurrency stock trade trader coin litecoin ethereum gdax cash poloniex gemini bitfinex kraken bittrex binance iota mana cardano eos cardano ripple xrp tron socket web socket websocket</PackageTags>
     <PackageLicenseUrl>https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
