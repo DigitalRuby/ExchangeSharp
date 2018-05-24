@@ -31,9 +31,10 @@ namespace ExchangeSharp
         /// </summary>
         public const char GlobalSymbolSeparator = '-';
 
+        protected IEnumerable<ExchangeMarket> exchangeMarkets;
+
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
-        private IEnumerable<ExchangeMarket> exchangeMarkets;
         private bool disposed;
 
         /// <summary>
@@ -43,26 +44,38 @@ namespace ExchangeSharp
         /// <returns>The ExchangeMarket or null if it doesn't exist</returns>
         protected ExchangeMarket GetExchangeMarket(string symbol)
         {
-            PopulateExchangeMarkets();
-            return exchangeMarkets.FirstOrDefault(x => x.MarketName.EqualsWithOption(symbol));
+            bool refreshed = PopulateExchangeMarkets(false);
+            ExchangeMarket market = exchangeMarkets.FirstOrDefault(x => x.MarketName.EqualsWithOption(symbol));
+            if (market == null && !refreshed)
+            {
+                PopulateExchangeMarkets(true);
+                market = exchangeMarkets.FirstOrDefault(x => x.MarketName.EqualsWithOption(symbol));
+            }
+
+            return market;
         }
 
         /// <summary>
         /// Call GetSymbolsMetadata and store the results.
         /// </summary>
-        private void PopulateExchangeMarkets()
+        private bool PopulateExchangeMarkets(bool forceRefresh)
         {
+            bool refreshed = false;
+
             // Get the exchange markets if we haven't gotten them yet.
-            if (exchangeMarkets == null)
+            if (forceRefresh || exchangeMarkets == null)
             {
                 lock (this)
                 {
-                    if (exchangeMarkets == null)
+                    if (forceRefresh || exchangeMarkets == null)
                     {
                         exchangeMarkets = GetSymbolsMetadata();
+                        refreshed = true;
                     }
                 }
             }
+
+            return refreshed;
         }
 
         /// <summary>
