@@ -41,43 +41,24 @@ namespace ExchangeSharp
             // List is from "Withdrawal Types" section https://docs.bitfinex.com/v1/reference#rest-auth-withdrawal
             DepositMethodLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                ["AID"] = "aid",
                 ["AVT"] = "aventus",
-                ["BAT"] = "bat",
                 ["BCH"] = "bcash",
                 ["BTC"] = "bitcoin",
                 ["BTG"] = "bgold",
                 ["DASH"] = "dash", // TODO: Bitfinex returns "DSH" as the symbol name in the API but on the site it is "DASH". How to normalize?
                 ["EDO"] = "eidoo",
-                ["ELF"] = "elf",
-                ["EOS"] = "eos",
                 ["ETC"] = "ethereumc",
                 ["ETH"] = "ethereum",
-                ["FUN"] = "fun",
                 ["GNT"] = "golem",
                 ["LTC"] = "litecoin",
                 ["MIOTA"] = "iota",
-                ["MNA"] = "mna",
-                ["NEO"] = "neo",
                 ["OMG"] = "omisego",
-                ["QASH"] = "qash",
-                ["QTUM"] = "qtum",
-                ["RCN"] = "rcn",
-                ["REP"] = "rep",
-                ["RLC"] = "rlc",
                 ["SAN"] = "santiment",
-                ["SNG"] = "sng",
                 ["SNT"] = "status",
-                ["SPK"] = "spk",
-                ["TNB"] = "tnb",
-                ["TRX"] = "trx",
-                //["?USDTO?"] = "tetheruso", // Tether on OMNI - Don't use until it's clear how this works
-                //["?USDTE?"] = "tetheruse", // Tether on Ethereum - Don't use until it's clear how this works
                 ["XMR"] = "monero",
                 ["XRP"] = "ripple",
                 ["YYW"] = "yoyow",
                 ["ZEC"] = "zcash",
-                ["ZRX"] = "zrx",
             };
         }
 
@@ -528,7 +509,7 @@ namespace ExchangeSharp
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
             if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
-                return null;
+                fullName = symbol.ToLowerInvariant();
             }
 
             Dictionary<string, object> payload = GetNoncePayload();
@@ -626,7 +607,7 @@ namespace ExchangeSharp
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
             if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))
             {
-                return null;
+                fullName = symbol.ToLowerInvariant();
             }
 
             // Bitfinex adds the fee on top of what you request to withdrawal
