@@ -671,6 +671,8 @@ namespace ExchangeSharp
         {
             try
             {
+                // not sure if this is needed, but adding it just in case
+                await new SynchronizationContextRemover();
                 await PopulateExchangeMarketsAsync(false);
                 exchangeMarkets.TryGetValue(symbol, out ExchangeMarket market);
                 if (market == null)
