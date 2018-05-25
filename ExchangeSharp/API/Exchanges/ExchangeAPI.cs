@@ -73,7 +73,7 @@ namespace ExchangeSharp
             // Get the exchange markets if we haven't gotten them yet.
             if (forceRefresh || exchangeMarkets.Count == 0)
             {
-                System.Threading.Monitor.Enter(this);
+                System.Threading.Monitor.Enter(exchangeMarkets);
                 try
                 {
                     if (forceRefresh || exchangeMarkets.Count == 0)
@@ -86,7 +86,7 @@ namespace ExchangeSharp
                 }
                 finally
                 {
-                    System.Threading.Monitor.Exit(this);
+                    System.Threading.Monitor.Exit(exchangeMarkets);
                 }
             }
         }
