@@ -37,34 +37,6 @@ namespace ExchangeSharp
         private bool disposed;
 
         /// <summary>
-        /// Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
-        /// </summary>
-        /// <param name="symbol">The symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
-        /// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
-        protected async Task<ExchangeMarket> GetExchangeMarketFromCacheAsync(string symbol)
-        {
-            try
-            {
-                await PopulateExchangeMarketsAsync(false);
-                exchangeMarkets.TryGetValue(symbol, out ExchangeMarket market);
-                if (market == null)
-                {
-                    // try again with a fresh request, every symbol *should* be in the response from PopulateExchangeMarketsAsync
-                    await PopulateExchangeMarketsAsync(true);
-
-                    // try again to retrieve from dictionary
-                    exchangeMarkets.TryGetValue(symbol, out market);
-                }
-                return market;
-            }
-            catch
-            {
-                // TODO: Report the error somehow, for now a failed network request will just return null symbol which fill force rever to default handling
-            }
-            return null;
-        }
-
-        /// <summary>
         /// Call GetSymbolsMetadataAsync if exchangeMarkets is empty and store the results.
         /// </summary>
         /// <param name="forceRefresh">True to force a network request, false to use existing cache data if it exists</param>
@@ -679,6 +651,41 @@ namespace ExchangeSharp
         {
             await new SynchronizationContextRemover();
             return await OnGetSymbolsMetadataAsync();
+        }
+
+        /// <summary>
+        /// Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
+        /// </summary>
+        /// <param name="symbol">The symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
+        /// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
+        public ExchangeMarket GetExchangeMarketFromCache(string symbol) => GetExchangeMarketFromCacheAsync(symbol).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
+        /// </summary>
+        /// <param name="symbol">The symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
+        /// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
+        public async Task<ExchangeMarket> GetExchangeMarketFromCacheAsync(string symbol)
+        {
+            try
+            {
+                await PopulateExchangeMarketsAsync(false);
+                exchangeMarkets.TryGetValue(symbol, out ExchangeMarket market);
+                if (market == null)
+                {
+                    // try again with a fresh request, every symbol *should* be in the response from PopulateExchangeMarketsAsync
+                    await PopulateExchangeMarketsAsync(true);
+
+                    // try again to retrieve from dictionary
+                    exchangeMarkets.TryGetValue(symbol, out market);
+                }
+                return market;
+            }
+            catch
+            {
+                // TODO: Report the error somehow, for now a failed network request will just return null symbol which fill force the caller to use default handling
+            }
+            return null;
         }
 
         /// <summary>
