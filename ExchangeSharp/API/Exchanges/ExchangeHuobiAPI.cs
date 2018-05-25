@@ -641,8 +641,8 @@ namespace ExchangeSharp
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("source", "api"); // margin-api
 
-            decimal outputQuantity = ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
             if (order.OrderType == OrderType.Market)
             {

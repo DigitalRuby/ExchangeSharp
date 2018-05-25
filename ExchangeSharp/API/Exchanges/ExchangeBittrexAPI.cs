@@ -860,8 +860,8 @@ namespace ExchangeSharp
 
             string symbol = NormalizeSymbol(order.Symbol);
 
-            decimal orderAmount = ClampOrderQuantity(symbol, order.Amount);
-            decimal orderPrice = ClampOrderPrice(symbol, order.Price);
+            decimal orderAmount = await ClampOrderQuantity(symbol, order.Amount);
+            decimal orderPrice = await ClampOrderPrice(symbol, order.Price);
 
             string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
                 orderAmount.ToStringInvariant() + "&rate=" + orderPrice.ToStringInvariant();

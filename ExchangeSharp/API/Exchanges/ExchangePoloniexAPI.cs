@@ -602,8 +602,8 @@ namespace ExchangeSharp
 
             string symbol = NormalizeSymbol(order.Symbol);
 
-            decimal orderAmount = ClampOrderQuantity(symbol, order.Amount);
-            decimal orderPrice = ClampOrderPrice(symbol, order.Price);
+            decimal orderAmount = await ClampOrderQuantity(symbol, order.Amount);
+            decimal orderPrice = await ClampOrderPrice(symbol, order.Price);
 
             List<object> orderParams = new List<object>
             {

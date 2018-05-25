@@ -381,8 +381,8 @@ namespace ExchangeSharp
             payload["type"] = (order.IsBuy ? "buy" : "sell");
 
             // Okex has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
-            decimal outputQuantity = ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
             if (order.OrderType == OrderType.Market)
             {

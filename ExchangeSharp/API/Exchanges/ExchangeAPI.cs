@@ -33,34 +33,60 @@ namespace ExchangeSharp
 
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
-        private IEnumerable<ExchangeMarket> exchangeMarkets;
+        private readonly Dictionary<string, ExchangeMarket> exchangeMarkets = new Dictionary<string, ExchangeMarket>();
         private bool disposed;
 
         /// <summary>
-        /// Gets the exchange market from this exchange's SymbolsMetadata cache.
+        /// Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
         /// </summary>
-        /// <param name="symbol">The symbol. Ex. ADA/BTC</param>
-        /// <returns>The ExchangeMarket or null if it doesn't exist</returns>
-        protected ExchangeMarket GetExchangeMarket(string symbol)
+        /// <param name="symbol">The symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
+        /// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
+        protected async Task<ExchangeMarket> GetExchangeMarketFromCacheAsync(string symbol)
         {
-            PopulateExchangeMarkets();
-            return exchangeMarkets.FirstOrDefault(x => x.MarketName.EqualsWithOption(symbol));
+            try
+            {
+                await PopulateExchangeMarketsAsync(false);
+                exchangeMarkets.TryGetValue(symbol, out ExchangeMarket market);
+                if (market == null)
+                {
+                    // try again with a fresh request, every symbol *should* be in the response from PopulateExchangeMarketsAsync
+                    await PopulateExchangeMarketsAsync(true);
+
+                    // try again to retrieve from dictionary
+                    exchangeMarkets.TryGetValue(symbol, out market);
+                }
+                return market;
+            }
+            catch
+            {
+                // TODO: Report the error somehow, for now a failed network request will just return null symbol which fill force rever to default handling
+            }
+            return null;
         }
 
         /// <summary>
-        /// Call GetSymbolsMetadata and store the results.
+        /// Call GetSymbolsMetadataAsync if exchangeMarkets is empty and store the results.
         /// </summary>
-        private void PopulateExchangeMarkets()
+        /// <param name="forceRefresh">True to force a network request, false to use existing cache data if it exists</param>
+        private async Task PopulateExchangeMarketsAsync(bool forceRefresh)
         {
             // Get the exchange markets if we haven't gotten them yet.
-            if (exchangeMarkets == null)
+            if (forceRefresh || exchangeMarkets.Count == 0)
             {
-                lock (this)
+                System.Threading.Monitor.Enter(this);
+                try
                 {
-                    if (exchangeMarkets == null)
+                    if (forceRefresh || exchangeMarkets.Count == 0)
                     {
-                        exchangeMarkets = GetSymbolsMetadata();
+                        foreach (ExchangeMarket market in await GetSymbolsMetadataAsync())
+                        {
+                            exchangeMarkets[market.MarketName] = market;
+                        }
                     }
+                }
+                finally
+                {
+                    System.Threading.Monitor.Exit(this);
                 }
             }
         }
@@ -71,26 +97,26 @@ namespace ExchangeSharp
         protected virtual void OnDispose() { }
 
         /// <summary>
-        /// Clamp price using market info
+        /// Clamp price using market info. If necessary, a network request will be made to retrieve symbol metadata.
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <param name="outputPrice">Price</param>
         /// <returns>Clamped price</returns>
-        protected decimal ClampOrderPrice(string symbol, decimal outputPrice)
+        protected async Task<decimal> ClampOrderPrice(string symbol, decimal outputPrice)
         {
-            ExchangeMarket market = GetExchangeMarket(symbol);
+            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
             return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
         }
 
         /// <summary>
-        /// Clamp quantiy using market info
+        /// Clamp quantiy using market info. If necessary, a network request will be made to retrieve symbol metadata.
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <param name="outputQuantity">Quantity</param>
         /// <returns>Clamped quantity</returns>
-        protected decimal ClampOrderQuantity(string symbol, decimal outputQuantity)
+        protected async Task<decimal> ClampOrderQuantity(string symbol, decimal outputQuantity)
         {
-            ExchangeMarket market = GetExchangeMarket(symbol);
+            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 
