@@ -294,6 +294,27 @@ namespace ExchangeSharpTests
             Invoking(() => polo.GetDepositHistory("doesntmatter")).Should().Throw<APIException>().And.Message.Should().Contain("No result");
         }
 
+        [TestMethod]
+        public void GetExchangeMarketFromCache_SymbolsMetadataCacheRefreshesWhenSymbolNotFound()
+        {
+            var polo = CreatePoloniexAPI();
+
+            // retrieve without BTC_BCH in the result
+            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(Resources.PoloniexGetSymbolsMetadata1);
+            polo.GetExchangeMarketFromCache("XMR_LTC").Should().NotBeNull();
+            polo.GetExchangeMarketFromCache("BTC_BCH").Should().BeNull();
+
+            // now many moons later we request BTC_BCH, which wasn't in the first request but is in the latest exchange result
+            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(Resources.PoloniexGetSymbolsMetadata2);
+            polo.GetExchangeMarketFromCache("BTC_BCH").Should().NotBeNull();
+
+            // and lets make sure it doesn't return something for null and garbage symbols
+            polo.GetExchangeMarketFromCache(null).Should().BeNull();
+            polo.GetExchangeMarketFromCache(string.Empty).Should().BeNull();
+            polo.GetExchangeMarketFromCache("324235!@^%Q@#%^").Should().BeNull();
+            polo.GetExchangeMarketFromCache("NOCOIN_NORESULT").Should().BeNull();
+        }
+
         private static Action Invoking(Action action) => action;
 
         #region RealResponseJSON
