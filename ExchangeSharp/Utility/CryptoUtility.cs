@@ -28,7 +28,7 @@ namespace ExchangeSharp
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime unixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
-        private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, false);
+        private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, true);
 
         /// <summary>
         /// Static constructor
@@ -40,7 +40,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Utf-8 encoding with no exceptions and no prefix bytes
+        /// Utf-8 encoding with no prefix bytes
         /// </summary>
         public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
 
