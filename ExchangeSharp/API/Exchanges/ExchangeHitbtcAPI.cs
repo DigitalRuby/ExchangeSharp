@@ -46,35 +46,13 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + symbol.Substring(symbol.Length - 3, 3), GlobalSymbolSeparator);
         }
 
-        #region ProcessRequest 
-
         protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                using (var hmacsha512 = new HMACSHA512(Encoding.UTF8.GetBytes(PrivateApiKey.ToUnsecureString())))
-                {
-                    hmacsha512.ComputeHash(Encoding.UTF8.GetBytes(request.RequestUri.PathAndQuery));
-                    request.Headers["X-Signature"] = string.Concat(hmacsha512.Hash.Select(b => b.ToString("x2")).ToArray()); // minimalistic hex-encoding and lower case
-                }
+                request.Headers["Authorization"] = CryptoUtility.BasicAuthenticationString(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString());
             }
         }
-
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                // payload is ignored, except for the nonce which is added to the url query - HitBTC puts all the "post" parameters in the url query instead of the request body
-                var query = HttpUtility.ParseQueryString(url.Query);
-                string newQuery = "nonce=" + payload["nonce"].ToString() + "&apikey=" + PublicApiKey.ToUnsecureString() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
-                    (payload.Count > 1 ? "&" + GetFormForPayload(payload, false) : string.Empty);
-                url.Query = newQuery;
-                return url.Uri;
-            }
-            return base.ProcessRequestUrl(url, payload);
-        }
-
-        #endregion
 
         #region Public APIs
 
@@ -299,32 +277,40 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
             var payload = GetNoncePayload();
             //payload["clientOrderId"] = "neuMedia" + payload["nonce"];     Currently letting hitbtc assign this, but may not be unique for more than 24 hours
-            payload["amount"] = order.Amount;
+            payload["quantity"] = order.Amount;
             payload["symbol"] = order.Symbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
             payload["type"] = order.OrderType == OrderType.Limit ? "limit" : "market";
-            if (order.OrderType == OrderType.Limit) payload["price"] = order.Price;
+            if (order.OrderType == OrderType.Limit)
+            {
+                payload["price"] = order.Price;
+            }
             payload["timeInForce"] = "GTC";
             // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  } 
-            JToken token = await MakeJsonRequestAsync<JToken>("/trading/new_order", null, payload, "POST");
-            if (token != null)
+            JToken token = await MakeJsonRequestAsync<JToken>("/order", null, payload, "POST");
+            token = CheckError(token);
+            ExchangeOrderResult result = new ExchangeOrderResult
             {
-                if (token["error"] == null)
-                {
-                    result.OrderId = token["ClientOrderId"].ToStringInvariant();
-                    result.Symbol = token["symbol"].ToStringInvariant();
-                    result.OrderDate = ConvertDateTimeInvariant(token["createdAt"]);
-                    result.Amount = token["quantity"].ConvertInvariant<decimal>();
-                    result.Price = token["price"].ConvertInvariant<decimal>();
-                    result.AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>();
-                    if (result.AmountFilled >= result.Amount) result.Result = ExchangeAPIOrderResult.Filled;
-                    else if (result.AmountFilled > 0m) result.Result = ExchangeAPIOrderResult.FilledPartially;
-                    else result.Result = ExchangeAPIOrderResult.Pending;
-                }
-                else result.Message = token["error"]["message"].ToStringInvariant();
+                OrderId = token["clientOrderId"].ToStringInvariant(),
+                Symbol = token["symbol"].ToStringInvariant(),
+                OrderDate = ConvertDateTimeInvariant(token["createdAt"]),
+                Amount = token["quantity"].ConvertInvariant<decimal>(),
+                Price = token["price"].ConvertInvariant<decimal>(),
+                AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>()
+            };
+            if (result.AmountFilled >= result.Amount)
+            {
+                result.Result = ExchangeAPIOrderResult.Filled;
+            }
+            else if (result.AmountFilled > 0m)
+            {
+                result.Result = ExchangeAPIOrderResult.FilledPartially;
+            }
+            else
+            {
+                result.Result = ExchangeAPIOrderResult.Pending;
             }
             return result;
         }

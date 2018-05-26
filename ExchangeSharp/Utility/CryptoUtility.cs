@@ -401,6 +401,17 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Get a string that can be used for basic authentication. Put this in the 'Authorization' http header, and ensure you are using https.
+        /// </summary>
+        /// <param name="userName">User name or public key</param>
+        /// <param name="password">Password or private key</param>
+        /// <returns>Full authorization header text</returns>
+        public static string BasicAuthenticationString(string userName, string password)
+        {
+            return "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(userName + ":" + password));
+        }
+
+        /// <summary>
         /// Sign a message with SHA256 hash
         /// </summary>
         /// <param name="message">Message to sign</param>
