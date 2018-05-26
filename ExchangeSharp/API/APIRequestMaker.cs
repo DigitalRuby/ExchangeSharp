@@ -94,40 +94,56 @@ namespace ExchangeSharp
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             api.ProcessRequest(request, payload);
             HttpWebResponse response;
+            string responseString = null;
+
             try
             {
-                response = await request.GetResponseAsync() as HttpWebResponse;
-                if (response == null)
+                try
                 {
-                    throw new APIException("Unknown response from server");
-                }
-            }
-            catch (WebException we)
-            {
-                response = we.Response as HttpWebResponse;
-                if (response == null)
-                {
-                    throw new APIException(we.Message ?? "Unknown response from server");
-                }
-            }
-            string responseString = null;
-            using (Stream responseStream = response.GetResponseStream())
-            {
-                responseString = new StreamReader(responseStream).ReadToEnd();
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    // 404 maybe return empty responseString
-                    if (string.IsNullOrWhiteSpace(responseString))
+                    RequestStateChanged?.Invoke(this, RequestMakerState.Begin, null);
+                    response = await request.GetResponseAsync() as HttpWebResponse;
+                    if (response == null)
                     {
-                        throw new APIException(string.Format("{0} - {1}",
-                            response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
+                        throw new APIException("Unknown response from server");
                     }
-                    throw new APIException(responseString);
                 }
-                api.ProcessResponse(response);
+                catch (WebException we)
+                {
+                    response = we.Response as HttpWebResponse;
+                    if (response == null)
+                    {
+                        throw new APIException(we.Message ?? "Unknown response from server");
+                    }
+                }
+                using (Stream responseStream = response.GetResponseStream())
+                {
+                    responseString = new StreamReader(responseStream).ReadToEnd();
+                    if (response.StatusCode != HttpStatusCode.OK)
+                    {
+                        // 404 maybe return empty responseString
+                        if (string.IsNullOrWhiteSpace(responseString))
+                        {
+                            throw new APIException(string.Format("{0} - {1}",
+                                response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
+                        }
+                        throw new APIException(responseString);
+                    }
+                    api.ProcessResponse(response);
+                    RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
+                }
+            }
+            catch (Exception ex)
+            {
+                RequestStateChanged?.Invoke(this, RequestMakerState.Error, ex);
+                throw;
             }
             response.Dispose();
             return responseString;
         }
+
+        /// <summary>
+        /// An action to execute when a request has been made (this request and state and object (response or exception))
+        /// </summary>
+        public Action<IAPIRequestMaker, RequestMakerState, object> RequestStateChanged { get; set; }
     }
 }

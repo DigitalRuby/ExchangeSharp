@@ -18,6 +18,27 @@ using System.Threading.Tasks;
 namespace ExchangeSharp
 {
     /// <summary>
+    /// Request maker states
+    /// </summary>
+    public enum RequestMakerState
+    {
+        /// <summary>
+        /// About to begin request
+        /// </summary>
+        Begin,
+
+        /// <summary>
+        /// Request finished successfully
+        /// </summary>
+        Finished,
+
+        /// <summary>
+        /// Request error
+        /// </summary>
+        Error
+    }
+
+    /// <summary>
     /// Interface for making API requests
     /// </summary>
     public interface IAPIRequestMaker
@@ -43,6 +64,11 @@ namespace ExchangeSharp
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
         Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null);
+
+        /// <summary>
+        /// An action to execute when a request has been made (this request and state and object (response or exception))
+        /// </summary>
+        Action<IAPIRequestMaker, RequestMakerState, object> RequestStateChanged { get; set; }
     }
 
     /// <summary>
