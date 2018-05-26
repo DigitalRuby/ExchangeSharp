@@ -666,7 +666,7 @@ namespace ExchangeSharp
                     request.Headers["bfx-nonce"] = nonce;
                     request.Headers["bfx-apikey"] = PublicApiKey.ToUnsecureString();
                     request.Headers["bfx-signature"] = hexSha384;
-                    WriteFormToRequest(request, json);
+                    WriteToRequest(request, json);
                 }
                 else
                 {

@@ -449,11 +449,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="form">Form to write</param>
-        protected void WriteFormToRequest(HttpWebRequest request, string form)
+        protected void WriteToRequest(HttpWebRequest request, string form)
         {
             if (!string.IsNullOrEmpty(form))
             {
-                using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), Encoding.ASCII))
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), Encoding.UTF8))
                 {
                     writer.Write(form);
                 }
@@ -461,16 +461,29 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Write a payload to a request
+        /// Write a payload form to a request
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
         /// <returns>The form string that was written</returns>
-        protected string WritePayloadToRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected string WritePayloadFormToRequest(HttpWebRequest request, Dictionary<string, object> payload)
         {
             string form = GetFormForPayload(payload);
-            WriteFormToRequest(request, form);
+            WriteToRequest(request, form);
             return form;
+        }
+
+        /// <summary>
+        /// Write a payload json to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="payload">Payload</param>
+        /// <returns>The json string that was written</returns>
+        protected string WritePayloadJsonToRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            string json = GetJsonForPayload(payload);
+            WriteToRequest(request, json);
+            return json;
         }
 
         /// <summary>

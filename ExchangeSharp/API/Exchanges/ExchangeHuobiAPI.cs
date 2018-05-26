@@ -67,7 +67,7 @@ namespace ExchangeSharp
 
                     payload.Remove("nonce");
                     var msg = GetJsonForPayload(payload);
-                    WriteFormToRequest(request, msg);
+                    WriteToRequest(request, msg);
                 }
             }
         }

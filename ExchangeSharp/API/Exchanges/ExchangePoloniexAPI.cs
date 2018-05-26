@@ -221,7 +221,7 @@ namespace ExchangeSharp
                 request.Headers["Key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["Sign"] = CryptoUtility.SHA512Sign(form, PrivateApiKey.ToUnsecureString());
                 request.Method = "POST";
-                WriteFormToRequest(request, form);
+                WriteToRequest(request, form);
             }
         }
 

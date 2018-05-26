@@ -49,7 +49,7 @@ namespace ExchangeSharp
                 sign = CryptoUtility.MD5Sign(sign);
                 msg += "&sign=" + sign;
 
-                WriteFormToRequest(request, msg);
+                WriteToRequest(request, msg);
             }
         }
 

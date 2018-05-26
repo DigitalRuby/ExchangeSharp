@@ -18,7 +18,7 @@ namespace ExchangeSharp
     /// Order request details
     /// </summary>
     [System.Serializable]
-    public sealed class ExchangeOrderRequest
+    public class ExchangeOrderRequest
     {
         /// <summary>
         /// Symbol or pair for the order, i.e. btcusd

@@ -70,7 +70,7 @@ namespace ExchangeSharp
                 string signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
                 payload["signature"] = signature;
                 payload["key"] = apiKey;
-                WritePayloadToRequest(request, payload);
+                WritePayloadFormToRequest(request, payload);
             }
         }
 

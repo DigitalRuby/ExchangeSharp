@@ -51,7 +51,7 @@ namespace ExchangeSharp
                 request.Headers["AC-ACCESS-TIMESTAMP"] = timestamp;
                 request.Headers["AC-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
 
-                if (request.Method == "POST") WriteFormToRequest(request, body);
+                if (request.Method == "POST") WriteToRequest(request, body);
             }
         }
 

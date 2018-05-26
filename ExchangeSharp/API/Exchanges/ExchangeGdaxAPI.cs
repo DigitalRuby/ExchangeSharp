@@ -120,7 +120,7 @@ namespace ExchangeSharp
             request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
             request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
             request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
-            WriteFormToRequest(request, form);
+            WriteToRequest(request, form);
         }
 
         protected override void ProcessResponse(HttpWebResponse response)

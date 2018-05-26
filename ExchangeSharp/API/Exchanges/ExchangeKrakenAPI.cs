@@ -202,7 +202,7 @@ namespace ExchangeSharp
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
-                WritePayloadToRequest(request, payload);
+                WritePayloadFormToRequest(request, payload);
             }
             else
             {
@@ -227,7 +227,7 @@ namespace ExchangeSharp
                     }
                 }
                 request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
-                WriteFormToRequest(request, form);
+                WriteToRequest(request, form);
             }
         }
 
