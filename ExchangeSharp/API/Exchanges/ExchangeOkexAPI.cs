@@ -22,10 +22,9 @@ namespace ExchangeSharp
     public sealed class ExchangeOkexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
+        public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
         public override string Name => ExchangeName.Okex;
-
-        public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2";
 
         public ExchangeOkexAPI()
         {
@@ -54,11 +53,11 @@ namespace ExchangeSharp
             }
         }
 
-        private async Task<Tuple<JToken, string>> MakeRequestOkexAsync(string symbol, string subUrl)
+        private async Task<Tuple<JToken, string>> MakeRequestOkexAsync(string symbol, string subUrl, string baseUrl = null)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
-            CheckError(obj);
+            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty), baseUrl);
+            obj = CheckError(obj);
             return new Tuple<JToken, string>(obj, symbol);
         }
         #endregion
@@ -96,8 +95,7 @@ namespace ExchangeSharp
 
             markets = new List<ExchangeMarket>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/markets/products", BaseUrlV2);
-            CheckError(obj);
-            JToken allSymbols = obj["data"];
+            JToken allSymbols = CheckError(obj);
             foreach (JToken symbol in allSymbols)
             {
                 var marketName = symbol["symbol"].ToStringLowerInvariant();
@@ -136,6 +134,19 @@ namespace ExchangeSharp
         {
             var data = await MakeRequestOkexAsync(symbol, "/ticker.do?symbol=$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1);
+        }
+
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        {
+            var data = await MakeRequestOkexAsync(null, "/spot/markets/index-tickers?limit=100000000", BaseUrlV2);
+            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            string symbol;
+            foreach (JToken token in data.Item1)
+            {
+                symbol = token["symbol"].ToStringInvariant();
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token)));
+            }
+            return tickers;
         }
 
         public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
@@ -201,7 +212,7 @@ namespace ExchangeSharp
                         return;
                     }
 
-                    var data = token["data"];
+                    var data = CheckError(token);
 
                     var seq = data["timestamp"].ConvertInvariant<long>();
                     var orderBook = new ExchangeOrderBook();
@@ -492,6 +503,28 @@ namespace ExchangeSharp
                     ConvertedVolume = vol * last,
                     ConvertedSymbol = symbol,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(data["date"].ConvertInvariant<long>())
+                }
+            };
+        }
+
+        private ExchangeTicker ParseTickerV2(string symbol, JToken ticker)
+        {
+            // {"buy":"0.00001273","change":"-0.00000009","changePercentage":"-0.70%","close":"0.00001273","createdDate":1527355333053,"currencyId":535,"dayHigh":"0.00001410","dayLow":"0.00001174","high":"0.00001410","inflows":"19.52673814","last":"0.00001273","low":"0.00001174","marketFrom":635,"name":{},"open":"0.00001282","outflows":"52.53715678","productId":535,"sell":"0.00001284","symbol":"you_btc","volume":"5643177.15601228"}
+
+            decimal last = ticker["last"].ConvertInvariant<decimal>();
+            decimal vol = ticker["volume"].ConvertInvariant<decimal>();
+            return new ExchangeTicker
+            {
+                Ask = ticker["sell"].ConvertInvariant<decimal>(),
+                Bid = ticker["buy"].ConvertInvariant<decimal>(),
+                Last = last,
+                Volume = new ExchangeVolume
+                {
+                    BaseVolume = vol,
+                    BaseSymbol = symbol,
+                    ConvertedVolume = vol * last,
+                    ConvertedSymbol = symbol,
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["createdDate"].ConvertInvariant<long>())
                 }
             };
         }
