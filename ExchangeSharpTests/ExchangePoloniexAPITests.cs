@@ -30,9 +30,13 @@ namespace ExchangeSharpTests
     [TestClass]
     public sealed class ExchangePoloniexAPITests
     {
-        private static ExchangePoloniexAPI CreatePoloniexAPI()
+        private static ExchangePoloniexAPI CreatePoloniexAPI(string response = null)
         {
-            var requestMaker = Substitute.For<IAPIRequestMaker>();
+            var requestMaker = new MockAPIRequestMaker();
+            if (response != null)
+            {
+                requestMaker.GlobalResponse = response;
+            }
             var polo = new ExchangePoloniexAPI { RequestMaker = requestMaker };
             return polo;
         }
@@ -194,8 +198,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOpenOrderDetails_Unfilled_IsCorrect()
         {
-            var polo = CreatePoloniexAPI();
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(Unfilled);
+            var polo = CreatePoloniexAPI(Unfilled);
 
             IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetails("ETH_BCH");
             ExchangeOrderResult order = orders.Single();
@@ -212,8 +215,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOpenOrderDetails_AllUnfilled_IsCorrect()
         {
-            var polo = CreatePoloniexAPI();
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(AllUnfilledOrders);
+            var polo = CreatePoloniexAPI(AllUnfilledOrders);
 
             IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetails(); // all
             ExchangeOrderResult order = orders.Single();
@@ -230,8 +232,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOrderDetails_HappyPath()
         {
-            var polo = CreatePoloniexAPI();
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(ReturnOrderTrades_SimpleBuy);
+            var polo = CreatePoloniexAPI(ReturnOrderTrades_SimpleBuy);
             ExchangeOrderResult order = polo.GetOrderDetails("1");
 
             order.OrderId.Should().Be("1");
@@ -249,8 +250,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOrderDetails_OrderNotFound_DoesNotThrow()
         {
-            var polo = CreatePoloniexAPI();
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(@"{""error"":""Order not found, or you are not the person who placed it.""}");
+            const string response = @"{""error"":""Order not found, or you are not the person who placed it.""}";
+            var polo = CreatePoloniexAPI(response);
             void a() => polo.GetOrderDetails("1");
             Invoking(a).Should().Throw<APIException>();
         }
@@ -258,8 +259,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetOrderDetails_OtherErrors_ThrowAPIException()
         {
-            var polo = CreatePoloniexAPI();
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(@"{""error"":""Big scary error.""}");
+            const string response = @"{""error"":""Big scary error.""}";
+            var polo = CreatePoloniexAPI(response);
 
             void a() => polo.GetOrderDetails("1");
             Invoking(a).Should().Throw<APIException>();
@@ -268,8 +269,7 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GetCompletedOrderDetails_MultipleOrders()
         {
-            var polo = CreatePoloniexAPI();
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(ReturnOrderTrades_AllGas);
+            var polo = CreatePoloniexAPI(ReturnOrderTrades_AllGas);
             IEnumerable<ExchangeOrderResult> orders = polo.GetCompletedOrderDetails("ETH_GAS");
             orders.Should().HaveCount(2);
             ExchangeOrderResult sellorder = orders.Single(x => !x.IsBuy);
@@ -290,23 +290,33 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void OnGetDepositHistory_DoesNotFailOnMinTimestamp()
         {
-            var polo = CreatePoloniexAPI();
+            var polo = CreatePoloniexAPI(null);
             Invoking(() => polo.GetDepositHistory("doesntmatter")).Should().Throw<APIException>().And.Message.Should().Contain("No result");
         }
 
         [TestMethod]
         public void GetExchangeMarketFromCache_SymbolsMetadataCacheRefreshesWhenSymbolNotFound()
         {
-            var polo = CreatePoloniexAPI();
+            var polo = CreatePoloniexAPI(Resources.PoloniexGetSymbolsMetadata1);
+            int requestCount = 0;
+            polo.RequestMaker.RequestStateChanged = (r, s, o) =>
+            {
+                if (s == RequestMakerState.Begin)
+                {
+                    requestCount++;
+                }
+            };
 
             // retrieve without BTC_BCH in the result
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(Resources.PoloniexGetSymbolsMetadata1);
             polo.GetExchangeMarketFromCache("XMR_LTC").Should().NotBeNull();
+            requestCount.Should().Be(1);
             polo.GetExchangeMarketFromCache("BTC_BCH").Should().BeNull();
+            requestCount.Should().Be(2);
 
             // now many moons later we request BTC_BCH, which wasn't in the first request but is in the latest exchange result
-            polo.RequestMaker.MakeRequestAsync(null).ReturnsForAnyArgs(Resources.PoloniexGetSymbolsMetadata2);
+            (polo.RequestMaker as MockAPIRequestMaker).GlobalResponse = Resources.PoloniexGetSymbolsMetadata2;
             polo.GetExchangeMarketFromCache("BTC_BCH").Should().NotBeNull();
+            requestCount.Should().Be(3);
 
             // and lets make sure it doesn't return something for null and garbage symbols
             polo.GetExchangeMarketFromCache(null).Should().BeNull();

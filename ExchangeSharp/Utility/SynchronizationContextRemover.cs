@@ -18,7 +18,7 @@ using System.Threading;
 
 namespace ExchangeSharp
 {
-    internal struct SynchronizationContextRemover : INotifyCompletion
+    public struct SynchronizationContextRemover : INotifyCompletion
     {
         public bool IsCompleted
         {
