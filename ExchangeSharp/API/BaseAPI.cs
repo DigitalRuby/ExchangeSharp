@@ -453,7 +453,7 @@ namespace ExchangeSharp
         {
             if (!string.IsNullOrEmpty(form))
             {
-                using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), Encoding.ASCII))
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), CryptoUtility.UTF8EncodingNoPrefix))
                 {
                     writer.Write(form);
                 }

@@ -43,7 +43,7 @@ namespace ExchangeSharp
                 {
                     foreach (string file in inputFiles)
                     {
-                        using (StreamReader reader = new StreamReader(file, Encoding.ASCII))
+                        using (StreamReader reader = new StreamReader(file, CryptoUtility.UTF8EncodingNoPrefix))
                         using (Stream writer = File.Create(outputFile))
                         {
                             string line;

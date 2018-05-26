@@ -673,7 +673,7 @@ namespace ExchangeSharp
                     // bitfinex v1 doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
                     payload.Add("request", request.RequestUri.AbsolutePath);
                     string json = JsonConvert.SerializeObject(payload);
-                    string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
+                    string json64 = System.Convert.ToBase64String(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(json));
                     string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
                     request.Headers["X-BFX-PAYLOAD"] = json64;
                     request.Headers["X-BFX-SIGNATURE"] = hexSha384;

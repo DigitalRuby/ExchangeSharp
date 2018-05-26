@@ -265,8 +265,8 @@ namespace ExchangeSharp
             public static string CreateSignature(string apiSecret, string challenge)
             {
                 // Get hash by using apiSecret as key, and challenge as data
-                var hmacSha512 = new HMACSHA512(Encoding.ASCII.GetBytes(apiSecret));
-                var hash = hmacSha512.ComputeHash(Encoding.ASCII.GetBytes(challenge));
+                var hmacSha512 = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(apiSecret));
+                var hash = hmacSha512.ComputeHash(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(challenge));
                 return BitConverter.ToString(hash).Replace("-", string.Empty);
             }
         }

@@ -28,6 +28,7 @@ namespace ExchangeSharp
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime unixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+        private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, false);
 
         /// <summary>
         /// Static constructor
@@ -37,6 +38,11 @@ namespace ExchangeSharp
             IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             IsMono = (Type.GetType("Mono.Runtime") != null);
         }
+
+        /// <summary>
+        /// Utf-8 encoding with no exceptions and no prefix bytes
+        /// </summary>
+        public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
 
         /// <summary>
         /// Convert an object to string using invariant culture
@@ -247,7 +253,7 @@ namespace ExchangeSharp
                 return null;
             }
             string unsecure = SecureStringToString(s);
-            byte[] bytes = Encoding.ASCII.GetBytes(unsecure);
+            byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(unsecure);
             unsecure = null;
             return bytes;
         }
@@ -485,8 +491,8 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-            var hmac = new HMACSHA512(Encoding.ASCII.GetBytes(key));
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var hmac = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(key));
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
@@ -500,7 +506,7 @@ namespace ExchangeSharp
         public static string SHA512Sign(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
@@ -514,7 +520,7 @@ namespace ExchangeSharp
         public static string SHA512SignBase64(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
             return Convert.ToBase64String(hashmessage);
         }
@@ -527,7 +533,7 @@ namespace ExchangeSharp
         public static string MD5Sign(string message)
         {
             var md5 = new MD5CryptoServiceProvider();
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = md5.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
