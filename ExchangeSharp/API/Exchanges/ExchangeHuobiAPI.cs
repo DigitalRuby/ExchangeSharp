@@ -57,7 +57,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -66,8 +66,8 @@ namespace ExchangeSharp
                     request.ContentType = "application/json";
 
                     payload.Remove("nonce");
-                    var msg = GetJsonForPayload(payload);
-                    WriteToRequest(request, msg);
+                    var msg = CryptoUtility.GetJsonForPayload(payload);
+                    await CryptoUtility.WriteToRequestAsync(request, msg);
                 }
             }
         }
@@ -97,7 +97,7 @@ namespace ExchangeSharp
                     dict = dict.Concat(payload).ToDictionary(x => x.Key, x => x.Value);
                 }
 
-                msg = GetFormForPayload(dict, false);
+                msg = CryptoUtility.GetFormForPayload(dict, false);
 
                 // must sort case sensitive
                 msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));

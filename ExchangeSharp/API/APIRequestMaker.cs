@@ -92,7 +92,7 @@ namespace ExchangeSharp
 
             }
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            api.ProcessRequest(request, payload);
+            await api.ProcessRequestAsync(request, payload);
             HttpWebResponse response;
             string responseString = null;
 

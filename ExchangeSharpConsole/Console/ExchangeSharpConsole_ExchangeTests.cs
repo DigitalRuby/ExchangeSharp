@@ -110,7 +110,7 @@ namespace ExchangeSharpConsoleApp
                     }
                     catch (NotImplementedException)
                     {
-                        if (api is ExchangeHuobiAPI)
+                        if (api is ExchangeHuobiAPI || api is ExchangeBithumbAPI)
                         {
                             Console.WriteLine($"API {api.Name} GetHistoricalTrades/GetRecentTrades not implemented");
                         }

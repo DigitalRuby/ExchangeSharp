@@ -38,13 +38,14 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["API-key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["Sign"] = CryptoUtility.SHA256Sign(request.RequestUri.Query.Length > 1 ? request.RequestUri.Query.Substring(1) : request.RequestUri.Query, PrivateApiKey.ToUnsecureString()).ToUpper();
             }
+            return base.ProcessRequestAsync(request, payload);
         }
 
         #endregion
@@ -262,7 +263,7 @@ namespace ExchangeSharp
             if (symbol != null) payload.Add("currencyPair", symbol);
             if (afterDate != null) payload.Add("issuedFrom", ((DateTime)afterDate).UnixTimestampFromDateTimeMilliseconds());
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
             token = CheckError(token);
             foreach (JToken order in token["data"]) orders.Add(ParseClientOrder(order));
             return orders;
@@ -281,7 +282,7 @@ namespace ExchangeSharp
             payload.Add("openClosed", "OPEM"); 
             if (symbol != null) payload.Add("currencyPair", symbol);
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
             token = CheckError(token);
             foreach (JToken order in token["data"]) orders.Add(ParseClientOrder(order));
             return orders;
@@ -324,7 +325,7 @@ namespace ExchangeSharp
             payload.Add("types", "DEPOSIT,WITHDRAWAL");  // opting to return both deposits and withdraws. 
 
             // We can also include trades and orders with this call (which makes 3 ways to return the same data)
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/payment/history/transactions?" + GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/payment/history/transactions?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
             token = CheckError(token);
             foreach (JToken tx in token) deposits.Add(ParseTransaction(tx));
 

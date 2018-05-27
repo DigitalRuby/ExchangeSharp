@@ -374,13 +374,14 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Additional handling for request
+        /// Additional handling for request. This simply returns a completed task and can be used for derived classes
+        /// that do not have an await in their ProcessRequestAsync overload.
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        protected virtual void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected virtual Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
-
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -401,89 +402,6 @@ namespace ExchangeSharp
         protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             return url.Uri;
-        }
-
-        /// <summary>
-        /// Get a form for a request (form-encoded, like a query string)
-        /// </summary>
-        /// <param name="payload">Payload</param>
-        /// <param name="includeNonce">Whether to add the nonce</param>
-        /// <returns>Form string</returns>
-        protected string GetFormForPayload(Dictionary<string, object> payload, bool includeNonce = true)
-        {
-            if (payload != null && payload.Count != 0)
-            {
-                StringBuilder form = new StringBuilder();
-                foreach (KeyValuePair<string, object> keyValue in payload)
-                {
-                    if (keyValue.Key != null && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
-                    {
-                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToStringInvariant()));
-                    }
-                }
-                if (form.Length != 0)
-                {
-                    form.Length--; // trim ampersand
-                }
-                return form.ToString();
-            }
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// Convert a payload into json
-        /// </summary>
-        /// <param name="payload">Payload</param>
-        /// <returns>Json string</returns>
-        protected string GetJsonForPayload(Dictionary<string, object> payload)
-        {
-            if (payload != null && payload.Count != 0)
-            {
-                return JsonConvert.SerializeObject(payload);
-            }
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// Write a form to a request
-        /// </summary>
-        /// <param name="request">Request</param>
-        /// <param name="form">Form to write</param>
-        protected void WriteToRequest(HttpWebRequest request, string form)
-        {
-            if (!string.IsNullOrEmpty(form))
-            {
-                using (StreamWriter writer = new StreamWriter(request.GetRequestStream(), CryptoUtility.UTF8EncodingNoPrefix))
-                {
-                    writer.Write(form);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Write a payload form to a request
-        /// </summary>
-        /// <param name="request">Request</param>
-        /// <param name="payload">Payload</param>
-        /// <returns>The form string that was written</returns>
-        protected string WritePayloadFormToRequest(HttpWebRequest request, Dictionary<string, object> payload)
-        {
-            string form = GetFormForPayload(payload);
-            WriteToRequest(request, form);
-            return form;
-        }
-
-        /// <summary>
-        /// Write a payload json to a request
-        /// </summary>
-        /// <param name="request">Request</param>
-        /// <param name="payload">Payload</param>
-        /// <returns>The json string that was written</returns>
-        protected string WritePayloadJsonToRequest(HttpWebRequest request, Dictionary<string, object> payload)
-        {
-            string json = GetJsonForPayload(payload);
-            WriteToRequest(request, json);
-            return json;
         }
 
         /// <summary>
@@ -558,9 +476,9 @@ namespace ExchangeSharp
             return obj.ToDateTimeInvariant(DateTimeAreLocal, defaultValue);
         }
 
-        void IAPIRequestHandler.ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        async Task IAPIRequestHandler.ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            ProcessRequest(request, payload);
+            await ProcessRequestAsync(request, payload);
         }
 
         void IAPIRequestHandler.ProcessResponse(HttpWebResponse response)

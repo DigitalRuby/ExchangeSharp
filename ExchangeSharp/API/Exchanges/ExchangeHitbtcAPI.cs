@@ -46,13 +46,13 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + symbol.Substring(symbol.Length - 3, 3), GlobalSymbolSeparator);
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // only authenticated requests write json, everything uses GET and url params
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["Authorization"] = CryptoUtility.BasicAuthenticationString(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString());
-                WritePayloadJsonToRequest(request, payload);
+                await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
             }
         }
 

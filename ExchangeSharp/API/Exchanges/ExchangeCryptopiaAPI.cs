@@ -42,7 +42,7 @@ namespace ExchangeSharp
             return (symbol ?? string.Empty).Replace('/', '_').Replace('-', '_');
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
@@ -51,7 +51,7 @@ namespace ExchangeSharp
                 string nonce = payload["nonce"] as string;
                 payload.Remove("nonce");
 
-                string jsonContent = GetJsonForPayload(payload);
+                string jsonContent = CryptoUtility.GetJsonForPayload(payload);
                 if (!String.IsNullOrEmpty(jsonContent))
                 {
                     using (MD5 md5 = MD5.Create())
@@ -66,12 +66,10 @@ namespace ExchangeSharp
                 request.Headers.Add(HttpRequestHeader.Authorization, string.Format("amx {0}:{1}:{2}", PublicApiKey.ToUnsecureString(), signature, nonce));
 
                 // Cryptopia is very picky on how the payload is passed. There might be a better way to do this, but this works...
-                using (Stream stream = request.GetRequestStream())
+                using (Stream stream = await request.GetRequestStreamAsync())
                 {
                     byte[] content = Encoding.UTF8.GetBytes(jsonContent);
                     stream.Write(content, 0, content.Length);
-                    stream.Flush();
-                    stream.Close();
                 }
             }
         }

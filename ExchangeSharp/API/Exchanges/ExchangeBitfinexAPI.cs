@@ -485,7 +485,7 @@ namespace ExchangeSharp
                     { "authPayload", authPayload },
                     { "authSig", signature }
                 };
-                string payloadJSON = GetJsonForPayload(payload);
+                string payloadJSON = CryptoUtility.GetJsonForPayload(payload);
                 _socket.SendMessage(payloadJSON);
             });
         }
@@ -649,7 +649,7 @@ namespace ExchangeSharp
             return resp;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -666,7 +666,7 @@ namespace ExchangeSharp
                     request.Headers["bfx-nonce"] = nonce;
                     request.Headers["bfx-apikey"] = PublicApiKey.ToUnsecureString();
                     request.Headers["bfx-signature"] = hexSha384;
-                    WriteToRequest(request, json);
+                    await CryptoUtility.WriteToRequestAsync(request, json);
                 }
                 else
                 {

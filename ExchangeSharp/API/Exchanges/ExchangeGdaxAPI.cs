@@ -100,27 +100,25 @@ namespace ExchangeSharp
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (!CanMakeAuthenticatedRequest(payload))
+            if (CanMakeAuthenticatedRequest(payload))
             {
-                return;
+                // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
+                string timestamp = payload["nonce"].ToStringInvariant();
+                payload.Remove("nonce");
+                string form = CryptoUtility.GetJsonForPayload(payload);
+                byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);
+                string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
+                string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
+                secret = null;
+                toHash = null;
+                request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
+                request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
+                request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
+                request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
+                await CryptoUtility.WriteToRequestAsync(request, form);
             }
-
-            // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
-            string timestamp = payload["nonce"].ToStringInvariant();
-            payload.Remove("nonce");
-            string form = GetJsonForPayload(payload);
-            byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);
-            string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
-            string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
-            secret = null;
-            toHash = null;
-            request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
-            request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
-            request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
-            request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
-            WriteToRequest(request, form);
         }
 
         protected override void ProcessResponse(HttpWebResponse response)

@@ -773,12 +773,13 @@ namespace ExchangeSharp
             }
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["X-MBX-APIKEY"] = PublicApiKey.ToUnsecureString();
             }
+            return base.ProcessRequestAsync(request, payload);
         }
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
@@ -788,7 +789,7 @@ namespace ExchangeSharp
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
                 string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
-                    (payload.Count > 1 ? "&" + GetFormForPayload(payload, false) : string.Empty);
+                    (payload.Count > 1 ? "&" + CryptoUtility.GetFormForPayload(payload, false) : string.Empty);
                 string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.SecureStringToBytes(PrivateApiKey));
                 newQuery += "&signature=" + signature;
                 url.Query = newQuery;

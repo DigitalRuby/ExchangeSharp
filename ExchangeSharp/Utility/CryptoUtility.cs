@@ -10,20 +10,23 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace ExchangeSharp
 {
-    using Newtonsoft.Json.Linq;
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.IO;
-    using System.IO.Compression;
-    using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Security;
-    using System.Security.Cryptography;
-    using System.Text;
-
     public static class CryptoUtility
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
@@ -415,6 +418,91 @@ namespace ExchangeSharp
         public static string BasicAuthenticationString(string userName, string password)
         {
             return "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(userName + ":" + password));
+        }
+
+        /// <summary>
+        /// Convert a payload into json
+        /// </summary>
+        /// <param name="payload">Payload</param>
+        /// <returns>Json string</returns>
+        public static string GetJsonForPayload(Dictionary<string, object> payload)
+        {
+            if (payload != null && payload.Count != 0)
+            {
+                return JsonConvert.SerializeObject(payload);
+            }
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Write a form to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="form">Form to write</param>
+        public static async Task WriteToRequestAsync(this HttpWebRequest request, string form)
+        {
+            if (!string.IsNullOrEmpty(form))
+            {
+                byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(form);
+                request.ContentLength = bytes.Length;
+                using (Stream stream = await request.GetRequestStreamAsync())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write a payload form to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="payload">Payload</param>
+        /// <returns>The form string that was written</returns>
+        public static async Task<string> WritePayloadFormToRequestAsync(this HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            string form = GetFormForPayload(payload);
+            await WriteToRequestAsync(request, form);
+            return form;
+        }
+
+        /// <summary>
+        /// Write a payload json to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="payload">Payload</param>
+        /// <returns>The json string that was written</returns>
+        public static async Task<string> WritePayloadJsonToRequestAsync(this HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            string json = GetJsonForPayload(payload);
+            await WriteToRequestAsync(request, json);
+            return json;
+        }
+
+        /// <summary>
+        /// Get a form for a request (form-encoded, like a query string)
+        /// </summary>
+        /// <param name="payload">Payload</param>
+        /// <param name="includeNonce">Whether to add the nonce</param>
+        /// <returns>Form string</returns>
+        public static string GetFormForPayload(Dictionary<string, object> payload, bool includeNonce = true)
+        {
+            if (payload != null && payload.Count != 0)
+            {
+                StringBuilder form = new StringBuilder();
+                foreach (KeyValuePair<string, object> keyValue in payload)
+                {
+                    if (keyValue.Key != null && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
+                    {
+                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToStringInvariant()));
+                    }
+                }
+                if (form.Length != 0)
+                {
+                    form.Length--; // trim ampersand
+                }
+                return form.ToString();
+            }
+            return string.Empty;
         }
 
         /// <summary>

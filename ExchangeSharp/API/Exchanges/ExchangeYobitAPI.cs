@@ -45,7 +45,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
@@ -54,17 +54,15 @@ namespace ExchangeSharp
                 // but we can't use ticks or unix timestamps because their max is 2147483646
                 // here we taking that last digits from the a timestamp for the nonce, which seems to work
                 payload["nonce"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds().ToString("F0").Substring(4);
-                var msg = GetFormForPayload(payload);
+                var msg = CryptoUtility.GetFormForPayload(payload);
                 var sig = CryptoUtility.SHA512Sign(msg, PrivateApiKey.ToUnsecureString());
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
                 request.Headers.Add("Sign", sig.ToLower());
 
-                using (Stream stream = request.GetRequestStream())
+                using (Stream stream = await request.GetRequestStreamAsync())
                 {
                     byte[] content = Encoding.UTF8.GetBytes(msg);
                     stream.Write(content, 0, content.Length);
-                    stream.Flush();
-                    stream.Close();
                 }
             }
         }

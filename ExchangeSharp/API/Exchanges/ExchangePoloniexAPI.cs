@@ -213,15 +213,15 @@ namespace ExchangeSharp
             };
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                string form = GetFormForPayload(payload);
+                string form = CryptoUtility.GetFormForPayload(payload);
                 request.Headers["Key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["Sign"] = CryptoUtility.SHA512Sign(form, PrivateApiKey.ToUnsecureString());
                 request.Method = "POST";
-                WriteToRequest(request, form);
+                await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
 

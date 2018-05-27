@@ -39,7 +39,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -47,20 +47,18 @@ namespace ExchangeSharp
                 request.Headers.Add("KC-API-NONCE", payload["nonce"].ToStringInvariant());
 
                 var endpoint = request.RequestUri.AbsolutePath;
-                var message = string.Format("{0}/{1}/{2}", endpoint, payload["nonce"], GetFormForPayload(payload, false));
+                var message = string.Format("{0}/{1}/{2}", endpoint, payload["nonce"], CryptoUtility.GetFormForPayload(payload, false));
                 var sig = CryptoUtility.SHA256Sign(Convert.ToBase64String(Encoding.UTF8.GetBytes(message)), PrivateApiKey.ToUnsecureString());
 
                 request.Headers.Add("KC-API-SIGNATURE", sig);
 
                 if (request.Method == "POST")
                 {
-                    string msg = GetFormForPayload(payload, false);
-                    using (Stream stream = request.GetRequestStream())
+                    string msg = CryptoUtility.GetFormForPayload(payload, false);
+                    using (Stream stream = await request.GetRequestStreamAsync())
                     {
                         byte[] content = Encoding.UTF8.GetBytes(msg);
                         stream.Write(content, 0, content.Length);
-                        stream.Flush();
-                        stream.Close();
                     }
                 }
             }
@@ -253,7 +251,7 @@ namespace ExchangeSharp
             payload.Add("resolution", periodString);
             payload.Add("from", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());        // the nonce is milliseconds, this is seconds without decimal
             payload.Add("to", (long)endDate.Value.UnixTimestampFromDateTimeSeconds());            // the nonce is milliseconds, this is seconds without decimal  
-            var addPayload = GetFormForPayload(payload, false);
+            var addPayload = CryptoUtility.GetFormForPayload(payload, false);
 
             // The results of this Kucoin API call are also a mess. 6 different arrays (c,t,v,h,l,o) with the index of each shared for the candle values
             // It doesn't use their standard error format, so we can't call CheckError. 
@@ -321,7 +319,7 @@ namespace ExchangeSharp
                 payload["symbol"] = symbol;
             }
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/dealt?" + GetFormForPayload(payload, false), null, payload, "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/dealt?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "GET");
             token = CheckError(token);
             if (token != null && token.HasValues)
             {
@@ -341,7 +339,7 @@ namespace ExchangeSharp
                 payload["symbol"] = symbol;
             }
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/active-map?" + GetFormForPayload(payload, false), null, payload, "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/active-map?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "GET");
             token = CheckError(token);
             if (token != null && token.HasValues)
             {
@@ -374,7 +372,7 @@ namespace ExchangeSharp
             payload["symbol"] = order.Symbol;
             payload["type"] = order.IsBuy ? "BUY" : "SELL";
             // {"orderOid": "596186ad07015679730ffa02" }
-            JToken token = await MakeJsonRequestAsync<JToken>("/order?" + GetFormForPayload(payload, false), null, payload, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "POST");
             token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderOid"].ToStringInvariant() };       // this is different than the oid created when filled
         }
@@ -399,7 +397,7 @@ namespace ExchangeSharp
             payload["orderOid"] = order.OrderId;
             payload["symbol"] = order.Symbol;
             payload["type"] = order.IsBuy ? "BUY" : "SELL";
-            JToken token = await MakeJsonRequestAsync<JToken>("/cancel-order?" + GetFormForPayload(payload, false), null, payload, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/cancel-order?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "POST");
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)

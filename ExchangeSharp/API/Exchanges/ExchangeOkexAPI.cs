@@ -37,19 +37,19 @@ namespace ExchangeSharp
         }
 
         #region ProcessRequest
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 payload.Remove("nonce");
                 payload["api_key"] = PublicApiKey.ToUnsecureString();
-                var msg = GetFormForPayload(payload, false);
+                var msg = CryptoUtility.GetFormForPayload(payload, false);
                 msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
                 var sign = msg + "&secret_key=" + PrivateApiKey.ToUnsecureString();
                 sign = CryptoUtility.MD5Sign(sign);
                 msg += "&sign=" + sign;
 
-                WriteToRequest(request, msg);
+                await CryptoUtility.WriteToRequestAsync(request, msg);
             }
         }
 

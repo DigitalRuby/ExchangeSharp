@@ -198,17 +198,17 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
-                WritePayloadFormToRequest(request, payload);
+                await CryptoUtility.WritePayloadFormToRequestAsync(request, payload);
             }
             else
             {
                 string nonce = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
-                string form = GetFormForPayload(payload);
+                string form = CryptoUtility.GetFormForPayload(payload);
                 // nonce must be first on Kraken
                 form = "nonce=" + nonce + (string.IsNullOrWhiteSpace(form) ? string.Empty : "&" + form);
                 using (SHA256 sha256 = SHA256Managed.Create())
@@ -227,7 +227,7 @@ namespace ExchangeSharp
                     }
                 }
                 request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
-                WriteToRequest(request, form);
+                await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
 

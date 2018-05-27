@@ -56,16 +56,23 @@ namespace ExchangeSharpConsoleApp
                 {
                     throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
                 }
-                using (var socket = api.GetTickersWebSocket(freshTickers =>
+                try
                 {
-                    foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                    using (var socket = api.GetTickersWebSocket(freshTickers =>
                     {
-                        Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                        foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                        {
+                            Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                        }
+                    }))
+                    {
+                        Console.WriteLine("Press any key to quit.");
+                        Console.ReadKey();
                     }
-                }))
+                }
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    Console.WriteLine("Web socket error: " + ex);
                 }
             }
         }

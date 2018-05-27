@@ -66,7 +66,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -81,6 +81,7 @@ namespace ExchangeSharp
 
                 // gemini doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
             }
+            return base.ProcessRequestAsync(request, payload);
         }
 
         public override string NormalizeSymbol(string symbol)
