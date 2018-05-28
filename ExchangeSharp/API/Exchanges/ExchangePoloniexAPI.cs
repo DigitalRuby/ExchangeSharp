@@ -20,7 +20,7 @@ namespace ExchangeSharp
     using System.Net;
     using System.Threading.Tasks;
 
-    public sealed class ExchangePoloniexAPI : ExchangeAPI
+    public sealed class ExchangePoloniexAPI : MarginExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
@@ -583,6 +583,24 @@ namespace ExchangeSharp
             JToken result = await MakePrivateAPIRequestAsync("returnBalances");
             CheckError(result);
             foreach (JProperty child in result.Children())
+            {
+                decimal amount = child.Value.ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    amounts[child.Name] = amount;
+                }
+            }
+            return amounts;
+        }
+
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync()
+        {
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var accountArgumentName = "account";
+            var accountArgumentValue = "margin";
+            JToken result = await MakePrivateAPIRequestAsync("returnAvailableAccountBalances", new object[] { accountArgumentName, accountArgumentValue });
+            CheckError(result);
+            foreach (JProperty child in result[accountArgumentValue].Children())
             {
                 decimal amount = child.Value.ConvertInvariant<decimal>();
                 if (amount > 0m)
