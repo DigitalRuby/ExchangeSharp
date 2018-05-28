@@ -307,11 +307,13 @@ namespace ExchangeSharp
                     var orderBook = new ExchangeOrderBook();
                     foreach (JArray array in tick["bids"])
                     {
-                        orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                        var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                        orderBook.Bids[depth.Price] = depth;
                     }
                     foreach (JArray array in tick["asks"])
                     {
-                        orderBook.Asks.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                        var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                        orderBook.Asks[depth.Price] = depth;
                     }
 
                     callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
@@ -374,8 +376,17 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null, "GET");
             CheckError(obj);
             var tick = obj["tick"];
-            foreach (var prop in tick["asks"]) orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
-            foreach (var prop in tick["bids"]) orders.Bids.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+            foreach (var prop in tick["asks"])
+            {
+                decimal price = prop[1].ConvertInvariant<decimal>();
+                orders.Asks[price] = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = price };
+            }
+
+            foreach (var prop in tick["bids"])
+            {
+                decimal price = prop[0].ConvertInvariant<decimal>();
+                orders.Bids[price] = new ExchangeOrderPrice { Price = price, Amount = prop[1].ConvertInvariant<decimal>() };
+            }
 
             return orders;
         }

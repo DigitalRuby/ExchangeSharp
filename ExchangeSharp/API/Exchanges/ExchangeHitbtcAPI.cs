@@ -63,7 +63,7 @@ namespace ExchangeSharp
             Dictionary<string, ExchangeCurrency> currencies = new Dictionary<string, ExchangeCurrency>();
             //[{"id": "BTC", "fullName": "Bitcoin", "crypto": true, "payinEnabled": true, "payinPaymentId": false, "payinConfirmations": 2, "payoutEnabled": true, "payoutIsPaymentId": false, "transferEnabled": true, "delisted": false, "payoutFee": "0.00958" }, ...
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/currency");
-            foreach(JToken token in obj)
+            foreach (JToken token in obj)
             {
                 currencies.Add(token["id"].ToStringInvariant(), new ExchangeCurrency()
                 {
@@ -82,7 +82,7 @@ namespace ExchangeSharp
             List<string> symbols = new List<string>();
             // [ {"id": "ETHBTC","baseCurrency": "ETH","quoteCurrency": "BTC", "quantityIncrement": "0.001", "tickSize": "0.000001", "takeLiquidityRate": "0.001", "provideLiquidityRate": "-0.0001", "feeCurrency": "BTC"  } ... ]
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/symbol");
-            foreach(JToken token in obj) symbols.Add(token["id"].ToStringInvariant());
+            foreach (JToken token in obj) symbols.Add(token["id"].ToStringInvariant());
             return symbols;
         }
 
@@ -95,12 +95,12 @@ namespace ExchangeSharp
             {
                 markets.Add(new ExchangeMarket()
                 {
-                     MarketName = token["id"].ToStringInvariant(),
-                     BaseCurrency = token["baseCurrency"].ToStringInvariant(),
-                     MarketCurrency = token["quoteCurrency"].ToStringInvariant(),
-                     QuantityStepSize = token["quantityIncrement"].ConvertInvariant<decimal>(),
-                     PriceStepSize = token["tickSize"].ConvertInvariant<decimal>(),
-                     IsActive = true
+                    MarketName = token["id"].ToStringInvariant(),
+                    BaseCurrency = token["baseCurrency"].ToStringInvariant(),
+                    MarketCurrency = token["quoteCurrency"].ToStringInvariant(),
+                    QuantityStepSize = token["quantityIncrement"].ConvertInvariant<decimal>(),
+                    PriceStepSize = token["tickSize"].ConvertInvariant<decimal>(),
+                    IsActive = true
                 });
             }
             return markets;
@@ -146,7 +146,7 @@ namespace ExchangeSharp
 
             // [ {"timestamp": "2017-10-20T20:00:00.000Z","open": "0.050459","close": "0.050087","min": "0.050000","max": "0.050511","volume": "1326.628", "volumeQuote": "66.555987736"}, ... ]
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/candles/" + symbol + "?period=" + periodString + "&limit=" + limit);
-            foreach(JToken token in obj)
+            foreach (JToken token in obj)
             {
                 candles.Add(new MarketCandle()
                 {
@@ -181,8 +181,23 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/orderbook/" + symbol + "?limit=" + maxCount.ToStringInvariant());
             if (obj != null && obj.HasValues)
             {
-                foreach (JToken order in obj["ask"]) if (orders.Asks.Count < maxCount) orders.Asks.Add(new ExchangeOrderPrice() { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() });
-                foreach (JToken order in obj["bid"]) if (orders.Bids.Count < maxCount) orders.Bids.Add(new ExchangeOrderPrice() { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() });
+                foreach (JToken order in obj["ask"])
+                {
+                    if (orders.Asks.Count < maxCount)
+                    {
+                        var depth = new ExchangeOrderPrice { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() };
+                        orders.Asks[depth.Price] = depth;
+                    }
+                }
+
+                foreach (JToken order in obj["bid"])
+                {
+                    if (orders.Bids.Count < maxCount)
+                    {
+                        var depth = new ExchangeOrderPrice { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() };
+                        orders.Bids[depth.Price] = depth;
+                    }
+                }
             }
             return orders;
         }
@@ -330,7 +345,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/address/" + symbol, null, GetNoncePayload(), "GET");
             if (token != null)
             {
-                deposit.Address =token["address"].ToStringInvariant();
+                deposit.Address = token["address"].ToStringInvariant();
                 if (deposit.Address.StartsWith("bitcoincash:")) deposit.Address = deposit.Address.Replace("bitcoincash:", string.Empty);  // don't know why they do this for bitcoincash
                 deposit.AddressTag = token["wallet"].ToStringInvariant();
             }
@@ -351,7 +366,7 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/account/transactions", null, GetNoncePayload(), "GET");
             if (result != null && result.HasValues)
             {
-                foreach(JToken token in result)
+                foreach (JToken token in result)
                 {
                     if (token["currency"].ToStringInvariant().Equals(symbol))
                     {
@@ -382,7 +397,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false }; 
+            ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false };
             var payload = GetNoncePayload();
             payload["amount"] = withdrawalRequest.Amount;
             payload["currency_code"] = withdrawalRequest.Symbol;

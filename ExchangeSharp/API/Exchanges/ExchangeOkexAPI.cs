@@ -218,12 +218,14 @@ namespace ExchangeSharp
                     var orderBook = new ExchangeOrderBook();
                     foreach (JArray array in data["asks"])
                     {
-                        orderBook.Asks.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                        var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                        orderBook.Asks[depth.Price] = depth;
                     }
-                    orderBook.Asks.Sort((a1, a2) => a1.Price.CompareTo(a2.Price));
+
                     foreach (JArray array in data["bids"])
                     {
-                        orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+                        var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                        orderBook.Bids[depth.Price] = depth;
                     }
 
                     callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
@@ -246,12 +248,13 @@ namespace ExchangeSharp
             ExchangeOrderBook book = new ExchangeOrderBook();
             foreach (JArray ask in token.Item1["asks"])
             {
-                book.Asks.Add(new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
             }
-            book.Asks.Sort((a1, a2) => a1.Price.CompareTo(a2.Price));
             foreach (JArray bid in token.Item1["bids"])
             {
-                book.Bids.Add(new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
             }
             return book;
         }

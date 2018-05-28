@@ -253,11 +253,11 @@ namespace ExchangeSharp
             {
                 if (book[2] > 0m)
                 {
-                    orders.Bids.Add(new ExchangeOrderPrice { Amount = book[2], Price = book[0] });
+                    orders.Bids[book[0]] = new ExchangeOrderPrice { Amount = book[2], Price = book[0] };
                 }
                 else
                 {
-                    orders.Asks.Add(new ExchangeOrderPrice { Amount = -book[2], Price = book[0] });
+                    orders.Asks[book[0]] = new ExchangeOrderPrice { Amount = -book[2], Price = book[0] };
                 }
             }
             return orders;
@@ -699,7 +699,7 @@ namespace ExchangeSharp
                 {
                     if (symbol == null || token["symbol"].ToStringInvariant() == symbol)
                     {
-                       orders.Add(ParseOrder(token));
+                        orders.Add(ParseOrder(token));
                     }
                 }
             }

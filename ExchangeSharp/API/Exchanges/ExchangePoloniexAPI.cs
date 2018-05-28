@@ -431,15 +431,38 @@ namespace ExchangeSharp
                         {
                             //poloniex will initially send the entire order book, followed by updates
                             case "i":
-                                var marketInfo = data[1];
-                                orderBook.Asks.AddRange(marketInfo["orderBook"][0].Cast<JProperty>().Select(jToken => new ExchangeOrderPrice() { Amount = jToken.Name.ConvertInvariant<decimal>(), Price = jToken.Value.ToString().ConvertInvariant<decimal>() }));
-                                orderBook.Bids.AddRange(marketInfo["orderBook"][1].Cast<JProperty>().Select(jToken => new ExchangeOrderPrice() { Amount = jToken.Name.ConvertInvariant<decimal>(), Price = jToken.Value.ToString().ConvertInvariant<decimal>() }));
-                                break;
+                                {
+                                    var marketInfo = data[1];
+
+                                    foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
+                                    {
+                                        var depth = new ExchangeOrderPrice
+                                        {
+                                            Amount = jprop.Name.ConvertInvariant<decimal>(),
+                                            Price = jprop.Value.ToString().ConvertInvariant<decimal>()
+                                        };
+                                        orderBook.Asks[depth.Price] = depth;
+                                    }
+
+                                    foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
+                                    {
+                                        var depth = new ExchangeOrderPrice
+                                        {
+                                            Amount = jprop.Name.ConvertInvariant<decimal>(),
+                                            Price = jprop.Value.ToString().ConvertInvariant<decimal>()
+                                        };
+                                        orderBook.Bids[depth.Price] = depth;
+                                    }
+
+                                    break;
+                                }
                             //removes or modifies an existing item on the order books
                             case "o":
-                                (data[1].ConvertInvariant<int>() == 1 ? orderBook.Bids : orderBook.Asks)
-                                   .Add(new ExchangeOrderPrice(){ Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>()});
-                                break;
+                                {
+                                    var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
+                                    (data[1].ConvertInvariant<int>() == 1 ? orderBook.Bids : orderBook.Asks)[depth.Price] = depth;
+                                    break;
+                                }
                         }
                     }
                     callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
@@ -463,11 +486,13 @@ namespace ExchangeSharp
             CheckError(obj);
             foreach (JArray array in obj["asks"])
             {
-                book.Asks.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
             }
             foreach (JArray array in obj["bids"])
             {
-                book.Bids.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
             }
             return book;
         }
@@ -482,11 +507,13 @@ namespace ExchangeSharp
                 ExchangeOrderBook book = new ExchangeOrderBook();
                 foreach (JArray array in token.First["asks"])
                 {
-                    book.Asks.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
+                    var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                    book.Asks[depth.Price] = depth;
                 }
                 foreach (JArray array in token.First["bids"])
                 {
-                    book.Bids.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
+                    var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                    book.Bids[depth.Price] = depth;
                 }
                 books.Add(new KeyValuePair<string, ExchangeOrderBook>(token.Name, book));
             }

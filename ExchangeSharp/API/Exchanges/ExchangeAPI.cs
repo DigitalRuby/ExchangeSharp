@@ -1069,7 +1069,7 @@ namespace ExchangeSharp
             decimal lowPrice = decimal.MaxValue;
             if (isBuy)
             {
-                foreach (ExchangeOrderPrice ask in book.Asks)
+                foreach (ExchangeOrderPrice ask in book.Asks.Values)
                 {
                     counter += ask.Amount;
                     highPrice = Math.Max(highPrice, ask.Price);
@@ -1082,7 +1082,7 @@ namespace ExchangeSharp
             }
             else
             {
-                foreach (ExchangeOrderPrice bid in book.Bids)
+                foreach (ExchangeOrderPrice bid in book.Bids.Values)
                 {
                     counter += bid.Amount;
                     highPrice = Math.Max(highPrice, bid.Price);

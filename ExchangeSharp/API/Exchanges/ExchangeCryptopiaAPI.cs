@@ -160,8 +160,16 @@ namespace ExchangeSharp
             token = CheckError(token);
             if (token.HasValues)
             {
-                foreach (JToken order in token["Buy"]) orders.Bids.Add(new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") });
-                foreach (JToken order in token["Sell"]) orders.Asks.Add(new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") });
+                foreach (JToken order in token["Buy"])
+                {
+                    var depth = new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") };
+                    orders.Bids[depth.Price] = depth;
+                }
+                foreach (JToken order in token["Sell"])
+                {
+                    var depth = new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") };
+                    orders.Asks[depth.Price] = depth;
+                }
             }
             return orders;
         }

@@ -130,14 +130,16 @@ namespace ExchangeSharp
             {
                 if (++count > maxCount)
                     break;
-                book.Asks.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
             }
             count = 0;
             foreach (JArray array in result["bids"])
             {
                 if (++count > maxCount)
                     break;
-                book.Bids.Add(new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
             }
             return book;
         }

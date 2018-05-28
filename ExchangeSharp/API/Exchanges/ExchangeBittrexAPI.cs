@@ -625,14 +625,14 @@ namespace ExchangeSharp
             JToken bids = book["buy"];
             foreach (JToken token in bids)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
-                orders.Bids.Add(order);
+                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
+                orders.Bids[depth.Price] = depth;
             }
             JToken asks = book["sell"];
             foreach (JToken token in asks)
             {
-                ExchangeOrderPrice order = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
-                orders.Asks.Add(order);
+                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
+                orders.Asks[depth.Price] = depth;
             }
             return orders;
         }

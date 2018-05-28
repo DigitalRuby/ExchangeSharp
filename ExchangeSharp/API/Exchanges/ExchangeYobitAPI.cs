@@ -137,8 +137,17 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null, "GET");
-            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("asks")) orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
-            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("bids")) orders.Bids.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("asks"))
+            {
+                var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
+                orders.Asks[depth.Price] = depth;
+            }
+
+            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("bids"))
+            {
+                var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
+                orders.Bids[depth.Price] = depth;
+            }
 
             return orders;
         }
