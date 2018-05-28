@@ -87,6 +87,7 @@ namespace ExchangeSharpTests
         {
             string real = "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
             var diff = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(real);
+            diff.Data.EventTime.Should().Be(1527540113575);
         }
 
         private static void ValidateDiff(BinanceMarketDepthDiffUpdate diff)

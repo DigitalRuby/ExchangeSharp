@@ -19,6 +19,8 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
+    using ExchangeSharp.Utility;
+
     /// <summary>
     /// A price entry in an exchange order book
     /// </summary>
@@ -72,12 +74,12 @@ namespace ExchangeSharp
         /// <summary>
         /// List of asks (sells)
         /// </summary>
-        public List<ExchangeOrderPrice> Asks { get; } = new List<ExchangeOrderPrice>();
+        public SortedDictionary<decimal, ExchangeOrderPrice> Asks { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>();
 
         /// <summary>
         /// List of bids (buys)
         /// </summary>
-        public List<ExchangeOrderPrice> Bids { get; } = new List<ExchangeOrderPrice>();
+        public SortedDictionary<decimal, ExchangeOrderPrice> Bids { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>(new DescendingComparer<decimal>());
 
         /// <summary>
         /// ToString
@@ -96,11 +98,11 @@ namespace ExchangeSharp
         {
             writer.Write(Asks.Count);
             writer.Write(Bids.Count);
-            foreach (ExchangeOrderPrice price in Asks)
+            foreach (ExchangeOrderPrice price in Asks.Values)
             {
                 price.ToBinary(writer);
             }
-            foreach (ExchangeOrderPrice price in Bids)
+            foreach (ExchangeOrderPrice price in Bids.Values)
             {
                 price.ToBinary(writer);
             }
@@ -118,11 +120,13 @@ namespace ExchangeSharp
             int bidCount = reader.ReadInt32();
             while (askCount-- > 0)
             {
-                Asks.Add(new ExchangeOrderPrice(reader));
+                var exchangeOrderPrice = new ExchangeOrderPrice(reader);
+                Asks.Add(exchangeOrderPrice.Price, exchangeOrderPrice);
             }
             while (bidCount-- > 0)
             {
-                Bids.Add(new ExchangeOrderPrice(reader));
+                var exchangeOrderPrice = new ExchangeOrderPrice(reader);
+                Bids.Add(exchangeOrderPrice.Price, exchangeOrderPrice);
             }
         }
 
