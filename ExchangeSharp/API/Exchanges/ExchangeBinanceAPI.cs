@@ -250,7 +250,7 @@ namespace ExchangeSharp
             });
         }
 
-        public IDisposable GetOrderBooksDifferentialSocket(IEnumerable<string> symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback)
+        public IDisposable GetOrderBooksDifferentialSocket(IEnumerable<string> symbol, Action<BinanceMarketDepthDiffUpdate> callback)
         {
             if (callback == null)
             {
@@ -258,20 +258,16 @@ namespace ExchangeSharp
             }
 
             string combined = string.Join("/", symbol.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
-            //var normalizedSymbol = NormalizeSymbol(symbol).ToLowerInvariant();
 
             return ConnectWebSocket($"/stream?streams={combined}", (msg, _socket) =>
             {
                 try
                 {
-                    //JToken token = JToken.Parse(msg.UTF8String());
-                    //var orderBook = ParseOrderBook(token);
-                    //var sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
-                    //callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(sequenceNumber, orderBook));
+                    var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(msg.UTF8String());
+                    callback(update.Data);
                 }
-                catch (Exception ex)
+                catch
                 {
-                    //Console.WriteLine("Fail: " + ex);
                 }
             });
         }

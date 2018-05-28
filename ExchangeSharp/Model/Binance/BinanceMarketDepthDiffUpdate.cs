@@ -22,7 +22,7 @@ namespace ExchangeSharp
         public string EventType { get; set; }
 
         [JsonProperty("E")]
-        public int EventTime { get; set; }
+        public long EventTime { get; set; }
 
         [JsonProperty("s")]
         public string Symbol { get; set; }

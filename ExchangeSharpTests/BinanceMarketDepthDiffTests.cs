@@ -48,15 +48,7 @@ namespace ExchangeSharpTests
   ]
 }";
             var diff = JsonConvert.DeserializeObject<BinanceMarketDepthDiffUpdate>(toParse);
-            diff.EventType.Should().Be("depthUpdate");
-            diff.EventTime.Should().Be(123456789);
-            diff.Symbol.Should().Be("BNBBTC");
-            diff.FirstUpdate.Should().Be(157);
-            diff.FinalUpdate.Should().Be(160);
-            diff.Bids[0][0].Should().Be("0.0024");
-            diff.Bids[0][1].Should().Be("10");
-            diff.Asks[0][0].Should().Be("0.0026");
-            diff.Asks[0][1].Should().Be("100");
+            ValidateDiff(diff);
         }
 
         [TestMethod]
@@ -87,15 +79,27 @@ namespace ExchangeSharpTests
 
             var multistream = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(toParse);
             multistream.Stream.Should().Be("bnbbtc@depth");
-            multistream.Data.EventType.Should().Be("depthUpdate");
-            multistream.Data.EventTime.Should().Be(123456789);
-            multistream.Data.Symbol.Should().Be("BNBBTC");
-            multistream.Data.FirstUpdate.Should().Be(157);
-            multistream.Data.FinalUpdate.Should().Be(160);
-            multistream.Data.Bids[0][0].Should().Be("0.0024");
-            multistream.Data.Bids[0][1].Should().Be("10");
-            multistream.Data.Asks[0][0].Should().Be("0.0026");
-            multistream.Data.Asks[0][1].Should().Be("100");
+            ValidateDiff(multistream.Data);
+        }
+
+        [TestMethod]
+        public void DeserializeRealData()
+        {
+            string real = "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
+            var diff = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(real);
+        }
+
+        private static void ValidateDiff(BinanceMarketDepthDiffUpdate diff)
+        {
+            diff.EventType.Should().Be("depthUpdate");
+            diff.EventTime.Should().Be(123456789);
+            diff.Symbol.Should().Be("BNBBTC");
+            diff.FirstUpdate.Should().Be(157);
+            diff.FinalUpdate.Should().Be(160);
+            diff.Bids[0][0].Should().Be("0.0024");
+            diff.Bids[0][1].Should().Be("10");
+            diff.Asks[0][0].Should().Be("0.0026");
+            diff.Asks[0][1].Should().Be("100");
         }
     }
 }
