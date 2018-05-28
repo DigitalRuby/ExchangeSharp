@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharpTests
 {
-    using ExchangeSharp.Model.Binance;
+    using ExchangeSharp;
 
     using FluentAssertions;
 
@@ -47,7 +47,7 @@ namespace ExchangeSharpTests
     ]
   ]
 }";
-            var diff = JsonConvert.DeserializeObject<BinanceMarketDepthDiff>(toParse);
+            var diff = JsonConvert.DeserializeObject<BinanceMarketDepthDiffUpdate>(toParse);
             diff.EventType.Should().Be("depthUpdate");
             diff.EventTime.Should().Be(123456789);
             diff.Symbol.Should().Be("BNBBTC");
