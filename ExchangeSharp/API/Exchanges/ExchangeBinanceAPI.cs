@@ -250,6 +250,32 @@ namespace ExchangeSharp
             });
         }
 
+        public IDisposable GetOrderBooksDifferentialSocket(IEnumerable<string> symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            string combined = string.Join("/", symbol.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
+            //var normalizedSymbol = NormalizeSymbol(symbol).ToLowerInvariant();
+
+            return ConnectWebSocket($"/stream?streams={combined}", (msg, _socket) =>
+            {
+                try
+                {
+                    //JToken token = JToken.Parse(msg.UTF8String());
+                    //var orderBook = ParseOrderBook(token);
+                    //var sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
+                    //callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(sequenceNumber, orderBook));
+                }
+                catch (Exception ex)
+                {
+                    //Console.WriteLine("Fail: " + ex);
+                }
+            });
+        }
+
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
