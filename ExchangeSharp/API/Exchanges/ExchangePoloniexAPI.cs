@@ -593,7 +593,60 @@ namespace ExchangeSharp
             return amounts;
         }
 
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync()
+        {
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var accountArgumentName = "account";
+            var accountArgumentValue = "margin";
+            JToken result = await MakePrivateAPIRequestAsync("returnAvailableAccountBalances", new object[] { accountArgumentName, accountArgumentValue });
+            CheckError(result);
+            foreach (JProperty child in result[accountArgumentValue].Children())
+            {
+                decimal amount = child.Value.ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    amounts[child.Name] = amount;
+                }
+            }
+            return amounts;
+        }
+
+        protected override async Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol)
+        {
+            symbol = NormalizeSymbol(symbol);
+
+            List<object> orderParams = new List<object>
+            {
+                "currencyPair", symbol
+            };
+
+            JToken result = await MakePrivateAPIRequestAsync("getMarginPosition", orderParams);
+            CheckError(result);
+            ExchangeMarginPositionResult marginPositionResult = new ExchangeMarginPositionResult()
+            {
+                Amount = result["amount"].ConvertInvariant<decimal>(),
+                Total = result["total"].ConvertInvariant<decimal>(),
+                BasePrice = result["basePrice"].ConvertInvariant<decimal>(),
+                LiquidationPrice = result["liquidationPrice"].ConvertInvariant<decimal>(),
+                ProfitLoss = result["pl"].ConvertInvariant<decimal>(),
+                LendingFees = result["lendingFees"].ConvertInvariant<decimal>(),
+                Type = result["type"].ToStringInvariant(),
+                Symbol = symbol
+            };
+            return marginPositionResult;
+        }
+
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        {
+            return await PlaceOrderAsync(order, false);
+        }
+
+        protected override async Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order)
+        {
+            return await PlaceOrderAsync(order, true);
+        }
+
+        private async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order, bool isMargin)
         {
             if (order.OrderType == OrderType.Market)
             {
@@ -617,7 +670,7 @@ namespace ExchangeSharp
                 orderParams.Add(kv.Value);
             }
 
-            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? "buy" : "sell", orderParams);
+            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (isMargin ? "marginBuy" : "buy") : (isMargin ? "marginSell" : "sell"), orderParams);
             CheckError(result);
             ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result);
             exchangeOrderResult.Symbol = symbol;
