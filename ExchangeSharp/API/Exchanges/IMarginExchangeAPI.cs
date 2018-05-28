@@ -30,5 +30,19 @@ namespace ExchangeSharp
         /// <param name="order">Order request</param>
         /// <returns>Order result and message string if any</returns>
         Task<ExchangeOrderResult> PlaceMarginOrderAsync(ExchangeOrderRequest order);
+
+        /// <summary>
+        /// Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        ExchangeMarginPositionResult GetOpenPosition(string symbol);
+
+        /// <summary>
+        /// ASYNC - Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol);
     }
 }

@@ -611,6 +611,31 @@ namespace ExchangeSharp
             return amounts;
         }
 
+        protected override async Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol)
+        {
+            symbol = NormalizeSymbol(symbol);
+
+            List<object> orderParams = new List<object>
+            {
+                "currencyPair", symbol
+            };
+
+            JToken result = await MakePrivateAPIRequestAsync("getMarginPosition", orderParams);
+            CheckError(result);
+            ExchangeMarginPositionResult marginPositionResult = new ExchangeMarginPositionResult()
+            {
+                Amount = result["amount"].ConvertInvariant<decimal>(),
+                Total = result["total"].ConvertInvariant<decimal>(),
+                BasePrice = result["basePrice"].ConvertInvariant<decimal>(),
+                LiquidationPrice = result["liquidationPrice"].ConvertInvariant<decimal>(),
+                ProfitLoss = result["pl"].ConvertInvariant<decimal>(),
+                LendingFees = result["lendingFees"].ConvertInvariant<decimal>(),
+                Type = result["type"].ToStringInvariant(),
+                Symbol = symbol
+            };
+            return marginPositionResult;
+        }
+
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             return await PlaceOrderAsync(order, false);

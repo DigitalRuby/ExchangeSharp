@@ -40,7 +40,26 @@ namespace ExchangeSharp
             return await OnPlaceMarginOrderAsync(order);
         }
 
+        /// <summary>
+        /// Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        public ExchangeMarginPositionResult GetOpenPosition(string symbol) => GetOpenPositionAsync(symbol).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        public async Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetOpenPositionAsync(symbol);
+        }
+
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
+        protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol) => throw new NotImplementedException();
     }
 }
