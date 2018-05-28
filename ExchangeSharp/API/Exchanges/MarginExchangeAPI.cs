@@ -22,6 +22,25 @@ namespace ExchangeSharp
             return await OnGetMarginAmountsAvailableToTradeAsync();
         }
 
+        /// <summary>
+        /// Place a margin order
+        /// </summary>
+        /// <param name="order">The order request</param>
+        /// <returns>Result</returns>
+        public ExchangeOrderResult PlaceMarginOrder(ExchangeOrderRequest order) => PlaceMarginOrderAsync(order).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Place a margin order
+        /// </summary>
+        /// <param name="order">The order request</param>
+        /// <returns>Result</returns>
+        public async Task<ExchangeOrderResult> PlaceMarginOrderAsync(ExchangeOrderRequest order)
+        {
+            await new SynchronizationContextRemover();
+            return await OnPlaceMarginOrderAsync(order);
+        }
+
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync() => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
     }
 }

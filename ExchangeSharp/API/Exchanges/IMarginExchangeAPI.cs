@@ -16,5 +16,19 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
         Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync();
+
+        /// <summary>
+        /// Place a margin order
+        /// </summary>
+        /// <param name="order">Order request</param>
+        /// <returns>Order result and message string if any</returns>
+        ExchangeOrderResult PlaceMarginOrder(ExchangeOrderRequest order);
+
+        /// <summary>
+        /// ASYNC - Place a margin order
+        /// </summary>
+        /// <param name="order">Order request</param>
+        /// <returns>Order result and message string if any</returns>
+        Task<ExchangeOrderResult> PlaceMarginOrderAsync(ExchangeOrderRequest order);
     }
 }
