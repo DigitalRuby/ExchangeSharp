@@ -197,7 +197,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
@@ -226,14 +226,14 @@ namespace ExchangeSharp
             });
         }
 
-        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null)
+            if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbol).ToLowerInvariant();
+            var normalizedSymbol = NormalizeSymbol(symbols[0]).ToLowerInvariant();
 
             return ConnectWebSocket($"/ws/{normalizedSymbol}@depth{maxCount}", (msg, _socket) =>
             {

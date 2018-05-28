@@ -88,13 +88,13 @@ namespace ExchangeSharpConsoleApp
 
             var symbol = dict["symbol"];
 
-            IDisposable socket = api.GetOrderBookWebSocket(symbol, message => 
+            IDisposable socket = api.GetOrderBookWebSocket(message => 
             {
                 //print the top bid and ask with amount
                 var topBid = message.Data.Bids.FirstOrDefault();
                 var topAsk = message.Data.Asks.FirstOrDefault();
                 Console.WriteLine($"[{symbol}:{message.SequenceNumber}] {topBid.Price} ({topBid.Amount}) | {topAsk.Price} ({topAsk.Amount})");
-            });
+            }, symbols: symbol);
 
             Console.WriteLine("Press any key to quit.");
             Console.ReadKey();

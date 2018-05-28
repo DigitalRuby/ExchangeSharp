@@ -233,9 +233,12 @@ namespace ExchangeSharp
             }
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            if (callback == null) return null;
+            if (callback == null)
+            {
+                return null;
+            }
 
             var wrapper = ConnectWebSocket("/", (msg, _socket) =>
             {

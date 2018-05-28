@@ -662,7 +662,7 @@ namespace ExchangeSharp
 
 #if HAS_SIGNALR
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {

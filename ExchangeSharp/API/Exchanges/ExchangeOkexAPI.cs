@@ -149,14 +149,14 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null)
+            if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbol);
+            var normalizedSymbol = NormalizeSymbol(symbols[0]);
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
