@@ -486,7 +486,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public override IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        protected override IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
             if (callback == null) return null;
 
@@ -520,7 +520,7 @@ namespace ExchangeSharp
             });
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
         {
             if (tickers == null) return null;
 

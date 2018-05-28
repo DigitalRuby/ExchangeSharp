@@ -26,10 +26,16 @@ namespace ExchangeSharp
     /// </summary>
     public abstract class ExchangeAPI : BaseAPI, IExchangeAPI
     {
+        #region Cosntants
+
         /// <summary>
         /// Separator for global symbols
         /// </summary>
         public const char GlobalSymbolSeparator = '-';
+
+        #endregion Constants
+
+        #region Private methods
 
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
@@ -63,34 +69,7 @@ namespace ExchangeSharp
             }
         }
 
-        /// <summary>
-        /// Override to dispose of resources when the exchange is disposed
-        /// </summary>
-        protected virtual void OnDispose() { }
-
-        /// <summary>
-        /// Clamp price using market info. If necessary, a network request will be made to retrieve symbol metadata.
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="outputPrice">Price</param>
-        /// <returns>Clamped price</returns>
-        protected async Task<decimal> ClampOrderPrice(string symbol, decimal outputPrice)
-        {
-            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
-            return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
-        }
-
-        /// <summary>
-        /// Clamp quantiy using market info. If necessary, a network request will be made to retrieve symbol metadata.
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="outputQuantity">Quantity</param>
-        /// <returns>Clamped quantity</returns>
-        protected async Task<decimal> ClampOrderQuantity(string symbol, decimal outputQuantity)
-        {
-            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
-            return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
-        }
+        #endregion Private methods
 
         #region API Implementation
 
@@ -108,8 +87,6 @@ namespace ExchangeSharp
 
         protected async virtual Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
         {
-            await new SynchronizationContextRemover();
-
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
             var symbols = await GetSymbolsAsync();
             foreach (string symbol in symbols)
@@ -186,6 +163,9 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
         protected virtual Task OnCancelOrderAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         protected class HistoricalTradeHelperState
         {
@@ -396,6 +376,8 @@ namespace ExchangeSharp
 
         #endregion API implementation
 
+        #region Protected methods
+
         /// <summary>
         /// Separator for exchange symbol, derived classes can change in constructor. This should be a single char string or empty string.
         /// </summary>
@@ -415,6 +397,35 @@ namespace ExchangeSharp
         /// List of exchange to global currency conversions. Exchange currency is key, global currency is value.
         /// </summary>
         protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
+
+        /// <summary>
+        /// Override to dispose of resources when the exchange is disposed
+        /// </summary>
+        protected virtual void OnDispose() { }
+
+        /// <summary>
+        /// Clamp price using market info. If necessary, a network request will be made to retrieve symbol metadata.
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="outputPrice">Price</param>
+        /// <returns>Clamped price</returns>
+        protected async Task<decimal> ClampOrderPrice(string symbol, decimal outputPrice)
+        {
+            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
+            return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
+        }
+
+        /// <summary>
+        /// Clamp quantiy using market info. If necessary, a network request will be made to retrieve symbol metadata.
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="outputQuantity">Quantity</param>
+        /// <returns>Clamped quantity</returns>
+        protected async Task<decimal> ClampOrderQuantity(string symbol, decimal outputQuantity)
+        {
+            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
+            return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
+        }
 
         /// <summary>
         /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
@@ -438,6 +449,10 @@ namespace ExchangeSharp
             }
             return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
         }
+
+        #endregion Protected methods
+
+        #region Other
 
         /// <summary>
         /// Static constructor
@@ -582,28 +597,9 @@ namespace ExchangeSharp
             return (SymbolIsUppercase ? currency.ToUpperInvariant() : currency.ToLowerInvariant());
         }
 
-        /// <summary>
-        /// Get all tickers via web socket
-        /// </summary>
-        /// <param name="tickers">Callback</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
+        #endregion Other
 
-        /// <summary>
-        /// Get top bids and asks via web socket
-        /// </summary>
-        /// <param name="symbol">Ticker symbol</param>
-        /// <param name="callback">Callback</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20) => throw new NotImplementedException();
-
-        /// <summary>
-        /// Get the details of all completed orders via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+        #region REST API
 
         /// <summary>
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
@@ -1134,6 +1130,35 @@ namespace ExchangeSharp
 
             return result;
         }
+
+        #endregion REST API
+
+        #region Web Socket API
+
+        /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback) => OnGetTickersWebSocket(callback);
+
+        /// <summary>
+        /// Get top bids and asks via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookWebSocket(callback, maxCount, symbols);
+
+        /// <summary>
+        /// Get the details of all completed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => OnGetCompletedOrderDetailsWebSocket(callback);
+
+        #endregion Web Socket API
     }
 
     /// <summary>
