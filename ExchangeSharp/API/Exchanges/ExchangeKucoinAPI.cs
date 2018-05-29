@@ -258,9 +258,10 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/open/chart/history?" + addPayload, null, payload);
             if (token != null && token.HasValues && token["s"].ToStringInvariant() == "ok")
             {
-                for (int i = 0; i < token["c"].Value<JArray>().Count; i++)
+                int childCount = token["c"].Count();
+                for (int i = 0; i < childCount; i++)
                 {
-                    candles.Add(new MarketCandle()
+                    candles.Add(new MarketCandle
                     {
                         ExchangeName = this.Name,
                         Name = symbol,
@@ -289,8 +290,11 @@ namespace ExchangeSharp
             token = CheckError(token);
             foreach (JToken child in token["datas"])
             {
-                decimal amount = child.Value<decimal>("balance") + child.Value<decimal>("freezeBalance");
-                if (amount > 0m) amounts.Add(child.Value<string>("coinType"), amount);
+                decimal amount = child["balance"].ConvertInvariant<decimal>() + child["freezeBalance"].ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    amounts.Add(child["coinType"].ToStringInvariant(), amount);
+                }
             }
 
             return amounts;
@@ -303,8 +307,11 @@ namespace ExchangeSharp
             var rc = CheckError(obj);
             foreach (JToken child in rc["datas"])
             {
-                decimal amount = child.Value<decimal>("balance");
-                if (amount > 0m) amounts.Add(child.Value<string>("coinType"), amount);
+                decimal amount = child["balance"].ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    amounts.Add(child["coinType"].ToStringInvariant(), amount);
+                }
             }
             return amounts;
         }

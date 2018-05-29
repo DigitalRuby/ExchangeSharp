@@ -134,8 +134,8 @@ namespace ExchangeSharp
                     (!string.IsNullOrWhiteSpace(result["error_code"].ToStringInvariant())) ||
                     (result["status"].ToStringInvariant() == "error") ||
                     (result["Status"].ToStringInvariant() == "error") ||
-                    (result["success"] != null && result["success"].Value<bool>() != true) ||
-                    (result["Success"] != null && result["Success"].Value<bool>() != true)
+                    (result["success"] != null && result["success"].ConvertInvariant<bool>() != true) ||
+                    (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true)
                 )
                 {
                     throw new APIException(result.ToStringInvariant());

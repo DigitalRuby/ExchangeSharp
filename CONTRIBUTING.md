@@ -1,7 +1,7 @@
 Pull requests are encouraged and welcome. The more people contributing, the more features and faster this API will grow, serving everyone who uses C# and cryptocurrency.
 
 Please follow these guidelines...
-- For JSON parsing and strings, please use the ```CryptoUtility``` extension methods ```ToStringInvariant``` and ```ConvertInvariant``` for all parsing or conversion to other values. This ensures that any locale machine will have no problems parsing and converting data.
+- For JSON parsing and strings, please use the ```CryptoUtility``` extension methods ```ToStringInvariant``` and ```ConvertInvariant``` for all parsing or conversion to other values. This ensures that any locale machine will have no problems parsing and converting data. Do not use .Value<T> functions.
 - Always, always search for existing code in the project before coding new functions. CryptoUtility has a lot of useful stuff.
 - Keep the code simple and the project lean. We do NOT want to turn into https://github.com/knowm/XChange.
 - When creating a new Exchange API, please do the following:

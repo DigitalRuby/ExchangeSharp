@@ -107,7 +107,10 @@ namespace ExchangeSharp
             List<string> symbols = new List<string>();
             JToken result = await MakeJsonRequestAsync<JToken>("/GetTradePairs");
             result = CheckError(result);
-            foreach (JToken token in result) symbols.Add(token["Label"].Value<string>());
+            foreach (JToken token in result)
+            {
+                symbols.Add(token["Label"].ToStringInvariant());
+            }
             return symbols;
         }
 
@@ -158,8 +161,14 @@ namespace ExchangeSharp
             token = CheckError(token);
             if (token.HasValues)
             {
-                foreach (JToken order in token["Buy"]) orders.Bids.Add(new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") });
-                foreach (JToken order in token["Sell"]) orders.Asks.Add(new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") });
+                foreach (JToken order in token["Buy"])
+                {
+                    orders.Bids.Add(new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() });
+                }
+                foreach (JToken order in token["Sell"])
+                {
+                    orders.Asks.Add(new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() });
+                }
             }
             return orders;
         }
@@ -293,10 +302,10 @@ namespace ExchangeSharp
                 {
                     OrderId = data["OrderId"].ConvertInvariant<int>().ToStringInvariant(),
                     OrderDate = ConvertDateTimeInvariant(data["TimeStamp"]),
-                    Symbol = data.Value<string>("Market"),
+                    Symbol = data["Market"].ToStringInvariant(),
                     Amount = data["Amount"].ConvertInvariant<decimal>(),
                     Price = data["Rate"].ConvertInvariant<decimal>(),
-                    IsBuy = data.Value<string>("Type") == "Buy"  
+                    IsBuy = data["Type"].ToStringInvariant() == "Buy"  
                 };
                 order.AveragePrice = order.Price;
                 order.AmountFilled = order.Amount - data["Remaining"].ConvertInvariant<decimal>();

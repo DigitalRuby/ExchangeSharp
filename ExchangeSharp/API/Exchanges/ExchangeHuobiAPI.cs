@@ -794,7 +794,7 @@ namespace ExchangeSharp
 
         protected override JToken CheckError(JToken result)
         {
-            if (result == null || (result["status"] != null && result["status"].Value<string>() != "ok"))
+            if (result == null || (result["status"] != null && result["status"].ToStringInvariant() != "ok"))
             {
                 throw new APIException((result["err-msg"] != null ? result["err-msg"].ToStringInvariant() : "Unknown Error"));
             }

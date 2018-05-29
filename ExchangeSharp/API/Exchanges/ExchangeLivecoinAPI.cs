@@ -219,7 +219,7 @@ namespace ExchangeSharp
             token = CheckError(token);
             foreach (JToken child in token)
             {
-                if (child.Value<string>("type") == "total")
+                if (child["type"].ToStringInvariant() == "total")
                 {
                     decimal amount = child["value"].ConvertInvariant<decimal>();
                     if (amount > 0m) amounts.Add(child["currency"].ToStringInvariant(), amount);
@@ -236,7 +236,7 @@ namespace ExchangeSharp
             token = CheckError(token);
             foreach (JToken child in token)
             {
-                if (child.Value<string>("type") == "trade")
+                if (child["type"].ToStringInvariant() == "trade")
                 {
                     decimal amount = child["value"].ConvertInvariant<decimal>();
                     if (amount > 0m) amounts.Add(child["currency"].ToStringInvariant(), amount);
@@ -337,13 +337,13 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol, BaseUrl, GetNoncePayload(), "GET");
             token = CheckError(token);
-            if (token != null && token.HasValues && token["currency"].Value<string>() == symbol && token["wallet"].Value<string>() != null)
+            if (token != null && token.HasValues && token["currency"].ToStringInvariant() == symbol && token["wallet"].ToStringInvariant().Length != 0)
             {
                 ExchangeDepositDetails address = new ExchangeDepositDetails() {Symbol = symbol };
-                if (token["wallet"].Value<string>().Contains("::"))
+                if (token["wallet"].ToStringInvariant().Contains("::"))
                 {
                     // address tags are separated with a '::'
-                    var split = token["wallet"].Value<string>().Replace("::", ":").Split(':');
+                    var split = token["wallet"].ToStringInvariant().Replace("::", ":").Split(':');
                     address.Address = split[0];
                     address.AddressTag = split[1];
                 }
@@ -412,7 +412,7 @@ namespace ExchangeSharp
             {
 
             };
-            switch (token["status"].Value<string>())
+            switch (token["status"].ToStringInvariant())
             {
                 case "CANCELLED": order.Result = ExchangeAPIOrderResult.Canceled; break;
             }
@@ -434,7 +434,7 @@ namespace ExchangeSharp
             };
 
             order.AmountFilled = order.Amount - token["remainingQuantity"].ConvertInvariant<decimal>();
-            switch (token["status"].Value<string>())
+            switch (token["status"].ToStringInvariant())
             {
                 case "CANCELLED": order.Result = ExchangeAPIOrderResult.Canceled; break;
             }

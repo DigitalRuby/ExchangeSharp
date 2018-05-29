@@ -72,7 +72,10 @@ namespace ExchangeSharp
         {
             List<string> symbols = new List<string>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/products");
-            foreach (JToken token in obj) symbols.Add(token["id"].Value<string>());
+            foreach (JToken token in obj)
+            {
+                symbols.Add(token["id"].ToStringInvariant());
+            }
             return symbols;
         }
 
@@ -103,26 +106,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/ticker");
-            if (!token.HasValues)
-            {
-                return null;
-            }
-            decimal size = token["size"].ConvertInvariant<decimal>();
-            decimal price = token["price"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].ConvertInvariant<decimal>(),
-                Bid = token["bid"].ConvertInvariant<decimal>(),
-                Last = price,
-                Volume = new ExchangeVolume()
-                {
-                    BaseVolume = size,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = size * price,
-                    ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
-                }
-            };
+            return ParseTicker(token, symbol);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -133,19 +117,12 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in obj)
                 {
-                    ExchangeTicker ticker = new ExchangeTicker
+                    string symbol = token["product_id"].ToStringInvariant();
+                    ExchangeTicker ticker = ParseTicker(token, symbol);
+                    if (ticker != null)
                     {
-                        Ask = token["ask"].ConvertInvariant<decimal>(),
-                        Bid = token["bid"].ConvertInvariant<decimal>(),
-                        Volume = new ExchangeVolume()
-                    };
-                    // sometimes the size is null and sometimes it is returned using exponent notation and sometimes not. 
-                    // We therefore parse as string and convert to decimal with float option
-                    if ((string)token["size"] != null) ticker.Volume.BaseVolume = decimal.Parse((string)token["size"], NumberStyles.Float);
-                    ticker.Volume.ConvertedVolume = token.Value<decimal>("volume");
-                    if ((string)token["price"] != null) ticker.Last = decimal.Parse(token.Value<string>("price"), System.Globalization.NumberStyles.Float);
-
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Value<string>("product_id"), ticker));
+                        tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
+                    }
                 }
             }
             return tickers;
@@ -435,10 +412,10 @@ namespace ExchangeSharp
             JArray array = MakeJsonRequest<JArray>("/payment-methods", null, GetNoncePayload(), "GET");
             if (array != null)
             {
-                var rc = array.Where(t => t.Value<string>("currency") == symbol).FirstOrDefault();
+                var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
                 payload = GetNoncePayload();
                 payload["currency"] = NormalizeSymbol(symbol);
-                payload["method"] = rc.Value<string>("id");
+                payload["method"] = rc["id"].ToStringInvariant();
 
                 JToken token = await MakeJsonRequestAsync<JToken>("/deposits/make", null, payload, "POST");
                 ExchangeDepositDetails deposit = new ExchangeDepositDetails()
@@ -460,12 +437,12 @@ namespace ExchangeSharp
             JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, GetNoncePayload(), "GET");
             if (array != null)
             {
-                var rc = array.Where(t => t.Value<string>("currency") == symbol).FirstOrDefault();
+                var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
 
                 payload = GetNoncePayload();
                 payload["amount"] = withdrawalRequest.Amount;
                 payload["currency"] = symbol;
-                payload["method"] = rc.Value<string>("id");
+                payload["method"] = rc["id"].ToStringInvariant();
                 if (!String.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["tag"] = withdrawalRequest.AddressTag;
                 // "status": 0,  "message": "Your transaction is pending. Please confirm it via email.",  "payoutId": "65",  "balance": []...
                 JToken token = MakeJsonRequest<JToken>("/withdrawals/make", null, payload, "POST");
@@ -533,11 +510,12 @@ namespace ExchangeSharp
                 {
                     //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
                     JToken token = JToken.Parse(msg.UTF8String());
-                    if ((string)token["type"] == "ticker")
+                    if (token["type"].ToStringInvariant() == "ticker")
                     {
+                        string symbol = token["product_id"].ToStringInvariant();
                         tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
                         {
-                            new KeyValuePair<string, ExchangeTicker>(token.Value<string>("product_id"), new ExchangeTicker()
+                            new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
                             {
                                 Id = token["trade_id"].ConvertInvariant<long>().ToStringInvariant(),
                                 Last = token["price"].ConvertInvariant<decimal>(),
@@ -577,7 +555,31 @@ namespace ExchangeSharp
             };
         }
 
-        #endregion
+        private ExchangeTicker ParseTicker(JToken token, string symbol)
+        {
+            if (!token.HasValues)
+            {
+                return null;
+            }
+            decimal size = token["size"].ConvertInvariant<decimal>();
+            decimal price = token["price"].ConvertInvariant<decimal>();
+            return new ExchangeTicker
+            {
+                Ask = token["ask"].ConvertInvariant<decimal>(),
+                Bid = token["bid"].ConvertInvariant<decimal>(),
+                Last = price,
+                Volume = new ExchangeVolume()
+                {
+                    BaseVolume = size,
+                    BaseSymbol = symbol,
+                    ConvertedVolume = size * price,
+                    ConvertedSymbol = symbol,
+                    Timestamp = DateTime.UtcNow
+                }
+            };
+        }
 
+        #endregion
     }
 }
+

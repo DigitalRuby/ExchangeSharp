@@ -135,8 +135,14 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null, "GET");
-            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("asks")) orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
-            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("bids")) orders.Bids.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+            foreach (JArray prop in obj[symbol]["asks"])
+            {
+                orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+            }
+            foreach (JArray prop in obj[symbol]["bids"])
+            {
+                orders.Bids.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+            }
 
             return orders;
         }
@@ -193,10 +199,13 @@ namespace ExchangeSharp
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             token = CheckError(token);
-            foreach (JProperty prop in (JToken)token.Value<JObject>("funds"))
+            foreach (JProperty prop in token["funds"])
             {
                 var amount = prop.Value.ConvertInvariant<decimal>();
-                if (amount > 0m) amounts.Add(prop.Name, amount);
+                if (amount > 0m)
+                {
+                    amounts.Add(prop.Name, amount);
+                }
             }
             return amounts;
         }
@@ -209,10 +218,13 @@ namespace ExchangeSharp
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             token = CheckError(token);
-            foreach (JProperty prop in (JToken)token.Value<JObject>("funds_incl_orders"))
+            foreach (JProperty prop in token["funds_incl_orders"])
             {
                 var amount = prop.Value.ConvertInvariant<decimal>();
-                if (amount > 0m) amounts.Add(prop.Name, amount);
+                if (amount > 0m)
+                {
+                    amounts.Add(prop.Name, amount);
+                }
             }
             return amounts;
         }
