@@ -17,23 +17,27 @@
 Donation totals:
 0.0185 BTC, 0.25 LTC
 
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.3 ```  
 </a> 
 
-ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
+ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more! Visual Studio 2017 is required, along with either .NET 4.7.1 or .NET standard 2.0.
 
-Visual Studio 2017 is required, along with either .NET 4.7.1 or .NET standard 2.0.
-
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+Features:
+- Many exchanges supported with public, private and web socket API
+- Easy to use and well documented code and API
+- Optional global symbol normalization, since each exchange has their own way of doing symbols
+- Runs anywhere .NET core will run (Windows, MAC, Linux, iOS, Android, Unity 2018+, etc.)
 
 The following cryptocurrency exchanges are supported:  
-(Web socket key: T = tickers, B = order book, O = orders)
+(Web socket key: T = tickers, R = trades, B = order book, O = private orders)
 
 |Exchange Name     |Public REST|Private REST |Web Socket |
 | ---------------- | --------- | ----------- | --------- |
 | Abucoins         | x         | x           | TO        |
-| Binance          | x         | x           | TB        |
+| Binance          | x         | x           | TRB       |
 | Bitfinex         | x         | x           | TO        |
 | Bithumb          | x         |             |           |
 | Bitstamp         | x         | x           |           |
@@ -43,11 +47,11 @@ The following cryptocurrency exchanges are supported:
 | Gemini           | x         | x           |           |
 | GDAX             | x         | x           | T         |
 | Hitbtc           | x         | x           |           |
-| Huobi            | x         | x           |           |
+| Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
 | Kucoin           | x         | x           |           |
 | Livecoin         | x         | x           |           |
-| Okex             | x         | x           | B         |
+| Okex             | x         | x           | RB        |
 | Poloniex         | x         | x           | TB        |
 | TuxExchange      | x         | x           |           |
 | Yobit            | x         | x           |           |
