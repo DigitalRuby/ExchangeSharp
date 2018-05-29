@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -226,23 +227,38 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
+            if (callback == null)
             {
                 return null;
             }
+            else if (symbols == null || symbols.Length == 0)
+            {
+                symbols = GetSymbols().ToArray();
+            }
 
-            var normalizedSymbol = NormalizeSymbol(symbols[0]).ToLowerInvariant();
-
-            return ConnectWebSocket($"/ws/{normalizedSymbol}@depth{maxCount}", (msg, _socket) =>
+            StringBuilder streams = new StringBuilder();
+            for (int i = 0; i < symbols.Length; i++)
+            {
+                string symbol = NormalizeSymbol(symbols[i]).ToLowerInvariant();
+                streams.Append(symbol);
+                streams.Append("@depth");
+                streams.Append(maxCount);
+                streams.Append('/');
+            }
+            streams.Length--; // remove last /
+            return ConnectWebSocket($"/stream?streams=" + HttpUtility.UrlEncode(streams.ToString()), (msg, _socket) =>
             {
                 try
                 {
                     JToken token = JToken.Parse(msg.UTF8String());
-                    var orderBook = ParseOrderBook(token);
-                    var sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
-                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(sequenceNumber, orderBook));
+                    string name = token["stream"].ToStringInvariant();
+                    token = token["data"];
+                    ExchangeOrderBook orderBook = ParseOrderBook(token);
+                    string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+                    int sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(sequenceNumber, new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
                 }
                 catch
                 {

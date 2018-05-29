@@ -403,7 +403,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
@@ -442,7 +442,7 @@ namespace ExchangeSharp
                                 break;
                         }
                     }
-                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(normalizedSymbol, orderBook)));
                 }
                 catch
                 {

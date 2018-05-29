@@ -164,7 +164,7 @@ namespace ExchangeSharp
         protected virtual Task OnCancelOrderAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
-        protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         protected class HistoricalTradeHelperState
@@ -1145,11 +1145,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Get top bids and asks via web socket
         /// </summary>
-        /// <param name="callback">Callback</param>
+        /// <param name="callback">Callback (symbol, order book)</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookWebSocket(callback, maxCount, symbols);
+        public IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookWebSocket(callback, maxCount, symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket

@@ -413,11 +413,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Get top bids and asks via web socket
         /// </summary>
-        /// <param name="callback">Callback</param>
+        /// <param name="callback">Callback of symbol, order book</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20, params string[] symbols);
+        IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
