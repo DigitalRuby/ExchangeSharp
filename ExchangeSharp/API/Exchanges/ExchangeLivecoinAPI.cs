@@ -38,14 +38,14 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["API-key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["Sign"] = CryptoUtility.SHA256Sign(request.RequestUri.Query.Length > 1 ? request.RequestUri.Query.Substring(1) : request.RequestUri.Query, PrivateApiKey.ToUnsecureString()).ToUpper();
+                await request.WritePayloadFormToRequestAsync(payload);
             }
-            return base.ProcessRequestAsync(request, payload);
         }
 
         #endregion
@@ -291,12 +291,21 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string orderType = "/exchange/";
-            if (order.OrderType == OrderType.Market) orderType += order.IsBuy ? "buymarket" : "sellmarket";
-            else orderType += order.IsBuy ? "buylimit" : "selllimit";
+            if (order.OrderType == OrderType.Market)
+            {
+                orderType += order.IsBuy ? "buymarket" : "sellmarket";
+            }
+            else
+            {
+                orderType += order.IsBuy ? "buylimit" : "selllimit";
+            }
+            var payload = GetNoncePayload();
+            payload["currencyPair"] = NormalizeSymbol(order.Symbol);
+            payload["price"] = order.Price;
+            payload["quantity"] = order.Amount;
 
             //{ "success": true, "added": true, "orderId": 4912
-            JToken token = await MakeJsonRequestAsync<JToken>(string.Format("{0}?currencyPair={1}&price={2}&quantity={3}",
-                orderType, WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)), order.Price.ToStringInvariant(), order.RoundAmount().ToStringInvariant()), null, GetNoncePayload(), "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>(orderType, null, payload, "POST");
             token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
