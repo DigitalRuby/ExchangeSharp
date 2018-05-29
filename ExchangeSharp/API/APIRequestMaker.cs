@@ -76,7 +76,7 @@ namespace ExchangeSharp
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload);
             HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
-            request.Headers["Accept-Language"] = "en-us; q=1.0;";
+            request.Headers["Accept-Language"] = "en-US,en;q=0.5";
             request.Method = method ?? api.RequestMethod;
             request.ContentType = api.RequestContentType;
             request.UserAgent = BaseAPI.RequestUserAgent;
