@@ -11,6 +11,7 @@ Please follow these guidelines...
   - For any DateTime conversions, please use the ConvertDateTimeInvariant (BaseAPI.cs), and that you have set DateTimeAreLocal in constructor to true if needed.
   - Set additional protected and public properties in constructor as needed (SymbolSeparator, SymbolIsReversed, SymbolIsUppercase, etc.).
   - Please use CryptoUtility.UTF8EncodingNoPrefix for all encoding, unless you have specific needs.
+  - For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange.
  
 
 
