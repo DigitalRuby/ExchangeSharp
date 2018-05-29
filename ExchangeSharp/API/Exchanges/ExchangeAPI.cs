@@ -163,6 +163,9 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
         protected virtual Task OnCancelOrderAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+        protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync() => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
+        protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol) => throw new NotImplementedException();
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
@@ -459,7 +462,7 @@ namespace ExchangeSharp
         /// </summary>
         static ExchangeAPI()
         {
-            foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI))))
+            foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
             {
                 ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI;
                 apis[api.Name] = api;
@@ -1129,6 +1132,58 @@ namespace ExchangeSharp
             }
 
             return result;
+        }
+        
+        /// <summary>
+        /// Get margin amounts available to trade, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Symbol / amount dictionary</returns>
+        public Dictionary<string, decimal> GetMarginAmountsAvailableToTrade() => GetMarginAmountsAvailableToTradeAsync().GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get margin amounts available to trade, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Symbol / amount dictionary</returns>
+        public async Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetMarginAmountsAvailableToTradeAsync();
+        }
+
+        /// <summary>
+        /// Place a margin order
+        /// </summary>
+        /// <param name="order">The order request</param>
+        /// <returns>Result</returns>
+        public ExchangeOrderResult PlaceMarginOrder(ExchangeOrderRequest order) => PlaceMarginOrderAsync(order).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Place a margin order
+        /// </summary>
+        /// <param name="order">The order request</param>
+        /// <returns>Result</returns>
+        public async Task<ExchangeOrderResult> PlaceMarginOrderAsync(ExchangeOrderRequest order)
+        {
+            await new SynchronizationContextRemover();
+            return await OnPlaceMarginOrderAsync(order);
+        }
+
+        /// <summary>
+        /// Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        public ExchangeMarginPositionResult GetOpenPosition(string symbol) => GetOpenPositionAsync(symbol).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        public async Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetOpenPositionAsync(symbol);
         }
 
         #endregion REST API
