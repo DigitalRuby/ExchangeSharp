@@ -236,6 +236,78 @@ namespace ExchangeSharp
             throw new NotImplementedException("Too many pairs and this exchange does not support a single call to get all the tickers");
         }
 
+        protected override IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        {
+            if (callback == null || symbols == null || symbols.Length == 0)
+            {
+                return null;
+            }
+
+            var normalizedSymbol = NormalizeSymbol(symbols[0]);
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                /*
+{"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
+
+
+{{
+  "ch": "market.btcusdt.trade.detail",
+  "ts": 1527574905759,
+  "tick": {
+    "id": 8232977476,
+    "ts": 1527574905623,
+    "data": [
+      {
+        "amount": 0.3066,
+        "ts": 1527574905623,
+        "id": 82329774765058180723,
+        "price": 7101.81,
+        "direction": "buy"
+      }
+    ]
+  }
+}}
+                 */
+                try
+                {
+                    var str = msg.UTF8StringFromGzip();
+                    JToken token = JToken.Parse(str);
+
+                    if (token["status"] != null)
+                    {
+                        return;
+                    }
+                    else if (token["ping"] != null)
+                    {
+                        _socket.SendMessage(str.Replace("ping", "pong"));
+                        return;
+                    }
+
+                    var ch = token["ch"].ToStringInvariant();
+                    var sArray = ch.Split('.');
+                    var symbol = sArray[1];
+
+                    var tick = token["tick"];
+                    var id = tick["id"].ConvertInvariant<long>();
+                    var trades = ParseWebSocket(sArray, tick) as IEnumerable<ExchangeTrade>;
+                    foreach(var trade in trades)
+                    {
+                        trade.Id = id;
+                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                    }
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                string channel = $"market.{normalizedSymbol}.trade.detail";
+                string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{++SubId}\"}}";
+                _socket.SendMessage(msg);
+            });
+        }
+
         protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
@@ -302,19 +374,16 @@ namespace ExchangeSharp
                         return;
                     }
 
-                    var tick = token["tick"];
-                    var seq = token["ts"].ConvertInvariant<long>();
-                    var orderBook = new ExchangeOrderBook();
-                    foreach (JArray array in tick["bids"])
-                    {
-                        orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
-                    }
-                    foreach (JArray array in tick["asks"])
-                    {
-                        orderBook.Asks.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
-                    }
+                    var ch = token["ch"].ToStringInvariant();
+                    var sArray = ch.Split('.');
+                    var symbol = sArray[1];
 
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(normalizedSymbol, orderBook)));
+                    var tick = token["tick"];
+                    var seq = tick["ts"].ConvertInvariant<long>();
+                    var orderBook = ParseWebSocket(sArray, tick) as ExchangeOrderBook;
+
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq,
+                        new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
                 }
                 catch
                 {
@@ -809,6 +878,53 @@ namespace ExchangeSharp
             };
 
             return result;
+        }
+
+        private object ParseWebSocket(string[] sArray, JToken token)
+        {
+            switch (sArray[2])
+            {
+                case "depth":
+                    return ParseOrderBookWebSocket(token);
+                case "trade":
+                    return ParseTradesWebSocket(token["data"]);
+            }
+            return null;
+        }
+
+        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
+        {
+            var orderBook = new ExchangeOrderBook();
+            foreach (JArray array in token["bids"])
+            {
+                orderBook.Bids.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+            }
+            foreach (JArray array in token["asks"])
+            {
+                orderBook.Asks.Add(new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() });
+            }
+
+            return orderBook;
+        }
+
+        private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
+        {
+            var trades = new List<ExchangeTrade>();
+            foreach (var t in token)
+            {
+                var trade = new ExchangeTrade()
+                {
+                    Amount = t["amount"].ConvertInvariant<decimal>(),
+                    // System.OverflowException: Value was either too large or too small for an Int64.
+                    // Id = x["id"].ConvertInvariant<long>(),
+                    IsBuy = t["direction"].ToStringLowerInvariant().EqualsWithOption("buy"),
+                    Price = t["price"].ConvertInvariant<decimal>(),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(t["ts"].ConvertInvariant<long>())
+                };
+                trades.Add(trade);
+            }
+
+            return trades;
         }
 
         #endregion
