@@ -286,7 +286,6 @@ namespace ExchangeSharp
                         IsBuy = token["m"].ConvertInvariant<bool>(),
                         Price = token["p"].ConvertInvariant<decimal>(),
                         Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
-
                     };
                     callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
                 }
