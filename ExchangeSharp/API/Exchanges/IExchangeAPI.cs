@@ -446,9 +446,17 @@ namespace ExchangeSharp
         /// <summary>
         /// Get all tickers via web socket
         /// </summary>
-        /// <param name="tickers">Callback</param>
+        /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
+        IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback);
+
+        /// <summary>
+        /// Get information about trades via web socket
+        /// </summary>
+        /// <param name="callback">Callback (symbol and trade)</param>
+        /// <param name="symbols">Symbols</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
 
         /// <summary>
         /// Get top bids and asks via web socket

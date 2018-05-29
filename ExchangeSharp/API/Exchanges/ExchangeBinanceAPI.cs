@@ -39,7 +39,27 @@ namespace ExchangeSharp
             };
         }
 
-        public ExchangeBinanceAPI()
+        private string GetWebSocketStreamUrlForSymbols(string suffix, params string[] symbols)
+        {
+            if (symbols == null || symbols.Length == 0)
+            {
+                symbols = GetSymbols().ToArray();
+            }
+
+            StringBuilder streams = new StringBuilder("/stream?streams=");
+            for (int i = 0; i < symbols.Length; i++)
+            {
+                string symbol = NormalizeSymbol(symbols[i]).ToLowerInvariant();
+                streams.Append(symbol);
+                streams.Append(suffix);
+                streams.Append('/');
+            }
+            streams.Length--; // remove last /
+
+            return streams.ToString();
+        }
+
+            public ExchangeBinanceAPI()
         {
             // give binance plenty of room to accept requests
             RequestWindow = TimeSpan.FromMinutes(15.0);
@@ -227,28 +247,65 @@ namespace ExchangeSharp
             });
         }
 
+        protected override IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            /*
+            {
+              "e": "trade",     // Event type
+              "E": 123456789,   // Event time
+              "s": "BNBBTC",    // Symbol
+              "t": 12345,       // Trade ID
+              "p": "0.001",     // Price
+              "q": "100",       // Quantity
+              "b": 88,          // Buyer order Id
+              "a": 50,          // Seller order Id
+              "T": 123456785,   // Trade time
+              "m": true,        // Is the buyer the market maker?
+              "M": true         // Ignore.
+            }
+            */
+
+            string url = GetWebSocketStreamUrlForSymbols("@trade", symbols);
+            return ConnectWebSocket(url, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg.UTF8String());
+                    string name = token["stream"].ToStringInvariant();
+                    token = token["data"];
+                    string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+                    ExchangeTrade trade = new ExchangeTrade
+                    {
+                        Amount = token["q"].ConvertInvariant<decimal>(),
+                        Id = token["t"].ConvertInvariant<long>(),
+                        IsBuy = token["m"].ConvertInvariant<bool>(),
+                        Price = token["p"].ConvertInvariant<decimal>(),
+                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
+
+                    };
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                }
+                catch
+                {
+                }
+            });
+        }
+
         protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null)
             {
                 return null;
             }
-            else if (symbols == null || symbols.Length == 0)
-            {
-                symbols = GetSymbols().ToArray();
-            }
 
-            StringBuilder streams = new StringBuilder();
-            for (int i = 0; i < symbols.Length; i++)
-            {
-                string symbol = NormalizeSymbol(symbols[i]).ToLowerInvariant();
-                streams.Append(symbol);
-                streams.Append("@depth");
-                streams.Append(maxCount);
-                streams.Append('/');
-            }
-            streams.Length--; // remove last /
-            return ConnectWebSocket($"/stream?streams=" + HttpUtility.UrlEncode(streams.ToString()), (msg, _socket) =>
+            string suffix = "@depth" + maxCount.ToStringInvariant();
+            string url = GetWebSocketStreamUrlForSymbols(suffix, symbols);
+            return ConnectWebSocket(url, (msg, _socket) =>
             {
                 try
                 {

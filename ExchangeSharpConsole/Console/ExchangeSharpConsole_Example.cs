@@ -77,6 +77,27 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
+        private static void RunTradesWebSocket(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName");
+            var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
+            if (api == null)
+            {
+                throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+            }
+
+            string[] symbols = dict["symbols"].Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            IDisposable socket = api.GetTradesWebSocket(message =>
+            {
+                Console.WriteLine($"{message.Key}: {message.Value}");
+            }, symbols: symbols);
+
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
+            socket.Dispose();
+        }
+
         private static void RunOrderBookWebSocket(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName");

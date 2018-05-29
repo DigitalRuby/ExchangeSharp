@@ -61,8 +61,13 @@ namespace ExchangeSharpConsoleApp
             Console.WriteLine("websocket-ticker - Shows how to connect via web socket and listen to tickers.");
             Console.WriteLine(" websocket-ticker exchangeName=Binance");
             Console.WriteLine();
+            Console.WriteLine("websocket-trades - Shows how to connect via web socket and listen to trades.");
+            Console.WriteLine(" websocket-trades exchangeName=Binance symbols=btcusdt,ethbtc");
+            Console.WriteLine(" symbols is optional, if not provided or empty, all symbols will be queried");
+            Console.WriteLine();
             Console.WriteLine("websocket-orderbook - Shows how to connect via web socket and listen to the order book.");
             Console.WriteLine(" websocket-orderbook exchangeName=Binance symbols=btcusdt,ethbtc");
+            Console.WriteLine(" symbols is optional, if not provided or empty, all symbols will be queried");
             Console.WriteLine();
         }
     }

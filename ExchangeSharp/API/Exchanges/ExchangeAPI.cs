@@ -166,7 +166,9 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol) => throw new NotImplementedException();
+
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
@@ -1196,6 +1198,14 @@ namespace ExchangeSharp
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
         public IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback) => OnGetTickersWebSocket(callback);
+
+        /// <summary>
+        /// Get information about trades via web socket
+        /// </summary>
+        /// <param name="callback">Callback (symbol and trade)</param>
+        /// <param name="symbols">Symbols</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => OnGetTradesWebSocket(callback, symbols);
 
         /// <summary>
         /// Get top bids and asks via web socket
