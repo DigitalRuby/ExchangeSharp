@@ -487,6 +487,24 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Get a value from dictionary with default fallback
+        /// </summary>
+        /// <typeparam name="TKey">Key type</typeparam>
+        /// <typeparam name="TValue">Value type</typeparam>
+        /// <param name="dictionary">Dictionary</param>
+        /// <param name="key">Key</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <returns>Found value or default</returns>
+        public static TValue TryGetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue)
+        {
+            if (!dictionary.TryGetValue(key, out TValue value))
+            {
+                value = defaultValue;
+            }
+            return value;
+        }
+
+        /// <summary>
         /// Sign a message with SHA256 hash
         /// </summary>
         /// <param name="message">Message to sign</param>
