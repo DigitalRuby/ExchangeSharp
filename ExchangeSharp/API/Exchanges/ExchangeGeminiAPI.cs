@@ -215,11 +215,7 @@ namespace ExchangeSharp
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "type", "exchange limit" }
             };
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
-
+            order.ExtraParameters.CopyTo(payload);
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", null, payload);
             CheckError(obj);
             return ParseOrder(obj);

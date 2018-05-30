@@ -741,6 +741,8 @@ namespace ExchangeSharp
             }
 
             payload["method"] = "POST";
+            order.ExtraParameters.CopyTo(payload);
+
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/orders/place", PrivateUrlV1, payload, "POST");
             CheckError(obj);
 

@@ -209,10 +209,7 @@ namespace ExchangeSharp
             }
 
             payload["amount"] = order.RoundAmount().ToStringInvariant();
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
+            order.ExtraParameters.CopyTo(payload);
 
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             CheckError(responseObject);

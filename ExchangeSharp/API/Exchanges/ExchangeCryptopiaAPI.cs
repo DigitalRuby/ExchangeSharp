@@ -340,6 +340,7 @@ namespace ExchangeSharp
             payload["Type"] = order.IsBuy ? "Buy" : "Sell";
             payload["Rate"] = order.Price;
             payload["Amount"] = order.Amount;
+            order.ExtraParameters.CopyTo(payload);
 
             // { "OrderId": 23467, "FilledOrders": [44310,44311] }  - They don't say what those FilledOrders are. It's possible they represent partially filled order ids for this orders. Don't know.
             JToken token = await MakeJsonRequestAsync<JToken>("/SubmitTrade", null, payload, "POST");

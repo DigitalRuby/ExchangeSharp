@@ -285,6 +285,8 @@ namespace ExchangeSharp
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("rate", order.Price);
             payload.Add("amount", order.Amount);
+            order.ExtraParameters.CopyTo(payload);
+
             // "return":{"received":0.1,"remains":0,"order_id":12345,"funds":{"btc":15,"ltc":51.82,	"nvc":0, ... }}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             token = CheckError(token);

@@ -303,6 +303,7 @@ namespace ExchangeSharp
             }
             payload["currencyPair"] = NormalizeSymbol(order.Symbol);
             payload["quantity"] = order.Amount;
+            order.ExtraParameters.CopyTo(payload);
 
             //{ "success": true, "added": true, "orderId": 4912
             JToken token = await MakeJsonRequestAsync<JToken>(orderType, null, payload, "POST");

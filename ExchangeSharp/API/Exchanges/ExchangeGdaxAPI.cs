@@ -472,11 +472,7 @@ namespace ExchangeSharp
                 payload["price"] = order.Price.ToStringInvariant();
             }
 
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
-
+            order.ExtraParameters.CopyTo(payload);
             JObject result = await MakeJsonRequestAsync<JObject>("/orders", null, payload, "POST");
             return ParseOrder(result);
         }

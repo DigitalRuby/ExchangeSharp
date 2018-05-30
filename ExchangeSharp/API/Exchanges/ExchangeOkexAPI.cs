@@ -498,6 +498,7 @@ namespace ExchangeSharp
                 payload["price"] = outputPrice;
                 payload["amount"] = outputQuantity;
             }
+            order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/trade.do", BaseUrl, payload, "POST");
             CheckError(obj);

@@ -439,10 +439,7 @@ namespace ExchangeSharp
             {
                 payload.Add("price", order.Price.ToStringInvariant());
             }
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
+            order.ExtraParameters.CopyTo(payload);
 
             JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/AddOrder", null, payload);
             JToken token = CheckError(obj);

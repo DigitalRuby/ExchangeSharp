@@ -324,9 +324,12 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
+            var payload = GetNoncePayload();
+            order.ExtraParameters.CopyTo(payload);
+
             // Only limit order is supported - no indication on how it is filled
             JToken token = await MakeJsonRequestAsync<JToken>((order.IsBuy ? "/market/buylimit?" : "market/selllimit?") + "market=" + order.Symbol +
-                "&rate=" + order.Price.ToStringInvariant() + "&quantity=" + order.RoundAmount().ToStringInvariant(), null, GetNoncePayload());
+                "&rate=" + order.Price.ToStringInvariant() + "&quantity=" + order.RoundAmount().ToStringInvariant(), null, payload);
             token = CheckError(token);
             if (token.HasValues)
             {

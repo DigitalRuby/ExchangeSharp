@@ -378,6 +378,8 @@ namespace ExchangeSharp
             payload["price"] = order.Price;
             payload["symbol"] = order.Symbol;
             payload["type"] = order.IsBuy ? "BUY" : "SELL";
+            order.ExtraParameters.CopyTo(payload);
+
             // {"orderOid": "596186ad07015679730ffa02" }
             JToken token = await MakeJsonRequestAsync<JToken>("/order?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "POST");
             token = CheckError(token);
