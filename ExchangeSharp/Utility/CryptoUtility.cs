@@ -202,31 +202,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a secure string to a non-secure string
-        /// </summary>
-        /// <param name="s">SecureString</param>
-        /// <returns>Non-secure string</returns>
-        public static string ToUnsecureString(this SecureString s)
-        {
-            return SecureStringToString(s);
-        }
-
-        /// <summary>
-        /// Convert a string to secure string
-        /// </summary>
-        /// <param name="s">Non-secure string</param>
-        /// <returns>SecureString</returns>
-        public static SecureString ToSecureString(this string s)
-        {
-            return StringToSecureString(s);
-        }
-
-        /// <summary>
         /// Covnert a secure string to a non-secure string
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Non-secure string</returns>
-        public static string SecureStringToString(this SecureString s)
+        public static string ToUnsecureString(this SecureString s)
         {
             if (s == null)
             {
@@ -249,13 +229,13 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
-        public static byte[] SecureStringToBytes(this SecureString s)
+        public static byte[] ToBytes(this SecureString s)
         {
             if (s == null)
             {
                 return null;
             }
-            string unsecure = SecureStringToString(s);
+            string unsecure = ToUnsecureString(s);
             byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(unsecure);
             unsecure = null;
             return bytes;
@@ -266,13 +246,13 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString in base64 format</param>
         /// <returns>Binary data</returns>
-        public static byte[] SecureStringToBytesBase64Decode(this SecureString s)
+        public static byte[] ToBytesBase64Decode(this SecureString s)
         {
             if (s == null)
             {
                 return null;
             }
-            string unsecure = SecureStringToString(s);
+            string unsecure = ToUnsecureString(s);
             byte[] bytes = Convert.FromBase64String(unsecure);
             unsecure = null;
             return bytes;
@@ -283,7 +263,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="unsecure">Plain text string</param>
         /// <returns>SecureString</returns>
-        public static SecureString StringToSecureString(this string unsecure)
+        public static SecureString ToSecureString(this string unsecure)
         {
             if (unsecure == null)
             {
@@ -489,7 +469,7 @@ namespace ExchangeSharp
             if (payload != null && payload.Count != 0)
             {
                 StringBuilder form = new StringBuilder();
-                foreach (KeyValuePair<string, object> keyValue in payload)
+                foreach (KeyValuePair<string, object> keyValue in payload.OrderBy(kv => kv.Key))
                 {
                     if (keyValue.Key != null && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
                     {

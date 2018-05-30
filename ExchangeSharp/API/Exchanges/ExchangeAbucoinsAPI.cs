@@ -44,12 +44,12 @@ namespace ExchangeSharp
                 string body = CryptoUtility.GetJsonForPayload(payload);
                 string timestamp = ((int)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()).ToStringInvariant();
                 string msg = timestamp + request.Method + request.RequestUri.PathAndQuery + (request.Method.Equals("POST") ? body : string.Empty);
-                string sign = CryptoUtility.SHA256SignBase64(msg, CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey));
+                string sign = CryptoUtility.SHA256SignBase64(msg, CryptoUtility.ToBytesBase64Decode(PrivateApiKey));
 
-                request.Headers["AC-ACCESS-KEY"] = CryptoUtility.SecureStringToString(PublicApiKey);
+                request.Headers["AC-ACCESS-KEY"] = CryptoUtility.ToUnsecureString(PublicApiKey);
                 request.Headers["AC-ACCESS-SIGN"] = sign;
                 request.Headers["AC-ACCESS-TIMESTAMP"] = timestamp;
-                request.Headers["AC-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
+                request.Headers["AC-ACCESS-PASSPHRASE"] = CryptoUtility.ToUnsecureString(Passphrase);
 
                 if (request.Method == "POST")
                 {

@@ -108,7 +108,7 @@ namespace ExchangeSharp
                     .Append(url.Path).Append("\n")
                     .Append(msg);
 
-                var sig = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.SecureStringToBytes());
+                var sig = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
                 msg += "&Signature=" + Uri.EscapeDataString(sig);
 
                 url.Query = msg;

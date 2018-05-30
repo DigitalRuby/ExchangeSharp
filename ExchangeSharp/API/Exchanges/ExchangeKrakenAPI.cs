@@ -220,14 +220,14 @@ namespace ExchangeSharp
                     byte[] sigBytes = new byte[sha256Bytes.Length + pathBytes.Length];
                     pathBytes.CopyTo(sigBytes, 0);
                     sha256Bytes.CopyTo(sigBytes, pathBytes.Length);
-                    byte[] privateKey = System.Convert.FromBase64String(CryptoUtility.SecureStringToString(PrivateApiKey));
+                    byte[] privateKey = System.Convert.FromBase64String(CryptoUtility.ToUnsecureString(PrivateApiKey));
                     using (System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
                     {
                         string sign = System.Convert.ToBase64String(hmac.ComputeHash(sigBytes));
                         request.Headers.Add("API-Sign", sign);
                     }
                 }
-                request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
+                request.Headers.Add("API-Key", CryptoUtility.ToUnsecureString(PublicApiKey));
                 await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }

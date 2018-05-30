@@ -135,7 +135,7 @@ namespace ExchangeSharpConsoleApp
                 System.Security.SecureString[] secureStrings = CryptoUtility.LoadProtectedStringsFromFile(dict["path"]);
                 foreach (System.Security.SecureString s in secureStrings)
                 {
-                    Console.WriteLine(CryptoUtility.SecureStringToString(s));
+                    Console.WriteLine(CryptoUtility.ToUnsecureString(s));
                 }
             }
             else

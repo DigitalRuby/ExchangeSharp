@@ -862,7 +862,7 @@ namespace ExchangeSharp
                 var query = HttpUtility.ParseQueryString(url.Query);
                 string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
                     (payload.Count > 1 ? "&" + CryptoUtility.GetFormForPayload(payload, false) : string.Empty);
-                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.SecureStringToBytes(PrivateApiKey));
+                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToBytes(PrivateApiKey));
                 newQuery += "&signature=" + signature;
                 url.Query = newQuery;
                 return url.Uri;

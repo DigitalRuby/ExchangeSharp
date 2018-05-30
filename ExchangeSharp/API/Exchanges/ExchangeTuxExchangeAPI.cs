@@ -49,7 +49,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
 
                 var msg = CryptoUtility.GetFormForPayload(payload) + "&nonce=" + nonce;
-                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.SecureStringToBytes(PrivateApiKey)).ToLower();
+                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytes(PrivateApiKey)).ToLower();
                 request.Headers.Add("Sign", sig);
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
 

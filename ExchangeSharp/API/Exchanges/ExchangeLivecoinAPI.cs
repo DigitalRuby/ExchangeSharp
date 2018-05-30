@@ -42,9 +42,10 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                request.Headers["API-key"] = PublicApiKey.ToUnsecureString();
-                request.Headers["Sign"] = CryptoUtility.SHA256Sign(request.RequestUri.Query.Length > 1 ? request.RequestUri.Query.Substring(1) : request.RequestUri.Query, PrivateApiKey.ToUnsecureString()).ToUpper();
-                await request.WritePayloadFormToRequestAsync(payload);
+                string payloadForm = CryptoUtility.GetFormForPayload(payload, false);
+                request.Headers["API-Key"] = PublicApiKey.ToUnsecureString();
+                request.Headers["Sign"] = CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytes());
+                await request.WriteToRequestAsync(payloadForm);
             }
         }
 

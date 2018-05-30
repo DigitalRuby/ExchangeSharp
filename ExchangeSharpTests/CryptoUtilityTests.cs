@@ -188,8 +188,8 @@ namespace ExchangeSharpTests
 
             // read keys
             SecureString[] keysRead = CryptoUtility.LoadProtectedStringsFromFile(path);
-            string publicKeyRead = CryptoUtility.SecureStringToString(keysRead[0]);
-            string privateKeyRead = CryptoUtility.SecureStringToString(keysRead[1]);
+            string publicKeyRead = CryptoUtility.ToUnsecureString(keysRead[0]);
+            string privateKeyRead = CryptoUtility.ToUnsecureString(keysRead[1]);
 
             Assert.AreEqual(privateKeyRead, privateKey);
             Assert.AreEqual(publicKeyRead, publicKey);

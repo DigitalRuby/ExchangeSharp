@@ -108,7 +108,7 @@ namespace ExchangeSharp
                 string timestamp = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
                 string form = CryptoUtility.GetJsonForPayload(payload);
-                byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);
+                byte[] secret = CryptoUtility.ToBytesBase64Decode(PrivateApiKey);
                 string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
                 string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
                 secret = null;
@@ -116,7 +116,7 @@ namespace ExchangeSharp
                 request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
                 request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
                 request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
-                request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
+                request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.ToUnsecureString(Passphrase);
                 await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
