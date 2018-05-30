@@ -428,6 +428,7 @@ namespace ExchangeSharp
                 using (Stream stream = await request.GetRequestStreamAsync())
                 {
                     stream.Write(bytes, 0, bytes.Length);
+                    await stream.FlushAsync();
                 }
             }
         }
@@ -504,7 +505,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, byte[] key)
         {
-            return new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -515,7 +516,7 @@ namespace ExchangeSharp
         /// <returns>Signature in base64</returns>
         public static string SHA256SignBase64(string message, byte[] key)
         {
-            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
         }
 
         /// <summary>
@@ -526,7 +527,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA384Sign(string message, string key)
         {
-            return new HMACSHA384(Encoding.UTF8.GetBytes(key)).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(utf8EncodingNoPrefix.GetBytes(key)).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -537,7 +538,7 @@ namespace ExchangeSharp
         /// <returns>Signature</returns>
         public static string SHA384Sign(string message, byte[] key)
         {
-            return new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -548,7 +549,7 @@ namespace ExchangeSharp
         /// <returns>Signature in base64</returns>
         public static string SHA384SignBase64(string message, byte[] key)
         {
-            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
         }
 
         /// <summary>

@@ -93,7 +93,7 @@ namespace ExchangeSharp
             }
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             await api.ProcessRequestAsync(request, payload);
-            HttpWebResponse response;
+            HttpWebResponse response = null;
             string responseString = null;
 
             try
@@ -137,7 +137,10 @@ namespace ExchangeSharp
                 RequestStateChanged?.Invoke(this, RequestMakerState.Error, ex);
                 throw;
             }
-            response.Dispose();
+            finally
+            {
+                response?.Dispose();
+            }
             return responseString;
         }
 

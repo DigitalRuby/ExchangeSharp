@@ -27,7 +27,6 @@ namespace ExchangeSharp
         public ExchangeLivecoinAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = "/";
         }
 
@@ -44,7 +43,7 @@ namespace ExchangeSharp
             {
                 string payloadForm = CryptoUtility.GetFormForPayload(payload, false);
                 request.Headers["API-Key"] = PublicApiKey.ToUnsecureString();
-                request.Headers["Sign"] = CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytes());
+                request.Headers["Sign"] = CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytes()).ToUpperInvariant();
                 await request.WriteToRequestAsync(payloadForm);
             }
         }
@@ -291,6 +290,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
+            var payload = GetNoncePayload();
             string orderType = "/exchange/";
             if (order.OrderType == OrderType.Market)
             {
@@ -299,10 +299,9 @@ namespace ExchangeSharp
             else
             {
                 orderType += order.IsBuy ? "buylimit" : "selllimit";
+                payload["price"] = order.Price;
             }
-            var payload = GetNoncePayload();
             payload["currencyPair"] = NormalizeSymbol(order.Symbol);
-            payload["price"] = order.Price;
             payload["quantity"] = order.Amount;
 
             //{ "success": true, "added": true, "orderId": 4912
