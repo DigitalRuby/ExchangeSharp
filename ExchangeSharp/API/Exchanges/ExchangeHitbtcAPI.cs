@@ -289,7 +289,7 @@ namespace ExchangeSharp
             if (order.OrderType == OrderType.Limit)
             {
                 payload["price"] = order.Price;
-                payload["timeInForce"] = order.ExtraParameters.TryGetValueOrDefault("timeInforce", "GTC");
+                payload["timeInForce"] = order.ExtraParameters.TryGetValueOrDefault("timeInForce", "GTC");
             }
             // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  } 
             JToken token = await MakeJsonRequestAsync<JToken>("/order", null, payload, "POST");
