@@ -35,12 +35,7 @@ namespace ExchangeSharp
 
         private async Task<JToken> MakeCryptowatchRequestAsync(string subUrl)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>(subUrl);
-            if (token["result"] == null)
-            {
-                throw new APIException("Unexpected result from API");
-            }
-            return token["result"];
+            return await MakeJsonRequestAsync<JToken>(subUrl);
         }
 
         /// <summary>
@@ -123,8 +118,7 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
 
             ExchangeOrderBook book = new ExchangeOrderBook();
-            JObject obj = await MakeJsonRequestAsync<JObject>("/markets/" + exchange.ToLowerInvariant() + "/" + symbol + "/orderbook");
-            JObject result = (JObject)obj["result"];
+            JToken result = await MakeJsonRequestAsync<JToken>("/markets/" + exchange.ToLowerInvariant() + "/" + symbol + "/orderbook");
             int count = 0;
             foreach (JArray array in result["asks"])
             {

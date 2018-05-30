@@ -346,8 +346,14 @@ namespace ExchangeSharp
         {
             await new SynchronizationContextRemover();
 
-            string result = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
-            return JsonConvert.DeserializeObject<T>(result);
+            string stringResult = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
+            T jsonResult = JsonConvert.DeserializeObject<T>(stringResult);
+            JToken token = jsonResult as JToken;
+            if (token != null)
+            {
+                return (T)(object)CheckJsonResponse(token);
+            }
+            return jsonResult;
         }
 
         /// <summary>
@@ -402,6 +408,44 @@ namespace ExchangeSharp
         protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
         {
             return url.Uri;
+        }
+
+        /// <summary>
+        /// Throw an exception if token represents an error condition.
+        /// For most API this method does not need to be overriden if:
+        /// - API passes an 'error', 'errorCode' or 'error_code' child element if the call fails
+        /// - API passes a 'status' element of 'error' if the call fails
+        /// - API passes a 'success' element of 'false' if the call fails
+        /// This call also looks for 'result', 'data', 'return' child elements and returns those if
+        /// found, otherwise the result parameter is returned.
+        /// For all other cases, override CheckJsonResponse for the exchange.
+        /// </summary>
+        /// <param name="result">Result</param>
+        protected virtual JToken CheckJsonResponse(JToken result)
+        {
+            if (result == null)
+            {
+                throw new APIException("No result from server");
+            }
+            else if (!(result is JArray))
+            {
+                if
+                (
+                    (!string.IsNullOrWhiteSpace(result["error"].ToStringInvariant())) ||
+                    (!string.IsNullOrWhiteSpace(result["errorCode"].ToStringInvariant())) ||
+                    (!string.IsNullOrWhiteSpace(result["error_code"].ToStringInvariant())) ||
+                    (result["status"].ToStringInvariant() == "error") ||
+                    (result["Status"].ToStringInvariant() == "error") ||
+                    (result["success"] != null && result["success"].ConvertInvariant<bool>() != true) ||
+                    (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true)
+                )
+                {
+                    throw new APIException(result.ToStringInvariant());
+                }
+                result = (result["result"] ?? result["data"] ?? result["return"] ??
+                    result["Result"] ?? result["Data"] ?? result["Return"] ?? result);
+            }
+            return result;
         }
 
         /// <summary>

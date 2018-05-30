@@ -57,7 +57,6 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty), baseUrl);
-            obj = CheckError(obj);
             return new Tuple<JToken, string>(obj, symbol);
         }
         #endregion
@@ -94,8 +93,7 @@ namespace ExchangeSharp
             }
 
             markets = new List<ExchangeMarket>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/markets/products", BaseUrlV2);
-            JToken allSymbols = CheckError(obj);
+            JToken allSymbols = await MakeJsonRequestAsync<JToken>("/markets/products", BaseUrlV2);
             foreach (JToken symbol in allSymbols)
             {
                 var marketName = symbol["symbol"].ToStringLowerInvariant();
@@ -380,7 +378,6 @@ namespace ExchangeSharp
             string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
             url += "&type=" + periodString;
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
-            CheckError(obj);
             foreach (JArray array in obj)
             {
                 decimal closePrice = array[4].ConvertInvariant<decimal>();
@@ -440,7 +437,6 @@ namespace ExchangeSharp
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = GetNoncePayload();
             JToken token = await MakeJsonRequestAsync<JToken>("/userinfo.do", BaseUrl, payload, "POST");
-            CheckError(token);
             var funds = token["info"]["funds"];
 
             foreach (JProperty fund in funds)
@@ -455,7 +451,6 @@ namespace ExchangeSharp
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = GetNoncePayload();
             JToken token = await MakeJsonRequestAsync<JToken>("/userinfo.do", BaseUrl, payload, "POST");
-            CheckError(token);
             var funds = token["info"]["funds"];
             var free = funds["free"];
 
@@ -501,8 +496,6 @@ namespace ExchangeSharp
             order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/trade.do", BaseUrl, payload, "POST");
-            CheckError(obj);
-
             order.Amount = outputQuantity;
             order.Price = outputPrice;
             return ParsePlaceOrder(obj, order);
@@ -517,8 +510,7 @@ namespace ExchangeSharp
             }
             payload["symbol"] = NormalizeSymbol(symbol);
             payload["order_id"] = orderId;
-            JObject result = await MakeJsonRequestAsync<JObject>("/cancel_order.do", BaseUrl, payload, "POST");
-            CheckError(result);
+            await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
         }
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
@@ -532,7 +524,6 @@ namespace ExchangeSharp
             payload["symbol"] = NormalizeSymbol(symbol);
             payload["order_id"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
-            CheckError(token);
             foreach (JToken order in token["orders"])
             {
                 orders.Add(ParseOrder(order));
@@ -551,7 +542,6 @@ namespace ExchangeSharp
             // if order_id is -1, then return all unfilled orders, otherwise return the order specified
             payload["order_id"] = -1;
             JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
-            CheckError(token);
             foreach (JToken order in token["orders"])
             {
                 orders.Add(ParseOrder(order));

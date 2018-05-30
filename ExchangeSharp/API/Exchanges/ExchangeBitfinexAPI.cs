@@ -79,7 +79,6 @@ namespace ExchangeSharp
             payload["start"] = DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
             payload["end"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds();
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload);
-            CheckError(result);
             Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
             if (result is JArray array)
             {
@@ -324,7 +323,6 @@ namespace ExchangeSharp
                 url += "&limit=" + (limit.Value.ToStringInvariant());
             }
             JToken token = await MakeJsonRequestAsync<JToken>(url);
-            CheckError(token);
 
             /* MTS, OPEN, CLOSE, HIGH, LOW, VOL */
             foreach (JArray candle in token)
@@ -351,7 +349,6 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
-            CheckError(obj);
             foreach (JToken token in obj)
             {
                 if (token["type"].ToStringInvariant() == "exchange")
@@ -370,7 +367,6 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, GetNoncePayload());
-            CheckError(obj);
             foreach (JToken token in obj)
             {
                 if (token["type"].ToStringInvariant() == "exchange")
@@ -400,7 +396,6 @@ namespace ExchangeSharp
             order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", BaseUrlV1, payload);
-            CheckError(obj);
             return ParseOrder(obj);
         }
 
@@ -414,7 +409,6 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = GetNoncePayload();
             payload["order_id"] = long.Parse(orderId);
             JToken result = await MakeJsonRequestAsync<JToken>("/order/status", BaseUrlV1, payload);
-            CheckError(result);
             return ParseOrder(result);
         }
 
@@ -491,8 +485,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = GetNoncePayload();
             payload["order_id"] = long.Parse(orderId);
-            JObject result = await MakeJsonRequestAsync<JObject>("/order/cancel", BaseUrlV1, payload);
-            CheckError(result);
+            await MakeJsonRequestAsync<JToken>("/order/cancel", BaseUrlV1, payload);
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
@@ -515,8 +508,6 @@ namespace ExchangeSharp
             payload["renew"] = forceRegenerate ? 1 : 0;
 
             JToken result = await MakeJsonRequestAsync<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
-            CheckError(result);
-
             var details = new ExchangeDepositDetails
             {
                 Symbol = result["currency"].ToStringInvariant(),
@@ -549,7 +540,6 @@ namespace ExchangeSharp
             payload["currency"] = NormalizeSymbol(symbol);
 
             JToken result = await MakeJsonRequestAsync<JToken>("/history/movements", BaseUrlV1, payload, "POST");
-            CheckError(result);
             var transactions = new List<ExchangeTransaction>();
             foreach (JToken token in result)
             {
@@ -689,7 +679,6 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbolV1(symbol);
             JToken result = await MakeJsonRequestAsync<JToken>(url, BaseUrlV1, GetNoncePayload());
-            CheckError(result);
             if (result is JArray array)
             {
                 foreach (JToken token in array)
@@ -718,7 +707,6 @@ namespace ExchangeSharp
                     payload["until"] = DateTime.UtcNow.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/mytrades", BaseUrlV1, payload);
-                CheckError(token);
                 foreach (JToken trade in token)
                 {
                     ExchangeOrderResult subOrder = ParseTrade(trade, normalizedSymbol);
@@ -882,8 +870,6 @@ namespace ExchangeSharp
         private async Task<Dictionary<string, decimal>> GetWithdrawalFeesAsync()
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/account_fees", BaseUrlV1, GetNoncePayload());
-            CheckError(obj);
-
             var fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (var jToken in obj["withdraw"])
             {

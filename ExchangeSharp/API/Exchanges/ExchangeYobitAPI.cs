@@ -198,7 +198,6 @@ namespace ExchangeSharp
             payload.Add("method", "getInfo");
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);
             foreach (JProperty prop in token["funds"])
             {
                 var amount = prop.Value.ConvertInvariant<decimal>();
@@ -217,7 +216,6 @@ namespace ExchangeSharp
             payload.Add("method", "getInfo");
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);
             foreach (JProperty prop in token["funds_incl_orders"])
             {
                 var amount = prop.Value.ConvertInvariant<decimal>();
@@ -235,7 +233,6 @@ namespace ExchangeSharp
             payload.Add("method", "getInfo");
             payload.Add("order_id", orderId);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);
             return ParseOrder(token.First as JProperty);
         }
 
@@ -257,7 +254,6 @@ namespace ExchangeSharp
             payload.Add("pair", symbol);
             if (afterDate != null) payload.Add("since", new DateTimeOffset((DateTime)afterDate).ToUnixTimeSeconds());
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);       
             if (token != null) foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             return orders;
         }
@@ -271,7 +267,6 @@ namespace ExchangeSharp
             payload.Add("method", "ActiveOrders");
             payload.Add("pair", symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);        
             if (token != null) foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             return orders;
@@ -289,7 +284,6 @@ namespace ExchangeSharp
 
             // "return":{"received":0.1,"remains":0,"order_id":12345,"funds":{"btc":15,"ltc":51.82,	"nvc":0, ... }}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);
             ExchangeOrderResult result = new ExchangeOrderResult()
             {
                 OrderId = token["order_id"].ToStringInvariant(),
@@ -310,8 +304,7 @@ namespace ExchangeSharp
             var payload = GetNoncePayload();
             payload.Add("method", "CancelOrder");
             payload.Add("order_id", orderId);
-            JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            CheckError(token);      // will throw exception on error
+            await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
         }
 
         protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
@@ -327,7 +320,6 @@ namespace ExchangeSharp
             payload.Add("coinName", symbol);
             // "return":{"address": 1UHAnAWvxDB9XXETsi7z483zRRBmcUZxb3,"processed_amount": 1.00000000,"server_time": 1437146228 }
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);
             return new ExchangeDepositDetails()
             {
                  Address = token["address"].ToStringInvariant(),
@@ -351,8 +343,7 @@ namespace ExchangeSharp
             payload.Add("coinName", withdrawalRequest.Symbol);
             payload.Add("amount", withdrawalRequest.Amount);
             payload.Add("address", withdrawalRequest.Address);
-            JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            CheckError(token);   // will throw exception on error
+            await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             response.Success = true;
             return response;
         }

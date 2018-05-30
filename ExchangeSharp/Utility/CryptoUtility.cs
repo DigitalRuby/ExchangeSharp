@@ -193,10 +193,18 @@ namespace ExchangeSharp
             }
             catch
             {
-                // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
-                string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
-                decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float);
-                return (T)Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
+                if (typeof(T) == typeof(bool))
+                {
+                    // try zero or one
+                    return (T)(object)((jValue ?? obj).ToStringInvariant() == "1");
+                }
+                else
+                {
+                    // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
+                    string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
+                    decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float);
+                    return (T)Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
+                }
             }
             return result;
         }

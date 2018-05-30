@@ -97,8 +97,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JObject>("/pubticker/" + symbol);
-            if (obj == null || obj.Count == 0)
+            JToken obj = await MakeJsonRequestAsync<JToken>("/pubticker/" + symbol);
+            if (obj == null || obj.Count() == 0)
             {
                 return null;
             }
@@ -115,8 +115,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JObject>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
-            if (obj == null || obj.Count == 0)
+            JToken obj = await MakeJsonRequestAsync<JToken>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
+            if (obj == null || obj.Count() == 0)
             {
                 return null;
             }
@@ -167,7 +167,6 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, GetNoncePayload());
-            CheckError(obj);
             var q = from JToken token in obj
                     select new { Currency = token["currency"].ToStringInvariant(), Available = token["amount"].ConvertInvariant<decimal>() };
             foreach (var kv in q)
@@ -184,7 +183,6 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, GetNoncePayload());
-            CheckError(obj);
             var q = from JToken token in obj
                     select new { Currency = token["currency"].ToStringInvariant(), Available = token["available"].ConvertInvariant<decimal>() };
             foreach (var kv in q)
@@ -217,7 +215,6 @@ namespace ExchangeSharp
             };
             order.ExtraParameters.CopyTo(payload);
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", null, payload);
-            CheckError(obj);
             return ParseOrder(obj);
         }
 
@@ -229,7 +226,6 @@ namespace ExchangeSharp
             }
 
             JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", GenerateNonce() }, { "order_id", orderId } });
-            CheckError(result);
             return ParseOrder(result);
         }
 
@@ -238,7 +234,6 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
             JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", GenerateNonce() } });
-            CheckError(result);
             if (result is JArray array)
             {
                 foreach (JToken token in array)
@@ -255,8 +250,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            JObject result = await MakeJsonRequestAsync<JObject>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
-            CheckError(result);
+            await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
         }
     }
 }

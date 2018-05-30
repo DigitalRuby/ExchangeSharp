@@ -541,27 +541,22 @@ namespace ExchangeSharp
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
-
-            JObject obj = await MakeJsonRequestAsync<JObject>("/public/getcurrencies");
-            JToken result = CheckError(obj);
-            if (result is JArray array)
+            JToken array = await MakeJsonRequestAsync<JToken>("/public/getcurrencies");
+            foreach (JToken token in array)
             {
-                foreach (JToken token in array)
+                var coin = new ExchangeCurrency
                 {
-                    var coin = new ExchangeCurrency
-                    {
-                        BaseAddress = token["BaseAddress"].ToStringInvariant(),
-                        CoinType = token["CoinType"].ToStringInvariant(),
-                        FullName = token["CurrencyLong"].ToStringInvariant(),
-                        IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
-                        MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
-                        Name = token["Currency"].ToStringUpperInvariant(),
-                        Notes = token["Notice"].ToStringInvariant(),
-                        TxFee = token["TxFee"].ConvertInvariant<decimal>(),
-                    };
+                    BaseAddress = token["BaseAddress"].ToStringInvariant(),
+                    CoinType = token["CoinType"].ToStringInvariant(),
+                    FullName = token["CurrencyLong"].ToStringInvariant(),
+                    IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                    MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
+                    Name = token["Currency"].ToStringUpperInvariant(),
+                    Notes = token["Notice"].ToStringInvariant(),
+                    TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+                };
 
-                    currencies[coin.Name] = coin;
-                }
+                currencies[coin.Name] = coin;
             }
 
             return currencies;
@@ -574,29 +569,25 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
-            JObject obj = await MakeJsonRequestAsync<JObject>("/public/getmarkets");
-            JToken result = CheckError(obj);
+            JToken array = await MakeJsonRequestAsync<JToken>("/public/getmarkets");
 
             // StepSize is 8 decimal places for both price and amount on everything at Bittrex
             const decimal StepSize = 0.00000001m;
-            if (result is JArray array)
+            foreach (JToken token in array)
             {
-                foreach (JToken token in array)
+                var market = new ExchangeMarket
                 {
-                    var market = new ExchangeMarket
-                    {
-                        BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
-                        IsActive = token["IsActive"].ConvertInvariant<bool>(),
-                        MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant(),
-                        MarketName = token["MarketName"].ToStringUpperInvariant(),
-                        MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
-                        MinPrice = StepSize,
-                        PriceStepSize = StepSize,
-                        QuantityStepSize = StepSize
-                    };
+                    BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
+                    IsActive = token["IsActive"].ConvertInvariant<bool>(),
+                    MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant(),
+                    MarketName = token["MarketName"].ToStringUpperInvariant(),
+                    MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+                    MinPrice = StepSize,
+                    PriceStepSize = StepSize,
+                    QuantityStepSize = StepSize
+                };
 
-                    markets.Add(market);
-                }
+                markets.Add(market);
             }
 
             return markets;
@@ -609,8 +600,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JObject obj = await MakeJsonRequestAsync<JObject>("/public/getmarketsummary?market=" + NormalizeSymbol(symbol));
-            JToken result = CheckError(obj);
+            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + NormalizeSymbol(symbol));
             JToken ticker = result[0];
             if (ticker != null)
             {
@@ -634,8 +624,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            JObject obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JObject>("public/getmarketsummaries");
-            JToken tickers = CheckError(obj);
+            JToken tickers = await MakeJsonRequestAsync<JToken>("public/getmarketsummaries");
             string symbol;
             List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
             foreach (JToken ticker in tickers)
@@ -735,8 +724,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JObject>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
-            JToken book = CheckError(obj);
+            JToken book = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken bids = book["buy"];
             foreach (JToken token in bids)
@@ -762,11 +750,8 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
 
             string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            CheckError(obj);
-            JToken result = obj["result"];
-
-            foreach (var token in result)
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            foreach (JToken token in result)
             {
                 var deposit = new ExchangeTransaction
                 {
@@ -802,10 +787,8 @@ namespace ExchangeSharp
                 {
                     url += "&_=" + DateTime.UtcNow.Ticks;
                 }
-                JObject obj = await MakeJsonRequestAsync<JObject>(url, BaseUrl2);
-                JToken result = CheckError(obj);
-                JArray array = result as JArray;
-                if (array == null || array.Count == 0)
+                JToken array = await MakeJsonRequestAsync<JToken>(url, BaseUrl2);
+                if (array == null || array.Count() == 0)
                 {
                     break;
                 }
@@ -844,21 +827,17 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             symbol = NormalizeSymbol(symbol);
             string baseUrl = "/public/getmarkethistory?market=" + symbol;
-            JObject obj = await MakeJsonRequestAsync<JObject>(baseUrl);
-            JToken result = CheckError(obj);
-            if (result is JArray array && array.Count != 0)
+            JToken array = await MakeJsonRequestAsync<JToken>(baseUrl);
+            foreach (JToken token in array)
             {
-                foreach (JToken token in array)
+                trades.Add(new ExchangeTrade
                 {
-                    trades.Add(new ExchangeTrade
-                    {
-                        Amount = token["Quantity"].ConvertInvariant<decimal>(),
-                        IsBuy = token["OrderType"].ToStringUpperInvariant() == "BUY",
-                        Price = token["Price"].ConvertInvariant<decimal>(),
-                        Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
-                        Id = token["Id"].ConvertInvariant<long>()
-                    });
-                }
+                    Amount = token["Quantity"].ConvertInvariant<decimal>(),
+                    IsBuy = token["OrderType"].ToStringUpperInvariant() == "BUY",
+                    Price = token["Price"].ConvertInvariant<decimal>(),
+                    Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
+                    Id = token["Id"].ConvertInvariant<long>()
+                });
             }
 
             return trades;
@@ -899,7 +878,6 @@ namespace ExchangeSharp
             endDate = endDate ?? DateTime.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = await MakeJsonRequestAsync<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
-            result = CheckError(result);
             if (result is JArray array)
             {
                 foreach (JToken jsonCandle in array)
@@ -931,17 +909,13 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            JToken result = CheckError(obj);
-            if (result is JArray array)
+            JToken array = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            foreach (JToken token in array)
             {
-                foreach (JToken token in array)
+                decimal amount = token["Balance"].ConvertInvariant<decimal>();
+                if (amount > 0m)
                 {
-                    decimal amount = token["Balance"].ConvertInvariant<decimal>();
-                    if (amount > 0m)
-                    {
-                        currencies.Add(token["Currency"].ToStringInvariant(), amount);
-                    }
+                    currencies.Add(token["Currency"].ToStringInvariant(), amount);
                 }
             }
             return currencies;
@@ -951,17 +925,13 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            JToken result = CheckError(obj);
-            if (result is JArray array)
+            JToken array = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            foreach (JToken token in array)
             {
-                foreach (JToken token in array)
+                decimal amount = token["Available"].ConvertInvariant<decimal>();
+                if (amount > 0m)
                 {
-                    decimal amount = token["Available"].ConvertInvariant<decimal>();
-                    if (amount > 0m)
-                    {
-                        currencies.Add(token["Currency"].ToStringInvariant(), amount);
-                    }
+                    currencies.Add(token["Currency"].ToStringInvariant(), amount);
                 }
             }
             return currencies;
@@ -985,8 +955,7 @@ namespace ExchangeSharp
             {
                 url += "&" + WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value.ToStringInvariant());
             }
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            JToken result = CheckError(obj);
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
             string orderId = result["uuid"].ToStringInvariant();
             return new ExchangeOrderResult { Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
@@ -999,8 +968,7 @@ namespace ExchangeSharp
             }
 
             string url = "/account/getorder?uuid=" + orderId;
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            JToken result = CheckError(obj);
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
             return ParseOrder(result);
         }
 
@@ -1008,9 +976,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             string url = "/market/getopenorders" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            CheckError(obj);
-            JToken result = obj["result"];
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
             foreach (JToken token in result.Children())
             {
                 orders.Add(ParseOrder(token));
@@ -1023,8 +989,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             string url = "/account/getorderhistory" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
-            JObject obj = await MakeJsonRequestAsync<JObject>(url, null, GetNoncePayload());
-            JToken result = CheckError(obj);
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
             foreach (JToken token in result.Children())
             {
                 ExchangeOrderResult order = ParseOrder(token);
@@ -1049,9 +1014,7 @@ namespace ExchangeSharp
                 url += $"&paymentid={withdrawalRequest.AddressTag}";
             }
 
-            JToken response = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
-            JToken result = CheckError(response);
-
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
             ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = result["uuid"].ToStringInvariant(),
@@ -1063,8 +1026,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            JObject obj = await MakeJsonRequestAsync<JObject>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
-            CheckError(obj);
+            await MakeJsonRequestAsync<JToken>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
         }
 
         /// <summary>
@@ -1081,8 +1043,7 @@ namespace ExchangeSharp
             IReadOnlyDictionary<string, ExchangeCurrency> updatedCurrencies = (await GetCurrenciesAsync());
 
             string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
-            JToken response = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
-            JToken result = CheckError(response);
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
 
             // NOTE API 1.1 does not include the the static wallet address for currencies with tags such as XRP & NXT (API 2.0 does!)
             // We are getting the static addresses via the GetCurrencies() api.

@@ -161,7 +161,6 @@ namespace ExchangeSharp
             string url = "/balance/";
             var payload = GetNoncePayload();
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
-            CheckError(responseObject);
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
             foreach (var property in responseObject)
             {
@@ -180,7 +179,6 @@ namespace ExchangeSharp
             string url = "/balance/";
             var payload = GetNoncePayload();
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
-            CheckError(responseObject);
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
             foreach (var property in responseObject)
             {
@@ -212,7 +210,6 @@ namespace ExchangeSharp
             order.ExtraParameters.CopyTo(payload);
 
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
-            CheckError(responseObject);
             return new ExchangeOrderResult
             {
                 OrderDate = DateTime.UtcNow,
@@ -246,7 +243,6 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = GetNoncePayload();
             payload["id"] = orderId;
             JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
-            CheckError(result);
 
             // status can be 'In Queue', 'Open' or 'Finished'
             JArray transactions = result["transactions"] as JArray;
@@ -306,7 +302,6 @@ namespace ExchangeSharp
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
             JArray result = await MakeJsonRequestAsync<JArray>(url, null, GetNoncePayload(), "POST");
-            CheckError(result);
             foreach (JToken token in result)
             {
                 //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
@@ -335,7 +330,6 @@ namespace ExchangeSharp
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload(), "POST");
-            CheckError(result);
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             foreach (var transaction in result as JArray)
             {
@@ -390,8 +384,7 @@ namespace ExchangeSharp
             }
             Dictionary<string, object> payload = GetNoncePayload();
             payload["id"] = orderId;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/cancel_order/", null, payload, "POST");
-            CheckError(obj);
+            await MakeJsonRequestAsync<JToken>("/cancel_order/", null, payload, "POST");
         }
 
         /// <summary>
@@ -422,7 +415,7 @@ namespace ExchangeSharp
             payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();
 
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, baseurl, payload, "POST");
-            CheckError(responseObject);
+            CheckJsonResponse(responseObject);
             return new ExchangeWithdrawalResponse
             {
                 Id = responseObject["id"].ToStringInvariant(),
