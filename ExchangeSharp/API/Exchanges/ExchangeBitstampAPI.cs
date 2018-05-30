@@ -55,7 +55,7 @@ namespace ExchangeSharp
             CustomerId = customerId;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -70,7 +70,7 @@ namespace ExchangeSharp
                 string signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
                 payload["signature"] = signature;
                 payload["key"] = apiKey;
-                WritePayloadFormToRequest(request, payload);
+                await CryptoUtility.WritePayloadFormToRequestAsync(request, payload);
             }
         }
 

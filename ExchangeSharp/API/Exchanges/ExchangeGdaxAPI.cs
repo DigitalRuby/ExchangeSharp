@@ -100,27 +100,25 @@ namespace ExchangeSharp
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (!CanMakeAuthenticatedRequest(payload))
+            if (CanMakeAuthenticatedRequest(payload))
             {
-                return;
+                // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
+                string timestamp = payload["nonce"].ToStringInvariant();
+                payload.Remove("nonce");
+                string form = CryptoUtility.GetJsonForPayload(payload);
+                byte[] secret = CryptoUtility.ToBytesBase64Decode(PrivateApiKey);
+                string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
+                string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
+                secret = null;
+                toHash = null;
+                request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
+                request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
+                request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
+                request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.ToUnsecureString(Passphrase);
+                await CryptoUtility.WriteToRequestAsync(request, form);
             }
-
-            // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
-            string timestamp = payload["nonce"].ToStringInvariant();
-            payload.Remove("nonce");
-            string form = GetJsonForPayload(payload);
-            byte[] secret = CryptoUtility.SecureStringToBytesBase64Decode(PrivateApiKey);
-            string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
-            string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
-            secret = null;
-            toHash = null;
-            request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
-            request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
-            request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
-            request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.SecureStringToString(Passphrase);
-            WriteToRequest(request, form);
         }
 
         protected override void ProcessResponse(HttpWebResponse response)
@@ -201,9 +199,46 @@ namespace ExchangeSharp
             };
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            if (callback == null) return null;
+            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            System.Threading.ManualResetEvent evt = new System.Threading.ManualResetEvent(false);
+            List<string> symbols = (await GetSymbolsAsync()).ToList();
+
+            // stupid gdax does not have a one shot API call for tickers outside of web sockets
+            using (var socket = GetTickersWebSocket((t) =>
+            {
+                lock (tickers)
+                {
+                    if (symbols.Count != 0)
+                    {
+                        foreach (var kv in t)
+                        {
+                            if (!tickers.Exists(m => m.Key == kv.Key))
+                            {
+                                tickers.Add(kv);
+                                symbols.Remove(kv.Key);
+                            }
+                        }
+                        if (symbols.Count == 0)
+                        {
+                            evt.Set();
+                        }
+                    }
+                }
+            }))
+            {
+                evt.WaitOne(10000);
+                return tickers;
+            }
+        }
+
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
 
             var wrapper = ConnectWebSocket("/", (msg, _socket) =>
             {
@@ -241,9 +276,9 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTickerWebSocket(JToken token)
         {
             var price = token["price"].ConvertInvariant<decimal>();
-            var lastSize = token["last_size"].ConvertInvariant<decimal>();
+            var volume = token["volume_24h"].ConvertInvariant<decimal>();
             var symbol = token["product_id"].ToStringInvariant();
-            var time = token["time"] == null ? DateTime.Now.ToUniversalTime() : Convert.ToDateTime(token["time"].ToStringInvariant());
+            var time = token["time"].ConvertInvariant<DateTime>(DateTime.UtcNow);
             return new ExchangeTicker
             {
                 Ask = token["best_ask"].ConvertInvariant<decimal>(),
@@ -251,10 +286,10 @@ namespace ExchangeSharp
                 Last = price,
                 Volume = new ExchangeVolume
                 {
-                    BaseVolume = lastSize * price,
-                    BaseSymbol = symbol.Split(new char[] { '-' })[1],
-                    ConvertedVolume = lastSize,
-                    ConvertedSymbol = symbol.Split(new char[] { '-' })[0],
+                    BaseVolume = volume * price,
+                    BaseSymbol = symbol,
+                    ConvertedVolume = volume,
+                    ConvertedSymbol = symbol,
                     Timestamp = time
                 }
             };
@@ -370,9 +405,11 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             foreach (JArray candle in token)
             {
+                double volume = candle[5].ConvertInvariant<double>();
+                decimal close = candle[4].ConvertInvariant<decimal>();
                 candles.Add(new MarketCandle
                 {
-                    ClosePrice = candle[4].ConvertInvariant<decimal>(),
+                    ClosePrice = close,
                     ExchangeName = Name,
                     HighPrice = candle[2].ConvertInvariant<decimal>(),
                     LowPrice = candle[1].ConvertInvariant<decimal>(),
@@ -380,8 +417,8 @@ namespace ExchangeSharp
                     OpenPrice = candle[3].ConvertInvariant<decimal>(),
                     PeriodSeconds = periodSeconds,
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(candle[0].ConvertInvariant<long>()),
-                    BaseVolume = candle[5].ConvertInvariant<double>(),
-                    ConvertedVolume = candle[5].ConvertInvariant<double>() * candle[4].ConvertInvariant<double>()
+                    BaseVolume = volume,
+                    ConvertedVolume = (volume * (double)close)
                 });
             }
             // re-sort in ascending order

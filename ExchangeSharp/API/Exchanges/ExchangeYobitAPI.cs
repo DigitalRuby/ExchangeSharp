@@ -45,7 +45,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
@@ -54,17 +54,15 @@ namespace ExchangeSharp
                 // but we can't use ticks or unix timestamps because their max is 2147483646
                 // here we taking that last digits from the a timestamp for the nonce, which seems to work
                 payload["nonce"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds().ToString("F0").Substring(4);
-                var msg = GetFormForPayload(payload);
+                var msg = CryptoUtility.GetFormForPayload(payload);
                 var sig = CryptoUtility.SHA512Sign(msg, PrivateApiKey.ToUnsecureString());
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
                 request.Headers.Add("Sign", sig.ToLower());
 
-                using (Stream stream = request.GetRequestStream())
+                using (Stream stream = await request.GetRequestStreamAsync())
                 {
                     byte[] content = Encoding.UTF8.GetBytes(msg);
                     stream.Write(content, 0, content.Length);
-                    stream.Flush();
-                    stream.Close();
                 }
             }
         }
@@ -90,7 +88,7 @@ namespace ExchangeSharp
             foreach (JProperty prop in token["pairs"]) symbols.Add(prop.Name);
             return symbols;
         }
-         
+
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
@@ -101,13 +99,13 @@ namespace ExchangeSharp
                 var split = prop.Name.ToUpper().Split('_');
                 markets.Add(new ExchangeMarket()
                 {
-                     MarketName = prop.Name.ToStringInvariant(),
-                     MarketCurrency = split[0],
-                     BaseCurrency = split[1],
-                     IsActive = prop.First["hidden"].ConvertInvariant<int>().Equals(0),
-                     MaxPrice = prop.First["max_price"].ConvertInvariant<decimal>(),
-                     MinPrice = prop.First["min_price"].ConvertInvariant<decimal>(),
-                     MinTradeSize = prop.First["min_amount"].ConvertInvariant<decimal>()
+                    MarketName = prop.Name.ToStringInvariant(),
+                    MarketCurrency = split[0],
+                    BaseCurrency = split[1],
+                    IsActive = prop.First["hidden"].ConvertInvariant<int>().Equals(0),
+                    MaxPrice = prop.First["max_price"].ConvertInvariant<decimal>(),
+                    MinPrice = prop.First["min_price"].ConvertInvariant<decimal>(),
+                    MinTradeSize = prop.First["min_amount"].ConvertInvariant<decimal>()
                 });
             }
             return markets;
@@ -137,13 +135,12 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null, "GET");
-            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("asks"))
+            foreach (JArray prop in obj[symbol]["asks"])
             {
                 var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
                 orders.Asks[depth.Price] = depth;
             }
-
-            foreach (JArray prop in obj.Value<JToken>(symbol).Value<JArray>("bids"))
+            foreach (JArray prop in obj[symbol]["bids"])
             {
                 var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
                 orders.Bids[depth.Price] = depth;
@@ -157,7 +154,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + symbol + "?limit=10", null, null, "POST");    // default is 150, max: 2000, let's do another arbitrary 10 for consistency
-            foreach (JToken prop in token.First.First) trades.Add(ParseTrade(prop));      
+            foreach (JToken prop in token.First.First) trades.Add(ParseTrade(prop));
             return trades;
         }
 
@@ -204,10 +201,13 @@ namespace ExchangeSharp
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             token = CheckError(token);
-            foreach (JProperty prop in (JToken)token.Value<JObject>("funds"))
+            foreach (JProperty prop in token["funds"])
             {
                 var amount = prop.Value.ConvertInvariant<decimal>();
-                if (amount > 0m) amounts.Add(prop.Name, amount);
+                if (amount > 0m)
+                {
+                    amounts.Add(prop.Name, amount);
+                }
             }
             return amounts;
         }
@@ -220,10 +220,13 @@ namespace ExchangeSharp
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             token = CheckError(token);
-            foreach (JProperty prop in (JToken)token.Value<JObject>("funds_incl_orders"))
+            foreach (JProperty prop in token["funds_incl_orders"])
             {
                 var amount = prop.Value.ConvertInvariant<decimal>();
-                if (amount > 0m) amounts.Add(prop.Name, amount);
+                if (amount > 0m)
+                {
+                    amounts.Add(prop.Name, amount);
+                }
             }
             return amounts;
         }
@@ -247,7 +250,7 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            if (symbol == null) {throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
+            if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
@@ -256,11 +259,11 @@ namespace ExchangeSharp
             payload.Add("pair", symbol);
             if (afterDate != null) payload.Add("since", new DateTimeOffset((DateTime)afterDate).ToUnixTimeSeconds());
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);       
+            token = CheckError(token);
             if (token != null) foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             return orders;
         }
-        
+
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
@@ -270,7 +273,7 @@ namespace ExchangeSharp
             payload.Add("method", "ActiveOrders");
             payload.Add("pair", symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
-            token = CheckError(token);        
+            token = CheckError(token);
             if (token != null) foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             return orders;
@@ -327,8 +330,8 @@ namespace ExchangeSharp
             token = CheckError(token);
             return new ExchangeDepositDetails()
             {
-                 Address = token["address"].ToStringInvariant(),
-                 Symbol = symbol
+                Address = token["address"].ToStringInvariant(),
+                Symbol = symbol
             };
         }
 
@@ -410,7 +413,7 @@ namespace ExchangeSharp
                 Price = prop["rate"].ConvertInvariant<decimal>(),
                 OrderDate = DateTimeOffset.FromUnixTimeSeconds(prop.First["timestamp_created"].ConvertInvariant<long>()).DateTime
             };
-            
+
             if (result.Amount == result.AmountFilled) result.Result = ExchangeAPIOrderResult.Filled;
             else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Pending;
             else result.Result = ExchangeAPIOrderResult.FilledPartially;

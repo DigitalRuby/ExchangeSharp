@@ -213,15 +213,15 @@ namespace ExchangeSharp
             };
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                string form = GetFormForPayload(payload);
+                string form = CryptoUtility.GetFormForPayload(payload);
                 request.Headers["Key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["Sign"] = CryptoUtility.SHA512Sign(form, PrivateApiKey.ToUnsecureString());
                 request.Method = "POST";
-                WriteToRequest(request, form);
+                await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
 
@@ -364,7 +364,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
@@ -403,14 +403,14 @@ namespace ExchangeSharp
             });
         }
 
-        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null)
+            if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbol);
+            var normalizedSymbol = NormalizeSymbol(symbols[0]);
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -465,7 +465,7 @@ namespace ExchangeSharp
                                 }
                         }
                     }
-                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(normalizedSymbol, orderBook)));
                 }
                 catch
                 {
@@ -620,7 +620,60 @@ namespace ExchangeSharp
             return amounts;
         }
 
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync()
+        {
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var accountArgumentName = "account";
+            var accountArgumentValue = "margin";
+            JToken result = await MakePrivateAPIRequestAsync("returnAvailableAccountBalances", new object[] { accountArgumentName, accountArgumentValue });
+            CheckError(result);
+            foreach (JProperty child in result[accountArgumentValue].Children())
+            {
+                decimal amount = child.Value.ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    amounts[child.Name] = amount;
+                }
+            }
+            return amounts;
+        }
+
+        protected override async Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol)
+        {
+            symbol = NormalizeSymbol(symbol);
+
+            List<object> orderParams = new List<object>
+            {
+                "currencyPair", symbol
+            };
+
+            JToken result = await MakePrivateAPIRequestAsync("getMarginPosition", orderParams);
+            CheckError(result);
+            ExchangeMarginPositionResult marginPositionResult = new ExchangeMarginPositionResult()
+            {
+                Amount = result["amount"].ConvertInvariant<decimal>(),
+                Total = result["total"].ConvertInvariant<decimal>(),
+                BasePrice = result["basePrice"].ConvertInvariant<decimal>(),
+                LiquidationPrice = result["liquidationPrice"].ConvertInvariant<decimal>(),
+                ProfitLoss = result["pl"].ConvertInvariant<decimal>(),
+                LendingFees = result["lendingFees"].ConvertInvariant<decimal>(),
+                Type = result["type"].ToStringInvariant(),
+                Symbol = symbol
+            };
+            return marginPositionResult;
+        }
+
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        {
+            return await PlaceOrderAsync(order, false);
+        }
+
+        protected override async Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order)
+        {
+            return await PlaceOrderAsync(order, true);
+        }
+
+        private async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order, bool isMargin)
         {
             if (order.OrderType == OrderType.Market)
             {
@@ -644,7 +697,7 @@ namespace ExchangeSharp
                 orderParams.Add(kv.Value);
             }
 
-            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? "buy" : "sell", orderParams);
+            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (isMargin ? "marginBuy" : "buy") : (isMargin ? "marginSell" : "sell"), orderParams);
             CheckError(result);
             ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result);
             exchangeOrderResult.Symbol = symbol;

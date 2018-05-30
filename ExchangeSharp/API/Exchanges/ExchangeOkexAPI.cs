@@ -37,19 +37,19 @@ namespace ExchangeSharp
         }
 
         #region ProcessRequest
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 payload.Remove("nonce");
                 payload["api_key"] = PublicApiKey.ToUnsecureString();
-                var msg = GetFormForPayload(payload, false);
+                var msg = CryptoUtility.GetFormForPayload(payload, false);
                 msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
                 var sign = msg + "&secret_key=" + PrivateApiKey.ToUnsecureString();
                 sign = CryptoUtility.MD5Sign(sign);
                 msg += "&sign=" + sign;
 
-                WriteToRequest(request, msg);
+                await CryptoUtility.WriteToRequestAsync(request, msg);
             }
         }
 
@@ -149,14 +149,98 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        protected override IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
+            if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbol);
+            var normalizedSymbol = NormalizeSymbol(symbols[0]);
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                /*
+{[
+  {
+    "binary": 0,
+    "channel": "addChannel",
+    "data": {
+      "result": true,
+      "channel": "ok_sub_spot_btc_usdt_deals"
+    }
+  }
+]}
+
+
+{[
+  {
+    "binary": 0,
+    "channel": "ok_sub_spot_btc_usdt_deals",
+    "data": [
+      [
+        "335599480",
+        "7396",
+        "0.0031002",
+        "20:23:51",
+        "bid"
+      ],
+      [
+        "335599497",
+        "7395.9153",
+        "0.0031",
+        "20:23:51",
+        "bid"
+      ],
+      [
+        "335599499",
+        "7395.7889",
+        "0.00409436",
+        "20:23:51",
+        "ask"
+      ],
+      
+    ]
+  }
+]}
+                 */
+                try
+                {
+                    JToken token = JToken.Parse(msg.UTF8String());
+                    token = token[0];
+                    var channel = token["channel"].ToStringInvariant();
+                    if (channel.EqualsWithOption("addChannel"))
+                    {
+                        return;
+                    }
+
+                    var sArray = channel.Split('_');
+                    var symbol = sArray[3]+"_"+sArray[4];
+                    var trades = ParseWebSocket(sArray, token) as IEnumerable<ExchangeTrade>;
+                    foreach (var trade in trades)
+                    {
+                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                    }
+                }
+                catch
+                {
+                }
+            }, (_socket) =>
+            {
+                string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
+                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                _socket.SendMessage(msg);
+            });
+        }
+
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        {
+            if (callback == null || symbols == null || symbols.Length == 0)
+            {
+                return null;
+            }
+
+            var normalizedSymbol = NormalizeSymbol(symbols[0]);
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -206,29 +290,21 @@ namespace ExchangeSharp
                 {
                     JToken token = JToken.Parse(msg.UTF8String());
                     token = token[0];
-                    var channel = token["channel"];
-                    if (channel.ToStringInvariant().EqualsWithOption("addChannel"))
+                    var channel = token["channel"].ToStringInvariant();
+                    if (channel.EqualsWithOption("addChannel"))
                     {
                         return;
                     }
 
-                    var data = CheckError(token);
+                    var sArray = channel.Split('_');
+                    var symbol = sArray[3] + "_" + sArray[4];
 
+                    var data = token["data"];
                     var seq = data["timestamp"].ConvertInvariant<long>();
-                    var orderBook = new ExchangeOrderBook();
-                    foreach (JArray array in data["asks"])
-                    {
-                        var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                        orderBook.Asks[depth.Price] = depth;
-                    }
+                    var orderBook = ParseWebSocket(sArray, data) as ExchangeOrderBook;
 
-                    foreach (JArray array in data["bids"])
-                    {
-                        var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                        orderBook.Bids[depth.Price] = depth;
-                    }
-
-                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(seq, orderBook));
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq,
+                        new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
                 }
                 catch
                 {
@@ -626,6 +702,56 @@ namespace ExchangeSharp
             };
 
             return result;
+        }
+
+        private object ParseWebSocket(string[] sArray, JToken token)
+        {
+            switch (sArray[5])
+            {
+                case "depth":
+                    return ParseOrderBookWebSocket(token);
+                case "deals":
+                    return ParseTradesWebSocket(token["data"]);
+            }
+            return null;
+        }
+
+        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
+        {
+            var orderBook = new ExchangeOrderBook();
+            foreach (JArray array in token["asks"])
+            {
+                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                orderBook.Asks[depth.Price] = depth;
+            }
+            foreach (JArray array in token["bids"])
+            {
+                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                orderBook.Bids[depth.Price] = depth;
+            }
+
+            return orderBook;
+        }
+
+        private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
+        {
+            var trades = new List<ExchangeTrade>();
+            foreach (var t in token)
+            {
+                var ts = TimeSpan.Parse(t[3].ToStringInvariant());
+                var dt = DateTime.Today.Add(ts).ToUniversalTime();
+                var trade = new ExchangeTrade()
+                {
+                    Id = t[0].ConvertInvariant<long>(),
+                    Price = t[1].ConvertInvariant<decimal>(),
+                    Amount = t[2].ConvertInvariant<decimal>(),
+                    Timestamp = dt,
+                    IsBuy = t[4].ToStringInvariant().EqualsWithOption("bid"),
+                };
+                trades.Add(trade);
+            }
+
+            return trades;
         }
         #endregion
     }

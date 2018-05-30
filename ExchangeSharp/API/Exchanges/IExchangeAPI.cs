@@ -22,6 +22,8 @@ namespace ExchangeSharp
     /// </summary>
     public interface IExchangeAPI : IDisposable
     {
+        #region Properties
+
         /// <summary>
         /// Get the name of the exchange this API connects to
         /// </summary>
@@ -42,6 +44,35 @@ namespace ExchangeSharp
         /// Most exchanges do not require this, but GDAX is an example of one that does
         /// </summary>
         System.Security.SecureString Passphrase { get; set; }
+
+        /// <summary>
+        /// Request timeout
+        /// </summary>
+        TimeSpan RequestTimeout { get; set; }
+
+        /// <summary>
+        /// Request window - most services do not use this, but Binance API is an example of one that does
+        /// </summary>
+        TimeSpan RequestWindow { get; set; }
+
+        /// <summary>
+        /// Nonce style
+        /// </summary>
+        NonceStyle NonceStyle { get; }
+
+        /// <summary>
+        /// Cache policy - defaults to no cache, don't change unless you have specific needs
+        /// </summary>
+        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
+
+        /// <summary>
+        /// Whether the DateTime values from the api are in local time. Most API use UTC, but there are some (Poloniex) that return local DateTime for some odd reason.
+        /// </summary>
+        bool DateTimeAreLocal { get; set; }
+
+        #endregion Properties
+
+        #region Utility Methods
 
         /// <summary>
         /// Load API keys from an encrypted file - keys will stay encrypted in memory
@@ -82,34 +113,9 @@ namespace ExchangeSharp
         string GlobalSymbolToExchangeSymbol(string symbol);
 
         /// <summary>
-        /// Request timeout
-        /// </summary>
-        TimeSpan RequestTimeout { get; set; }
-
-        /// <summary>
-        /// Request window - most services do not use this, but Binance API is an example of one that does
-        /// </summary>
-        TimeSpan RequestWindow { get; set; }
-
-        /// <summary>
-        /// Nonce style
-        /// </summary>
-        NonceStyle NonceStyle { get; }
-
-        /// <summary>
-        /// Cache policy - defaults to no cache, don't change unless you have specific needs
-        /// </summary>
-        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
-
-        /// <summary>
-        /// Whether the DateTime values from the api are in local time. Most API use UTC, but there are some (Poloniex) that return local DateTime for some odd reason.
-        /// </summary>
-        bool DateTimeAreLocal { get; set; }
-
-        /// <summary>
         /// Generate a nonce
         /// </summary>
-        /// <returns>Nonce</returns>
+        /// <returns>Nonce (can be string, long, double, etc., so object is used)</returns>
         object GenerateNonce();
 
         /// <summary>
@@ -133,6 +139,10 @@ namespace ExchangeSharp
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
         Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
+
+        #endregion Utility Methods
+
+        #region REST
 
         /// <summary>
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
@@ -208,22 +218,6 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
         Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
-
-        /// <summary>
-        /// Get all tickers via web socket
-        /// </summary>
-        /// <param name="tickers">Callback</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
-
-        /// <summary>
-        /// Get top bids and asks via web socket
-        /// </summary>
-        /// <param name="symbol">Ticker symbol</param>
-        /// <param name="callback">Callback</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20);
 
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -392,13 +386,6 @@ namespace ExchangeSharp
         Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null);
 
         /// <summary>
-        /// Get the details of all completed orders via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
-
-        /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
@@ -411,6 +398,83 @@ namespace ExchangeSharp
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
         Task CancelOrderAsync(string orderId, string symbol = null);
+
+        /// <summary>
+        /// Get margin amounts available to trade, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
+        Dictionary<string, decimal> GetMarginAmountsAvailableToTrade();
+
+        /// <summary>
+        /// ASYNC - Get margin amounts available to trade, symbol / amount dictionary
+        /// </summary>
+        /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
+        Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync();
+
+        /// <summary>
+        /// Place a margin order
+        /// </summary>
+        /// <param name="order">Order request</param>
+        /// <returns>Order result and message string if any</returns>
+        ExchangeOrderResult PlaceMarginOrder(ExchangeOrderRequest order);
+
+        /// <summary>
+        /// ASYNC - Place a margin order
+        /// </summary>
+        /// <param name="order">Order request</param>
+        /// <returns>Order result and message string if any</returns>
+        Task<ExchangeOrderResult> PlaceMarginOrderAsync(ExchangeOrderRequest order);
+
+        /// <summary>
+        /// Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        ExchangeMarginPositionResult GetOpenPosition(string symbol);
+
+        /// <summary>
+        /// ASYNC - Get open margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Open margin position result</returns>
+        Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol);
+
+        #endregion REST
+
+        #region Web Socket
+
+        /// <summary>
+        /// Get all tickers via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback);
+
+        /// <summary>
+        /// Get information about trades via web socket
+        /// </summary>
+        /// <param name="callback">Callback (symbol and trade)</param>
+        /// <param name="symbols">Symbols</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
+
+        /// <summary>
+        /// Get top bids and asks via web socket
+        /// </summary>
+        /// <param name="callback">Callback of symbol, order book</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols);
+
+        /// <summary>
+        /// Get the details of all completed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+
+        #endregion Web Socket
     }
 
     /// <summary>

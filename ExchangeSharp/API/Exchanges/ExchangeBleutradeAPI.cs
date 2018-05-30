@@ -48,12 +48,13 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["apisign"] = CryptoUtility.SHA512Sign(request.RequestUri.ToString(), PrivateApiKey.ToUnsecureString()).ToLower();
             }
+            return base.ProcessRequestAsync(request, payload);
         }
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)

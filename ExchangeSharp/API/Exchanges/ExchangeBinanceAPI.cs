@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -38,7 +39,27 @@ namespace ExchangeSharp
             };
         }
 
-        public ExchangeBinanceAPI()
+        private string GetWebSocketStreamUrlForSymbols(string suffix, params string[] symbols)
+        {
+            if (symbols == null || symbols.Length == 0)
+            {
+                symbols = GetSymbols().ToArray();
+            }
+
+            StringBuilder streams = new StringBuilder("/stream?streams=");
+            for (int i = 0; i < symbols.Length; i++)
+            {
+                string symbol = NormalizeSymbol(symbols[i]).ToLowerInvariant();
+                streams.Append(symbol);
+                streams.Append(suffix);
+                streams.Append('/');
+            }
+            streams.Length--; // remove last /
+
+            return streams.ToString();
+        }
+
+            public ExchangeBinanceAPI()
         {
             // give binance plenty of room to accept requests
             RequestWindow = TimeSpan.FromMinutes(15.0);
@@ -197,7 +218,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
@@ -226,23 +247,74 @@ namespace ExchangeSharp
             });
         }
 
-        public override IDisposable GetOrderBookWebSocket(string symbol, Action<ExchangeSequencedWebsocketMessage<ExchangeOrderBook>> callback, int maxCount = 20)
+        protected override IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
             if (callback == null)
             {
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbol).ToLowerInvariant();
+            /*
+            {
+              "e": "trade",     // Event type
+              "E": 123456789,   // Event time
+              "s": "BNBBTC",    // Symbol
+              "t": 12345,       // Trade ID
+              "p": "0.001",     // Price
+              "q": "100",       // Quantity
+              "b": 88,          // Buyer order Id
+              "a": 50,          // Seller order Id
+              "T": 123456785,   // Trade time
+              "m": true,        // Is the buyer the market maker?
+              "M": true         // Ignore.
+            }
+            */
 
-            return ConnectWebSocket($"/ws/{normalizedSymbol}@depth{maxCount}", (msg, _socket) =>
+            string url = GetWebSocketStreamUrlForSymbols("@trade", symbols);
+            return ConnectWebSocket(url, (msg, _socket) =>
             {
                 try
                 {
                     JToken token = JToken.Parse(msg.UTF8String());
-                    var orderBook = ParseOrderBook(token);
-                    var sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
-                    callback(new ExchangeSequencedWebsocketMessage<ExchangeOrderBook>(sequenceNumber, orderBook));
+                    string name = token["stream"].ToStringInvariant();
+                    token = token["data"];
+                    string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+                    ExchangeTrade trade = new ExchangeTrade
+                    {
+                        Amount = token["q"].ConvertInvariant<decimal>(),
+                        Id = token["t"].ConvertInvariant<long>(),
+                        IsBuy = token["m"].ConvertInvariant<bool>(),
+                        Price = token["p"].ConvertInvariant<decimal>(),
+                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
+                    };
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                }
+                catch
+                {
+                }
+            });
+        }
+
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            string suffix = "@depth" + maxCount.ToStringInvariant();
+            string url = GetWebSocketStreamUrlForSymbols(suffix, symbols);
+            return ConnectWebSocket(url, (msg, _socket) =>
+            {
+                try
+                {
+                    JToken token = JToken.Parse(msg.UTF8String());
+                    string name = token["stream"].ToStringInvariant();
+                    token = token["data"];
+                    ExchangeOrderBook orderBook = ParseOrderBook(token);
+                    string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+                    int sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(sequenceNumber, new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
                 }
                 catch
                 {
@@ -797,12 +869,13 @@ namespace ExchangeSharp
             }
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["X-MBX-APIKEY"] = PublicApiKey.ToUnsecureString();
             }
+            return base.ProcessRequestAsync(request, payload);
         }
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
@@ -812,8 +885,8 @@ namespace ExchangeSharp
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
                 var query = HttpUtility.ParseQueryString(url.Query);
                 string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
-                    (payload.Count > 1 ? "&" + GetFormForPayload(payload, false) : string.Empty);
-                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.SecureStringToBytes(PrivateApiKey));
+                    (payload.Count > 1 ? "&" + CryptoUtility.GetFormForPayload(payload, false) : string.Empty);
+                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToBytes(PrivateApiKey));
                 newQuery += "&signature=" + signature;
                 url.Query = newQuery;
                 return url.Uri;

@@ -27,7 +27,6 @@ namespace ExchangeSharpTests
             exchangeOrderBook.Asks.Last().Key.Should().Be(2.85m);
         }
 
-
         [TestMethod]
         public void BidsSorted_Descending()
         {

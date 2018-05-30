@@ -486,12 +486,12 @@ namespace ExchangeSharp
                 byte[] xmlBytes = File.ReadAllBytes(xmlFile);
                 xmlBytes = CryptoUtility.AesDecryption(xmlBytes, esp, esl);
                 rsa = new RSACryptoServiceProvider();
-                RSAKeyExtensions.FromXmlString(rsa, System.Text.Encoding.ASCII.GetString(xmlBytes));
+                RSAKeyExtensions.FromXmlString(rsa, CryptoUtility.UTF8EncodingNoPrefix.GetString(xmlBytes));
             }
             else
             {
                 rsa = new RSACryptoServiceProvider(4096);
-                byte[] xmlBytes = System.Text.Encoding.ASCII.GetBytes(RSAKeyExtensions.ToXmlString(rsa, true));
+                byte[] xmlBytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(RSAKeyExtensions.ToXmlString(rsa, true));
                 xmlBytes = CryptoUtility.AesEncryption(xmlBytes, esp, esl);
                 File.WriteAllBytes(xmlFile, xmlBytes);
             }

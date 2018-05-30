@@ -81,7 +81,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload);
+        Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload);
 
         /// <summary>
         /// Additional handling for response

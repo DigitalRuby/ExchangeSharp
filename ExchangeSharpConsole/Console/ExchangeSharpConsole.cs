@@ -14,7 +14,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 
 using ExchangeSharp;
@@ -53,54 +56,65 @@ namespace ExchangeSharpConsoleApp
             return dict;
         }
 
+        private static void TestMethod()
+        {
+
+        }
+
         public static int ConsoleMain(string[] args)
         {
             try
             {
-                Dictionary<string, string> dict = ParseCommandLine(args);
-                if (dict.Count == 0 || dict.ContainsKey("help"))
+                TestMethod(); // uncomment for ad-hoc code testing
+
+                Dictionary<string, string> argsDictionary = ParseCommandLine(args);
+                if (argsDictionary.Count == 0 || argsDictionary.ContainsKey("help"))
                 {
-                    RunShowHelp(dict);
+                    RunShowHelp(argsDictionary);
                 }
-                else if (dict.Count >= 1 && dict.ContainsKey("test"))
+                else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("test"))
                 {
-                    RunPerformTests(dict);
+                    RunPerformTests(argsDictionary);
                 }
-                else if (dict.Count >= 1 && dict.ContainsKey("export"))
+                else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("export"))
                 {
-                    RunExportData(dict);
+                    RunExportData(argsDictionary);
                 }
-                else if (dict.Count >= 1 && dict.ContainsKey("convert"))
+                else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("convert"))
                 {
-                    RunConvertData(dict);
+                    RunConvertData(argsDictionary);
                 }
-                else if (dict.Count >= 1 && dict.ContainsKey("stats"))
+                else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("stats"))
                 {
-                    RunShowExchangeStats(dict);
+                    RunShowExchangeStats(argsDictionary);
                 }
-                else if (dict.ContainsKey("example"))
+                else if (argsDictionary.ContainsKey("example"))
                 {
-                    RunExample(dict);
+                    RunExample(argsDictionary);
                 }
-                else if (dict.ContainsKey("keys"))
+                else if (argsDictionary.ContainsKey("keys"))
                 {
-                    RunProcessEncryptedAPIKeys(dict);
+                    RunProcessEncryptedAPIKeys(argsDictionary);
                 }
-                else if (dict.ContainsKey("websocket-ticker"))
+                else if (argsDictionary.ContainsKey("websocket-ticker"))
                 {
-                    RunWebSocketTickers(dict);
+                    RunWebSocketTickers(argsDictionary);
                 }
-                else if (dict.ContainsKey("websocket-orderbook"))
+                else if (argsDictionary.ContainsKey("websocket-trades"))
                 {
-                    RunOrderBookWebSocket(dict);
+                    RunTradesWebSocket(argsDictionary);
                 }
-                else if (dict.ContainsKey("getExchangeNames"))
+                else if (argsDictionary.ContainsKey("websocket-orderbook"))
+                {
+                    RunOrderBookWebSocket(argsDictionary);
+                }
+                else if (argsDictionary.ContainsKey("getExchangeNames"))
                 {
                     Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));
                 }
-                else if (dict.ContainsKey("showHistoricalTrades"))
+                else if (argsDictionary.ContainsKey("showHistoricalTrades"))
                 {
-                    RunGetHistoricalTrades(dict);
+                    RunGetHistoricalTrades(argsDictionary);
                 }
                 else
                 {

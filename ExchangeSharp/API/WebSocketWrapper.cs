@@ -98,8 +98,18 @@ namespace ExchangeSharp
 
         private async Task SendMessageAsync(string message)
         {
-            ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
-            await _ws.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, _cancellationToken);
+            try
+            {
+                if (_ws.State == WebSocketState.Open)
+                {
+                    ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
+                    await _ws.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, _cancellationToken);
+                }
+            }
+            catch
+            {
+                // don't care if this fails, maybe the socket is in process of dispose, who knows...
+            }
         }
 
         private void QueueAction(Action<WebSocketWrapper> action)

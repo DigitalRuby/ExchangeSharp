@@ -42,7 +42,7 @@ namespace ExchangeSharp
             return (symbol ?? string.Empty).Replace('/', '_').Replace('-', '_');
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
@@ -51,7 +51,7 @@ namespace ExchangeSharp
                 string nonce = payload["nonce"] as string;
                 payload.Remove("nonce");
 
-                string jsonContent = GetJsonForPayload(payload);
+                string jsonContent = CryptoUtility.GetJsonForPayload(payload);
                 if (!String.IsNullOrEmpty(jsonContent))
                 {
                     using (MD5 md5 = MD5.Create())
@@ -66,12 +66,10 @@ namespace ExchangeSharp
                 request.Headers.Add(HttpRequestHeader.Authorization, string.Format("amx {0}:{1}:{2}", PublicApiKey.ToUnsecureString(), signature, nonce));
 
                 // Cryptopia is very picky on how the payload is passed. There might be a better way to do this, but this works...
-                using (Stream stream = request.GetRequestStream())
+                using (Stream stream = await request.GetRequestStreamAsync())
                 {
                     byte[] content = Encoding.UTF8.GetBytes(jsonContent);
                     stream.Write(content, 0, content.Length);
-                    stream.Flush();
-                    stream.Close();
                 }
             }
         }
@@ -109,7 +107,10 @@ namespace ExchangeSharp
             List<string> symbols = new List<string>();
             JToken result = await MakeJsonRequestAsync<JToken>("/GetTradePairs");
             result = CheckError(result);
-            foreach (JToken token in result) symbols.Add(token["Label"].Value<string>());
+            foreach (JToken token in result)
+            {
+                symbols.Add(token["Label"].ToStringInvariant());
+            }
             return symbols;
         }
 
@@ -162,12 +163,12 @@ namespace ExchangeSharp
             {
                 foreach (JToken order in token["Buy"])
                 {
-                    var depth = new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") };
+                    var depth = new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() };
                     orders.Bids[depth.Price] = depth;
                 }
                 foreach (JToken order in token["Sell"])
                 {
-                    var depth = new ExchangeOrderPrice() { Price = order.Value<decimal>("Price"), Amount = order.Value<decimal>("Volume") };
+                    var depth = new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() };
                     orders.Asks[depth.Price] = depth;
                 }
             }
@@ -303,10 +304,10 @@ namespace ExchangeSharp
                 {
                     OrderId = data["OrderId"].ConvertInvariant<int>().ToStringInvariant(),
                     OrderDate = ConvertDateTimeInvariant(data["TimeStamp"]),
-                    Symbol = data.Value<string>("Market"),
+                    Symbol = data["Market"].ToStringInvariant(),
                     Amount = data["Amount"].ConvertInvariant<decimal>(),
                     Price = data["Rate"].ConvertInvariant<decimal>(),
-                    IsBuy = data.Value<string>("Type") == "Buy"  
+                    IsBuy = data["Type"].ToStringInvariant() == "Buy"  
                 };
                 order.AveragePrice = order.Price;
                 order.AmountFilled = order.Amount - data["Remaining"].ConvertInvariant<decimal>();

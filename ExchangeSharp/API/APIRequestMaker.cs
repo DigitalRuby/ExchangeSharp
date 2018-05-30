@@ -76,7 +76,7 @@ namespace ExchangeSharp
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload);
             HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
-            request.Headers["Accept-Language"] = "en-us; q=1.0;";
+            request.Headers["Accept-Language"] = "en-US,en;q=0.5";
             request.Method = method ?? api.RequestMethod;
             request.ContentType = api.RequestContentType;
             request.UserAgent = BaseAPI.RequestUserAgent;
@@ -92,8 +92,8 @@ namespace ExchangeSharp
 
             }
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            api.ProcessRequest(request, payload);
-            HttpWebResponse response;
+            await api.ProcessRequestAsync(request, payload);
+            HttpWebResponse response = null;
             string responseString = null;
 
             try
@@ -137,7 +137,10 @@ namespace ExchangeSharp
                 RequestStateChanged?.Invoke(this, RequestMakerState.Error, ex);
                 throw;
             }
-            response.Dispose();
+            finally
+            {
+                response?.Dispose();
+            }
             return responseString;
         }
 

@@ -10,24 +10,28 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace ExchangeSharp
 {
-    using Newtonsoft.Json.Linq;
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.IO;
-    using System.IO.Compression;
-    using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Security;
-    using System.Security.Cryptography;
-    using System.Text;
-
     public static class CryptoUtility
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime unixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+        private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, true);
 
         /// <summary>
         /// Static constructor
@@ -37,6 +41,11 @@ namespace ExchangeSharp
             IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             IsMono = (Type.GetType("Mono.Runtime") != null);
         }
+
+        /// <summary>
+        /// Utf-8 encoding with no prefix bytes
+        /// </summary>
+        public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
 
         /// <summary>
         /// Convert an object to string using invariant culture
@@ -193,31 +202,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a secure string to a non-secure string
-        /// </summary>
-        /// <param name="s">SecureString</param>
-        /// <returns>Non-secure string</returns>
-        public static string ToUnsecureString(this SecureString s)
-        {
-            return SecureStringToString(s);
-        }
-
-        /// <summary>
-        /// Convert a string to secure string
-        /// </summary>
-        /// <param name="s">Non-secure string</param>
-        /// <returns>SecureString</returns>
-        public static SecureString ToSecureString(this string s)
-        {
-            return StringToSecureString(s);
-        }
-
-        /// <summary>
         /// Covnert a secure string to a non-secure string
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Non-secure string</returns>
-        public static string SecureStringToString(this SecureString s)
+        public static string ToUnsecureString(this SecureString s)
         {
             if (s == null)
             {
@@ -240,14 +229,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
-        public static byte[] SecureStringToBytes(this SecureString s)
+        public static byte[] ToBytes(this SecureString s)
         {
             if (s == null)
             {
                 return null;
             }
-            string unsecure = SecureStringToString(s);
-            byte[] bytes = Encoding.ASCII.GetBytes(unsecure);
+            string unsecure = ToUnsecureString(s);
+            byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(unsecure);
             unsecure = null;
             return bytes;
         }
@@ -257,13 +246,13 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString in base64 format</param>
         /// <returns>Binary data</returns>
-        public static byte[] SecureStringToBytesBase64Decode(this SecureString s)
+        public static byte[] ToBytesBase64Decode(this SecureString s)
         {
             if (s == null)
             {
                 return null;
             }
-            string unsecure = SecureStringToString(s);
+            string unsecure = ToUnsecureString(s);
             byte[] bytes = Convert.FromBase64String(unsecure);
             unsecure = null;
             return bytes;
@@ -274,7 +263,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="unsecure">Plain text string</param>
         /// <returns>SecureString</returns>
-        public static SecureString StringToSecureString(this string unsecure)
+        public static SecureString ToSecureString(this string unsecure)
         {
             if (unsecure == null)
             {
@@ -412,6 +401,110 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Convert a payload into json
+        /// </summary>
+        /// <param name="payload">Payload</param>
+        /// <returns>Json string</returns>
+        public static string GetJsonForPayload(Dictionary<string, object> payload)
+        {
+            if (payload != null && payload.Count != 0)
+            {
+                return JsonConvert.SerializeObject(payload);
+            }
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Write a form to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="form">Form to write</param>
+        public static async Task WriteToRequestAsync(this HttpWebRequest request, string form)
+        {
+            if (!string.IsNullOrEmpty(form))
+            {
+                byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(form);
+                request.ContentLength = bytes.Length;
+                using (Stream stream = await request.GetRequestStreamAsync())
+                {
+                    stream.Write(bytes, 0, bytes.Length);
+                    await stream.FlushAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Write a payload form to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="payload">Payload</param>
+        /// <returns>The form string that was written</returns>
+        public static async Task<string> WritePayloadFormToRequestAsync(this HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            string form = GetFormForPayload(payload);
+            await WriteToRequestAsync(request, form);
+            return form;
+        }
+
+        /// <summary>
+        /// Write a payload json to a request
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="payload">Payload</param>
+        /// <returns>The json string that was written</returns>
+        public static async Task<string> WritePayloadJsonToRequestAsync(this HttpWebRequest request, Dictionary<string, object> payload)
+        {
+            string json = GetJsonForPayload(payload);
+            await WriteToRequestAsync(request, json);
+            return json;
+        }
+
+        /// <summary>
+        /// Get a form for a request (form-encoded, like a query string)
+        /// </summary>
+        /// <param name="payload">Payload</param>
+        /// <param name="includeNonce">Whether to add the nonce</param>
+        /// <returns>Form string</returns>
+        public static string GetFormForPayload(Dictionary<string, object> payload, bool includeNonce = true)
+        {
+            if (payload != null && payload.Count != 0)
+            {
+                StringBuilder form = new StringBuilder();
+                foreach (KeyValuePair<string, object> keyValue in payload.OrderBy(kv => kv.Key))
+                {
+                    if (keyValue.Key != null && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
+                    {
+                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToStringInvariant()));
+                    }
+                }
+                if (form.Length != 0)
+                {
+                    form.Length--; // trim ampersand
+                }
+                return form.ToString();
+            }
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Get a value from dictionary with default fallback
+        /// </summary>
+        /// <typeparam name="TKey">Key type</typeparam>
+        /// <typeparam name="TValue">Value type</typeparam>
+        /// <param name="dictionary">Dictionary</param>
+        /// <param name="key">Key</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <returns>Found value or default</returns>
+        public static TValue TryGetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue)
+        {
+            if (!dictionary.TryGetValue(key, out TValue value))
+            {
+                value = defaultValue;
+            }
+            return value;
+        }
+
+        /// <summary>
         /// Sign a message with SHA256 hash
         /// </summary>
         /// <param name="message">Message to sign</param>
@@ -430,7 +523,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, byte[] key)
         {
-            return new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -441,7 +534,7 @@ namespace ExchangeSharp
         /// <returns>Signature in base64</returns>
         public static string SHA256SignBase64(string message, byte[] key)
         {
-            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
         }
 
         /// <summary>
@@ -452,7 +545,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA384Sign(string message, string key)
         {
-            return new HMACSHA384(Encoding.UTF8.GetBytes(key)).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(utf8EncodingNoPrefix.GetBytes(key)).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -463,7 +556,7 @@ namespace ExchangeSharp
         /// <returns>Signature</returns>
         public static string SHA384Sign(string message, byte[] key)
         {
-            return new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -474,7 +567,7 @@ namespace ExchangeSharp
         /// <returns>Signature in base64</returns>
         public static string SHA384SignBase64(string message, byte[] key)
         {
-            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(Encoding.UTF8.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
         }
 
         /// <summary>
@@ -485,8 +578,8 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-            var hmac = new HMACSHA512(Encoding.ASCII.GetBytes(key));
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var hmac = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(key));
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
@@ -500,7 +593,7 @@ namespace ExchangeSharp
         public static string SHA512Sign(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
@@ -514,7 +607,7 @@ namespace ExchangeSharp
         public static string SHA512SignBase64(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = hmac.ComputeHash(messagebyte);
             return Convert.ToBase64String(hashmessage);
         }
@@ -527,7 +620,7 @@ namespace ExchangeSharp
         public static string MD5Sign(string message)
         {
             var md5 = new MD5CryptoServiceProvider();
-            var messagebyte = Encoding.ASCII.GetBytes(message);
+            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
             var hashmessage = md5.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }

@@ -27,7 +27,6 @@ namespace ExchangeSharp
         public ExchangeLivecoinAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = "/";
         }
 
@@ -38,12 +37,14 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                request.Headers["API-key"] = PublicApiKey.ToUnsecureString();
-                request.Headers["Sign"] = CryptoUtility.SHA256Sign(request.RequestUri.Query.Length > 1 ? request.RequestUri.Query.Substring(1) : request.RequestUri.Query, PrivateApiKey.ToUnsecureString()).ToUpper();
+                string payloadForm = CryptoUtility.GetFormForPayload(payload, false);
+                request.Headers["API-Key"] = PublicApiKey.ToUnsecureString();
+                request.Headers["Sign"] = CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytes()).ToUpperInvariant();
+                await request.WriteToRequestAsync(payloadForm);
             }
         }
 
@@ -220,7 +221,7 @@ namespace ExchangeSharp
             token = CheckError(token);
             foreach (JToken child in token)
             {
-                if (child.Value<string>("type") == "total")
+                if (child["type"].ToStringInvariant() == "total")
                 {
                     decimal amount = child["value"].ConvertInvariant<decimal>();
                     if (amount > 0m) amounts.Add(child["currency"].ToStringInvariant(), amount);
@@ -237,7 +238,7 @@ namespace ExchangeSharp
             token = CheckError(token);
             foreach (JToken child in token)
             {
-                if (child.Value<string>("type") == "trade")
+                if (child["type"].ToStringInvariant() == "trade")
                 {
                     decimal amount = child["value"].ConvertInvariant<decimal>();
                     if (amount > 0m) amounts.Add(child["currency"].ToStringInvariant(), amount);
@@ -264,7 +265,7 @@ namespace ExchangeSharp
             if (symbol != null) payload.Add("currencyPair", symbol);
             if (afterDate != null) payload.Add("issuedFrom", ((DateTime)afterDate).UnixTimestampFromDateTimeMilliseconds());
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
             token = CheckError(token);
             foreach (JToken order in token["data"]) orders.Add(ParseClientOrder(order));
             return orders;
@@ -283,7 +284,7 @@ namespace ExchangeSharp
             payload.Add("openClosed", "OPEM"); 
             if (symbol != null) payload.Add("currencyPair", symbol);
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
             token = CheckError(token);
             foreach (JToken order in token["data"]) orders.Add(ParseClientOrder(order));
             return orders;
@@ -291,13 +292,22 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
+            var payload = GetNoncePayload();
             string orderType = "/exchange/";
-            if (order.OrderType == OrderType.Market) orderType += order.IsBuy ? "buymarket" : "sellmarket";
-            else orderType += order.IsBuy ? "buylimit" : "selllimit";
+            if (order.OrderType == OrderType.Market)
+            {
+                orderType += order.IsBuy ? "buymarket" : "sellmarket";
+            }
+            else
+            {
+                orderType += order.IsBuy ? "buylimit" : "selllimit";
+                payload["price"] = order.Price;
+            }
+            payload["currencyPair"] = NormalizeSymbol(order.Symbol);
+            payload["quantity"] = order.Amount;
 
             //{ "success": true, "added": true, "orderId": 4912
-            JToken token = await MakeJsonRequestAsync<JToken>(string.Format("{0}?currencyPair={1}&price={2}&quantity={3}",
-                orderType, WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)), order.Price.ToStringInvariant(), order.RoundAmount().ToStringInvariant()), null, GetNoncePayload(), "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>(orderType, null, payload, "POST");
             token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
@@ -326,7 +336,7 @@ namespace ExchangeSharp
             payload.Add("types", "DEPOSIT,WITHDRAWAL");  // opting to return both deposits and withdraws. 
 
             // We can also include trades and orders with this call (which makes 3 ways to return the same data)
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/payment/history/transactions?" + GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/payment/history/transactions?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
             token = CheckError(token);
             foreach (JToken tx in token) deposits.Add(ParseTransaction(tx));
 
@@ -338,13 +348,13 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol, BaseUrl, GetNoncePayload(), "GET");
             token = CheckError(token);
-            if (token != null && token.HasValues && token["currency"].Value<string>() == symbol && token["wallet"].Value<string>() != null)
+            if (token != null && token.HasValues && token["currency"].ToStringInvariant() == symbol && token["wallet"].ToStringInvariant().Length != 0)
             {
                 ExchangeDepositDetails address = new ExchangeDepositDetails() {Symbol = symbol };
-                if (token["wallet"].Value<string>().Contains("::"))
+                if (token["wallet"].ToStringInvariant().Contains("::"))
                 {
                     // address tags are separated with a '::'
-                    var split = token["wallet"].Value<string>().Replace("::", ":").Split(':');
+                    var split = token["wallet"].ToStringInvariant().Replace("::", ":").Split(':');
                     address.Address = split[0];
                     address.AddressTag = split[1];
                 }
@@ -413,7 +423,7 @@ namespace ExchangeSharp
             {
 
             };
-            switch (token["status"].Value<string>())
+            switch (token["status"].ToStringInvariant())
             {
                 case "CANCELLED": order.Result = ExchangeAPIOrderResult.Canceled; break;
             }
@@ -435,7 +445,7 @@ namespace ExchangeSharp
             };
 
             order.AmountFilled = order.Amount - token["remainingQuantity"].ConvertInvariant<decimal>();
-            switch (token["status"].Value<string>())
+            switch (token["status"].ToStringInvariant())
             {
                 case "CANCELLED": order.Result = ExchangeAPIOrderResult.Canceled; break;
             }

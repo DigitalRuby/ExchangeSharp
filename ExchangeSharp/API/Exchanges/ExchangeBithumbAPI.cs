@@ -176,23 +176,5 @@ namespace ExchangeSharp
             }
             return books;
         }
-
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
-        {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            var data = await MakeRequestBithumbAsync(symbol, "/public/recent_transactions/$SYMBOL$");
-            foreach (JToken token in data.Item1)
-            {
-                trades.Add(new ExchangeTrade
-                {
-                    Amount = token["units_traded"].ConvertInvariant<decimal>(),
-                    Price = token["price"].ConvertInvariant<decimal>(),
-                    Id = -1,
-                    IsBuy = token["type"].ToStringInvariant() == "bid",
-                    Timestamp = ConvertDateTimeInvariant(token["transaction_date"])
-                });
-            }
-            callback(trades);
-        }
     }
 }

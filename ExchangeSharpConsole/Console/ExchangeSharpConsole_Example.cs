@@ -56,38 +56,66 @@ namespace ExchangeSharpConsoleApp
                 {
                     throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
                 }
-                using (var socket = api.GetTickersWebSocket(freshTickers =>
+                try
                 {
-                    foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                    using (var socket = api.GetTickersWebSocket(freshTickers =>
                     {
-                        Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                        foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                        {
+                            Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                        }
+                    }))
+                    {
+                        Console.WriteLine("Press any key to quit.");
+                        Console.ReadKey();
                     }
-                }))
+                }
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    Console.WriteLine("Web socket error: " + ex);
                 }
             }
         }
 
-        private static void RunOrderBookWebSocket(Dictionary<string, string> dict)
+        private static void RunTradesWebSocket(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "exchangeName", "symbol");
+            RequireArgs(dict, "exchangeName");
             var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
             if (api == null)
             {
                 throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
             }
 
-            var symbol = dict["symbol"];
+            string[] symbols = dict["symbols"].Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-            IDisposable socket = api.GetOrderBookWebSocket(symbol, message => 
+            IDisposable socket = api.GetTradesWebSocket(message =>
+            {
+                Console.WriteLine($"{message.Key}: {message.Value}");
+            }, symbols: symbols);
+
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
+            socket.Dispose();
+        }
+
+        private static void RunOrderBookWebSocket(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName");
+            var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]);
+            if (api == null)
+            {
+                throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+            }
+
+            string[] symbols = dict["symbols"].Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            IDisposable socket = api.GetOrderBookWebSocket(message => 
             {
                 //print the top bid and ask with amount
-                var topBid = message.Data.Bids.FirstOrDefault();
-                var topAsk = message.Data.Asks.FirstOrDefault();
-                Console.WriteLine($"[{symbol}:{message.SequenceNumber}] {topBid.Price} ({topBid.Amount}) | {topAsk.Price} ({topAsk.Amount})");
-            });
+                var topBid = message.Data.Value.Bids.FirstOrDefault();
+                var topAsk = message.Data.Value.Asks.FirstOrDefault();
+                Console.WriteLine($"[{message.Data.Key}:{message.SequenceNumber}] {topBid.Price} ({topBid.Amount}) | {topAsk.Price} ({topAsk.Amount})");
+            }, symbols: symbols);
 
             Console.WriteLine("Press any key to quit.");
             Console.ReadKey();
@@ -107,7 +135,7 @@ namespace ExchangeSharpConsoleApp
                 System.Security.SecureString[] secureStrings = CryptoUtility.LoadProtectedStringsFromFile(dict["path"]);
                 foreach (System.Security.SecureString s in secureStrings)
                 {
-                    Console.WriteLine(CryptoUtility.SecureStringToString(s));
+                    Console.WriteLine(CryptoUtility.ToUnsecureString(s));
                 }
             }
             else

@@ -23,12 +23,17 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using System.Threading;
+using System.Net.WebSockets;
 
 using Newtonsoft.Json.Linq;
+using Microsoft.AspNet.SignalR.Client.Infrastructure;
 
 #if HAS_SIGNALR
 
 using Microsoft.AspNet.SignalR.Client;
+using Microsoft.AspNet.SignalR.Client.Http;
+using Microsoft.AspNet.SignalR.Client.Transports;
 
 #endif
 
@@ -39,7 +44,7 @@ namespace ExchangeSharp
 
 #if HAS_SIGNALR
 
-        public sealed class BittrexWebSocket : IDisposable
+        public sealed class BittrexWebSocket
         {
             // https://bittrex.github.io/
 
@@ -57,7 +62,7 @@ namespace ExchangeSharp
                 /// <param name="callback"></param>
                 /// <param name="param"></param>
                 /// <returns>Connection</returns>
-                public async Task<IDisposable> OpenAsync(BittrexWebSocket client, string functionName, Action<string> callback, params object[] param)
+                public async Task OpenAsync(BittrexWebSocket client, string functionName, Action<string> callback, params object[] param)
                 {
                     if (callback != null)
                     {
@@ -76,7 +81,7 @@ namespace ExchangeSharp
                                 this.client = client;
                                 this.callback = callback;
                                 this.functionName = functionName;
-                                return this;
+                                return;
                             }
                             else
                             {
@@ -99,6 +104,102 @@ namespace ExchangeSharp
                 }
             }
 
+            public sealed class WebsocketCustomTransport : ClientTransportBase
+            {
+                private IConnection connection;
+                private string connectionData;
+                private WebSocketWrapper webSocket;
+
+                public override bool SupportsKeepAlive => true;
+
+                public WebsocketCustomTransport(IHttpClient client) : base(client, "webSockets")
+                {
+                }
+
+                ~WebsocketCustomTransport()
+                {
+                    Dispose(false);
+                }
+
+                protected override void OnStart(IConnection con, string conData, CancellationToken disconToken)
+                {
+                    connection = con;
+                    connectionData = conData;
+
+                    var connectUrl = UrlBuilder.BuildConnect(connection, Name, connectionData);
+
+                    if (webSocket != null)
+                        DisposeWebSocket();
+
+                    // SignalR uses https, websocket4net uses wss
+                    connectUrl = connectUrl.Replace("http://", "ws://").Replace("https://", "wss://");
+
+                    IDictionary<string, string> cookies = new Dictionary<string, string>();
+                    if (connection.CookieContainer != null)
+                    {
+                        var container = connection.CookieContainer.GetCookies(new Uri(connection.Url));
+                        foreach (Cookie cookie in container)
+                            cookies.Add(cookie.Name, cookie.Value);
+                    }
+
+                    webSocket = new WebSocketWrapper(connectUrl, WebSocketOnMessageReceived);
+                }
+
+                protected override void OnStartFailed()
+                {
+                    Dispose();
+                }
+
+                public override Task Send(IConnection con, string data, string conData)
+                {
+                    connection.Trace(TraceLevels.Events, "WS: SendMessage({0})", data);
+                    webSocket.SendMessage(data);
+                    return null;
+                }
+
+                public override void LostConnection(IConnection con)
+                {
+                    connection.Trace(TraceLevels.Events, "WS: LostConnection");
+                    connection.Stop();
+                }
+
+
+                protected override void Dispose(bool disposing)
+                {
+                    if (disposing)
+                    {
+                        if (webSocket != null)
+                            DisposeWebSocket();
+                    }
+
+                    base.Dispose(disposing);
+                }
+
+                private void DisposeWebSocket()
+                {
+                    webSocket.Dispose();
+                    webSocket = null;
+                }
+
+                private void WebSocketOnClosed()
+                {
+                    connection.Trace(TraceLevels.Events, "WS: OnClose()");
+                    connection.Stop();
+                }
+
+                private void WebSocketOnError(Exception e)
+                {
+                    connection.OnError(e);
+                }
+
+                private void WebSocketOnMessageReceived(byte[] data, WebSocketWrapper _webSocket)
+                {
+                    string dataText = CryptoUtility.UTF8EncodingNoPrefix.GetString(data);
+                    connection.Trace(TraceLevels.Messages, "WS: OnMessage({0})", dataText);
+                    ProcessResponse(connection, dataText);
+                }
+            }
+
             private HubConnection hubConnection;
             private IHubProxy hubProxy;
             private readonly Dictionary<string, List<Action<string>>> listeners = new Dictionary<string, List<Action<string>>>();
@@ -106,7 +207,7 @@ namespace ExchangeSharp
 
             private void AddListener(string functionName, Action<string> callback)
             {
-                Start();
+                StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 lock (listeners)
                 {
                     if (!listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
@@ -172,7 +273,7 @@ namespace ExchangeSharp
                     // if hubConnection is null, exception will throw out
                     while (hubConnection.State != ConnectionState.Connected)
                     {
-                        Start();
+                        StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                     }
                     Task.Delay(1000).ConfigureAwait(false).GetAwaiter().GetResult();
                 }
@@ -182,21 +283,26 @@ namespace ExchangeSharp
                 reconnecting = false;
             }
 
+            private void StateChanged(StateChange state)
+            {
+            }
+
             public BittrexWebSocket()
             {
                 const string connectionUrl = "https://socket.bittrex.com";
                 hubConnection = new HubConnection(connectionUrl);
                 hubConnection.Closed += SocketClosed;
+                hubConnection.StateChanged += StateChanged;
                 hubProxy = hubConnection.CreateHubProxy("c2");
                 hubProxy.On("uS", (string data) => HandleResponse("uS", data));
             }
 
-            public void Start()
+            public async Task StartAsync()
             {
-                while (hubConnection.State != ConnectionState.Connected)
-                {
-                    hubConnection.Start().ConfigureAwait(false).GetAwaiter().GetResult();
-                }
+                DefaultHttpClient client = new DefaultHttpClient();
+                var autoTransport = new AutoTransport(client, new IClientTransport[] { new WebsocketCustomTransport(client) });
+                hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
+                await hubConnection.Start(autoTransport);
             }
 
             public void Stop()
@@ -220,18 +326,27 @@ namespace ExchangeSharp
                 // null out hub so we don't try to reconnect
                 var tmp = hubConnection;
                 hubConnection = null;
-                tmp.Stop(TimeSpan.FromSeconds(1.0));
+                try
+                {
+                    tmp.Transport.Dispose();
+                    tmp.Dispose();
+                }
+                catch
+                {
+                    // eat exceptions here, we don't care if it fails
+                }
             }
 
             /// <summary>
             /// Subscribe to all market summaries
             /// </summary>
             /// <param name="callback">Callback</param>
-            /// <returns>IDisposable or null if error</returns>
+            /// <returns>IDisposable to close the socket</returns>
             public IDisposable SubscribeToSummaryDeltas(Action<string> callback)
             {
                 BittrexSocketClientConnection client = new BittrexSocketClientConnection();
-                return client.OpenAsync(this, "uS", callback).ConfigureAwait(false).GetAwaiter().GetResult();
+                client.OpenAsync(this, "uS", callback).ConfigureAwait(false);
+                return client;
             }
 
             // The return of GetAuthContext is a challenge string. Call CreateSignature(apiSecret, challenge)
@@ -265,8 +380,8 @@ namespace ExchangeSharp
             public static string CreateSignature(string apiSecret, string challenge)
             {
                 // Get hash by using apiSecret as key, and challenge as data
-                var hmacSha512 = new HMACSHA512(Encoding.ASCII.GetBytes(apiSecret));
-                var hash = hmacSha512.ComputeHash(Encoding.ASCII.GetBytes(challenge));
+                var hmacSha512 = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(apiSecret));
+                var hash = hmacSha512.ComputeHash(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(challenge));
                 return BitConverter.ToString(hash).Replace("-", string.Empty);
             }
         }
@@ -412,7 +527,7 @@ namespace ExchangeSharp
             return url.Uri;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -420,6 +535,7 @@ namespace ExchangeSharp
                 string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey.ToUnsecureString());
                 request.Headers["apisign"] = sign;
             }
+            return base.ProcessRequestAsync(request, payload);
         }
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
@@ -546,7 +662,7 @@ namespace ExchangeSharp
 
 #if HAS_SIGNALR
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {

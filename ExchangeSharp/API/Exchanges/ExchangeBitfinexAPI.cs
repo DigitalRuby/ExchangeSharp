@@ -197,7 +197,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        public override IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             if (callback == null)
             {
@@ -450,7 +450,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public override IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        protected override IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
             if (callback == null)
             {
@@ -485,7 +485,7 @@ namespace ExchangeSharp
                     { "authPayload", authPayload },
                     { "authSig", signature }
                 };
-                string payloadJSON = GetJsonForPayload(payload);
+                string payloadJSON = CryptoUtility.GetJsonForPayload(payload);
                 _socket.SendMessage(payloadJSON);
             });
         }
@@ -649,7 +649,7 @@ namespace ExchangeSharp
             return resp;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -666,14 +666,14 @@ namespace ExchangeSharp
                     request.Headers["bfx-nonce"] = nonce;
                     request.Headers["bfx-apikey"] = PublicApiKey.ToUnsecureString();
                     request.Headers["bfx-signature"] = hexSha384;
-                    WriteToRequest(request, json);
+                    await CryptoUtility.WriteToRequestAsync(request, json);
                 }
                 else
                 {
                     // bitfinex v1 doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
                     payload.Add("request", request.RequestUri.AbsolutePath);
                     string json = JsonConvert.SerializeObject(payload);
-                    string json64 = System.Convert.ToBase64String(Encoding.ASCII.GetBytes(json));
+                    string json64 = System.Convert.ToBase64String(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(json));
                     string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
                     request.Headers["X-BFX-PAYLOAD"] = json64;
                     request.Headers["X-BFX-SIGNATURE"] = hexSha384;

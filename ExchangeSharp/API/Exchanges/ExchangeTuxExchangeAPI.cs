@@ -40,7 +40,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -48,17 +48,15 @@ namespace ExchangeSharp
                 string nonce = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
 
-                var msg = GetFormForPayload(payload) + "&nonce=" + nonce;
-                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.SecureStringToBytes(PrivateApiKey)).ToLower();
+                var msg = CryptoUtility.GetFormForPayload(payload) + "&nonce=" + nonce;
+                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytes(PrivateApiKey)).ToLower();
                 request.Headers.Add("Sign", sig);
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
 
-                using (Stream stream = request.GetRequestStream())
+                using (Stream stream = await request.GetRequestStreamAsync())
                 {
                     byte[] content = Encoding.UTF8.GetBytes(msg);
                     stream.Write(content, 0, content.Length);
-                    stream.Flush();
-                    stream.Close();
                 }
             }
         }

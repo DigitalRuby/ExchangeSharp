@@ -45,6 +45,7 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = string.Empty;
             SymbolIsReversed = true;
+            NonceStyle = NonceStyle.UnixMilliseconds;
         }
 
         public override string NormalizeSymbol(string symbol)
@@ -198,17 +199,17 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override void ProcessRequest(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
-                WritePayloadFormToRequest(request, payload);
+                await CryptoUtility.WritePayloadFormToRequestAsync(request, payload);
             }
             else
             {
                 string nonce = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
-                string form = GetFormForPayload(payload);
+                string form = CryptoUtility.GetFormForPayload(payload);
                 // nonce must be first on Kraken
                 form = "nonce=" + nonce + (string.IsNullOrWhiteSpace(form) ? string.Empty : "&" + form);
                 using (SHA256 sha256 = SHA256Managed.Create())
@@ -219,15 +220,15 @@ namespace ExchangeSharp
                     byte[] sigBytes = new byte[sha256Bytes.Length + pathBytes.Length];
                     pathBytes.CopyTo(sigBytes, 0);
                     sha256Bytes.CopyTo(sigBytes, pathBytes.Length);
-                    byte[] privateKey = System.Convert.FromBase64String(CryptoUtility.SecureStringToString(PrivateApiKey));
+                    byte[] privateKey = System.Convert.FromBase64String(CryptoUtility.ToUnsecureString(PrivateApiKey));
                     using (System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
                     {
                         string sign = System.Convert.ToBase64String(hmac.ComputeHash(sigBytes));
                         request.Headers.Add("API-Sign", sign);
                     }
                 }
-                request.Headers.Add("API-Key", CryptoUtility.SecureStringToString(PublicApiKey));
-                WriteToRequest(request, form);
+                request.Headers.Add("API-Key", CryptoUtility.ToUnsecureString(PublicApiKey));
+                await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
 

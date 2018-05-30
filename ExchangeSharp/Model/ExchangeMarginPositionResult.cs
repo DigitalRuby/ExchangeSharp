@@ -10,62 +10,51 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-
 namespace ExchangeSharp
 {
     /// <summary>
-    /// Order request details
+    /// Contains information about a margin position on exchange
     /// </summary>
-    [System.Serializable]
-    public class ExchangeOrderRequest
+    public class ExchangeMarginPositionResult
     {
         /// <summary>
-        /// Symbol or pair for the order, i.e. btcusd
+        /// Symbol
         /// </summary>
         public string Symbol { get; set; }
 
         /// <summary>
-        /// Amount to buy or sell
+        /// Amount
         /// </summary>
         public decimal Amount { get; set; }
 
         /// <summary>
-        /// The price to buy or sell at
+        /// Total
         /// </summary>
-        public decimal Price { get; set; }
+        public decimal Total { get; set; }
 
         /// <summary>
-        /// True if this is a buy, false if a sell
+        /// Profit (or loss)
         /// </summary>
-        public bool IsBuy { get; set; }
+        public decimal ProfitLoss { get; set; }
 
         /// <summary>
-        /// Whether the amount should be rounded - set to false if you know the exact amount, otherwise leave
-        /// as true so that the exchange does not reject the order due to too many decimal places.
+        /// Fees
         /// </summary>
-        public bool ShouldRoundAmount { get; set; } = true;
+        public decimal LendingFees { get; set; }
 
         /// <summary>
-        /// The type of order
+        /// Type (exchange dependant)
         /// </summary>
-        public OrderType OrderType { get; set; } = OrderType.Limit;
+        public string Type { get; set; }
 
         /// <summary>
-        /// Additional order parameters specific to the exchange that don't fit in common order properties. These will be forwarded on to the exchange as key=value pairs.
-        /// Not all exchanges will use this dictionary.
-        /// These are added after all other parameters and will replace existing properties, such as order type.
+        /// Base price
         /// </summary>
-        public Dictionary<string, object> ExtraParameters { get; private set; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        public decimal BasePrice { get; set; }
 
         /// <summary>
-        /// Return a rounded amount if needed
+        /// Liquidation price
         /// </summary>
-        /// <returns>Rounded amount or amount if no rounding is needed</returns>
-        public decimal RoundAmount()
-        {
-            return ShouldRoundAmount ? CryptoUtility.RoundAmount(Amount) : Amount;
-        }
+        public decimal LiquidationPrice { get; set; }
     }
 }
