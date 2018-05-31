@@ -59,7 +59,7 @@ namespace ExchangeSharp
             return streams.ToString();
         }
 
-            public ExchangeBinanceAPI()
+        public ExchangeBinanceAPI()
         {
             // give binance plenty of room to accept requests
             RequestWindow = TimeSpan.FromMinutes(15.0);
@@ -322,21 +322,34 @@ namespace ExchangeSharp
             });
         }
 
-        public IDisposable GetOrderBooksDifferentialSocket(IEnumerable<string> symbol, Action<BinanceMarketDepthDiffUpdate> callback)
+        protected override IDisposable OnGetOrderBooksDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, params string[] symbols)
         {
-            if (callback == null)
+            if (callback == null || symbols == null || !symbols.Any())
             {
                 return null;
             }
 
-            string combined = string.Join("/", symbol.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
+            string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
 
             return ConnectWebSocket($"/stream?streams={combined}", (msg, _socket) =>
             {
                 try
                 {
                     var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(msg.UTF8String());
-                    callback(update.Data);
+                    var book = new ExchangeOrderBook();
+                    foreach (List<object> ask in update.Data.Asks)
+                    {
+                        var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
+                        book.Asks[depth.Price] = depth;
+                    }
+
+                    foreach (List<object> bid in update.Data.Bids)
+                    {
+                        var depth = new ExchangeOrderPrice { Price = bid[0].ConvertInvariant<decimal>(), Amount = bid[1].ConvertInvariant<decimal>() };
+                        book.Bids[depth.Price] = depth;
+                    }
+
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(update.Data.FinalUpdate, new KeyValuePair<string, ExchangeOrderBook>(update.Data.Symbol, book)));
                 }
                 catch
                 {
