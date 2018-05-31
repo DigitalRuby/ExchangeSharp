@@ -161,7 +161,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             string url = "/balance/";
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
             foreach (var property in responseObject)
@@ -179,7 +179,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             string url = "/balance/";
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
             foreach (var property in responseObject)
@@ -201,7 +201,7 @@ namespace ExchangeSharp
             string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
             string url = $"/{action}{market}/{symbol}/";
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
 
             if (order.OrderType != OrderType.Market)
             {
@@ -242,7 +242,7 @@ namespace ExchangeSharp
                 return null;
             }
             string url = "/order_status/";
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["id"] = orderId;
             JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
 
@@ -303,7 +303,7 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
-            JArray result = await MakeJsonRequestAsync<JArray>(url, null, GetNoncePayload(), "POST");
+            JArray result = await MakeJsonRequestAsync<JArray>(url, null, await OnGetNoncePayloadAsync(), "POST");
             foreach (JToken token in result)
             {
                 //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
@@ -331,7 +331,7 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload(), "POST");
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync(), "POST");
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             foreach (var transaction in result as JArray)
             {
@@ -384,7 +384,7 @@ namespace ExchangeSharp
             {
                 throw new APIException("OrderId is needed for canceling order");
             }
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["id"] = orderId;
             await MakeJsonRequestAsync<JToken>("/cancel_order/", null, payload, "POST");
         }
@@ -411,7 +411,7 @@ namespace ExchangeSharp
                     break;
             }
 
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["address"] = withdrawalRequest.Address.ToStringInvariant();
             payload["amount"] = withdrawalRequest.Amount.ToStringInvariant();
             payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();

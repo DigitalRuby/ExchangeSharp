@@ -429,7 +429,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["balance"].ConvertInvariant<decimal>();
@@ -444,7 +444,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -481,7 +481,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await OnGetNoncePayloadAsync());
             return ParseOrder(obj);
         }
 
@@ -489,7 +489,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
-            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 orders.Add(ParseOrder(token));
@@ -502,7 +502,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
-            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, GetNoncePayload());
+            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 ExchangeOrderResult result = ParseOrder(token);
@@ -517,7 +517,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, GetNoncePayload(), "DELETE");
+            await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, await OnGetNoncePayloadAsync(), "DELETE");
         }
     }
 }

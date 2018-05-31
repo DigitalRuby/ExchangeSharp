@@ -235,7 +235,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [ {"currency": "BTC","available": "0.0504600","reserved": "0.0000000"}, ... ]
-            JToken obj = await MakeJsonRequestAsync<JToken>("/trading/balance", null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/trading/balance", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in obj["balance"])
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>() + token["reserved"].ConvertInvariant<decimal>();
@@ -248,7 +248,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [ {"currency": "BTC","available": "0.0504600","reserved": "0.0000000"}, ... ]
-            JToken obj = await MakeJsonRequestAsync<JToken>("/trading/balance", null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/trading/balance", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in obj["balance"])
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -267,7 +267,7 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, await OnGetNoncePayloadAsync());
             if (obj != null && obj.HasValues) return ParseCompletedOrder(obj);
             return null;
         }
@@ -275,10 +275,10 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             if (!string.IsNullOrEmpty(symbol)) payload["symbol"] = symbol;
             if (afterDate != null) payload["from"] = afterDate;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/trades", null, payload, "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/history/trades", null, payload);
             if (obj != null && obj.HasValues) foreach (JToken token in obj) orders.Add(ParseCompletedOrder(token));
             return orders;
         }
@@ -286,16 +286,16 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             if (!string.IsNullOrEmpty(symbol)) payload["symbol"] = symbol;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order", null, payload, "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order", null, payload);
             if (obj != null && obj.HasValues) foreach (JToken token in obj) orders.Add(ParseOpenOrder(token));
             return orders;
         }
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             //payload["clientOrderId"] = "neuMedia" + payload["nonce"];     Currently letting hitbtc assign this, but may not be unique for more than 24 hours
             payload["quantity"] = order.Amount;
             payload["symbol"] = order.Symbol;
@@ -337,13 +337,13 @@ namespace ExchangeSharp
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             // this call returns info about the success of the cancel. Sure would be nice have a return type on this method.
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/" + orderId, null, GetNoncePayload(), "DELETE");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/" + orderId, null, await OnGetNoncePayloadAsync(), "DELETE");
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             ExchangeDepositDetails deposit = new ExchangeDepositDetails() { Symbol = symbol };
-            JToken token = await MakeJsonRequestAsync<JToken>("/payment/address/" + symbol, null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/payment/address/" + symbol, null, await OnGetNoncePayloadAsync());
             if (token != null)
             {
                 deposit.Address = token["address"].ToStringInvariant();
@@ -364,7 +364,7 @@ namespace ExchangeSharp
         {
             List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
             // [ {"id": "6a2fb54d-7466-490c-b3a6-95d8c882f7f7","index": 20400458,"currency": "ETH","amount": "38.616700000000000000000000","fee": "0.000880000000000000000000", "address": "0xfaEF4bE10dDF50B68c220c9ab19381e20B8EEB2B", "hash": "eece4c17994798939cea9f6a72ee12faa55a7ce44860cfb95c7ed71c89522fe8","status": "pending","type": "payout", "createdAt": "2017-05-18T18:05:36.957Z", "updatedAt": "2017-05-18T19:21:05.370Z" }, ... ]
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/transactions", null, GetNoncePayload(), "GET");
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/transactions", null, await OnGetNoncePayloadAsync());
             if (result != null && result.HasValues)
             {
                 foreach (JToken token in result)
@@ -398,8 +398,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false };
-            var payload = GetNoncePayload();
+            ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false }; 
+            var payload = await OnGetNoncePayloadAsync();
             payload["amount"] = withdrawalRequest.Amount;
             payload["currency_code"] = withdrawalRequest.Symbol;
             payload["address"] = withdrawalRequest.Address;
@@ -429,10 +429,10 @@ namespace ExchangeSharp
         // You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
         // These functions aid in that process
 
-        public Dictionary<string, decimal> GetBankAmounts()
+        public async Task<Dictionary<string, decimal>> GetBankAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken obj = MakeJsonRequest<JToken>("/account/balance", null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/account/balance", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in obj["balance"])
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -442,13 +442,13 @@ namespace ExchangeSharp
         }
 
 
-        public bool AccountTransfer(string Symbol, decimal Amount, bool ToBank)
+        public async Task<bool> AccountTransfer(string Symbol, decimal Amount, bool ToBank)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
             payload["currency"] = Symbol;
             payload["amount"] = Amount;
-            JToken obj = MakeJsonRequest<JToken>("/account/transfer", null, GetNoncePayload(), "GET");
+            JToken obj = MakeJsonRequest<JToken>("/account/transfer", null, payload);
             if (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant())) return true;
             else return false;
         }

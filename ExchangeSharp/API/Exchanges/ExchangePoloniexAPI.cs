@@ -67,7 +67,7 @@ namespace ExchangeSharp
 
         private async Task<JToken> MakePrivateAPIRequestAsync(string command, IReadOnlyList<object> parameters = null)
         {
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["command"] = command;
             if (parameters != null && parameters.Count % 2 == 0)
             {
@@ -161,6 +161,44 @@ namespace ExchangeSharp
 
             // Poloniex does not provide a way to get the original price
             order.Price = order.AveragePrice;
+        }
+
+        public void ParseClosePositionTrades(IEnumerable<JToken> trades, ExchangeCloseMarginPositionResult closePosition)
+        {
+            bool closePositionMetadataSet = false;
+            var tradeIds = new List<string>();
+            foreach (JToken trade in trades)
+            {
+                if (!closePositionMetadataSet)
+                {
+                    closePosition.IsBuy = trade["type"].ToStringLowerInvariant() != "sell";
+
+                    if (!string.IsNullOrWhiteSpace(closePosition.Symbol))
+                    {
+                        closePosition.FeesCurrency = ParseFeesCurrency(closePosition.IsBuy, closePosition.Symbol);
+                    }
+
+                    closePositionMetadataSet = true;
+                }
+
+                decimal tradeAmt = trade["amount"].ConvertInvariant<decimal>();
+                decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
+
+                closePosition.AveragePrice = (closePosition.AveragePrice * closePosition.AmountFilled + tradeAmt * tradeRate) / (closePosition.AmountFilled + tradeAmt);
+                closePosition.AmountFilled += tradeAmt;
+
+                tradeIds.Add(trade["tradeID"].ToStringInvariant());
+
+                if (closePosition.CloseDate == DateTime.MinValue)
+                {
+                    closePosition.CloseDate = ConvertDateTimeInvariant(trade["date"]);
+                }
+
+                // fee is a percentage taken from the traded amount rounded to 8 decimals
+                closePosition.Fees += CalculateFees(tradeAmt, tradeRate, closePosition.IsBuy, trade["fee"].ConvertInvariant<decimal>());
+            }
+
+            closePosition.TradeIds = tradeIds.ToArray();
         }
 
         private static decimal CalculateFees(decimal tradeAmt, decimal tradeRate, bool isBuy, decimal fee)
@@ -653,6 +691,37 @@ namespace ExchangeSharp
                 Symbol = symbol
             };
             return marginPositionResult;
+        }
+
+        protected override async Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string symbol)
+        {
+            symbol = NormalizeSymbol(symbol);
+
+            List<object> orderParams = new List<object>
+            {
+                "currencyPair", symbol
+            };
+
+            JToken result = await MakePrivateAPIRequestAsync("closeMarginPosition", orderParams);
+
+            ExchangeCloseMarginPositionResult closePositionResult = new ExchangeCloseMarginPositionResult()
+            {
+                Success = result["success"].ConvertInvariant<bool>(),
+                Message = result["message"].ToStringInvariant(),
+                Symbol = symbol
+            };
+
+            JToken symbolTrades = result["resultingTrades"];
+            if (symbolTrades == null || !symbolTrades.Any())
+                return closePositionResult;
+
+            JToken trades = symbolTrades[symbol];
+            if (trades != null && trades.Children().Count() != 0)
+            {
+                ParseClosePositionTrades(trades, closePositionResult);
+            }
+
+            return closePositionResult;
         }
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)

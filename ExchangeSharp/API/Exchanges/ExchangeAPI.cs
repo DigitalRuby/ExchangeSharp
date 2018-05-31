@@ -128,6 +128,7 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol) => throw new NotImplementedException();
+        protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string symbol) => throw new NotImplementedException();
 
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
@@ -1148,6 +1149,24 @@ namespace ExchangeSharp
         {
             await new SynchronizationContextRemover();
             return await OnGetOpenPositionAsync(symbol);
+        }
+
+        /// <summary>
+        /// Close a margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Close margin position result</returns>
+        public ExchangeCloseMarginPositionResult CloseMarginPosition(string symbol) => CloseMarginPositionAsync(symbol).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Close a margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Close margin position result</returns>
+        public async Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string symbol)
+        {
+            await new SynchronizationContextRemover();
+            return await OnCloseMarginPositionAsync(symbol);
         }
 
         #endregion REST API

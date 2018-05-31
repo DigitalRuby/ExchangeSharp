@@ -272,7 +272,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result)
             {
                 decimal amount = result["Balance"].ConvertInvariant<decimal>();
@@ -285,7 +285,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result)
             {
                 decimal amount = result["Available"].ConvertInvariant<decimal>();
@@ -297,14 +297,14 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             // "result" : { "OrderId" : "65489","Exchange" : "LTC_BTC", "Type" : "BUY", "Quantity" : 20.00000000, "QuantityRemaining" : 5.00000000, "QuantityBaseTraded" : "0.16549400", "Price" : 0.01268311, "Status" : "OPEN", "Created" : "2014-08-03 13:55:20", "Comments" : "My optional comment, eg function id #123"  }
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId, null, await OnGetNoncePayloadAsync());
             return ParseOrder(result);
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorders?market=" + (string.IsNullOrEmpty(symbol) ? "ALL" : symbol) + "&orderstatus=OK&ordertype=ALL", null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorders?market=" + (string.IsNullOrEmpty(symbol) ? "ALL" : symbol) + "&orderstatus=OK&ordertype=ALL", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result)
             {
                 ExchangeOrderResult order = ParseOrder(token);
@@ -317,7 +317,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JToken result = await MakeJsonRequestAsync<JToken>("/market/getopenorders", null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>("/market/getopenorders", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result) orders.Add(ParseOrder(token));
             return orders;
         }
@@ -325,7 +325,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             order.ExtraParameters.CopyTo(payload);
 
             // Only limit order is supported - no indication on how it is filled
@@ -342,12 +342,12 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JToken>("/market/cancel?orderid=" + orderId, null, GetNoncePayload());
+            await MakeJsonRequestAsync<JToken>("/market/cancel?orderid=" + orderId, null, await OnGetNoncePayloadAsync());
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/getdepositaddress?" + "currency=" + NormalizeSymbol(symbol), BaseUrl, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/account/getdepositaddress?" + "currency=" + NormalizeSymbol(symbol), BaseUrl, await OnGetNoncePayloadAsync());
             if (token["Currency"].ToStringInvariant().Equals(symbol) && token["Address"] != null)
             {
                 // At this time, according to Bleutrade support, they don't support any currency requiring an Address Tag, but they will add this feature in the future
@@ -365,7 +365,7 @@ namespace ExchangeSharp
             List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
 
             // "result" : [{"Id" : "44933431","TimeStamp" : "2015-05-13 07:15:23","Coin" : "LTC","Amount" : -0.10000000,"Label" : "Withdraw: 0.99000000 to address Anotheraddress; fee 0.01000000","TransactionId" : "c396228895f8976e3810286c1537bddd4a45bb37d214c0e2b29496a4dee9a09b" }
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getdeposithistory", BaseUrl, GetNoncePayload(), "GET");
+            JToken result = await MakeJsonRequestAsync<JToken>("/account/getdeposithistory", BaseUrl, await OnGetNoncePayloadAsync());
             foreach (JToken token in result)
             {
                 transactions.Add(new ExchangeTransaction()
@@ -385,13 +385,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["currency"] = NormalizeSymbol(withdrawalRequest.Symbol);
             payload["quantity"] = withdrawalRequest.Amount;
             payload["address"] = withdrawalRequest.Address;
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["comments"] = withdrawalRequest.AddressTag;
 
-            await MakeJsonRequestAsync<JToken>("/account/withdraw", BaseUrl, payload, "GET");
+            await MakeJsonRequestAsync<JToken>("/account/withdraw", BaseUrl, payload);
 
             // Bleutrade doesn't return any info, just an empty string on success. The MakeJsonRequestAsync will throw an exception if there's an error
             return new ExchangeWithdrawalResponse() { Success = true };
