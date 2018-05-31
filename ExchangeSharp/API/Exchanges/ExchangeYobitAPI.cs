@@ -88,7 +88,7 @@ namespace ExchangeSharp
             foreach (JProperty prop in token["pairs"]) symbols.Add(prop.Name);
             return symbols;
         }
-         
+
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
@@ -99,13 +99,13 @@ namespace ExchangeSharp
                 var split = prop.Name.ToUpper().Split('_');
                 markets.Add(new ExchangeMarket()
                 {
-                     MarketName = prop.Name.ToStringInvariant(),
-                     MarketCurrency = split[0],
-                     BaseCurrency = split[1],
-                     IsActive = prop.First["hidden"].ConvertInvariant<int>().Equals(0),
-                     MaxPrice = prop.First["max_price"].ConvertInvariant<decimal>(),
-                     MinPrice = prop.First["min_price"].ConvertInvariant<decimal>(),
-                     MinTradeSize = prop.First["min_amount"].ConvertInvariant<decimal>()
+                    MarketName = prop.Name.ToStringInvariant(),
+                    MarketCurrency = split[0],
+                    BaseCurrency = split[1],
+                    IsActive = prop.First["hidden"].ConvertInvariant<int>().Equals(0),
+                    MaxPrice = prop.First["max_price"].ConvertInvariant<decimal>(),
+                    MinPrice = prop.First["min_price"].ConvertInvariant<decimal>(),
+                    MinTradeSize = prop.First["min_amount"].ConvertInvariant<decimal>()
                 });
             }
             return markets;
@@ -137,11 +137,13 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null);
             foreach (JArray prop in obj[symbol]["asks"])
             {
-                orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
+                orders.Asks[depth.Price] = depth;
             }
             foreach (JArray prop in obj[symbol]["bids"])
             {
-                orders.Bids.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
+                orders.Bids[depth.Price] = depth;
             }
 
             return orders;
@@ -152,7 +154,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + symbol + "?limit=10", null, null, "POST");    // default is 150, max: 2000, let's do another arbitrary 10 for consistency
-            foreach (JToken prop in token.First.First) trades.Add(ParseTrade(prop));      
+            foreach (JToken prop in token.First.First) trades.Add(ParseTrade(prop));
             return trades;
         }
 
@@ -245,7 +247,7 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            if (symbol == null) {throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
+            if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
@@ -257,7 +259,7 @@ namespace ExchangeSharp
             if (token != null) foreach (JProperty prop in token) orders.Add(ParseOrder(prop));
             return orders;
         }
-        
+
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
@@ -322,8 +324,8 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             return new ExchangeDepositDetails()
             {
-                 Address = token["address"].ToStringInvariant(),
-                 Symbol = symbol
+                Address = token["address"].ToStringInvariant(),
+                Symbol = symbol
             };
         }
 
@@ -404,7 +406,7 @@ namespace ExchangeSharp
                 Price = prop["rate"].ConvertInvariant<decimal>(),
                 OrderDate = DateTimeOffset.FromUnixTimeSeconds(prop.First["timestamp_created"].ConvertInvariant<long>()).DateTime
             };
-            
+
             if (result.Amount == result.AmountFilled) result.Result = ExchangeAPIOrderResult.Filled;
             else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Pending;
             else result.Result = ExchangeAPIOrderResult.FilledPartially;

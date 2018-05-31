@@ -76,7 +76,7 @@ namespace ExchangeSharp
             }
             return result["data"];
         }
-        
+
         private async Task<Tuple<JToken, string>> MakeRequestBithumbAsync(string symbol, string subUrl)
         {
             symbol = NormalizeSymbol(symbol);
@@ -107,11 +107,13 @@ namespace ExchangeSharp
             ExchangeOrderBook book = new ExchangeOrderBook();
             foreach (JToken token in data["bids"])
             {
-                book.Bids.Add(new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
             }
             foreach (JToken token in data["asks"])
             {
-                book.Asks.Add(new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
             }
             return book;
         }

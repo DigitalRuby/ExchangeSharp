@@ -157,11 +157,13 @@ namespace ExchangeSharp
             {
                 foreach (JToken order in token["Buy"])
                 {
-                    orders.Bids.Add(new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() });
+                    var depth = new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() };
+                    orders.Bids[depth.Price] = depth;
                 }
                 foreach (JToken order in token["Sell"])
                 {
-                    orders.Asks.Add(new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() });
+                    var depth = new ExchangeOrderPrice() { Price = order["Price"].ConvertInvariant<decimal>(), Amount = order["Volume"].ConvertInvariant<decimal>() };
+                    orders.Asks[depth.Price] = depth;
                 }
             }
             return orders;

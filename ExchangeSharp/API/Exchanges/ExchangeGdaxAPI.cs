@@ -367,11 +367,13 @@ namespace ExchangeSharp
             JArray bids = books["bids"] as JArray;
             foreach (JArray ask in asks)
             {
-                orders.Asks.Add(new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
+                orders.Asks[depth.Price] = depth;
             }
             foreach (JArray bid in bids)
             {
-                orders.Bids.Add(new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() });
+                var depth = new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() };
+                orders.Bids[depth.Price] = depth;
             }
             return orders;
         }

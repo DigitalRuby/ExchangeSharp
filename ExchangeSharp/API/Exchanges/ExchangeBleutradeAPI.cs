@@ -244,8 +244,23 @@ namespace ExchangeSharp
             ExchangeOrderBook orders = new ExchangeOrderBook();
             //"result" : { "buy" : [{"Quantity" : 4.99400000,"Rate" : 3.00650900}, {"Quantity" : 50.00000000, "Rate" : 3.50000000 }  ] ...
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getorderbook?market=" + symbol + "&type=ALL&depth=" + maxCount);
-            foreach (JToken token in result["buy"]) if (orders.Bids.Count < maxCount) orders.Bids.Add(new ExchangeOrderPrice() { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() });
-            foreach (JToken token in result["sell"]) if (orders.Asks.Count < maxCount) orders.Asks.Add(new ExchangeOrderPrice() { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() });
+            foreach (JToken token in result["buy"])
+            {
+                if (orders.Bids.Count < maxCount)
+                {
+                    var depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
+                    orders.Bids[depth.Price] = depth;
+                }
+            }
+
+            foreach (JToken token in result["sell"])
+            {
+                if (orders.Asks.Count < maxCount)
+                {
+                    var depth = new ExchangeOrderPrice() { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
+                    orders.Asks[depth.Price] = depth;
+                }
+            }
             return orders;
         }
 

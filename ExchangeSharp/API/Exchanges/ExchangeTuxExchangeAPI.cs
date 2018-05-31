@@ -163,8 +163,17 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getorders&coin=" + split[1] + "&market=" + split[0]);
             if (token != null && token.HasValues)
             {
-                foreach (JArray order in token["asks"]) orders.Asks.Add(new ExchangeOrderPrice() { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() });
-                foreach (JArray order in token["bids"]) orders.Bids.Add(new ExchangeOrderPrice() { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() });
+                foreach (JArray order in token["asks"])
+                {
+                    var depth = new ExchangeOrderPrice { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() };
+                    orders.Asks[depth.Price] = depth;
+                }
+
+                foreach (JArray order in token["bids"])
+                {
+                    var depth = new ExchangeOrderPrice { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() };
+                    orders.Bids[depth.Price] = depth;
+                }
             }
             return orders;
         }
