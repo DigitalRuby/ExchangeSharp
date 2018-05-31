@@ -84,7 +84,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/info", BaseUrl, null, "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/info", BaseUrl, null);
             foreach (JProperty prop in token["pairs"]) symbols.Add(prop.Name);
             return symbols;
         }
@@ -93,7 +93,7 @@ namespace ExchangeSharp
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // "pairs":{"ltc_btc":{"decimal_places":8,"min_price":0.00000001,"max_price":10000,"min_amount":0.0001,"hidden":0,"fee":0.2} ... }
-            JToken token = await MakeJsonRequestAsync<JToken>("/info", BaseUrl, null, "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/info", BaseUrl, null);
             foreach (JProperty prop in token["pairs"])
             {
                 var split = prop.Name.ToUpper().Split('_');
@@ -134,7 +134,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null, "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null);
             foreach (JArray prop in obj[symbol]["asks"])
             {
                 orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
@@ -194,7 +194,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "getInfo");
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
@@ -212,7 +212,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "getInfo");
             // "return":{"funds":{"ltc":22,"nvc":423.998,"ppc":10,...},	"funds_incl_orders":{"ltc":32,"nvc":523.998,"ppc":20,...},"rights":{"info":1,"trade":0,"withdraw":0},"transaction_count":0,"open_orders":1,"server_time":1418654530}
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
@@ -229,7 +229,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "getInfo");
             payload.Add("order_id", orderId);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
@@ -249,7 +249,7 @@ namespace ExchangeSharp
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "TradeHistory");
             payload.Add("pair", symbol);
             if (afterDate != null) payload.Add("since", new DateTimeOffset((DateTime)afterDate).ToUnixTimeSeconds());
@@ -263,7 +263,7 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "ActiveOrders");
             payload.Add("pair", symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
@@ -274,7 +274,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "Trade");
             payload.Add("pair", order.Symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
@@ -301,7 +301,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "CancelOrder");
             payload.Add("order_id", orderId);
             await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
@@ -314,7 +314,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("need_new", forceRegenerate ? 1 : 0);
             payload.Add("method", "GetDepositAddress");
             payload.Add("coinName", symbol);
@@ -338,7 +338,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("method", "WithdrawCoinsToAddress");
             payload.Add("coinName", withdrawalRequest.Symbol);
             payload.Add("amount", withdrawalRequest.Amount);

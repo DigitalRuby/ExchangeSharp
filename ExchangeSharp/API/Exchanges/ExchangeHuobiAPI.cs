@@ -160,7 +160,7 @@ namespace ExchangeSharp
             }
 
             markets = new List<ExchangeMarket>();
-            JToken allSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null, "GET");
+            JToken allSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
             foreach (var symbol in allSymbols)
             {
                 var marketCurrency = symbol["base-currency"].ToStringLowerInvariant();
@@ -437,7 +437,7 @@ namespace ExchangeSharp
              */
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null, "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
             var tick = obj["tick"];
             foreach (var prop in tick["asks"]) orders.Asks.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
             foreach (var prop in tick["bids"]) orders.Bids.Add(new ExchangeOrderPrice() { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() });
@@ -477,7 +477,7 @@ namespace ExchangeSharp
             }
             string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
             url += "&period=" + periodString;
-            JToken allCandles = await MakeJsonRequestAsync<JToken>(url, BaseUrl, null, "GET");
+            JToken allCandles = await MakeJsonRequestAsync<JToken>(url, BaseUrl, null);
             var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(allCandles.Parent.Parent["ts"].ConvertInvariant<long>());
             foreach (var array in allCandles)
             {
@@ -513,9 +513,8 @@ namespace ExchangeSharp
                 return accounts;
             }
             accounts = new Dictionary<string, string>();
-            var payload = GetNoncePayload();
-            payload["method"] = "GET";
-            JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload, "GET");
+            var payload = await OnGetNoncePayloadAsync();
+            JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload);
             foreach (var acc in data)
             {
                 accounts.Add(acc["type"].ToStringInvariant(), acc["id"].ToStringInvariant());
@@ -524,6 +523,13 @@ namespace ExchangeSharp
             WriteCache("GetAccounts", TimeSpan.FromMinutes(60.0), accounts);
 
             return accounts;
+        }
+
+        protected override async Task<Dictionary<string, object>> OnGetNoncePayloadAsync()
+        {
+            var result = await base.OnGetNoncePayloadAsync();
+            result["method"] = "GET";
+            return result;
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
@@ -561,9 +567,8 @@ namespace ExchangeSharp
             var account_id = accounts[AccountType];
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = GetNoncePayload();
-            payload["method"] = "GET";
-            JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload, "GET");
+            var payload = await OnGetNoncePayloadAsync();
+            JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
             var list = token["list"];
             foreach (var item in list)
             {
@@ -591,9 +596,8 @@ namespace ExchangeSharp
             var account_id = accounts[AccountType];
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = GetNoncePayload();
-
-            JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload, "GET");
+            var payload = await OnGetNoncePayloadAsync();
+            JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
             var list = token["list"];
             foreach (var item in list)
             {
@@ -641,9 +645,8 @@ namespace ExchangeSharp
               }
             }}
              */
-            var payload = GetNoncePayload();
-            payload.Add("method", "GET");
-            JToken data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload, "GET");
+            var payload = await OnGetNoncePayloadAsync();
+            JToken data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload);
             return ParseOrder(data);
         }
 
@@ -652,15 +655,14 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = GetNoncePayload();
-            payload.Add("method", "GET");
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("states", "partial-canceled,filled,canceled");
             if (afterDate != null)
             {
                 payload.Add("start-date", afterDate.Value.ToString("yyyy-MM-dd"));
             }
-            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload, "GET");
+            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload);
             foreach (var prop in data)
             {
                 orders.Add(ParseOrder(prop));
@@ -673,11 +675,10 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = GetNoncePayload();
-            payload.Add("method", "GET");
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("states", "pre-submitted,submitting,submitted,partial-filled");
-            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload, "GET");
+            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload);
             foreach (var prop in data)
             {
                 orders.Add(ParseOrder(prop));
@@ -692,11 +693,12 @@ namespace ExchangeSharp
             var accounts = await OnGetAccountsAsync();
             var account_id = accounts[AccountType];
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("account-id", account_id);
             payload.Add("symbol", symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("source", "api"); // margin-api
+            payload["method"] = "POST";
 
             decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
             decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
@@ -728,7 +730,6 @@ namespace ExchangeSharp
                 payload["amount"] = outputQuantity.ToStringInvariant();
             }
 
-            payload["method"] = "POST";
             order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/orders/place", PrivateUrlV1, payload, "POST");
@@ -739,7 +740,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["method"] = "POST";
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
@@ -754,13 +755,14 @@ namespace ExchangeSharp
             throw new NotImplementedException("Huobi does not provide a deposit API");
 
             /*
-            var payload = GetNoncePayload();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("need_new", forceRegenerate ? 1 : 0);
             payload.Add("method", "GetDepositAddress");
             payload.Add("coinName", symbol);
+            payload["method"] = "POST";
             // "return":{"address": 1UHAnAWvxDB9XXETsi7z483zRRBmcUZxb3,"processed_amount": 1.00000000,"server_time": 1437146228 }
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateUrlV1, payload, "POST");
-            return new ExchangeDepositDetails()
+            return new ExchangeDepositDetails
             {
                 Address = token["address"].ToStringInvariant(),
                 Symbol = symbol

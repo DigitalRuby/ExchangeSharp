@@ -205,9 +205,22 @@ namespace ExchangeSharp
         /// <summary>
         /// Generate a nonce
         /// </summary>
+        /// <returns></returns>
+        public object GenerateNonce() => GenerateNonceAsync().GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Generate a nonce
+        /// </summary>
         /// <returns>Nonce</returns>
-        public object GenerateNonce()
+        public async Task<object> GenerateNonceAsync()
         {
+            await new SynchronizationContextRemover();
+
+            if (NonceOffset.Ticks == 0)
+            {
+                await OnGetNonceOffset();
+            }
+
             // exclusive lock, no two nonces must match
             lock (this)
             {
@@ -490,25 +503,27 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get a dictionary with a nonce key and value of the required nonce type
+        /// Get a dictionary with a nonce key and value of the required nonce type. Derived classes should call this base class method first.
         /// </summary>
         /// <param name="key">Key</param>
         /// <returns>Dictionary with nonce</returns>
-        protected Dictionary<string, object> GetNoncePayload()
+        protected virtual async Task<Dictionary<string, object>> OnGetNoncePayloadAsync()
         {
-            lock (this)
+            Dictionary<string, object> noncePayload = new Dictionary<string, object>
             {
-                Dictionary<string, object> noncePayload = new Dictionary<string, object>
-                {
-                    ["nonce"] = GenerateNonce()
-                };
-                if (RequestWindow.Ticks > 0)
-                {
-                    noncePayload["recvWindow"] = (long)RequestWindow.TotalMilliseconds;
-                }
-                return noncePayload;
+                ["nonce"] = await GenerateNonceAsync()
+            };
+            if (RequestWindow.Ticks > 0)
+            {
+                noncePayload["recvWindow"] = (long)RequestWindow.TotalMilliseconds;
             }
+            return noncePayload;
         }
+
+        /// <summary>
+        /// Derived classes can override to get a nonce offset from the API itself
+        /// </summary>
+        protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }        
 
         /// <summary>
         /// Convert a DateTime and set the kind using the DateTimeKind property.

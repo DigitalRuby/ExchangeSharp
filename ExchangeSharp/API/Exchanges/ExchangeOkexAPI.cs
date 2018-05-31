@@ -435,7 +435,7 @@ namespace ExchangeSharp
 }
              */
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>("/userinfo.do", BaseUrl, payload, "POST");
             var funds = token["info"]["funds"];
 
@@ -449,7 +449,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>("/userinfo.do", BaseUrl, payload, "POST");
             var funds = token["info"]["funds"];
             var free = funds["free"];
@@ -460,7 +460,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["symbol"] = symbol;
             payload["type"] = (order.IsBuy ? "buy" : "sell");
 
@@ -503,7 +503,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             if (string.IsNullOrEmpty(symbol))
             {
                 throw new InvalidOperationException("Okex cancel order request requires symbol");
@@ -516,7 +516,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             if (string.IsNullOrEmpty(symbol))
             {
                 throw new InvalidOperationException("Okex single order details request requires symbol");
@@ -536,7 +536,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Dictionary<string, object> payload = GetNoncePayload();
+            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
 
             payload["symbol"] = symbol;
             // if order_id is -1, then return all unfilled orders, otherwise return the order specified

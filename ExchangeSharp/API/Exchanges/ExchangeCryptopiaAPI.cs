@@ -210,7 +210,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("Currency", "");
 
             // [ { "CurrencyId":1,"Symbol":"BTC","Total":"10300","Available":"6700.00000000","Unconfirmed":"2.00000000","HeldForTrades":"3400,00000000","PendingWithdraw":"200.00000000", "Address":"4HMjBARzTNdUpXCYkZDTHq8vmJQkdxXyFg","BaseAddress": "ZDTHq8vmJQkdxXyFgZDTHq8vmJQkdxXyFgZDTHq8vmJQkdxXyFg","Status":"OK", "StatusMessage":"" }, ... ]
@@ -230,7 +230,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("Currency", "");
 
             // [ { "CurrencyId":1,"Symbol":"BTC","Total":"10300","Available":"6700.00000000","Unconfirmed":"2.00000000","HeldForTrades":"3400,00000000","PendingWithdraw":"200.00000000", "Address":"4HMjBARzTNdUpXCYkZDTHq8vmJQkdxXyFg","BaseAddress": "ZDTHq8vmJQkdxXyFgZDTHq8vmJQkdxXyFgZDTHq8vmJQkdxXyFg","Status":"OK", "StatusMessage":"" }, ... ]
@@ -250,7 +250,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             if (!String.IsNullOrEmpty(symbol)) payload["Market"] = symbol;
             else payload["Market"] = string.Empty;
 
@@ -279,7 +279,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["Market"] = string.IsNullOrEmpty(symbol) ? string.Empty : symbol;
 
             //[ {"OrderId": 23467,"TradePairId": 100,"Market": "DOT/BTC","Type": "Buy","Rate": 0.00000034,"Amount": 145.98000000, "Total": "0.00004963", "Remaining": "23.98760000", "TimeStamp":"2014-12-07T20:04:05.3947572" }, ... ]
@@ -323,7 +323,7 @@ namespace ExchangeSharp
         {
             ExchangeOrderResult newOrder = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["Market"] = order.Symbol;
             payload["Type"] = order.IsBuy ? "Buy" : "Sell";
             payload["Rate"] = order.Price;
@@ -343,7 +343,7 @@ namespace ExchangeSharp
         // This should have a return value for success
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["Type"] = "Trade";          // Cancel All by Market is supported. Here we're canceling by single Id
             payload["OrderId"] = int.Parse(orderId);
             // { "Success":true, "Error":null, "Data": [44310,44311]  }
@@ -359,7 +359,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             // Uncomment as desired
             //payload["Type"] = "Deposit";
             //payload["Type"] = "Withdraw";
@@ -398,7 +398,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["Currency"] = symbol;
             JToken token = await MakeJsonRequestAsync<JToken>("/GetDepositAddress", null, payload, "POST");
             if (token["Address"] == null ) return null;
@@ -414,7 +414,7 @@ namespace ExchangeSharp
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("Currency", withdrawalRequest.Symbol);
             payload.Add("Address", withdrawalRequest.Address);
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload.Add("PaymentId", withdrawalRequest.AddressTag);

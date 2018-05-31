@@ -750,7 +750,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
 
             string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result)
             {
                 var deposit = new ExchangeTransaction
@@ -909,7 +909,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
-            JToken array = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken array = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["Balance"].ConvertInvariant<decimal>();
@@ -925,7 +925,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             string url = "/account/getbalances";
-            JToken array = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken array = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["Available"].ConvertInvariant<decimal>();
@@ -955,7 +955,7 @@ namespace ExchangeSharp
             {
                 url += "&" + WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value.ToStringInvariant());
             }
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             string orderId = result["uuid"].ToStringInvariant();
             return new ExchangeOrderResult { Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
         }
@@ -968,7 +968,7 @@ namespace ExchangeSharp
             }
 
             string url = "/account/getorder?uuid=" + orderId;
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             return ParseOrder(result);
         }
 
@@ -976,7 +976,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             string url = "/market/getopenorders" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result.Children())
             {
                 orders.Add(ParseOrder(token));
@@ -989,7 +989,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             string url = "/account/getorderhistory" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "?market=" + NormalizeSymbol(symbol));
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             foreach (JToken token in result.Children())
             {
                 ExchangeOrderResult order = ParseOrder(token);
@@ -1014,7 +1014,7 @@ namespace ExchangeSharp
                 url += $"&paymentid={withdrawalRequest.AddressTag}";
             }
 
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = result["uuid"].ToStringInvariant(),
@@ -1026,7 +1026,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JToken>("/market/cancel?uuid=" + orderId, null, GetNoncePayload());
+            await MakeJsonRequestAsync<JToken>("/market/cancel?uuid=" + orderId, null, await OnGetNoncePayloadAsync());
         }
 
         /// <summary>
@@ -1043,7 +1043,7 @@ namespace ExchangeSharp
             IReadOnlyDictionary<string, ExchangeCurrency> updatedCurrencies = (await GetCurrenciesAsync());
 
             string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, GetNoncePayload());
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
 
             // NOTE API 1.1 does not include the the static wallet address for currencies with tags such as XRP & NXT (API 2.0 does!)
             // We are getting the static addresses via the GetCurrencies() api.

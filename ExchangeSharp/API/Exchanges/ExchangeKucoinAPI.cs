@@ -64,6 +64,18 @@ namespace ExchangeSharp
             }
         }
 
+        protected override async Task OnGetNonceOffset()
+        {
+            try
+            {
+                JToken token = await MakeJsonRequestAsync<JToken>("/open/tick");
+                NonceOffset = DateTime.UtcNow - CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestamp"].ConvertInvariant<long>());
+            }
+            catch
+            {
+            }
+        }
+
         #endregion
 
         #region Public APIs
@@ -238,7 +250,7 @@ namespace ExchangeSharp
 
             // this is a little tricky. The call is private, but not a POST. We need the payload for the sig, but also for the uri
             // so, we'll do both... This is the only ExchangeAPI public call (private on Kucoin) like this.
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("resolution", periodString);
             payload.Add("from", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());        // the nonce is milliseconds, this is seconds without decimal
@@ -278,7 +290,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/balances", null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/account/balances", null, await OnGetNoncePayloadAsync());
             foreach (JToken child in token["datas"])
             {
                 decimal amount = child["balance"].ConvertInvariant<decimal>() + child["freezeBalance"].ConvertInvariant<decimal>();
@@ -294,7 +306,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/account/balances", null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/account/balances", null, await OnGetNoncePayloadAsync());
             foreach (JToken child in obj["datas"])
             {
                 decimal amount = child["balance"].ConvertInvariant<decimal>();
@@ -310,13 +322,13 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             // "datas": [ {"createdAt": 1508219588000, "amount": 92.79323381, "dealValue": 0.00927932, "dealPrice": 0.0001, "fee": 1e-8,"feeRate": 0, "oid": "59e59ac49bd8d31d09f85fa8", "orderOid": "59e59ac39bd8d31d093d956a", "coinType": "KCS", "coinTypePair": "BTC", "direction": "BUY", "dealDirection": "BUY" }, ... ]
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             if (symbol != null)
             {
                 payload["symbol"] = symbol;
             }
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/dealt?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/dealt?" + CryptoUtility.GetFormForPayload(payload, false), null, payload);
             if (token != null && token.HasValues)
             {
                 foreach (JToken order in token["datas"]) orders.Add(ParseCompletedOrder(order));
@@ -329,13 +341,13 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             // { "SELL": [{ "oid": "59e59b279bd8d31d093d956e", "type": "SELL", "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "SELL","price": 0.1,"dealAmount": 0,"pendingAmount": 100, "createdAt": 1508219688000, "updatedAt": 1508219688000 } ... ],
             //   "BUY":  [{ "oid": "59e42bf09bd8d374c9956caa", "type": "BUY",  "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "BUY", "price": 0.00009727,"dealAmount": 31.14503, "pendingAmount": 16.94827, "createdAt": 1508125681000, "updatedAt": 1508125681000 } ... ]
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             if (symbol != null)
             {
                 payload["symbol"] = symbol;
             }
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/active-map?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/active-map?" + CryptoUtility.GetFormForPayload(payload, false), null, payload);
             if (token != null && token.HasValues)
             {
                 foreach (JToken order in token["BUY"]) orders.Add(ParseOpenOrder(order));
@@ -361,7 +373,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["amount"] = order.Amount;
             payload["price"] = order.Price;
             payload["symbol"] = order.Symbol;
@@ -389,7 +401,7 @@ namespace ExchangeSharp
                 return;
             }
 
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["orderOid"] = order.OrderId;
             payload["symbol"] = order.Symbol;
             payload["type"] = order.IsBuy ? "BUY" : "SELL";
@@ -399,7 +411,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             // { "oid": "598aeb627da3355fa3e851ca", "address": "598aeb627da3355fa3e851ca", "context": null, "userOid": "5969ddc96732d54312eb960e", "coinType": "KCS", "createdAt": 1502276446000, "deletedAt": null, "updatedAt": 1502276446000,    "lastReceivedAt": 1502276446000   }
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/" + symbol + "/wallet/address", null, GetNoncePayload(), "GET");
+            JToken token = await MakeJsonRequestAsync<JToken>("/account/" + symbol + "/wallet/address", null, await OnGetNoncePayloadAsync());
             if (token != null && token.HasValues)
             {
                 return new ExchangeDepositDetails()
@@ -420,7 +432,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = true };
-            var payload = GetNoncePayload();
+            var payload = await OnGetNoncePayloadAsync();
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
 
@@ -478,6 +490,5 @@ namespace ExchangeSharp
         }
 
         #endregion
-
     }
 }
