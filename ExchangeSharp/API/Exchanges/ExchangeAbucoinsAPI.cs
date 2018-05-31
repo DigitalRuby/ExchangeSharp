@@ -352,8 +352,15 @@ namespace ExchangeSharp
             payload["priduct_id"] = order.Symbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
             payload["size"] = order.Amount;
-            if (order.OrderType == OrderType.Limit) payload["price"] = order.Price;
-            else payload["type"] = "market";
+            if (order.OrderType == OrderType.Limit)
+            {
+                payload["price"] = order.Price;
+            }
+            else
+            {
+                payload["type"] = "market";
+            }
+            order.ExtraParameters.CopyTo(payload);
 
             // {"product_id":"ZEC-BTC","used":"17.3124", "size":"17.3124", "price":"0.035582569", "id":"4217215", "side":"buy", "type":"limit", "time_in_force":"GTT", "post_only":false, "created_at":"2017-11-15T12:41:58Z","filled_size":"17.3124", "fill_fees":"0", "executed_value":"0.61601967", "status":"done", "settled":true, "hidden":false }
             // status (pending, open, done, rejected)

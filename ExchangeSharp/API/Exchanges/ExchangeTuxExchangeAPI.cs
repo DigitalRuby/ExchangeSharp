@@ -342,12 +342,21 @@ namespace ExchangeSharp
             payload.Add("coin", split[1]);
             payload.Add("amount", order.Amount);
             payload.Add("price", order.Price);
+            order.ExtraParameters.CopyTo(payload);
+
             // ( [success] => 1 )   - only data returned is success or fail on buy
             // ( [success] => 1 [error] => Array ( [0] =>61 [1] => Sell order placed. )) - an array is also returned on sell, but no documentation as to what the values are
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
             var rc = new ExchangeOrderResult();
-            if (token["success"].ConvertInvariant<int>() == 1) rc.Result = ExchangeAPIOrderResult.Filled; // I guess...
-            else rc.Result = ExchangeAPIOrderResult.Error;
+            if (token["success"].ConvertInvariant<int>() == 1)
+            {
+                rc.Result = ExchangeAPIOrderResult.Filled; // I guess...
+            }
+            else
+            {
+                rc.Result = ExchangeAPIOrderResult.Error;
+            }
+
             return rc;
         }
 

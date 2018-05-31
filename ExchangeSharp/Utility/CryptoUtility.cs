@@ -10,6 +10,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -22,8 +24,6 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -193,10 +193,18 @@ namespace ExchangeSharp
             }
             catch
             {
-                // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
-                string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
-                decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float);
-                return (T)Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
+                if (typeof(T) == typeof(bool))
+                {
+                    // try zero or one
+                    return (T)(object)((jValue ?? obj).ToStringInvariant() == "1");
+                }
+                else
+                {
+                    // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
+                    string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
+                    decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float);
+                    return (T)Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
+                }
             }
             return result;
         }
@@ -495,13 +503,28 @@ namespace ExchangeSharp
         /// <param name="key">Key</param>
         /// <param name="defaultValue">Default value</param>
         /// <returns>Found value or default</returns>
-        public static TValue TryGetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue)
+        public static TValue TryGetValueOrDefault<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue)
         {
             if (!dictionary.TryGetValue(key, out TValue value))
             {
                 value = defaultValue;
             }
             return value;
+        }
+
+        /// <summary>
+        /// Copy dictionary to another dictionary
+        /// </summary>
+        /// <typeparam name="TKey">Key type</typeparam>
+        /// <typeparam name="TValue">Value type</typeparam>
+        /// <param name="sourceDictionary"></param>
+        /// <param name="destinationDictionary"></param>
+        public static void CopyTo<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> sourceDictionary, IDictionary<TKey, TValue> destinationDictionary)
+        {
+            foreach (var kv in sourceDictionary)
+            {
+                destinationDictionary[kv.Key] = kv.Value;
+            }
         }
 
         /// <summary>

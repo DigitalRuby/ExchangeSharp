@@ -160,9 +160,7 @@ namespace ExchangeSharp
             }
 
             markets = new List<ExchangeMarket>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null, "GET");
-            CheckError(obj);
-            JToken allSymbols = obj["data"];
+            JToken allSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null, "GET");
             foreach (var symbol in allSymbols)
             {
                 var marketCurrency = symbol["base-currency"].ToStringLowerInvariant();
@@ -223,7 +221,6 @@ namespace ExchangeSharp
              */
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + symbol);
-            CheckError(obj);
             var tick = obj["tick"];
             var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj["ts"].ConvertInvariant<double>());
 
@@ -441,7 +438,6 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null, "GET");
-            CheckError(obj);
             var tick = obj["tick"];
             foreach (var prop in tick["asks"])
             {
@@ -490,10 +486,8 @@ namespace ExchangeSharp
             }
             string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
             url += "&period=" + periodString;
-            JToken obj = await MakeJsonRequestAsync<JToken>(url, BaseUrl, null, "GET");
-            CheckError(obj);
-            JToken allCandles = obj["data"];
-            var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj["ts"].ConvertInvariant<long>());
+            JToken allCandles = await MakeJsonRequestAsync<JToken>(url, BaseUrl, null, "GET");
+            var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(allCandles.Parent.Parent["ts"].ConvertInvariant<long>());
             foreach (var array in allCandles)
             {
                 candles.Add(new MarketCandle
@@ -530,9 +524,7 @@ namespace ExchangeSharp
             accounts = new Dictionary<string, string>();
             var payload = GetNoncePayload();
             payload["method"] = "GET";
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload, "GET");
-            token = CheckError(token);
-            var data = token["data"];
+            JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload, "GET");
             foreach (var acc in data)
             {
                 accounts.Add(acc["type"].ToStringInvariant(), acc["id"].ToStringInvariant());
@@ -581,8 +573,7 @@ namespace ExchangeSharp
             var payload = GetNoncePayload();
             payload["method"] = "GET";
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload, "GET");
-            token = CheckError(token);
-            var list = token["data"]["list"];
+            var list = token["list"];
             foreach (var item in list)
             {
                 var balance = item["balance"].ConvertInvariant<decimal>();
@@ -612,8 +603,7 @@ namespace ExchangeSharp
             var payload = GetNoncePayload();
 
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload, "GET");
-            token = CheckError(token);
-            var list = token["data"]["list"];
+            var list = token["list"];
             foreach (var item in list)
             {
                 var balance = item["balance"].ConvertInvariant<decimal>();
@@ -662,9 +652,7 @@ namespace ExchangeSharp
              */
             var payload = GetNoncePayload();
             payload.Add("method", "GET");
-            JToken token = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload, "GET");
-            CheckError(token);
-            var data = token["data"];
+            JToken data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload, "GET");
             return ParseOrder(data);
         }
 
@@ -681,11 +669,11 @@ namespace ExchangeSharp
             {
                 payload.Add("start-date", afterDate.Value.ToString("yyyy-MM-dd"));
             }
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload, "GET");
-            CheckError(token);
-            var data = token["data"];
+            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload, "GET");
             foreach (var prop in data)
+            {
                 orders.Add(ParseOrder(prop));
+            }
             return orders;
         }
 
@@ -698,11 +686,11 @@ namespace ExchangeSharp
             payload.Add("method", "GET");
             payload.Add("symbol", symbol);
             payload.Add("states", "pre-submitted,submitting,submitted,partial-filled");
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload, "GET");
-            CheckError(token);
-            var data = token["data"];
+            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload, "GET");
             foreach (var prop in data)
+            {
                 orders.Add(ParseOrder(prop));
+            }
             return orders;
         }
 
@@ -750,9 +738,9 @@ namespace ExchangeSharp
             }
 
             payload["method"] = "POST";
-            JToken obj = await MakeJsonRequestAsync<JToken>("/order/orders/place", PrivateUrlV1, payload, "POST");
-            CheckError(obj);
+            order.ExtraParameters.CopyTo(payload);
 
+            JToken obj = await MakeJsonRequestAsync<JToken>("/order/orders/place", PrivateUrlV1, payload, "POST");
             order.Amount = outputQuantity;
             order.Price = outputPrice;
             return ParsePlaceOrder(obj, order);
@@ -762,8 +750,7 @@ namespace ExchangeSharp
         {
             var payload = GetNoncePayload();
             payload["method"] = "POST";
-            JToken token = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
-            CheckError(token);
+            await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
         protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
@@ -782,7 +769,6 @@ namespace ExchangeSharp
             payload.Add("coinName", symbol);
             // "return":{"address": 1UHAnAWvxDB9XXETsi7z483zRRBmcUZxb3,"processed_amount": 1.00000000,"server_time": 1437146228 }
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateUrlV1, payload, "POST");
-            token = CheckError(token);
             return new ExchangeDepositDetails()
             {
                 Address = token["address"].ToStringInvariant(),
@@ -801,13 +787,13 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        protected override JToken CheckError(JToken result)
+        protected override JToken CheckJsonResponse(JToken result)
         {
             if (result == null || (result["status"] != null && result["status"].ToStringInvariant() != "ok"))
             {
                 throw new APIException((result["err-msg"] != null ? result["err-msg"].ToStringInvariant() : "Unknown Error"));
             }
-            return result;
+            return result["data"] ?? result;
         }
 
         private ExchangeOrderResult ParsePlaceOrder(JToken token, ExchangeOrderRequest order)
@@ -823,7 +809,7 @@ namespace ExchangeSharp
                 Amount = order.Amount,
                 Price = order.Price,
                 IsBuy = order.IsBuy,
-                OrderId = token["data"].ToStringInvariant(),
+                OrderId = token.ToStringInvariant(),
                 Symbol = order.Symbol
             };
             result.AveragePrice = result.Price;

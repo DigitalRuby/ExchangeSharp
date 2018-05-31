@@ -58,7 +58,6 @@ namespace ExchangeSharp
             // "info": [ {"name": "Bitcoin", "symbol": "BTC", "walletStatus": "down","withdrawFee": 0.0004,"minDepositAmount": 0, "minWithdrawAmount": 0.002 }, ... ]
             // walletStatus - normal - Wallet online, delayed - Wallet delayed(no new block for 1 - 2 hours), blocked - Out of sync(no new block for at least 2 hours), blocked_long - No new block for at least 24h(Out of sync), down - Wallet temporary offline,  delisted - Asset will be delisted soon, withdraw your funds., closed_cashin - Only withdrawal is available, closed_cashout - Only deposit is available
             JToken token = await MakeJsonRequestAsync<JToken>("/info/coinInfo");
-            token = CheckError(token);
             if (token != null)
             {
                 foreach (JToken currency in token["info"])
@@ -80,7 +79,6 @@ namespace ExchangeSharp
             List<string> symbols = new List<string>();
             // {"success": true,"minBtcVolume": 0.0005,"restrictions": [{"currencyPair": "BTC/USD","priceScale": 5}, ... ]}
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/restrictions");
-            token = CheckError(token);
             foreach (JToken market in token["restrictions"]) symbols.Add(market["currencyPair"].ToStringInvariant());
             return symbols;
         }
@@ -90,7 +88,6 @@ namespace ExchangeSharp
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // {"success": true,"minBtcVolume": 0.0005,"restrictions": [{"currencyPair": "BTC/USD","priceScale": 5}, ... ]}
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/restrictions");
-            token = CheckError(token);
             foreach (JToken market in token["restrictions"])
             {
                 var split = market["currencyPair"].ToStringInvariant().Split('/');
@@ -109,7 +106,6 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker?currencyPair=" + symbol);
-            token = CheckError(token);
             return ParseTicker(token);
         }
 
@@ -117,7 +113,6 @@ namespace ExchangeSharp
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker");
-            token = CheckError(token);
             foreach (JToken tick in token) tickers.Add(new KeyValuePair<string, ExchangeTicker>(tick["symbol"].ToStringInvariant(), ParseTicker(tick)));
             return tickers;
         }
@@ -127,7 +122,6 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order_book?currencyPair=" + symbol + "&depth=" + maxCount.ToStringInvariant());
-            token = CheckError(token);
             if (token != null)
             {
                 foreach (JToken order in token["asks"])
@@ -162,7 +156,6 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + symbol);
-            token = CheckError(token);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
 
             return trades;
@@ -181,7 +174,6 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Not directly supported so we'll return what they have and filter if necessary
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + symbol + "&minutesOrHour=false");
-            token = CheckError(token);
             foreach (JToken trade in token)
             {
                 ExchangeTrade rc = ParseTrade(trade);
@@ -218,7 +210,6 @@ namespace ExchangeSharp
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [{"type": "total","currency": "USD","value": 20},{"type": "available","currency": "USD","value": 10},{"type": "trade","currency": "USD","value": 10},{"type": "available_withdrawal","currency": "USD","value": 10}, ... ]
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/balances", null, GetNoncePayload(), "GET");
-            token = CheckError(token);
             foreach (JToken child in token)
             {
                 if (child["type"].ToStringInvariant() == "total")
@@ -235,7 +226,6 @@ namespace ExchangeSharp
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [{"type": "total","currency": "USD","value": 20},{"type": "available","currency": "USD","value": 10},{"type": "trade","currency": "USD","value": 10},{"type": "available_withdrawal","currency": "USD","value": 10}, ... ]
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/balances", null, GetNoncePayload(), "GET");
-            token = CheckError(token);
             foreach (JToken child in token)
             {
                 if (child["type"].ToStringInvariant() == "trade")
@@ -251,7 +241,6 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order?orderId=" + orderId, null, GetNoncePayload(), "GET");
-            token = CheckError(token);
             return ParseOrder(token);
         }
 
@@ -266,8 +255,10 @@ namespace ExchangeSharp
             if (afterDate != null) payload.Add("issuedFrom", ((DateTime)afterDate).UnixTimestampFromDateTimeMilliseconds());
 
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
-            token = CheckError(token);
-            foreach (JToken order in token["data"]) orders.Add(ParseClientOrder(order));
+            foreach (JToken order in token)
+            {
+                orders.Add(ParseClientOrder(order));
+            }
             return orders;
         }
 
@@ -285,8 +276,10 @@ namespace ExchangeSharp
             if (symbol != null) payload.Add("currencyPair", symbol);
 
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
-            token = CheckError(token);
-            foreach (JToken order in token["data"]) orders.Add(ParseClientOrder(order));
+            foreach (JToken order in token)
+            {
+                orders.Add(ParseClientOrder(order));
+            }
             return orders;
         }
 
@@ -305,10 +298,10 @@ namespace ExchangeSharp
             }
             payload["currencyPair"] = NormalizeSymbol(order.Symbol);
             payload["quantity"] = order.Amount;
+            order.ExtraParameters.CopyTo(payload);
 
             //{ "success": true, "added": true, "orderId": 4912
             JToken token = await MakeJsonRequestAsync<JToken>(orderType, null, payload, "POST");
-            token = CheckError(token);
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
 
@@ -319,9 +312,8 @@ namespace ExchangeSharp
             if (order != null)
             {
                 // { "success": true,"cancelled": true,"message": null,"quantity": 0.0005,"tradeQuantity": 0}
-                JToken token = await MakeJsonRequestAsync<JToken>("/exchange/cancel_limit?currencyPair=" +
+                await MakeJsonRequestAsync<JToken>("/exchange/cancel_limit?currencyPair=" +
                     WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)) + "&orderId=" + orderId, null, GetNoncePayload(), "GET");
-                CheckError(token); // will throw exception on error
             }
         }
 
@@ -337,7 +329,6 @@ namespace ExchangeSharp
 
             // We can also include trades and orders with this call (which makes 3 ways to return the same data)
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/payment/history/transactions?" + CryptoUtility.GetFormForPayload(payload, false), null, GetNoncePayload(), "GET");
-            token = CheckError(token);
             foreach (JToken tx in token) deposits.Add(ParseTransaction(tx));
 
             return deposits;
@@ -347,7 +338,6 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol, BaseUrl, GetNoncePayload(), "GET");
-            token = CheckError(token);
             if (token != null && token.HasValues && token["currency"].ToStringInvariant() == symbol && token["wallet"].ToStringInvariant().Length != 0)
             {
                 ExchangeDepositDetails address = new ExchangeDepositDetails() {Symbol = symbol };
@@ -371,7 +361,6 @@ namespace ExchangeSharp
 
             // {"fault": null,"userId": 797,"userName": "poorguy","id": 11285042,"state": "APPROVED","createDate": 1432197911364,"lastModifyDate": 1432197911802,"verificationType": "NONE","verificationData": null, "comment": null, "description": "Transfer from Livecoin", "amount": 0.002, "currency": "BTC", "accountTo": "B1099909", "acceptDate": null, "valueDate": null, "docDate": 1432197911364, "docNumber": 11111111, "correspondentDetails": null, "accountFrom": "B0000001", "outcome": false, "external": null, "externalKey": "1111111", "externalSystemId": 18, "externalServiceId": null, "wallet": "1111111" }
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/out/coin?currency=" + withdrawalRequest.Symbol + "&wallet=" + withdrawalRequest.Address + withdrawalRequest.AddressTag + "&amount=" + withdrawalRequest.Amount, BaseUrl, GetNoncePayload(), "POST");
-            token = CheckError(token);
             response.Success = true;
             return response;
         }

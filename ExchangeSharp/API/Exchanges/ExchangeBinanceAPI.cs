@@ -100,7 +100,6 @@ namespace ExchangeSharp
 
             symbols = new List<string>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/allPrices");
-            CheckError(obj);
             foreach (JToken token in obj)
             {
                 // bug I think in the API returns numbers as symbol names... WTF.
@@ -155,7 +154,6 @@ namespace ExchangeSharp
 
             var markets = new List<ExchangeMarket>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/exchangeInfo");
-            CheckError(obj);
             JToken allSymbols = obj["symbols"];
             foreach (JToken symbol in allSymbols)
             {
@@ -200,7 +198,6 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + symbol);
-            CheckError(obj);
             return ParseTicker(symbol, obj);
         }
 
@@ -209,7 +206,6 @@ namespace ExchangeSharp
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr");
-            CheckError(obj);
             foreach (JToken child in obj)
             {
                 symbol = child["symbol"].ToStringInvariant();
@@ -361,7 +357,6 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + symbol + "&limit=" + maxCount);
-            CheckError(obj);
             return ParseOrderBook(obj);
         }
 
@@ -435,7 +430,6 @@ namespace ExchangeSharp
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
             url += "&interval=" + periodString;
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
-            CheckError(obj);
             foreach (JArray array in obj)
             {
                 candles.Add(new MarketCandle
@@ -460,7 +454,6 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, GetNoncePayload());
-            CheckError(token);
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
@@ -476,7 +469,6 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, GetNoncePayload());
-            CheckError(token);
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
@@ -509,13 +501,9 @@ namespace ExchangeSharp
                 payload["timeInForce"] = "GTC";
                 payload["price"] = outputPrice;
             }
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
+            order.ExtraParameters.CopyTo(payload);
 
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "POST");
-            CheckError(token);
             return ParseOrder(token);
         }
 
@@ -530,14 +518,12 @@ namespace ExchangeSharp
             payload["symbol"] = symbol;
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
-            CheckError(token);
             ExchangeOrderResult result = ParseOrder(token);
 
             // Add up the fees from each trade in the order
             Dictionary<string, object> feesPayload = GetNoncePayload();
             feesPayload["symbol"] = symbol;
             JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, feesPayload);
-            CheckError(feesToken);
             ParseFees(feesToken, result);
 
             return result;
@@ -573,7 +559,6 @@ namespace ExchangeSharp
                 payload["symbol"] = NormalizeSymbol(symbol);
             }
             JToken token = await MakeJsonRequestAsync<JToken>("/openOrders", BaseUrlPrivate, payload);
-            CheckError(token);
             foreach (JToken order in token)
             {
                 orders.Add(ParseOrder(order));
@@ -637,7 +622,6 @@ namespace ExchangeSharp
                     // payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
-                CheckError(token);
                 foreach (JToken order in token)
                 {
                     orders.Add(ParseOrder(order));
@@ -656,7 +640,6 @@ namespace ExchangeSharp
             payload["symbol"] = NormalizeSymbol(symbol);
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
-            CheckError(token);
         }
 
         /// <summary>A withdrawal request. Fee is automatically subtracted from the amount.</summary>
@@ -689,8 +672,6 @@ namespace ExchangeSharp
             }
 
             JToken response = await MakeJsonRequestAsync<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
-            CheckError(response);
-
             ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
             {
                 Id = response["id"].ToStringInvariant(),
@@ -927,8 +908,6 @@ namespace ExchangeSharp
             payload["asset"] = NormalizeSymbol(symbol);
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
-            CheckError(response);
-
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
                 Symbol = response["asset"].ToStringInvariant(),
@@ -952,8 +931,6 @@ namespace ExchangeSharp
             }
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);
-            CheckError(response);
-
             var transactions = new List<ExchangeTransaction>();
             foreach (JToken token in response["depositList"])
             {

@@ -108,44 +108,6 @@ namespace ExchangeSharp
             return trades;
         }
 
-        /// <summary>
-        /// Throw an exception if token represents an error condition.
-        /// For most exchanges this method does not need to be overriden if:
-        /// - Exchange passes an 'error', 'errorCode' or 'error_code' child element if the call fails
-        /// - Exchange passes a 'status' element of 'error' if the call fails
-        /// - Exchange passes a 'success' element of 'false' if the call fails
-        /// This call also looks for 'result', 'data', 'return' child elements and returns those if
-        /// found, otherwise the result parameter is returned.
-        /// For all other cases, override CheckError for the exchange.
-        /// </summary>
-        /// <param name="result">Result</param>
-        protected virtual JToken CheckError(JToken result)
-        {
-            if (result == null)
-            {
-                throw new APIException("No result from server");
-            }
-            else if (!(result is JArray))
-            {
-                if
-                (
-                    (!string.IsNullOrWhiteSpace(result["error"].ToStringInvariant())) ||
-                    (!string.IsNullOrWhiteSpace(result["errorCode"].ToStringInvariant())) ||
-                    (!string.IsNullOrWhiteSpace(result["error_code"].ToStringInvariant())) ||
-                    (result["status"].ToStringInvariant() == "error") ||
-                    (result["Status"].ToStringInvariant() == "error") ||
-                    (result["success"] != null && result["success"].ConvertInvariant<bool>() != true) ||
-                    (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true)
-                )
-                {
-                    throw new APIException(result.ToStringInvariant());
-                }
-                result = (result["result"] ?? result["data"] ?? result["return"] ??
-                    result["Result"] ?? result["Data"] ?? result["Return"] ?? result);
-            }
-            return result;
-        }
-
         protected virtual Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync() => throw new NotImplementedException();
         protected virtual Task<IEnumerable<string>> OnGetSymbolsAsync() => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync() => throw new NotImplementedException();
@@ -245,8 +207,7 @@ namespace ExchangeSharp
                     {
                         throw new InvalidOperationException("TimestampFunction or UrlFunction must be specified");
                     }
-                    JToken obj = await api.MakeJsonRequestAsync<Newtonsoft.Json.Linq.JToken>(url);
-                    obj = api.CheckError(obj);
+                    JToken obj = await api.MakeJsonRequestAsync<JToken>(url);
 
                     // don't add this temp trade as it may be outside of the date/time range
                     tempTradeIds.Clear();

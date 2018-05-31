@@ -474,18 +474,14 @@ namespace ExchangeSharp
                 payload["price"] = order.Price.ToStringInvariant();
             }
 
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
-
-            JObject result = await MakeJsonRequestAsync<JObject>("/orders", null, payload, "POST");
+            order.ExtraParameters.CopyTo(payload);
+            JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
             return ParseOrder(result);
         }
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JObject obj = await MakeJsonRequestAsync<JObject>("/orders/" + orderId, null, GetNoncePayload(), "GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, GetNoncePayload(), "GET");
             return ParseOrder(obj);
         }
 

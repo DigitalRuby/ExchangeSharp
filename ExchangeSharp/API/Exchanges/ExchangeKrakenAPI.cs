@@ -146,13 +146,13 @@ namespace ExchangeSharp
         };
         private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        protected override JToken CheckError(JToken json)
+        protected override JToken CheckJsonResponse(JToken json)
         {
             if (!(json is JArray) && json["error"] is JArray error && error.Count != 0)
             {
                 throw new APIException(error[0].ToStringInvariant());
             }
-            return json["result"];
+            return json["result"] ?? json;
         }
 
         private ExchangeOrderResult ParseOrder(string orderId, JToken order)
@@ -182,12 +182,9 @@ namespace ExchangeSharp
         private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeSharp.ExchangeOrderResult>();
-            JObject json = await MakeJsonRequestAsync<JObject>(path, null, GetNoncePayload());
-            JToken result = CheckError(json);
+            JToken result = await MakeJsonRequestAsync<JToken>(path, null, GetNoncePayload());
             result = result["open"];
-
             symbol = NormalizeSymbol(symbol);
-
             foreach (JProperty order in result)
             {
                 if (symbol == null || order.Value["descr"]["pair"].ToStringInvariant() == symbol)
@@ -234,8 +231,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
-            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/AssetPairs");
-            JToken result = CheckError(json);
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
             return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
 
@@ -244,8 +240,7 @@ namespace ExchangeSharp
             var symbols = await GetSymbolsAsync();
             var normalizedPairsList = symbols.Select(symbol => NormalizeSymbol(symbol)).ToList();
             var csvPairsList = string.Join(",", normalizedPairsList);
-            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", csvPairsList } });
-            JToken apiTickers = CheckError(json);
+            JToken apiTickers = await MakeJsonRequestAsync<JToken>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", csvPairsList } });
             var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             foreach (string symbol in symbols)
             {
@@ -257,8 +252,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
-            JToken apiTickers = CheckError(json);
+            JToken apiTickers = await MakeJsonRequestAsync<JToken>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeSymbol(symbol) } });
             JToken ticker = apiTickers[symbol];
             return ConvertToExchangeTicker(symbol, ticker);
         }
@@ -285,8 +279,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
-            JToken obj = CheckError(json);
+            JToken obj = await MakeJsonRequestAsync<JToken>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
             obj = obj[symbol];
             if (obj == null)
             {
@@ -322,12 +315,11 @@ namespace ExchangeSharp
                 {
                     url += "&since=" + (long)(CryptoUtility.UnixTimestampFromDateTimeMilliseconds(startDate.Value) * 1000000.0);
                 }
-                JObject obj = await MakeJsonRequestAsync<JObject>(url);
-                if (obj == null)
+                JToken result = await MakeJsonRequestAsync<JToken>(url);
+                if (result == null)
                 {
                     break;
                 }
-                JToken result = CheckError(obj);
                 JArray outerArray = result[symbol] as JArray;
                 if (outerArray == null || outerArray.Count == 0)
                 {
@@ -376,12 +368,11 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
             endDate = endDate ?? DateTime.UtcNow;
-            JObject json = await MakeJsonRequestAsync<JObject>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
-            CheckError(json);
+            JToken json = await MakeJsonRequestAsync<JToken>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
             List<MarketCandle> candles = new List<MarketCandle>();
-            if (json["result"].Children().Count() != 0)
+            if (json.Children().Count() != 0)
             {
-                JProperty prop = json["result"].Children().First() as JProperty;
+                JProperty prop = json.Children().First() as JProperty;
                 foreach (JArray jsonCandle in prop.Value)
                 {
                     MarketCandle candle = new MarketCandle
@@ -410,8 +401,7 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, GetNoncePayload());
-            JToken result = CheckError(token);
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, GetNoncePayload());
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty prop in result)
             {
@@ -439,13 +429,9 @@ namespace ExchangeSharp
             {
                 payload.Add("price", order.Price.ToStringInvariant());
             }
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload[kv.Key] = kv.Value;
-            }
+            order.ExtraParameters.CopyTo(payload);
 
-            JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/AddOrder", null, payload);
-            JToken token = CheckError(obj);
+            JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
             ExchangeOrderResult result = new ExchangeOrderResult
             {
                 OrderDate = DateTime.UtcNow
@@ -469,8 +455,7 @@ namespace ExchangeSharp
                 { "txid", orderId },
                 { "nonce", GenerateNonce() }
             };
-            JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/QueryOrders", null, payload);
-            JToken result = CheckError(obj);
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/QueryOrders", null, payload);
             ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
             if (result == null || result[orderId] == null)
             {
@@ -503,8 +488,7 @@ namespace ExchangeSharp
                 { "txid", orderId },
                 { "nonce", GenerateNonce() }
             };
-            JObject obj = await MakeJsonRequestAsync<JObject>("/0/private/CancelOrder", null, payload);
-            CheckError(obj);
+            await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
     }
 }

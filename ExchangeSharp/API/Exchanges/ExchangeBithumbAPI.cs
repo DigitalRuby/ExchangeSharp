@@ -68,21 +68,20 @@ namespace ExchangeSharp
             }
         }
 
-        protected override JToken CheckError(JToken result)
+        protected override JToken CheckJsonResponse(JToken result)
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["status"].ToStringInvariant() != "0000")
             {
                 throw new APIException(result["status"].ToStringInvariant() + ": " + result["message"].ToStringInvariant());
             }
-            return result;
+            return result["data"];
         }
 
         private async Task<Tuple<JToken, string>> MakeRequestBithumbAsync(string symbol, string subUrl)
         {
             symbol = NormalizeSymbol(symbol);
-            JObject obj = await MakeJsonRequestAsync<JObject>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
-            CheckError(obj);
-            return new Tuple<JToken, string>(obj["data"], symbol);
+            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
+            return new Tuple<JToken, string>(obj, symbol);
         }
 
         private ExchangeTicker ParseTicker(string symbol, JToken data, DateTime? date)
