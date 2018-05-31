@@ -33,31 +33,31 @@ namespace ExchangeSharpConsoleApp
             {
                 ExchangeTicker ticker = apiGDAX.GetTicker(symbol);
                 ExchangeOrderBook orders = apiGDAX.GetOrderBook(symbol);
-                decimal askAmountSum = orders.Asks.Sum(o => o.Amount);
-                decimal askPriceSum = orders.Asks.Sum(o => o.Price);
-                decimal bidAmountSum = orders.Bids.Sum(o => o.Amount);
-                decimal bidPriceSum = orders.Bids.Sum(o => o.Price);
+                decimal askAmountSum = orders.Asks.Values.Sum(o => o.Amount);
+                decimal askPriceSum = orders.Asks.Values.Sum(o => o.Price);
+                decimal bidAmountSum = orders.Bids.Values.Sum(o => o.Amount);
+                decimal bidPriceSum = orders.Bids.Values.Sum(o => o.Price);
 
                 ExchangeTicker ticker2 = apiGemini.GetTicker(symbol);
                 ExchangeOrderBook orders2 = apiGemini.GetOrderBook(symbol);
-                decimal askAmountSum2 = orders2.Asks.Sum(o => o.Amount);
-                decimal askPriceSum2 = orders2.Asks.Sum(o => o.Price);
-                decimal bidAmountSum2 = orders2.Bids.Sum(o => o.Amount);
-                decimal bidPriceSum2 = orders2.Bids.Sum(o => o.Price);
+                decimal askAmountSum2 = orders2.Asks.Values.Sum(o => o.Amount);
+                decimal askPriceSum2 = orders2.Asks.Values.Sum(o => o.Price);
+                decimal bidAmountSum2 = orders2.Bids.Values.Sum(o => o.Amount);
+                decimal bidPriceSum2 = orders2.Bids.Values.Sum(o => o.Price);
 
                 ExchangeTicker ticker3 = apiKraken.GetTicker(symbol2);
                 ExchangeOrderBook orders3 = apiKraken.GetOrderBook(symbol2);
-                decimal askAmountSum3 = orders3.Asks.Sum(o => o.Amount);
-                decimal askPriceSum3 = orders3.Asks.Sum(o => o.Price);
-                decimal bidAmountSum3 = orders3.Bids.Sum(o => o.Amount);
-                decimal bidPriceSum3 = orders3.Bids.Sum(o => o.Price);
+                decimal askAmountSum3 = orders3.Asks.Values.Sum(o => o.Amount);
+                decimal askPriceSum3 = orders3.Asks.Values.Sum(o => o.Price);
+                decimal bidAmountSum3 = orders3.Bids.Values.Sum(o => o.Amount);
+                decimal bidPriceSum3 = orders3.Bids.Values.Sum(o => o.Price);
 
                 ExchangeTicker ticker4 = apiBitfinex.GetTicker(symbol);
                 ExchangeOrderBook orders4 = apiBitfinex.GetOrderBook(symbol);
-                decimal askAmountSum4 = orders4.Asks.Sum(o => o.Amount);
-                decimal askPriceSum4 = orders4.Asks.Sum(o => o.Price);
-                decimal bidAmountSum4 = orders4.Bids.Sum(o => o.Amount);
-                decimal bidPriceSum4 = orders4.Bids.Sum(o => o.Price);
+                decimal askAmountSum4 = orders4.Asks.Values.Sum(o => o.Amount);
+                decimal askPriceSum4 = orders4.Asks.Values.Sum(o => o.Price);
+                decimal bidAmountSum4 = orders4.Bids.Values.Sum(o => o.Amount);
+                decimal bidPriceSum4 = orders4.Bids.Values.Sum(o => o.Price);
 
                 Console.Clear();
                 Console.WriteLine("GDAX: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker.Last, ticker.Volume.BaseVolume, askAmountSum, askPriceSum, bidAmountSum, bidPriceSum);

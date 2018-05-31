@@ -133,7 +133,7 @@ namespace ExchangeSharp
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
-        protected virtual IDisposable OnGetOrderBooksDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> action, params string[] symbols) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetOrderBookDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> action, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         protected class HistoricalTradeHelperState
@@ -1197,7 +1197,8 @@ namespace ExchangeSharp
         /// <returns>Web socket, call Dispose to close</returns>
         public IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookWebSocket(callback, maxCount, symbols);
 
-        /// <summary>Gets a delta socket for a collection of order books. This will only provide updates to an order book, which should be lower traffic than GetOrderBookWebSocket.
+        /// <summary>
+        /// Gets a delta socket for a collection of order books. This will only provide updates to an order book, which should be lower traffic than GetOrderBookWebSocket.
         /// The suggested way to use this is:
         /// 1. Open this socket and begin buffering events you receive
         /// 2. Get a depth snapshot of the order books you care about
@@ -1210,7 +1211,7 @@ namespace ExchangeSharp
         /// <param name="callback">The callback.</param>
         /// <param name="symbols">The ticker symbols to query. Null will not create a socket</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public IDisposable GetOrderBooksDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, params string[] symbols) => this.OnGetOrderBooksDeltaSocket(callback, symbols);
+        public IDisposable GetOrderBookDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, params string[] symbols) => OnGetOrderBookDeltaSocket(callback, symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket

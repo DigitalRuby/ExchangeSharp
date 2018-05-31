@@ -47,7 +47,7 @@ namespace ExchangeSharpTests
     ]
   ]
 }";
-            var diff = JsonConvert.DeserializeObject<BinanceMarketDepthDiffUpdate>(toParse);
+            var diff = JsonConvert.DeserializeObject<ExchangeBinanceAPI.BinanceMarketDepthDiffUpdate>(toParse);
             ValidateDiff(diff);
         }
 
@@ -77,7 +77,7 @@ namespace ExchangeSharpTests
 	}
 }";
 
-            var multistream = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(toParse);
+            var multistream = JsonConvert.DeserializeObject<ExchangeBinanceAPI.BinanceMultiDepthStream>(toParse);
             multistream.Stream.Should().Be("bnbbtc@depth");
             ValidateDiff(multistream.Data);
         }
@@ -86,11 +86,11 @@ namespace ExchangeSharpTests
         public void DeserializeRealData()
         {
             string real = "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
-            var diff = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(real);
+            var diff = JsonConvert.DeserializeObject<ExchangeBinanceAPI.BinanceMultiDepthStream>(real);
             diff.Data.EventTime.Should().Be(1527540113575);
         }
 
-        private static void ValidateDiff(BinanceMarketDepthDiffUpdate diff)
+        private static void ValidateDiff(ExchangeBinanceAPI.BinanceMarketDepthDiffUpdate diff)
         {
             diff.EventType.Should().Be("depthUpdate");
             diff.EventTime.Should().Be(123456789);
