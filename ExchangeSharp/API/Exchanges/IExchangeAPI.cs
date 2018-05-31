@@ -439,6 +439,20 @@ namespace ExchangeSharp
         /// <returns>Open margin position result</returns>
         Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol);
 
+        /// <summary>
+        /// Close a margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Close margin position result</returns>
+        ExchangeCloseMarginPositionResult CloseMarginPosition(string symbol);
+
+        /// <summary>
+        /// ASYNC - Close a margin position
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <returns>Close margin position result</returns>
+        Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string symbol);
+
         #endregion REST
 
         #region Web Socket
