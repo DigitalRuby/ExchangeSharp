@@ -56,7 +56,7 @@ Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.1
 Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.1 -c Release -r ubuntu.16.10-x64
 ```
 
-## Simple example
+### Simple Example
 ```
 ExchangeKrakenAPI api = new ExchangeKrakenAPI();
 ExchangeTicker ticker = api.GetTicker("XXBTZUSD");
@@ -84,7 +84,7 @@ result = api.GetOrderDetails(result.OrderId);
 Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
 ```
 
-## Web socket example
+### Web Socket Example
 ```
 public static void Main(string[] args)
 {
