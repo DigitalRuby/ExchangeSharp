@@ -276,10 +276,22 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             var payload = await OnGetNoncePayloadAsync();
-            if (!string.IsNullOrEmpty(symbol)) payload["symbol"] = symbol;
-            if (afterDate != null) payload["from"] = afterDate;
+            if (!string.IsNullOrEmpty(symbol))
+            {
+                payload["symbol"] = symbol;
+            }
+            if (afterDate != null)
+            {
+                payload["from"] = afterDate;
+            }
             JToken obj = await MakeJsonRequestAsync<JToken>("/history/trades", null, payload);
-            if (obj != null && obj.HasValues) foreach (JToken token in obj) orders.Add(ParseCompletedOrder(token));
+            if (obj != null && obj.HasValues)
+            {
+                foreach (JToken token in obj)
+                {
+                    orders.Add(ParseCompletedOrder(token));
+                }
+            }
             return orders;
         }
 
