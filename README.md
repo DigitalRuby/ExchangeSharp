@@ -1,36 +1,17 @@
 <img src='logo.png' width='600' />
 
-[![GitHub issues](https://img.shields.io/github/issues/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/issues)
-[![GitHub forks](https://img.shields.io/github/forks/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/network)
-[![GitHub stars](https://img.shields.io/github/stars/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/stargazers)
-[![GitHub license](https://img.shields.io/github/license/jjxtra/ExchangeSharp.svg)](https://github.com/jjxtra/ExchangeSharp/blob/master/LICENSE.txt)
-[![Twitter](https://img.shields.io/twitter/url/https/github.com/jjxtra/ExchangeSharp.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fjjxtra%2FExchangeSharp)
+# Overview
+ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
-[![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
-
-[![Donate with Litecoin](https://en.cryptobadges.io/badge/small/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)](https://en.cryptobadges.io/donate/LWxRMaVFeXLmaq5munDJxADYYLv2szYi9i)
-
-[![Donate with Ethereum](https://en.cryptobadges.io/badge/small/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)](https://en.cryptobadges.io/donate/0x77d3D990859a8c3e3486b5Ad63Da223f7F3778dc)
-
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
-
-Donation totals:
-0.02350084 BTC, 0.25 LTC
-
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
-
-<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.7 ```  
-</a> 
-
-ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more! Visual Studio 2017 is required, along with either .NET 4.7.1+ or .NET core 2.1+.
-
-Features:
+## Features
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
 - Optional global symbol normalization, since each exchange has their own way of doing symbols
 - Runs anywhere .NET core will run (Windows, MAC, Linux, iOS, Android, Unity 2018+, etc.)
 
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+
+## Exchanges
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = order book, O = private orders)
 
@@ -59,22 +40,23 @@ The following cryptocurrency exchanges are supported:
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
 
+## Notes
 ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
 
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
-Nuget package: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
-
-**Building**  
+## Building
+Visual Studio 2017 is recommended. .NET 4.7.1+ or .NET core 2.1+ is required.  
+<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget: ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.7 ```  
+</a> 
 ```
 Windows: Open ExchangeSharp.sln in Visual Studio and build/run  
-Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.0
+Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.1
 Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.1 -c Release -r ubuntu.16.10-x64
 ```
 
----
-Simple example:
----
+## Simple example
 ```
 ExchangeKrakenAPI api = new ExchangeKrakenAPI();
 ExchangeTicker ticker = api.GetTicker("XXBTZUSD");
@@ -102,9 +84,7 @@ result = api.GetOrderDetails(result.OrderId);
 Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
 ```
 
----
-Web socket example:
----
+## Web socket example
 ```
 public static void Main(string[] args)
 {
@@ -121,10 +101,11 @@ public static void Main(string[] args)
     }
 }
 ```
----
 
+## I Can Help
 I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
 
+## Donations Gratefully Accepted
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
 
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
@@ -137,10 +118,6 @@ If you want help with your project, have questions that need answering or this p
 
 Donation totals:
 0.02350084 BTC, 0.25 LTC
-
-<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget - ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.7 ```  
-</a> 
 
 Thanks for visiting!
 
