@@ -312,11 +312,14 @@ namespace ExchangeSharp
                     string name = token["stream"].ToStringInvariant();
                     token = token["data"];
                     string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+
+                    // buy=0 -> m = true (The buyer is maker, while the seller is taker).
+                    // buy=1 -> m = false(The seller is maker, while the buyer is taker).
                     ExchangeTrade trade = new ExchangeTrade
                     {
                         Amount = token["q"].ConvertInvariant<decimal>(),
                         Id = token["t"].ConvertInvariant<long>(),
-                        IsBuy = token["m"].ConvertInvariant<bool>(),
+                        IsBuy = !token["m"].ConvertInvariant<bool>(),
                         Price = token["p"].ConvertInvariant<decimal>(),
                         Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
                     };

@@ -146,7 +146,7 @@ namespace ExchangeSharp
 
             for (int i = 0; i < Asks.Count && amount > 0m; i++)
             {
-                ask = Asks[i];
+                ask = Asks.ElementAt(i).Value;
                 spent = Math.Min(amount, ask.Amount * ask.Price);
                 buyAmount += spent / ask.Price;
                 buyPrice = ask.Price;
@@ -166,7 +166,7 @@ namespace ExchangeSharp
 
             for (int i = 0; i < Bids.Count && amount > 0m; i++)
             {
-                bid = Bids[i];
+                bid = Bids.ElementAt(i).Value;
                 sellPrice = bid.Price;
                 amount -= bid.Amount;
             }
