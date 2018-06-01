@@ -38,7 +38,7 @@ namespace ExchangeSharp
         public ExchangeYobitAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            NonceStyle = NonceStyle.UnixSecondsString;   // not used, see below
+            NonceStyle = NonceStyle.IntegerFile; // yobit is not easy to use - you must maintain the nonce in a file and keep incrementing and make new keys when it hits int.MaxValue
             SymbolSeparator = "_";
             SymbolIsUppercase = false;
         }
@@ -50,10 +50,6 @@ namespace ExchangeSharp
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
             {
-                // Yobit usses a unique nonce. They expect the client to start at a number and increment sequentially
-                // but we can't use ticks or unix timestamps because their max is 2147483646
-                // here we taking that last digits from the a timestamp for the nonce, which seems to work
-                payload["nonce"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds().ToString("F0").Substring(4);
                 var msg = CryptoUtility.GetFormForPayload(payload);
                 var sig = CryptoUtility.SHA512Sign(msg, PrivateApiKey.ToUnsecureString());
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());

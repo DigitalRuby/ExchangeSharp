@@ -60,7 +60,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Seconds (string)
         /// </summary>
-        UnixSecondsString
+        UnixSecondsString,
+
+        /// <summary>
+        /// Persist nonce to counter and file for the API key, once it hits int.MaxValue, it is useless
+        /// </summary>
+        IntegerFile
     }
 
     /// <summary>
@@ -257,6 +262,27 @@ namespace ExchangeSharp
                         case NonceStyle.UnixSecondsString:
                             nonce = now.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
                             break;
+
+                        case NonceStyle.IntegerFile:
+                        {
+                            // why an API would use a persistent incrementing counter for nonce is beyond me, ticks is so much better with a sliding window...
+                            string tempFile = Path.Combine(Path.GetTempPath(), PublicApiKey.ToUnsecureString() + ".nonce");
+                            if (!File.Exists(tempFile))
+                            {
+                                File.WriteAllText(tempFile, "0");
+                            }
+                            unchecked
+                            {
+                                int intNonce = int.Parse(File.ReadAllText(tempFile), CultureInfo.InvariantCulture) + 1;
+                                if (intNonce < 1)
+                                {
+                                    throw new APIException("Nonce is out of bounds of a signed 32 bit integer (1 - " + int.MaxValue.ToStringInvariant() +
+                                        "), please regenerate new API keys. Please contact the API support and ask them to change this horrible nonce behavior.");
+                                }
+                                nonce = (long)intNonce;
+                                File.WriteAllText(tempFile, intNonce.ToStringInvariant());
+                            }
+                        } break;
 
                         default:
                             throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
