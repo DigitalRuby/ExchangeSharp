@@ -287,9 +287,18 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             var payload = await OnGetNoncePayloadAsync();
-            if (!string.IsNullOrEmpty(symbol)) payload["symbol"] = symbol;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order", null, payload);
-            if (obj != null && obj.HasValues) foreach (JToken token in obj) orders.Add(ParseOpenOrder(token));
+            if (!string.IsNullOrEmpty(symbol))
+            {
+                payload["symbol"] = symbol;
+            }
+            JToken obj = await MakeJsonRequestAsync<JToken>("/order", null, payload);
+            if (obj != null && obj.HasValues)
+            {
+                foreach (JToken token in obj)
+                {
+                    orders.Add(ParseOpenOrder(token));
+                }
+            }
             return orders;
         }
 
@@ -520,12 +529,15 @@ namespace ExchangeSharp
             };
             // new, suspended, partiallyFilled, filled, canceled, expired
             string status = token["status"].ToStringInvariant();
-            if (status.Equals("filled")) result.Result = ExchangeAPIOrderResult.Filled;
-            else if (status.Equals("partiallyFilled")) result.Result = ExchangeAPIOrderResult.FilledPartially;
-            else if (status.Equals("canceled") || status.Equals("expired")) result.Result = ExchangeAPIOrderResult.Canceled;
-            else if (status.Equals("new")) result.Result = ExchangeAPIOrderResult.Pending;
-            else result.Result = ExchangeAPIOrderResult.Error;
-
+            switch (status)
+            {
+                case "filled": result.Result = ExchangeAPIOrderResult.Filled; break;
+                case "partiallyFilled": result.Result = ExchangeAPIOrderResult.FilledPartially; break;
+                case "canceled":
+                case "expired": result.Result = ExchangeAPIOrderResult.Canceled; break;
+                case "new": result.Result = ExchangeAPIOrderResult.Pending; break;
+                default: result.Result = ExchangeAPIOrderResult.Error; break;
+            }
             return result;
         }
 
