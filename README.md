@@ -3,13 +3,13 @@
 # Overview
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
+I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+
 ## Features
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
 - Optional global symbol normalization, since each exchange has their own way of doing symbols
 - Runs anywhere .NET core will run (Windows, MAC, Linux, iOS, Android, Unity 2018+, etc.)
-
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
 
 ## Exchanges
 The following cryptocurrency exchanges are supported:  
