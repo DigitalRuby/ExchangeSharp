@@ -10,14 +10,13 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
-
-using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -40,6 +39,7 @@ namespace ExchangeSharp
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
 
         private readonly Dictionary<string, ExchangeMarket> exchangeMarkets = new Dictionary<string, ExchangeMarket>();
+        private readonly SemaphoreSlim exchangeMarketsSemaphore = new SemaphoreSlim(1, 1);
         private bool disposed;
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace ExchangeSharp
             // Get the exchange markets if we haven't gotten them yet.
             if (forceRefresh || exchangeMarkets.Count == 0)
             {
-                System.Threading.Monitor.Enter(exchangeMarkets);
+                await exchangeMarketsSemaphore.WaitAsync();
                 try
                 {
                     if (forceRefresh || exchangeMarkets.Count == 0)
@@ -64,7 +64,7 @@ namespace ExchangeSharp
                 }
                 finally
                 {
-                    System.Threading.Monitor.Exit(exchangeMarkets);
+                    exchangeMarketsSemaphore.Release();
                 }
             }
         }
@@ -1098,7 +1098,7 @@ namespace ExchangeSharp
 
             return result;
         }
-        
+
         /// <summary>
         /// Get margin amounts available to trade, symbol / amount dictionary
         /// </summary>
