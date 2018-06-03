@@ -533,7 +533,8 @@ namespace ExchangeSharp
             decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
             decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
-            payload["quantity"] = outputQuantity;
+            // Binance does not accept quantities with more than 20 decimal places.
+            payload["quantity"] = Math.Round(outputQuantity, 20);
             payload["newOrderRespType"] = "FULL";
 
             if (order.OrderType != OrderType.Market)
