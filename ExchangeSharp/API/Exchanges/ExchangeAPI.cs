@@ -123,6 +123,7 @@ namespace ExchangeSharp
         protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
         protected virtual Task OnCancelOrderAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync() => throw new NotImplementedException();
@@ -938,6 +939,25 @@ namespace ExchangeSharp
         {
             await new SynchronizationContextRemover();
             return await OnGetCompletedOrderDetailsAsync(symbol, afterDate);
+        }
+
+        /// <summary>
+        /// Get the details of all trades
+        /// </summary>
+        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
+        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
+        public IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null) => GetMyTradesAsync(symbol, afterDate).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get the details of all trades
+        /// </summary>
+        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
+        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetMyTradesAsync(symbol, afterDate);
         }
 
         /// <summary>
