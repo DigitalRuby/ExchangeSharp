@@ -94,8 +94,8 @@ namespace ExchangeSharp
                 markets.Add(new ExchangeMarket()
                 {
                     MarketName = market["currencyPair"].ToStringInvariant(),
-                    BaseCurrency = split[0],
-                    MarketCurrency = split[1],
+                    BaseCurrency = split[1],
+                    MarketCurrency = split[0],
                     IsActive = true
                 });
             }
