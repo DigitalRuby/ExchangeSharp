@@ -26,6 +26,9 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
         public override string Name => ExchangeName.Poloniex;
 
+        /// <summary>A mapping of socket IDs to markets</summary>
+        private readonly Dictionary<int, string> orderBookSocketLookup = new Dictionary<int, string>();
+
         static ExchangePoloniexAPI()
         {
             // load withdrawal field counts
@@ -442,20 +445,20 @@ namespace ExchangeSharp
 
         protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
+            if (callback == null || symbols == null || !symbols.Any())
             {
                 return null;
             }
-
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 try
                 {
                     JToken token = JToken.Parse(msg.UTF8String());
+                    int msgId = token[0].ConvertInvariant<int>();
+
                     //return if this is a heartbeat message
-                    if (token[0].ConvertInvariant<int>() == 1010)
+                    if (msgId == 1010)
                         return;
 
                     var seq = token[1].ConvertInvariant<int>();
@@ -470,13 +473,14 @@ namespace ExchangeSharp
                             case "i":
                                 {
                                     var marketInfo = data[1];
-
+                                    var market = marketInfo["currencyPair"].ToStringInvariant();
+                                    this.orderBookSocketLookup[msgId] = market;
                                     foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
                                     {
                                         var depth = new ExchangeOrderPrice
                                         {
                                             Amount = jprop.Name.ConvertInvariant<decimal>(),
-                                            Price = jprop.Value.ToString().ConvertInvariant<decimal>()
+                                            Price = jprop.Value.ConvertInvariant<decimal>()
                                         };
                                         orderBook.Asks[depth.Price] = depth;
                                     }
@@ -486,7 +490,7 @@ namespace ExchangeSharp
                                         var depth = new ExchangeOrderPrice
                                         {
                                             Amount = jprop.Name.ConvertInvariant<decimal>(),
-                                            Price = jprop.Value.ToString().ConvertInvariant<decimal>()
+                                            Price = jprop.Value.ConvertInvariant<decimal>()
                                         };
                                         orderBook.Bids[depth.Price] = depth;
                                     }
@@ -502,7 +506,7 @@ namespace ExchangeSharp
                                 }
                         }
                     }
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(normalizedSymbol, orderBook)));
+                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(this.orderBookSocketLookup[msgId], orderBook)));
                 }
                 catch
                 {
@@ -510,7 +514,10 @@ namespace ExchangeSharp
             }, (_socket) =>
             {
                 // subscribe to order book and trades channel for given symbol
-                _socket.SendMessage($"{{\"command\":\"subscribe\",\"channel\":\"{normalizedSymbol}\"}}");
+                foreach (var sym in symbols)
+                {
+                    _socket.SendMessage($"{{\"command\":\"subscribe\",\"channel\":\"{NormalizeSymbol(sym)}\"}}");
+                }
             });
         }
 
