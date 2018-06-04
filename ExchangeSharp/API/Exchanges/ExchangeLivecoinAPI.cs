@@ -91,13 +91,17 @@ namespace ExchangeSharp
             foreach (JToken market in token["restrictions"])
             {
                 var split = market["currencyPair"].ToStringInvariant().Split('/');
-                markets.Add(new ExchangeMarket()
+                var exchangeMarket = new ExchangeMarket
                 {
                     MarketName = market["currencyPair"].ToStringInvariant(),
                     BaseCurrency = split[1],
                     MarketCurrency = split[0],
-                    IsActive = true
-                });
+                    IsActive = true,
+                    MinTradeSize = (decimal) market["minLimitQuantity"],
+                    PriceStepSize = (decimal?) (1 / Math.Pow(10, (int) market["priceScale"]))
+                };
+
+                markets.Add(exchangeMarket);
             }
             return markets;
         }
