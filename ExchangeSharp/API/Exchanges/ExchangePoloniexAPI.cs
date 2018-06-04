@@ -20,6 +20,8 @@ namespace ExchangeSharp
     using System.Net;
     using System.Threading.Tasks;
 
+    using Newtonsoft.Json;
+
     public sealed class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
@@ -516,8 +518,7 @@ namespace ExchangeSharp
                 // subscribe to order book and trades channel for each symbol
                 foreach (var sym in symbols)
                 {
-                    // TODO: this should really be json serialized to avoid bugs/injection vulnerabilities
-                    _socket.SendMessage($"{{\"command\":\"subscribe\",\"channel\":\"{NormalizeSymbol(sym)}\"}}");
+                    _socket.SendMessage(JsonConvert.SerializeObject(new { command = "subscribe", channel = NormalizeSymbol(sym) }));
                 }
             });
         }
