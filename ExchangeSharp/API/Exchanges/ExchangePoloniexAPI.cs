@@ -445,7 +445,7 @@ namespace ExchangeSharp
 
         protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || !symbols.Any())
+            if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
@@ -513,9 +513,10 @@ namespace ExchangeSharp
                 }
             }, (_socket) =>
             {
-                // subscribe to order book and trades channel for given symbol
+                // subscribe to order book and trades channel for each symbol
                 foreach (var sym in symbols)
                 {
+                    // TODO: this should really be json serialized to avoid bugs/injection vulnerabilities
                     _socket.SendMessage($"{{\"command\":\"subscribe\",\"channel\":\"{NormalizeSymbol(sym)}\"}}");
                 }
             });
