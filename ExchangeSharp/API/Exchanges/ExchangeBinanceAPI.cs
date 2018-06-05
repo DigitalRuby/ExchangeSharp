@@ -128,6 +128,25 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + (symbol.Substring(symbol.Length - 3, 3)), GlobalSymbolSeparator);
         }
 
+        /// <summary>
+        /// Get the details of all trades
+        /// </summary>
+        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
+        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
+        public IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null) => GetMyTradesAsync(symbol, afterDate).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get the details of all trades
+        /// </summary>
+        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
+        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetMyTradesAsync(symbol, afterDate);
+        }
+
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             if (ReadCache("GetSymbols", out List<string> symbols))
@@ -670,7 +689,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
+        private async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
         {
             // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
@@ -708,7 +727,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        private async Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
             if (string.IsNullOrWhiteSpace(symbol))
