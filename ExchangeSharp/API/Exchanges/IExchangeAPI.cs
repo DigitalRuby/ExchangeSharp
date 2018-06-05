@@ -386,22 +386,6 @@ namespace ExchangeSharp
         Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null);
 
         /// <summary>
-        /// Get the details of all trades
-        /// </summary>
-        /// <param name="symbol">Symbol to get trades for or null for all</param>
-        /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
-        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
-        IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null);
-
-        /// <summary>
-        /// ASYNC Get the details of all trades
-        /// </summary>
-        /// <param name="symbol">Symbol to get trades for or null for all</param>
-        /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
-        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null);
-
-        /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>

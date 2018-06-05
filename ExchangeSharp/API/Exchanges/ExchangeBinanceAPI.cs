@@ -670,7 +670,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        private async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
+        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
         {
             // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
@@ -708,7 +708,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
             if (string.IsNullOrWhiteSpace(symbol))
