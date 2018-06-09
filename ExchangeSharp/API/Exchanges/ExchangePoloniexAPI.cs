@@ -481,8 +481,8 @@ namespace ExchangeSharp
                                     {
                                         var depth = new ExchangeOrderPrice
                                         {
-                                            Amount = jprop.Name.ConvertInvariant<decimal>(),
-                                            Price = jprop.Value.ConvertInvariant<decimal>()
+                                            Price = jprop.Name.ConvertInvariant<decimal>(),
+                                            Amount = jprop.Value.ConvertInvariant<decimal>()
                                         };
                                         orderBook.Asks[depth.Price] = depth;
                                     }
@@ -491,8 +491,8 @@ namespace ExchangeSharp
                                     {
                                         var depth = new ExchangeOrderPrice
                                         {
-                                            Amount = jprop.Name.ConvertInvariant<decimal>(),
-                                            Price = jprop.Value.ConvertInvariant<decimal>()
+                                            Price = jprop.Name.ConvertInvariant<decimal>(),
+                                            Amount = jprop.Value.ConvertInvariant<decimal>()
                                         };
                                         orderBook.Bids[depth.Price] = depth;
                                     }
