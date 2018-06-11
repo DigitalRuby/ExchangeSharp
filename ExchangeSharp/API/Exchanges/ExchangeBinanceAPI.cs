@@ -128,6 +128,25 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + (symbol.Substring(symbol.Length - 3, 3)), GlobalSymbolSeparator);
         }
 
+        /// <summary>
+        /// Get the details of all trades
+        /// </summary>
+        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
+        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
+        public IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null) => GetMyTradesAsync(symbol, afterDate).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get the details of all trades
+        /// </summary>
+        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
+        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetMyTradesAsync(symbol, afterDate);
+        }
+
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             if (ReadCache("GetSymbols", out List<string> symbols))
@@ -533,7 +552,8 @@ namespace ExchangeSharp
             decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
             decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
-            payload["quantity"] = outputQuantity;
+            // Binance does not accept quantities with more than 20 decimal places.
+            payload["quantity"] = Math.Round(outputQuantity, 20);
             payload["newOrderRespType"] = "FULL";
 
             if (order.OrderType != OrderType.Market)
@@ -668,6 +688,68 @@ namespace ExchangeSharp
                 }
             }
             return orders;
+        }
+
+        private async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
+        {
+            // TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
+            List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
+            Exception ex = null;
+            string failedSymbol = null;
+            Parallel.ForEach((await GetSymbolsAsync()).Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), async (s) =>
+            {
+                try
+                {
+                    foreach (ExchangeOrderResult trade in (await GetMyTradesAsync(s, afterDate)))
+                    {
+                        lock (trades)
+                        {
+                            trades.Add(trade);
+                        }
+                    }
+                }
+                catch (Exception _ex)
+                {
+                    failedSymbol = s;
+                    ex = _ex;
+                }
+            });
+
+            if (ex != null)
+            {
+                throw new APIException("Failed to get my trades for symbol " + failedSymbol, ex);
+            }
+
+            // sort timestamp desc
+            trades.Sort((o1, o2) =>
+            {
+                return o2.OrderDate.CompareTo(o1.OrderDate);
+            });
+            return trades;
+        }
+
+        private async Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                trades.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
+            }
+            else
+            {
+                Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+                payload["symbol"] = NormalizeSymbol(symbol);
+                if (afterDate != null)
+                {
+                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                }
+                JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, payload);
+                foreach (JToken trade in token)
+                {
+                    trades.Add(ParseTrade(trade, symbol));
+                }
+            }
+            return trades;
         }
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
@@ -853,7 +935,7 @@ namespace ExchangeSharp
                 OrderId = token["orderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant()
             };
-            result.AveragePrice = result.Price;
+
             switch (token["status"].ToStringInvariant())
             {
                 case "NEW":
@@ -880,13 +962,52 @@ namespace ExchangeSharp
                     break;
             }
 
-            ParseFeesFromFills(result, token["fills"]);
+            ParseAveragePriceAndFeesFromFills(result, token["fills"]);
 
             return result;
         }
 
-        private void ParseFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
+        private ExchangeOrderResult ParseTrade(JToken token, string symbol)
         {
+            /*
+              [
+                 {
+                    "id": 28457,
+                    "orderId": 100234,
+                    "price": "4.00000100",
+                    "qty": "12.00000000",
+                    "commission": "10.10000000",
+                    "commissionAsset": "BNB",
+                    "time": 1499865549590,
+                    "isBuyer": true,
+                    "isMaker": false,
+                    "isBestMatch": true
+                 }
+              ]
+            */
+            ExchangeOrderResult result = new ExchangeOrderResult
+            {
+                Result = ExchangeAPIOrderResult.Filled,
+                Amount = token["qty"].ConvertInvariant<decimal>(),
+                AmountFilled = token["qty"].ConvertInvariant<decimal>(),
+                Price = token["price"].ConvertInvariant<decimal>(),
+                AveragePrice = token["price"].ConvertInvariant<decimal>(),
+                IsBuy = token["isBuyer"].ConvertInvariant<bool>() == true,
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>()),
+                OrderId = token["orderId"].ToStringInvariant(),
+                Fees = token["commission"].ConvertInvariant<decimal>(),
+                FeesCurrency = token["commissionAsset"].ToStringInvariant(),
+                Symbol = symbol
+            };
+
+            return result;
+        }
+
+        private void ParseAveragePriceAndFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
+        {
+            decimal totalCost = 0;
+            decimal totalQuantity = 0;
+
             bool currencySet = false;
             if (fillsToken is JArray)
             {
@@ -899,8 +1020,15 @@ namespace ExchangeSharp
                     }
 
                     result.Fees += fill["commission"].ConvertInvariant<decimal>();
+
+                    decimal price = fill["price"].ConvertInvariant<decimal>();
+                    decimal quantity = fill["qty"].ConvertInvariant<decimal>();
+                    totalCost += price * quantity;
+                    totalQuantity += quantity;
                 }
             }
+
+            result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
         }
 
         protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)

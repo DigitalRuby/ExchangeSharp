@@ -99,8 +99,8 @@ namespace ExchangeSharp
                 markets.Add(new ExchangeMarket()
                 {
                     MarketName = token["id"].ToStringInvariant(),
-                    BaseCurrency = token["baseCurrency"].ToStringInvariant(),
-                    MarketCurrency = token["quoteCurrency"].ToStringInvariant(),
+                    MarketCurrency = token["baseCurrency"].ToStringInvariant(), // should be LTC in BTC-LTC.  Hitbtc & ExchangeSharp definitions of base are reversed.
+                    BaseCurrency = token["quoteCurrency"].ToStringInvariant(), // should be BTC in BTC-LTC
                     QuantityStepSize = token["quantityIncrement"].ConvertInvariant<decimal>(),
                     PriceStepSize = token["tickSize"].ConvertInvariant<decimal>(),
                     IsActive = true
