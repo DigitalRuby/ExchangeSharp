@@ -46,6 +46,15 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + symbol.Substring(symbol.Length - 3, 3), GlobalSymbolSeparator);
         }
 
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+        {
+            if (method != "PUT" && method != "POST")
+            {
+                url.AppendPayloadToQuery(payload);
+            }
+            return url.Uri;
+        }
+
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // only authenticated requests write json, everything uses GET and url params
@@ -287,7 +296,7 @@ namespace ExchangeSharp
             {
                 payload["from"] = afterDate;
             }
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order", null, payload);
+            JToken obj = await MakeJsonRequestAsync<JToken>("/history/trades", null, payload);
             if (obj != null && obj.HasValues)
             {
                 foreach (JToken token in obj)
@@ -371,7 +380,10 @@ namespace ExchangeSharp
             if (token != null)
             {
                 deposit.Address = token["address"].ToStringInvariant();
-                if (deposit.Address.StartsWith("bitcoincash:")) deposit.Address = deposit.Address.Replace("bitcoincash:", string.Empty);  // don't know why they do this for bitcoincash
+                if (deposit.Address.StartsWith("bitcoincash:"))
+                {
+                    deposit.Address = deposit.Address.Replace("bitcoincash:", string.Empty);  // don't know why they do this for bitcoincash
+                }
                 deposit.AddressTag = token["wallet"].ToStringInvariant();
             }
             return deposit;
@@ -473,8 +485,7 @@ namespace ExchangeSharp
             payload["currency"] = Symbol;
             payload["amount"] = Amount;
             JToken obj = MakeJsonRequest<JToken>("/account/transfer", null, payload);
-            if (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant())) return true;
-            else return false;
+            return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
         }
 
         #endregion

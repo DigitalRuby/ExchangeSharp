@@ -443,8 +443,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Url</param>
         /// <param name="payload">Payload</param>
+        /// <param name="method">Method</param>
         /// <returns>Updated url</returns>
-        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             return url.Uri;
         }
@@ -571,9 +572,9 @@ namespace ExchangeSharp
             ProcessResponse(response);
         }
 
-        Uri IAPIRequestHandler.ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        Uri IAPIRequestHandler.ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
-            return ProcessRequestUrl(url, payload);
+            return ProcessRequestUrl(url, payload, method);
         }
     }
 }

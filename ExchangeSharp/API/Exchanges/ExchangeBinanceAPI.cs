@@ -1040,7 +1040,7 @@ namespace ExchangeSharp
             return base.ProcessRequestAsync(request, payload);
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -1053,7 +1053,7 @@ namespace ExchangeSharp
                 url.Query = newQuery;
                 return url.Uri;
             }
-            return base.ProcessRequestUrl(url, payload);
+            return base.ProcessRequestUrl(url, payload, method);
         }
 
         /// <summary>

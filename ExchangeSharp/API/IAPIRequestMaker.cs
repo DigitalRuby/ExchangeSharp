@@ -94,8 +94,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="url">Url</param>
         /// <param name="payload">Payload</param>
+        /// <param name="method">Method</param>
         /// <returns>Updated url</returns>
-        Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload);
+        Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method);
 
         /// <summary>
         /// Base url

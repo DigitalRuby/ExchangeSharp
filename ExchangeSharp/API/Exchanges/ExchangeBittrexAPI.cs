@@ -516,7 +516,7 @@ namespace ExchangeSharp
 
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {

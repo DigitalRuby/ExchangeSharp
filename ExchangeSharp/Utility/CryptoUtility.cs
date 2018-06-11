@@ -495,6 +495,27 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Append a dictionary of key/values to a url builder query
+        /// </summary>
+        /// <param name="uri">Uri builder</param>
+        /// <param name="payload">Payload to append</param>
+        public static void AppendPayloadToQuery(this UriBuilder uri, Dictionary<string, object> payload)
+        {
+            if (uri.Query.Length > 1)
+            {
+                uri.Query += "&";
+            }
+            foreach (var kv in payload)
+            {
+                uri.Query += WebUtility.UrlEncode(kv.Key);
+                uri.Query += "=";
+                uri.Query += kv.Value.ToStringInvariant();
+                uri.Query += "&";
+            }
+            uri.Query = uri.Query.Trim('&');
+        }
+
+        /// <summary>
         /// Get a value from dictionary with default fallback
         /// </summary>
         /// <typeparam name="TKey">Key type</typeparam>

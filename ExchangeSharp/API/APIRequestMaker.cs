@@ -57,7 +57,7 @@ namespace ExchangeSharp
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
         /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// The encoding of payload is API dependant but is typically json.</param>
-        /// <param name="method">Request method or null for default</param>
+        /// <param name="method">Request method or null for default. Example: 'GET' or 'POST'.</param>
         /// <returns>Raw response</returns>
         public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
@@ -74,10 +74,11 @@ namespace ExchangeSharp
             }
 
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
-            Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload);
+            method = method ?? api.RequestMethod;
+            Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload, method);
             HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
             request.Headers["Accept-Language"] = "en-US,en;q=0.5";
-            request.Method = method ?? api.RequestMethod;
+            request.Method = method;
             request.ContentType = api.RequestContentType;
             request.UserAgent = BaseAPI.RequestUserAgent;
             request.CachePolicy = api.RequestCachePolicy;
