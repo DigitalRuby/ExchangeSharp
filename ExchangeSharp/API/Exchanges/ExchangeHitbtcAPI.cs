@@ -52,7 +52,10 @@ namespace ExchangeSharp
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["Authorization"] = CryptoUtility.BasicAuthenticationString(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString());
-                await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
+                if (request.Method == "POST")
+                {
+                    await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
+                }
             }
         }
 
@@ -284,7 +287,7 @@ namespace ExchangeSharp
             {
                 payload["from"] = afterDate;
             }
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/trades", null, payload);
+            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order", null, payload);
             if (obj != null && obj.HasValues)
             {
                 foreach (JToken token in obj)
@@ -513,11 +516,11 @@ namespace ExchangeSharp
             //[ { "id": 9535486, "clientOrderId": "f8dbaab336d44d5ba3ff578098a68454", "orderId": 816088377, "symbol": "ETHBTC", "side": "sell", "quantity": "0.061", "price": "0.045487", "fee": "0.000002775", "timestamp": "2017-05-17T12:32:57.848Z" }, 
             return new ExchangeOrderResult()
             {
-                OrderId = token["orderId"].ToStringInvariant(),          // here we're using OrderId. I have no idea what the id field is used for.
+                OrderId = token["orderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant(),
                 IsBuy = token["side"].ToStringInvariant().Equals("buy"),
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
-                AmountFilled = token["quantity"].ConvertInvariant<decimal>(),   // these are closed, so I guess the filled quantity matches the order quantiity
+                AmountFilled = token["quantity"].ConvertInvariant<decimal>(), // these are closed, so I guess the filled quantity matches the order quantiity
                 Price = token["price"].ConvertInvariant<decimal>(),
                 Fees = token["fee"].ConvertInvariant<decimal>(),
                 OrderDate = ConvertDateTimeInvariant(token["timestamp"]),

@@ -65,7 +65,7 @@ namespace ExchangeSharpConsoleApp
         {
             try
             {
-                TestMethod(); // uncomment for ad-hoc code testing
+                // TestMethod(); // uncomment for ad-hoc code testing
 
                 Dictionary<string, string> argsDictionary = ParseCommandLine(args);
                 if (argsDictionary.Count == 0 || argsDictionary.ContainsKey("help"))
