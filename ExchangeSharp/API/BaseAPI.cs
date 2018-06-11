@@ -405,7 +405,7 @@ namespace ExchangeSharp
         public WebSocketWrapper ConnectWebSocket(string url, Action<byte[], WebSocketWrapper> messageCallback, Action<WebSocketWrapper> connectCallback = null)
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
-            return new WebSocketWrapper(fullUrl, messageCallback, TimeSpan.FromSeconds(30.0), connectCallback);
+            return new WebSocketWrapper(fullUrl, messageCallback, connectCallback);
         }
 
         /// <summary>
