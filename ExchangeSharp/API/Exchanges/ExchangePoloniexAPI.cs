@@ -154,6 +154,10 @@ namespace ExchangeSharp
                 order.AveragePrice = (order.AveragePrice * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
                 order.Amount += tradeAmt;
                 order.AmountFilled = order.Amount;
+                if (string.IsNullOrWhiteSpace(order.Symbol) || order.Symbol == "all")
+                {
+                    order.Symbol = trade["currencyPair"].ToStringInvariant();
+                }
 
                 if (order.OrderDate == DateTime.MinValue)
                 {
@@ -219,7 +223,6 @@ namespace ExchangeSharp
             {
                 IEnumerable<JToken> tradesForOrder = trades.Where(x => x["orderNumber"].ToStringInvariant() == orderNum);
                 ExchangeOrderResult order = new ExchangeOrderResult { OrderId = orderNum, Symbol = symbol };
-
                 ParseOrderTrades(tradesForOrder, order);
                 order.Price = order.AveragePrice;
                 order.Result = ExchangeAPIOrderResult.Filled;
