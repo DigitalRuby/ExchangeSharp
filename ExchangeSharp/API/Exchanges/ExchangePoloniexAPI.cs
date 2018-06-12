@@ -133,18 +133,19 @@ namespace ExchangeSharp
                 if (!orderMetadataSet)
                 {
                     order.IsBuy = trade["type"].ToStringLowerInvariant() != "sell";
-
                     string parsedSymbol = trade["currencyPair"].ToStringInvariant();
-                    if (!string.IsNullOrWhiteSpace(parsedSymbol))
+                    if (string.IsNullOrWhiteSpace(parsedSymbol) && trade.Parent != null)
+                    {
+                        parsedSymbol = trade.Parent.Path;
+                    }
+                    if (order.Symbol == "all" || !string.IsNullOrWhiteSpace(parsedSymbol))
                     {
                         order.Symbol = parsedSymbol;
                     }
-
                     if (!string.IsNullOrWhiteSpace(order.Symbol))
                     {
                         order.FeesCurrency = ParseFeesCurrency(order.IsBuy, order.Symbol);
                     }
-
                     orderMetadataSet = true;
                 }
 
@@ -154,10 +155,6 @@ namespace ExchangeSharp
                 order.AveragePrice = (order.AveragePrice * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
                 order.Amount += tradeAmt;
                 order.AmountFilled = order.Amount;
-                if (string.IsNullOrWhiteSpace(order.Symbol) || order.Symbol == "all")
-                {
-                    order.Symbol = trade["currencyPair"].ToStringInvariant();
-                }
 
                 if (order.OrderDate == DateTime.MinValue)
                 {

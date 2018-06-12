@@ -288,6 +288,22 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
+        public void GetCompletedOrderDetails_AllSymbols()
+        {
+            // {"BTC_MAID": [ { "globalTradeID": 29251512, "tradeID": "1385888", "date": "2016-05-03 01:29:55", "rate": "0.00014243", "amount": "353.74692925", "total": "0.05038417", "fee": "0.00200000", "orderNumber": "12603322113", "type": "buy", "category": "settlement" }, { "globalTradeID": 29251511, "tradeID": "1385887", "date": "2016-05-03 01:29:55", "rate": "0.00014111", "amount": "311.24262497", "total": "0.04391944", "fee": "0.00200000", "orderNumber": "12603319116", "type": "sell", "category": "marginTrade" }
+            var polo = CreatePoloniexAPI(GetCompletedOrderDetails_AllSymbolsOrders);
+            ExchangeOrderResult order = polo.GetCompletedOrderDetails().First();
+            order.Symbol.Should().Be("BTC_MAID");
+            order.OrderId.Should().Be("12603322113");
+            order.OrderDate.Should().Be(new DateTime(2016, 5, 3, 1, 29, 55));
+            order.AveragePrice.Should().Be(0.00014243m);
+            order.Price.Should().Be(0.00014243m);
+            order.Amount.Should().Be(353.74692925m);
+            order.Fees.Should().Be(0.70749386m);
+            order.IsBuy.Should().Be(true);
+        }
+
+        [TestMethod]
         public void OnGetDepositHistory_DoesNotFailOnMinTimestamp()
         {
             var polo = CreatePoloniexAPI(null);
@@ -906,6 +922,12 @@ namespace ExchangeSharpTests
 }]";
 
         #endregion
+
+        #region GetCompletedOrderDetails_AllSymbols
+
+        private const string GetCompletedOrderDetails_AllSymbolsOrders = @"{""BTC_MAID"": [ { ""globalTradeID"": 29251512, ""tradeID"": ""1385888"", ""date"": ""2016-05-03 01:29:55"", ""rate"": ""0.00014243"", ""amount"": ""353.74692925"", ""total"": ""0.05038417"", ""fee"": ""0.00200000"", ""orderNumber"": ""12603322113"", ""type"": ""buy"", ""category"": ""settlement"" }, { ""globalTradeID"": 29251511, ""tradeID"": ""1385887"", ""date"": ""2016-05-03 01:29:55"", ""rate"": ""0.00014111"", ""amount"": ""311.24262497"", ""total"": ""0.04391944"", ""fee"": ""0.00200000"", ""orderNumber"": ""12603319116"", ""type"": ""sell"", ""category"": ""marginTrade"" }";
+
+        #endregion GetCompletedOrderDetails_AllSymbols
 
         private const string Unfilled = @"[{
     ""orderNumber"": ""35329211614"",
