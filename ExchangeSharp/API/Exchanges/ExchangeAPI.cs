@@ -133,7 +133,6 @@ namespace ExchangeSharp
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
-        protected virtual IDisposable OnGetOrderBookDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> action, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         protected class HistoricalTradeHelperState
@@ -1191,27 +1190,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Get top bids and asks via web socket
         /// </summary>
-        /// <param name="callback">Callback (symbol, order book)</param>
+        /// <param name="callback">Callback of symbol, order book</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
         public IDisposable GetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookWebSocket(callback, maxCount, symbols);
-
-        /// <summary>
-        /// Gets a delta socket for a collection of order books. This will only provide updates to an order book, which should be lower traffic than GetOrderBookWebSocket.
-        /// The suggested way to use this is:
-        /// 1. Open this socket and begin buffering events you receive
-        /// 2. Get a depth snapshot of the order books you care about
-        /// 3. Drop any event where SequenceNumber is less than or equal to the snapshot last update id
-        /// Notes:
-        /// * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
-        /// * If the quantity is 0, remove the price level
-        /// * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
-        /// </summary>
-        /// <param name="callback">The callback.</param>
-        /// <param name="symbols">The ticker symbols to query. Null will not create a socket</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public IDisposable GetOrderBookDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, params string[] symbols) => OnGetOrderBookDeltaSocket(callback, symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
