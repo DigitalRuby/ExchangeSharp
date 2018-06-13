@@ -477,7 +477,22 @@ namespace ExchangeSharp
             order.Price = token["Limit"].ConvertInvariant<decimal>(order.AveragePrice);
             order.Message = string.Empty;
             order.OrderId = token["OrderUuid"].ToStringInvariant();
-            order.Result = amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially);
+            if (token["CancelInitiated"].ConvertInvariant<bool>())
+            {
+                order.Result = ExchangeAPIOrderResult.Canceled;
+            }
+            else if (amountFilled >= amount)
+            {
+                order.Result = ExchangeAPIOrderResult.Filled;
+            }
+            else if (amountFilled == 0m)
+            {
+                order.Result = ExchangeAPIOrderResult.Pending;
+            }
+            else
+            {
+                order.Result = ExchangeAPIOrderResult.FilledPartially;
+            }
             order.OrderDate = ConvertDateTimeInvariant(token["Opened"], ConvertDateTimeInvariant(token["TimeStamp"]));
             order.Symbol = token["Exchange"].ToStringInvariant();
             order.Fees = token["Commission"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
