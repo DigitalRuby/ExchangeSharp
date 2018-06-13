@@ -101,10 +101,13 @@ namespace ExchangeSharp
             return order;
         }
 
-        /// <summary>Parses an order which has not been filled.</summary>
+        /// <summary>
+        /// Parses an order which has not been filled.
+        /// </summary>
         /// <param name="result">The JToken to parse.</param>
+        /// <param name="symbol">Symbol or null if it's in the result</param>
         /// <returns>ExchangeOrderResult with the open order and how much is remaining to fill</returns>
-        public ExchangeOrderResult ParseOpenOrder(JToken result)
+        public ExchangeOrderResult ParseOpenOrder(JToken result, string symbol = null)
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {
@@ -114,6 +117,7 @@ namespace ExchangeSharp
                 OrderId = result["orderNumber"].ToStringInvariant(),
                 Price = result["rate"].ConvertInvariant<decimal>(),
                 Result = ExchangeAPIOrderResult.Pending,
+                Symbol = (symbol ?? result.Parent.Path)
             };
 
             decimal amount = result["amount"].ConvertInvariant<decimal>();
@@ -792,7 +796,7 @@ namespace ExchangeSharp
                     {
                         foreach (JToken token in array)
                         {
-                            orders.Add(ParseOpenOrder(token));
+                            orders.Add(ParseOpenOrder(token, null));
                         }
                     }
                 }
@@ -801,7 +805,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    orders.Add(ParseOpenOrder(token));
+                    orders.Add(ParseOpenOrder(token, symbol));
                 }
             }
 

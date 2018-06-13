@@ -37,6 +37,22 @@ namespace ExchangeSharp
         }
 
         #region ProcessRequest
+
+        protected override JToken CheckJsonResponse(JToken result)
+        {
+            JToken innerResult = result["result"];
+            if (innerResult != null && !innerResult.ConvertInvariant<bool>())
+            {
+                throw new APIException("Result is false: " + result.ToString());
+            }
+            innerResult = result["code"];
+            if (innerResult != null && innerResult.ConvertInvariant<int>() != 0)
+            {
+                throw new APIException("Code is non-zero: " + result.ToString());
+            }
+            return result;
+        }
+
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
