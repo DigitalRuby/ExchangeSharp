@@ -60,6 +60,11 @@ namespace ExchangeSharp
             public BinanceMarketDepthDiffUpdate Data { get; set; }
         }
 
+        public class ExchangeBinanceOrderBook : ExchangeOrderBook
+        {
+            public long LastUpdateId { get; set; }
+        }
+
         #endregion Model Objects Specific to Binance
 
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
@@ -374,7 +379,8 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(msg.UTF8String());
+                    string json = msg.UTF8String();
+                    var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(json);
                     string symbol = update.Data.Symbol;
 
                     if (!books.TryGetValue(symbol, out ExchangeOrderBook book))
@@ -382,6 +388,11 @@ namespace ExchangeSharp
                         // populate initial order book
                         book = GetOrderBook(symbol, 1000);
                         books[symbol] = book;
+                    }
+
+                    if ((book as ExchangeBinanceOrderBook).LastUpdateId > update.Data.FinalUpdate)
+                    {
+                        return;
                     }
 
                     foreach (List<object> ask in update.Data.Asks)
@@ -870,7 +881,8 @@ namespace ExchangeSharp
 
         private ExchangeOrderBook ParseOrderBook(JToken token)
         {
-            ExchangeOrderBook book = new ExchangeOrderBook();
+            ExchangeBinanceOrderBook book = new ExchangeBinanceOrderBook();
+            book.LastUpdateId = token["lastUpdateId"].ConvertInvariant<long>();
             foreach (JArray array in token["bids"])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };

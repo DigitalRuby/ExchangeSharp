@@ -69,7 +69,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Represents all the asks (sells) and bids (buys) for an exchange asset
     /// </summary>
-    public sealed class ExchangeOrderBook
+    public class ExchangeOrderBook
     {
         /// <summary>
         /// List of asks (sells)
