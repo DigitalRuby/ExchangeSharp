@@ -313,14 +313,12 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
-
-            Dictionary<string, ExchangeOrderBookWithDeltas> books = new Dictionary<string, ExchangeOrderBookWithDeltas>();
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -382,22 +380,9 @@ namespace ExchangeSharp
                     var sArray = ch.Split('.');
                     var symbol = sArray[1].ToStringInvariant();
                     long ts = token["ts"].ConvertInvariant<long>();
-
-                    if (!books.TryGetValue(symbol, out ExchangeOrderBookWithDeltas book))
-                    {
-                        // populate initial order book, we rely on the fact that GetOrderBook actually returns a ExchangeOrderBookWebSocket
-                        //  instead of ExchangeOrderBook
-                        books[symbol] = book = GetOrderBook(symbol, 1000) as ExchangeOrderBookWithDeltas;
-                        book.Symbol = symbol;
-                        book.Id = ts;
-                    }
-
-                    // if order book initial snapshot is newer, ignore this callback
-                    if (book.Id > ts)
-                    {
-                        return;
-                    }
-                    ParseOrderBookWebSocket(token["tick"], book);
+                    ExchangeOrderBook book = ParseOrderBookWebSocket(token["tick"]);
+                    book.SequenceId = ts;
+					book.Symbol = symbol;
                     callback(book);
                 }
                 catch
@@ -465,10 +450,10 @@ namespace ExchangeSharp
       [7995, 0.88],
              */
             symbol = NormalizeSymbol(symbol);
-            ExchangeOrderBookWithDeltas orders = new ExchangeOrderBookWithDeltas();
+            ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
             var tick = obj["tick"];
-            orders.Id = obj["ts"].ConvertInvariant<long>();
+            orders.SequenceId = obj["ts"].ConvertInvariant<long>();
             foreach (var prop in tick["asks"])
             {
                 decimal price = prop[1].ConvertInvariant<decimal>();
@@ -907,36 +892,20 @@ namespace ExchangeSharp
             return result;
         }
 
-        private void ParseOrderBookWebSocket(JToken token, ExchangeOrderBookWithDeltas book)
+        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
         {
-            book.DeltaAsks.Clear();
-            book.DeltaBids.Clear();
+            ExchangeOrderBook book = new ExchangeOrderBook();
             foreach (JArray array in token["asks"])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                if (depth.Amount <= 0m || depth.Price <= 0m)
-                {
-                    book.Asks.Remove(depth.Price);
-                }
-                else
-                {
-                    book.Asks[depth.Price] = depth;
-                }
-                book.DeltaAsks.Add(depth.Price, depth);
+                book.Asks[depth.Price] = depth;
             }
             foreach (JArray array in token["bids"])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                if (depth.Amount <= 0m || depth.Price <= 0m)
-                {
-                    book.Bids.Remove(depth.Price);
-                }
-                else
-                {
-                    book.Bids[depth.Price] = depth;
-                }
-                book.DeltaBids.Add(depth.Price, depth);
+                book.Bids[depth.Price] = depth;
             }
+            return book;
         }
 
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)

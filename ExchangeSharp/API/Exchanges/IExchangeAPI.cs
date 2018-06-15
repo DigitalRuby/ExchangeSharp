@@ -473,13 +473,13 @@ namespace ExchangeSharp
         IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
 
         /// <summary>
-        /// Get top bids and asks via web socket
+        /// Get delta order book bids and asks via web socket. Only the deltas are returned for each callback. To manage a full order book, use ExchangeAPIExtensions.GetOrderBookWebSocket.
         /// </summary>
         /// <param name="callback">Callback of symbol, order book</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols);
+        IDisposable GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket

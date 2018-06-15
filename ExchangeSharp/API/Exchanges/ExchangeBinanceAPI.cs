@@ -350,26 +350,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || !symbols.Any())
             {
                 return null;
             }
 
-            // Gets a delta socket for a collection of order books.
-            // The suggested way to use this is:
-            // 1. Open this socket and begin buffering events you receive
-            // 2. Get a depth snapshot of the order books you care about
-            // 3. Drop any event where SequenceNumber is less than or equal to the snapshot last update id
-            // Notes:
-            // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
-            // * If the quantity is 0, remove the price level
-            // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
-            // 
             string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
-            Dictionary<string, ExchangeOrderBookWithDeltas> books = new Dictionary<string, ExchangeOrderBookWithDeltas>();
-
             return ConnectWebSocket($"/stream?streams={combined}", (msg, _socket) =>
             {
                 try
@@ -377,49 +365,17 @@ namespace ExchangeSharp
                     string json = msg.UTF8String();
                     var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(json);
                     string symbol = update.Data.Symbol;
-
-                    if (!books.TryGetValue(symbol, out ExchangeOrderBookWithDeltas book))
-                    {
-                        // populate initial order book, we rely on the fact that GetOrderBook actually returns a ExchangeOrderBookWebSocket
-                        //  instead of ExchangeOrderBook
-                        books[symbol] = book = GetOrderBook(symbol, 1000) as ExchangeOrderBookWithDeltas;
-                        book.Symbol = symbol;
-                    }
-
-                    if (book.Id > update.Data.FinalUpdate)
-                    {
-                        return;
-                    }
-                    book.Id = update.Data.FinalUpdate;
-                    book.DeltaAsks.Clear();
-                    book.DeltaBids.Clear();
+                    ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
                     foreach (List<object> ask in update.Data.Asks)
                     {
                         var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
-                        if (depth.Amount <= 0m || depth.Price <= 0m)
-                        {
-                            book.Asks.Remove(depth.Price);
-                        }
-                        else
-                        {
-                            book.Asks[depth.Price] = depth;
-                        }
-                        book.DeltaAsks.Add(depth.Price, depth);
+                        book.Asks[depth.Price] = depth;
                     }
                     foreach (List<object> bid in update.Data.Bids)
                     {
                         var depth = new ExchangeOrderPrice { Price = bid[0].ConvertInvariant<decimal>(), Amount = bid[1].ConvertInvariant<decimal>() };
-                        if (depth.Amount <= 0m || depth.Price <= 0m)
-                        {
-                            book.Bids.Remove(depth.Price);
-                        }
-                        else
-                        {
-                            book.Bids[depth.Price] = depth;
-                        }
-                        book.DeltaBids.Add(depth.Price, depth);
+                        book.Bids[depth.Price] = depth;
                     }
-
                     callback(book);
                 }
                 catch
@@ -880,8 +836,10 @@ namespace ExchangeSharp
 
         private ExchangeOrderBook ParseOrderBook(JToken token)
         {
-            ExchangeOrderBookWithDeltas book = new ExchangeOrderBookWithDeltas();
-            book.Id = token["lastUpdateId"].ConvertInvariant<long>();
+            ExchangeOrderBook book = new ExchangeOrderBook
+            {
+                SequenceId = token["lastUpdateId"].ConvertInvariant<long>()
+            };
             foreach (JArray array in token["bids"])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };

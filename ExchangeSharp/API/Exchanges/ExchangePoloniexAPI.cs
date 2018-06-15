@@ -446,16 +446,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
-            Dictionary<string, ExchangeOrderBookWithDeltas> books = new Dictionary<string, ExchangeOrderBookWithDeltas>();
-            Dictionary<int, string> messageIdToSymbol = new Dictionary<int, string>();
-
+            Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 try
@@ -471,7 +469,7 @@ namespace ExchangeSharp
 
                     var seq = token[1].ConvertInvariant<long>();
                     var dataArray = token[2];
-                    ExchangeOrderBookWithDeltas book = null;
+                    ExchangeOrderBook book = new ExchangeOrderBook();
                     foreach (var data in dataArray)
                     {
                         var dataType = data[0].ToStringInvariant();
@@ -479,12 +477,11 @@ namespace ExchangeSharp
                         {
                             var marketInfo = data[1];
                             var market = marketInfo["currencyPair"].ToStringInvariant();
-                            books[market] = book = new ExchangeOrderBookWithDeltas
-                            {
-                                Id = 1,
-                                Symbol = market
-                            };
-                            messageIdToSymbol[msgId] = market;
+                            messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
+
+                            // we are only returning the deltas, this would create a full order book which we don't want, but keeping it
+                            //  here for historical reference
+                            /*
                             foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
                             {
                                 var depth = new ExchangeOrderPrice
@@ -503,25 +500,20 @@ namespace ExchangeSharp
                                 };
                                 book.Bids[depth.Price] = depth;
                             }
+                            */
                         }
                         else if (dataType == "o")
                         {
                             //removes or modifies an existing item on the order books
-                            if (messageIdToSymbol.TryGetValue(msgId, out string symbol) && books.TryGetValue(symbol, out book))
+                            if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
                             {
                                 int type = data[1].ConvertInvariant<int>();
                                 var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
                                 var list = (type == 1 ? book.Bids : book.Asks);
-                                var deltaList = (type == 1 ? book.Bids : book.Asks);
-                                if (depth.Price <= 0m || depth.Amount <= 0m)
-                                {
-                                    list.Remove(depth.Price);
-                                }
-                                else
-                                {
-                                    list[depth.Price] = depth;
-                                }
-                                deltaList[depth.Price] = depth;
+                                list[depth.Price] = depth;
+                                book.Symbol = symbol.Item1;
+                                book.SequenceId = symbol.Item2 + 1;
+                                messageIdToSymbol[msgId] = new Tuple<string, long>(book.Symbol, book.SequenceId);
                             }
                         }
                         else
@@ -529,13 +521,9 @@ namespace ExchangeSharp
                             continue;
                         }
                     }
-                    if (book != null)
+                    if (book != null && (book.Asks.Count != 0 || book.Bids.Count != 0))
                     {
-                        book.Id++;
                         callback(book);
-                        book.DeltaAsks.Clear();
-                        book.DeltaBids.Clear();
-                        book = null;
                     }
                 }
                 catch

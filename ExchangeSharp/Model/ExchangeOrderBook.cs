@@ -69,8 +69,20 @@ namespace ExchangeSharp
     /// <summary>
     /// Represents all the asks (sells) and bids (buys) for an exchange asset
     /// </summary>
-    public class ExchangeOrderBook
+    public sealed class ExchangeOrderBook
     {
+        /// <summary>
+        /// The sequence id. This increments as updates come through. Not all exchanges will populate this.
+        /// This property is not serialized using the ToBinary and FromBinary methods.
+        /// </summary>
+        public long SequenceId { get; set; }
+
+        /// <summary>
+        /// The symbol.
+        /// This property is not serialized using the ToBinary and FromBinary methods.
+        /// </summary>
+        public string Symbol { get; set; }
+
         /// <summary>
         /// List of asks (sells)
         /// </summary>
@@ -173,31 +185,5 @@ namespace ExchangeSharp
 
             return sellPrice;
         }
-    }
-
-    /// <summary>
-    /// An exchange order book from a web socket
-    /// </summary>
-    public class ExchangeOrderBookWithDeltas : ExchangeOrderBook
-    {
-        /// <summary>
-        /// The symbol.
-        /// </summary>
-        public string Symbol { get; set; }
-
-        /// <summary>
-        /// The id. This increments as updates come through. This is also referred to as the sequence number.
-        /// </summary>
-        public long Id { get; set; }
-
-        /// <summary>
-        /// Delta list of asks (sells)
-        /// </summary>
-        public SortedDictionary<decimal, ExchangeOrderPrice> DeltaAsks { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>();
-
-        /// <summary>
-        /// Delta list of bids (buys)
-        /// </summary>
-        public SortedDictionary<decimal, ExchangeOrderPrice> DeltaBids { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>(new DescendingComparer<decimal>());
     }
 }

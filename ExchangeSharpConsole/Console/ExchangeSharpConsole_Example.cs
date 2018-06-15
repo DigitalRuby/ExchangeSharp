@@ -121,7 +121,7 @@ namespace ExchangeSharpConsoleApp
                 //print the top bid and ask with amount
                 var topBid = message.Bids.FirstOrDefault();
                 var topAsk = message.Asks.FirstOrDefault();
-                Console.WriteLine($"[{message.Symbol}:{message.Id}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                Console.WriteLine($"[{message.Symbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
             }, symbols: symbols);
 
             Console.WriteLine("Press any key to quit.");

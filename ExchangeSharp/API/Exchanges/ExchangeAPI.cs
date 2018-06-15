@@ -132,7 +132,7 @@ namespace ExchangeSharp
 
         protected virtual IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
-        protected virtual IDisposable OnGetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
+        protected virtual IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
         protected virtual IDisposable OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         protected class HistoricalTradeHelperState
@@ -1188,14 +1188,13 @@ namespace ExchangeSharp
         public IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => OnGetTradesWebSocket(callback, symbols);
 
         /// <summary>
-        /// Get top bids and asks via web socket. The entire order book is returned and deltas are added and removed to the order book as they are received, you do
-        /// not need to manage this yourself.
+        /// Get delta order book bids and asks via web socket. Only the deltas are returned for each callback. To manage a full order book, use ExchangeAPIExtensions.GetOrderBookWebSocket.
         /// </summary>
         /// <param name="callback">Callback of symbol, order book</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public IDisposable GetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookWebSocket(callback, maxCount, symbols);
+        public IDisposable GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookDeltasWebSocket(callback, maxCount, symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
