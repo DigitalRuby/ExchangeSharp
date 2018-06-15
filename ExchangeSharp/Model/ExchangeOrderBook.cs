@@ -174,4 +174,15 @@ namespace ExchangeSharp
             return sellPrice;
         }
     }
+
+    /// <summary>
+    /// An exchange order book from a web socket
+    /// </summary>
+    public class ExchangeOrderBookWebSocket : ExchangeOrderBook
+    {
+        /// <summary>
+        /// The id. This increments are updates come through.
+        /// </summary>
+        public long Id { get; set; }
+    }
 }

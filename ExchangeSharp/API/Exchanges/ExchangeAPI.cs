@@ -1188,7 +1188,8 @@ namespace ExchangeSharp
         public IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => OnGetTradesWebSocket(callback, symbols);
 
         /// <summary>
-        /// Get top bids and asks via web socket
+        /// Get top bids and asks via web socket. The entire order book is returned and deltas are added and removed to the order book as they are received, you do
+        /// not need to manage this yourself.
         /// </summary>
         /// <param name="callback">Callback of symbol, order book</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
