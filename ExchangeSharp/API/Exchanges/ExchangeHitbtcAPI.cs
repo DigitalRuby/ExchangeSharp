@@ -48,7 +48,7 @@ namespace ExchangeSharp
 
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
-            if (method != "PUT" && method != "POST")
+            if (method != "PUT" && method != "POST" && payload != null && payload.Count != 0)
             {
                 url.AppendPayloadToQuery(payload);
             }

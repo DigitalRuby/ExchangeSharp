@@ -28,9 +28,6 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
         public override string Name => ExchangeName.Poloniex;
 
-        /// <summary>A mapping of socket IDs to markets</summary>
-        private readonly Dictionary<int, string> orderBookSocketLookup = new Dictionary<int, string>();
-
         static ExchangePoloniexAPI()
         {
             // load withdrawal field counts
@@ -449,12 +446,15 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
+
+            Dictionary<string, ExchangeOrderBookWithDeltas> books = new Dictionary<string, ExchangeOrderBookWithDeltas>();
+            Dictionary<int, string> messageIdToSymbol = new Dictionary<int, string>();
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -465,57 +465,82 @@ namespace ExchangeSharp
 
                     //return if this is a heartbeat message
                     if (msgId == 1010)
+                    {
                         return;
+                    }
 
-                    var seq = token[1].ConvertInvariant<int>();
+                    var seq = token[1].ConvertInvariant<long>();
                     var dataArray = token[2];
-                    var orderBook = new ExchangeOrderBook();
+                    ExchangeOrderBookWithDeltas book = null;
                     foreach (var data in dataArray)
                     {
-                        var dataType = data[0];
-                        switch (dataType.ToStringInvariant())
+                        var dataType = data[0].ToStringInvariant();
+                        if (dataType == "i")
                         {
-                            //poloniex will initially send the entire order book, followed by updates
-                            case "i":
+                            var marketInfo = data[1];
+                            var market = marketInfo["currencyPair"].ToStringInvariant();
+                            books[market] = book = new ExchangeOrderBookWithDeltas
+                            {
+                                Id = 1,
+                                Symbol = market
+                            };
+                            messageIdToSymbol[msgId] = market;
+                            foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
+                            {
+                                var depth = new ExchangeOrderPrice
                                 {
-                                    var marketInfo = data[1];
-                                    var market = marketInfo["currencyPair"].ToStringInvariant();
-                                    this.orderBookSocketLookup[msgId] = market;
-                                    foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
-                                    {
-                                        var depth = new ExchangeOrderPrice
-                                        {
-                                            Price = jprop.Name.ConvertInvariant<decimal>(),
-                                            Amount = jprop.Value.ConvertInvariant<decimal>()
-                                        };
-                                        orderBook.Asks[depth.Price] = depth;
-                                    }
-
-                                    foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
-                                    {
-                                        var depth = new ExchangeOrderPrice
-                                        {
-                                            Price = jprop.Name.ConvertInvariant<decimal>(),
-                                            Amount = jprop.Value.ConvertInvariant<decimal>()
-                                        };
-                                        orderBook.Bids[depth.Price] = depth;
-                                    }
-
-                                    break;
-                                }
+                                    Price = jprop.Name.ConvertInvariant<decimal>(),
+                                    Amount = jprop.Value.ConvertInvariant<decimal>()
+                                };
+                                book.Asks[depth.Price] = depth;
+                            }
+                            foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
+                            {
+                                var depth = new ExchangeOrderPrice
+                                {
+                                    Price = jprop.Name.ConvertInvariant<decimal>(),
+                                    Amount = jprop.Value.ConvertInvariant<decimal>()
+                                };
+                                book.Bids[depth.Price] = depth;
+                            }
+                        }
+                        else if (dataType == "o")
+                        {
                             //removes or modifies an existing item on the order books
-                            case "o":
+                            if (messageIdToSymbol.TryGetValue(msgId, out string symbol) && books.TryGetValue(symbol, out book))
+                            {
+                                int type = data[1].ConvertInvariant<int>();
+                                var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
+                                var list = (type == 1 ? book.Bids : book.Asks);
+                                var deltaList = (type == 1 ? book.Bids : book.Asks);
+                                if (depth.Price <= 0m || depth.Amount <= 0m)
                                 {
-                                    var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
-                                    (data[1].ConvertInvariant<int>() == 1 ? orderBook.Bids : orderBook.Asks)[depth.Price] = depth;
-                                    break;
+                                    list.Remove(depth.Price);
                                 }
+                                else
+                                {
+                                    list[depth.Price] = depth;
+                                }
+                                deltaList[depth.Price] = depth;
+                            }
+                        }
+                        else
+                        {
+                            continue;
                         }
                     }
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(this.orderBookSocketLookup[msgId], orderBook)));
+                    if (book != null)
+                    {
+                        book.Id++;
+                        callback(book);
+                        book.DeltaAsks.Clear();
+                        book.DeltaBids.Clear();
+                        book = null;
+                    }
                 }
                 catch
                 {
+                    // TODO: Handle exception
                 }
             }, (_socket) =>
             {

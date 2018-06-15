@@ -50,7 +50,7 @@ namespace ExchangeSharp
             {
                 throw new APIException("Code is non-zero: " + result.ToString());
             }
-            return result;
+            return result["data"] ?? result;
         }
 
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
@@ -170,8 +170,6 @@ namespace ExchangeSharp
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
-
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 /*
@@ -229,8 +227,8 @@ namespace ExchangeSharp
                     }
 
                     var sArray = channel.Split('_');
-                    var symbol = sArray[3]+"_"+sArray[4];
-                    var trades = ParseWebSocket(sArray, token) as IEnumerable<ExchangeTrade>;
+                    var symbol = sArray[3] + "_" + sArray[4];
+                    var trades = ParseTradesWebSocket(token["data"]);
                     foreach (var trade in trades)
                     {
                         callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
@@ -241,21 +239,28 @@ namespace ExchangeSharp
                 }
             }, (_socket) =>
             {
-                string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
-                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                _socket.SendMessage(msg);
+                if (symbols.Length == 0)
+                {
+                    symbols = GetSymbols().ToArray();
+                }
+                foreach (string symbol in symbols)
+                {
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
+                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                    _socket.SendMessage(msg);
+                }
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeOrderBookWithDeltas> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
-
+            Dictionary<string, ExchangeOrderBookWithDeltas> books = new Dictionary<string, ExchangeOrderBookWithDeltas>();
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 /*
@@ -312,30 +317,58 @@ namespace ExchangeSharp
 
                     var sArray = channel.Split('_');
                     var symbol = sArray[3] + "_" + sArray[4];
-
                     var data = token["data"];
                     var seq = data["timestamp"].ConvertInvariant<long>();
-                    var orderBook = ParseWebSocket(sArray, data) as ExchangeOrderBook;
 
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq,
-                        new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
+                    if (!books.TryGetValue(symbol, out ExchangeOrderBookWithDeltas book))
+                    {
+                        // populate initial order book, we rely on the fact that GetOrderBook actually returns a ExchangeOrderBookWebSocket
+                        //  instead of ExchangeOrderBook
+                        books[symbol] = book = GetOrderBook(symbol, 100) as ExchangeOrderBookWithDeltas;
+                        book.Symbol = symbol;
+                        book.Id = seq;
+                    }
+
+                    if (book.Id > seq)
+                    {
+                        return;
+                    }
+
+                    ParseOrderBookWebSocket(book, data);
+
+                    if (book.Id > seq)
+                    {
+                        return;
+                    }
+                    book.Id = seq;
+
+                    callback(book);
                 }
                 catch
                 {
+                    // TODO: Handle exception
                 }
             }, (_socket) =>
             {
-                // subscribe to order book and trades channel for given symbol
-                string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
-                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                _socket.SendMessage(msg);
+                if (symbols.Length == 0)
+                {
+                    symbols = GetSymbols().ToArray();
+                }
+                foreach (string symbol in symbols)
+                {
+                    // subscribe to order book and trades channel for given symbol
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
+                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                    _socket.SendMessage(msg);
+                }
             });
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
-            ExchangeOrderBook book = new ExchangeOrderBook();
+            ExchangeOrderBookWithDeltas book = new ExchangeOrderBookWithDeltas();
             foreach (JArray ask in token.Item1["asks"])
             {
                 var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
@@ -711,33 +744,36 @@ namespace ExchangeSharp
             return result;
         }
 
-        private object ParseWebSocket(string[] sArray, JToken token)
+        private void ParseOrderBookWebSocket(ExchangeOrderBookWithDeltas book, JToken token)
         {
-            switch (sArray[5])
-            {
-                case "depth":
-                    return ParseOrderBookWebSocket(token);
-                case "deals":
-                    return ParseTradesWebSocket(token["data"]);
-            }
-            return null;
-        }
-
-        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
-        {
-            var orderBook = new ExchangeOrderBook();
+            book.DeltaAsks.Clear();
+            book.DeltaBids.Clear();
             foreach (JArray array in token["asks"])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                orderBook.Asks[depth.Price] = depth;
+                if (depth.Amount <= 0m || depth.Price <= 0m)
+                {
+                    book.Asks.Remove(depth.Price);
+                }
+                else
+                {
+                    book.Asks[depth.Price] = depth;
+                }
+                book.DeltaAsks.Add(depth.Price, depth);
             }
             foreach (JArray array in token["bids"])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                orderBook.Bids[depth.Price] = depth;
+                if (depth.Amount <= 0m || depth.Price <= 0m)
+                {
+                    book.Bids.Remove(depth.Price);
+                }
+                else
+                {
+                    book.Bids[depth.Price] = depth;
+                }
+                book.DeltaBids.Add(depth.Price, depth);
             }
-
-            return orderBook;
         }
 
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)

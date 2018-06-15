@@ -178,11 +178,26 @@ namespace ExchangeSharp
     /// <summary>
     /// An exchange order book from a web socket
     /// </summary>
-    public class ExchangeOrderBookWebSocket : ExchangeOrderBook
+    public class ExchangeOrderBookWithDeltas : ExchangeOrderBook
     {
         /// <summary>
-        /// The id. This increments are updates come through.
+        /// The symbol.
+        /// </summary>
+        public string Symbol { get; set; }
+
+        /// <summary>
+        /// The id. This increments as updates come through. This is also referred to as the sequence number.
         /// </summary>
         public long Id { get; set; }
+
+        /// <summary>
+        /// Delta list of asks (sells)
+        /// </summary>
+        public SortedDictionary<decimal, ExchangeOrderPrice> DeltaAsks { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>();
+
+        /// <summary>
+        /// Delta list of bids (buys)
+        /// </summary>
+        public SortedDictionary<decimal, ExchangeOrderPrice> DeltaBids { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>(new DescendingComparer<decimal>());
     }
 }
