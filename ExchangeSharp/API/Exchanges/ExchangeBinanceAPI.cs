@@ -388,7 +388,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + symbol + "&limit=" + maxCount);
-            return ParseOrderBook(obj);
+            return ParseOrderBookFromJTokenArrays(obj, sequence: "lastUpdateId", maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
@@ -832,25 +832,6 @@ namespace ExchangeSharp
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
                 }
             };
-        }
-
-        private ExchangeOrderBook ParseOrderBook(JToken token)
-        {
-            ExchangeOrderBook book = new ExchangeOrderBook
-            {
-                SequenceId = token["lastUpdateId"].ConvertInvariant<long>()
-            };
-            foreach (JArray array in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            foreach (JArray array in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            return book;
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)

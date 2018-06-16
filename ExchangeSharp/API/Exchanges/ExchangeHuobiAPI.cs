@@ -379,9 +379,7 @@ namespace ExchangeSharp
                     var ch = token["ch"].ToStringInvariant();
                     var sArray = ch.Split('.');
                     var symbol = sArray[1].ToStringInvariant();
-                    long ts = token["ts"].ConvertInvariant<long>();
-                    ExchangeOrderBook book = ParseOrderBookWebSocket(token["tick"]);
-                    book.SequenceId = ts;
+                    ExchangeOrderBook book = ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
 					book.Symbol = symbol;
                     callback(book);
                 }
@@ -452,24 +450,8 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
-            var tick = obj["tick"];
-            orders.SequenceId = obj["ts"].ConvertInvariant<long>();
-            foreach (var prop in tick["asks"])
-            {
-                decimal price = prop[1].ConvertInvariant<decimal>();
-                orders.Asks[price] = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = price };
-            }
-
-            foreach (var prop in tick["bids"])
-            {
-                decimal price = prop[0].ConvertInvariant<decimal>();
-                orders.Bids[price] = new ExchangeOrderPrice { Price = price, Amount = prop[1].ConvertInvariant<decimal>() };
-            }
-
-            return orders;
+            return ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
         }
-
-
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
@@ -890,22 +872,6 @@ namespace ExchangeSharp
             };
 
             return result;
-        }
-
-        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
-        {
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray array in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            foreach (JArray array in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            return book;
         }
 
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)

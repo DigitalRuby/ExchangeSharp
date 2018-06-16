@@ -417,6 +417,79 @@ namespace ExchangeSharp
             return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
         }
 
+        /// <summary>
+        /// Common order book parsing method, most exchanges use "asks" and "bids" with arrays of length 2 for price and amount (or amount and price)
+        /// </summary>
+        /// <param name="token">Token</param>
+        /// <param name="asks">Asks key</param>
+        /// <param name="bids">Bids key</param>
+        /// <param name="maxCount">Max count</param>
+        /// <returns>Order book</returns>
+        protected ExchangeOrderBook ParseOrderBookFromJTokenArrays(JToken token, string asks = "asks", string bids = "bids", string sequence = "ts", int maxCount = 100)
+        {
+            ExchangeOrderBook book = new ExchangeOrderBook
+            {
+                SequenceId = token[sequence].ConvertInvariant<long>()
+            };
+            foreach (JArray array in token[asks])
+            {
+                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
+                if (book.Asks.Count == maxCount)
+                {
+                    break;
+                }
+            }
+            foreach (JArray array in token[bids])
+            {
+                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
+                if (book.Bids.Count == maxCount)
+                {
+                    break;
+                }
+            }
+            return book;
+        }
+
+        /// <summary>
+        /// Common order book parsing method, checks for "amount" or "quantity" and "price" elements
+        /// </summary>
+        /// <param name="token">Token</param>
+        /// <param name="asks">Asks key</param>
+        /// <param name="bids">Bids key</param>
+        /// <param name="price">Price key</param>
+        /// <param name="amount">Quantity key</param>
+        /// <param name="sequence">Sequence key</param>
+        /// <param name="maxCount">Max count</param>
+        /// <returns>Order book</returns>
+        protected ExchangeOrderBook ParseOrderBookFromJTokenDictionaries(JToken token, string asks = "asks", string bids = "bids", string price = "price", string amount = "amount", string sequence = "ts", int maxCount = 100)
+        {
+            ExchangeOrderBook book = new ExchangeOrderBook
+            {
+                SequenceId = token[sequence].ConvertInvariant<long>()
+            };
+            foreach (JToken ask in token[asks])
+            {
+                var depth = new ExchangeOrderPrice { Price = ask[price].ConvertInvariant<decimal>(), Amount = ask[amount].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
+                if (book.Asks.Count == maxCount)
+                {
+                    break;
+                }
+            }
+            foreach (JToken bid in token[bids])
+            {
+                var depth = new ExchangeOrderPrice { Price = bid[price].ConvertInvariant<decimal>(), Amount = bid[amount].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
+                if (book.Bids.Count == maxCount)
+                {
+                    break;
+                }
+            }
+            return book;
+        }
+
         #endregion Protected methods
 
         #region Other

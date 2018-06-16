@@ -155,29 +155,12 @@ namespace ExchangeSharp
             return tickers.Where(t => t.Key.Equals(symbol)).Select(t => t.Value).FirstOrDefault();     
         }
 
-
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            ExchangeOrderBook orders = new ExchangeOrderBook();
             var split = symbol.Split('_');
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getorders&coin=" + split[1] + "&market=" + split[0]);
-            if (token != null && token.HasValues)
-            {
-                foreach (JArray order in token["asks"])
-                {
-                    var depth = new ExchangeOrderPrice { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() };
-                    orders.Asks[depth.Price] = depth;
-                }
-
-                foreach (JArray order in token["bids"])
-                {
-                    var depth = new ExchangeOrderPrice { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() };
-                    orders.Bids[depth.Price] = depth;
-                }
-            }
-            return orders;
+            return ParseOrderBookFromJTokenArrays(token);
         }
-
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {

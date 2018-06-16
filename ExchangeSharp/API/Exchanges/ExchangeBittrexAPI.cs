@@ -739,21 +739,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken book = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken bids = book["buy"];
-            foreach (JToken token in bids)
-            {
-                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
-                orders.Bids[depth.Price] = depth;
-            }
-            JToken asks = book["sell"];
-            foreach (JToken token in asks)
-            {
-                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
-                orders.Asks[depth.Price] = depth;
-            }
-            return orders;
+            JToken token = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
+            return ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>

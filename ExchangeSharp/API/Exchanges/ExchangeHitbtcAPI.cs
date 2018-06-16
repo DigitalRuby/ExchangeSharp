@@ -189,29 +189,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/public/orderbook/" + symbol + "?limit=" + maxCount.ToStringInvariant());
-            if (obj != null && obj.HasValues)
-            {
-                foreach (JToken order in obj["ask"])
-                {
-                    if (orders.Asks.Count < maxCount)
-                    {
-                        var depth = new ExchangeOrderPrice { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() };
-                        orders.Asks[depth.Price] = depth;
-                    }
-                }
-
-                foreach (JToken order in obj["bid"])
-                {
-                    if (orders.Bids.Count < maxCount)
-                    {
-                        var depth = new ExchangeOrderPrice { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() };
-                        orders.Bids[depth.Price] = depth;
-                    }
-                }
-            }
-            return orders;
+            JToken token = await MakeJsonRequestAsync<JToken>("/public/orderbook/" + symbol + "?limit=" + maxCount.ToStringInvariant());
+            return ParseOrderBookFromJTokenDictionaries(token, asks: "ask", bids: "bid", amount: "size", maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)

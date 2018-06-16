@@ -40,6 +40,10 @@ namespace ExchangeSharp
 
         protected override JToken CheckJsonResponse(JToken result)
         {
+            if (result is JArray)
+            {
+                return result;
+            }
             JToken innerResult = result["result"];
             if (innerResult != null && !innerResult.ConvertInvariant<bool>())
             {
@@ -317,9 +321,7 @@ namespace ExchangeSharp
                     var sArray = channel.Split('_');
                     var symbol = sArray[3] + "_" + sArray[4];
                     var data = token["data"];
-                    var seq = data["timestamp"].ConvertInvariant<long>();
-                    ExchangeOrderBook book = ParseOrderBookWebSocket(data);
-                    book.SequenceId = seq;
+                    ExchangeOrderBook book = ParseOrderBookFromJTokenArrays(data, sequence: "timestamp", maxCount: maxCount);
 					book.Symbol = symbol;
                     callback(book);
                 }
@@ -347,18 +349,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray ask in token.Item1["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            foreach (JArray bid in token.Item1["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            return book;
+            return ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
@@ -721,22 +712,6 @@ namespace ExchangeSharp
             };
 
             return result;
-        }
-
-        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
-        {
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray array in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            foreach (JArray array in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            return book;
         }
 
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
