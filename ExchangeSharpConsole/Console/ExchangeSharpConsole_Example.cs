@@ -112,7 +112,7 @@ namespace ExchangeSharpConsoleApp
             {
                 if (!apiSymbols.Contains(symbol))
                 {
-                    throw new ArgumentException(string.Format("Symbol {0} does not exist in API {1}", symbol, api.Name));
+                    throw new ArgumentException(string.Format("Symbol {0} does not exist in API {1}, valid symbols: {2}", symbol, api.Name, string.Join(',', apiSymbols.OrderBy(s => s))));
                 }
             }
 

@@ -47,7 +47,7 @@ namespace ExchangeSharp
 				// see if we have a full order book for the symbol
 				if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
 				{
-					fullBooks[book.Symbol] = book = api.GetOrderBook(book.Symbol, 1000);
+					fullBooks[book.Symbol] = fullBook = api.GetOrderBook(book.Symbol, 1000);
 					fullBook.Symbol = book.Symbol;
 				}
 
