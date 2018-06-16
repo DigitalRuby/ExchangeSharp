@@ -39,6 +39,8 @@ using Microsoft.AspNet.SignalR.Client.Transports;
 
 namespace ExchangeSharp
 {
+    using Newtonsoft.Json;
+
     public sealed class ExchangeBittrexAPI : ExchangeAPI
     {
 
@@ -66,29 +68,36 @@ namespace ExchangeSharp
                 {
                     if (callback != null)
                     {
-                        string functionFullName = null;
+                        string functionFullName;
                         switch (functionName)
                         {
                             case "uS": functionFullName = "SubscribeToSummaryDeltas"; break;
-                            default: throw new InvalidOperationException("Only 'uS' function is supported");
+                            case "uE": functionFullName = "SubscribeToExchangeDeltas"; break;
+                            default: throw new InvalidOperationException("Only 'uS', 'uE' function is supported");
                         }
-                        if (functionFullName != null)
+
+                        client.AddListener(functionName, callback);
+                        bool result = false;
+                        try
                         {
-                            client.AddListener(functionName, callback);
-                            bool result = await client.hubProxy.Invoke<bool>(functionFullName, param).ConfigureAwait(false);
-                            if (result)
-                            {
-                                this.client = client;
-                                this.callback = callback;
-                                this.functionName = functionName;
-                                return;
-                            }
-                            else
-                            {
-                                client.RemoveListener(functionName, callback);
-                            }
+                            result = await client.hubProxy.Invoke<bool>(functionFullName, param).ConfigureAwait(false);
                         }
+                        catch (Exception ex)
+                        {
+
+                            //throw;
+                        }
+                        if (result)
+                        {
+                            this.client = client;
+                            this.callback = callback;
+                            this.functionName = functionName;
+                            return;
+                        }
+
+                        client.RemoveListener(functionName, callback);
                     }
+
                     throw new APIException("Unable to open web socket to Bittrex");
                 }
 
@@ -204,6 +213,9 @@ namespace ExchangeSharp
             private IHubProxy hubProxy;
             private readonly Dictionary<string, List<Action<string>>> listeners = new Dictionary<string, List<Action<string>>>();
             private bool reconnecting;
+
+            ////private BittrexSocketClientConnection client;
+            ////private BittrexSocketClientConnection Client => this.client ?? (this.client = new BittrexSocketClientConnection());
 
             private void AddListener(string functionName, Action<string> callback)
             {
@@ -344,8 +356,20 @@ namespace ExchangeSharp
             /// <returns>IDisposable to close the socket</returns>
             public IDisposable SubscribeToSummaryDeltas(Action<string> callback)
             {
-                BittrexSocketClientConnection client = new BittrexSocketClientConnection();
+                var client = new BittrexSocketClientConnection();
                 client.OpenAsync(this, "uS", callback).ConfigureAwait(false);
+                return client;
+            }
+
+            /// <summary>
+            /// Subscribe to all market summaries
+            /// </summary>
+            /// <param name="callback">Callback</param>
+            /// <returns>IDisposable to close the socket</returns>
+            public IDisposable SubscribeToExchangeDeltas(Action<string> callback, string ticker)
+            {
+                var client = new BittrexSocketClientConnection();
+                client.OpenAsync(this, "uE", callback, ticker).ConfigureAwait(false);
                 return client;
             }
 
@@ -684,7 +708,6 @@ namespace ExchangeSharp
                 }
                 */
 
-                // Convert Bittrex.Net tickers objects into ExchangeSharp ExchangeTickers
                 var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
                 JToken token = JToken.Parse(json);
                 token = token["D"];
@@ -717,6 +740,60 @@ namespace ExchangeSharp
             }
             var client = SocketClient;
             return client.SubscribeToSummaryDeltas(innerCallback);
+        }
+
+        protected override IDisposable OnGetOrderBookWebSocket(
+            Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback,
+            int maxCount = 20,
+            params string[] symbols)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            void innerCallback(string json)
+            {
+                /*
+                    {
+                        MarketName : string,
+                        Nonce      : int,
+                        Buys: 
+                        [
+                            {
+                                Type     : int,
+                                Rate     : decimal,
+                                Quantity : decimal
+                            }
+                        ],
+                        Sells: 
+                        [
+                            {
+                                Type     : int,
+                                Rate     : decimal,
+                                Quantity : decimal
+                            }
+                        ],
+                        Fills: 
+                        [
+                            {
+                                FillId    : int,
+                                OrderType : string,
+                                Rate      : decimal,
+                                Quantity  : decimal,
+                                TimeStamp : date
+                            }
+                        ]
+                    }
+                */
+
+                var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
+
+                //callback(freshTickers);
+            }
+            var client = SocketClient;
+            
+            return client.SubscribeToExchangeDeltas(innerCallback, symbols[0]);
         }
 
 #endif
