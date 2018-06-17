@@ -48,7 +48,7 @@ Please send pull requests if you have made a change that you feel is worthwhile,
 ## Building
 Visual Studio 2017 is recommended. .NET 4.7.1+ or .NET core 2.0+ is required.  
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget: ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.4.9 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.1 ```  
 </a> 
 ```
 Windows: Open ExchangeSharp.sln in Visual Studio and build/run  
