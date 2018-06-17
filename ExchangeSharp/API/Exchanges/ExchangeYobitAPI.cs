@@ -130,7 +130,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null);
-            return ParseOrderBookFromJTokenArrays(token[symbol]);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token[symbol]);
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

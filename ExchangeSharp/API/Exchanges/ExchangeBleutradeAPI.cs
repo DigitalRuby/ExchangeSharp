@@ -243,7 +243,7 @@ namespace ExchangeSharp
         {
             //"result" : { "buy" : [{"Quantity" : 4.99400000,"Rate" : 3.00650900}, {"Quantity" : 50.00000000, "Rate" : 3.50000000 }  ] ...
             JToken token = await MakeJsonRequestAsync<JToken>("/public/getorderbook?market=" + symbol + "&type=ALL&depth=" + maxCount);
-            return ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
         }
 
         #endregion

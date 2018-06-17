@@ -125,7 +125,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order_book?currencyPair=" + symbol + "&depth=" + maxCount.ToStringInvariant());
-            return ParseOrderBookFromJTokenArrays(token);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
 
         /// <summary>

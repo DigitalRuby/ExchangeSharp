@@ -379,7 +379,7 @@ namespace ExchangeSharp
                     var ch = token["ch"].ToStringInvariant();
                     var sArray = ch.Split('.');
                     var symbol = sArray[1].ToStringInvariant();
-                    ExchangeOrderBook book = ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
+                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
 					book.Symbol = symbol;
                     callback(book);
                 }
@@ -450,7 +450,7 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
-            return ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)

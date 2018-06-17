@@ -131,7 +131,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/book?level=" + (maxCount > 50 ? "0" : "2"));
-            return ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

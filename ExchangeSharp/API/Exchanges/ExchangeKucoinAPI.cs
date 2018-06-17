@@ -128,7 +128,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/open/orders?symbol=" + symbol + "&limit=" + maxCount);
-            return ParseOrderBookFromJTokenArrays(token, asks: "SELL", bids: "BUY", maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, asks: "SELL", bids: "BUY", maxCount: maxCount);
         }
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)

@@ -321,7 +321,7 @@ namespace ExchangeSharp
                     var sArray = channel.Split('_');
                     var symbol = sArray[3] + "_" + sArray[4];
                     var data = token["data"];
-                    ExchangeOrderBook book = ParseOrderBookFromJTokenArrays(data, sequence: "timestamp", maxCount: maxCount);
+                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(data, sequence: "timestamp", maxCount: maxCount);
 					book.Symbol = symbol;
                     callback(book);
                 }
@@ -349,7 +349,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
-            return ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)

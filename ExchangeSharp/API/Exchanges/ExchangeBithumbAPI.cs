@@ -142,7 +142,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
-            return ParseOrderBookFromJTokenDictionaries(data.Item1, amount: "quantity", sequence: "timestamp", maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(data.Item1, amount: "quantity", sequence: "timestamp", maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
@@ -154,7 +154,7 @@ namespace ExchangeSharp
             {
                 if (book.Name != "timestamp" && book.Name != "payment_currency")
                 {
-                    ExchangeOrderBook orderBook = ParseOrderBookFromJTokenArrays(book.Value);
+                    ExchangeOrderBook orderBook = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(book.Value);
                     books.Add(new KeyValuePair<string, ExchangeOrderBook>(book.Name, orderBook));
                 }
             }

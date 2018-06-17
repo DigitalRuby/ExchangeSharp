@@ -152,7 +152,7 @@ namespace ExchangeSharp
         {
             // {"TradePairId":100,"Label":"DOT/BTC","Price":0.00000317,"Volume":333389.57231468,"Total":1.05684494}
             JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + NormalizeSymbol(symbol) + "/" + maxCount.ToStringInvariant());
-            return ParseOrderBookFromJTokenDictionaries(token, "Sell", "Buy", "Price", "Volume", maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "Sell", "Buy", "Price", "Volume", maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

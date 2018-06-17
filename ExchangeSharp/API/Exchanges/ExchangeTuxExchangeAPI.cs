@@ -159,7 +159,7 @@ namespace ExchangeSharp
         {
             var split = symbol.Split('_');
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getorders&coin=" + split[1] + "&market=" + split[0]);
-            return ParseOrderBookFromJTokenArrays(token);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

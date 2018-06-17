@@ -545,7 +545,7 @@ namespace ExchangeSharp
             // {"asks":[["0.01021997",22.83117932],["0.01022000",82.3204],["0.01022480",140],["0.01023054",241.06436945],["0.01023057",140]],"bids":[["0.01020233",164.195],["0.01020232",66.22565096],["0.01020200",5],["0.01020010",66.79296968],["0.01020000",490.19563761]],"isFrozen":"0","seq":147171861}
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=" + symbol + "&depth=" + maxCount);
-            return ParseOrderBookFromJTokenArrays(token);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)

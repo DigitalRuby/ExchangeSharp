@@ -362,7 +362,7 @@ namespace ExchangeSharp
         {
             string url = "/products/" + symbol.ToUpperInvariant() + "/book?level=2";
             JToken token = await MakeJsonRequestAsync<JToken>(url);
-            return ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
