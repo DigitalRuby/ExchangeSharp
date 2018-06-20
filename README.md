@@ -9,7 +9,7 @@ I do cryptocurrency consulting, please don't hesitate to contact me if you have 
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
 - Optional global symbol normalization, since each exchange has their own way of doing symbols
-- Runs anywhere .NET core will run (Windows, MAC, Linux, iOS, Android, Unity 2018+, etc.)
+- Runs anywhere .NET core will run (Windows 8.1 or newer, MAC, Linux, iOS, Android, Unity 2018+, etc.)
 
 ## Exchanges
 The following cryptocurrency exchanges are supported:  
@@ -46,7 +46,7 @@ ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
 ## Building
-Visual Studio 2017 is recommended. .NET 4.7.1+ or .NET core 2.0+ is required.  
+Visual Studio 2017 is recommended. .NET 4.7.1+ or .NET core 2.0+ is required. If running on Windows, Windows 8.1 or newer is required.
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget: ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.1 ```  
 </a> 
