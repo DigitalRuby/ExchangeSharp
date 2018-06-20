@@ -386,15 +386,18 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["symbol"] = symbol;
-            payload["amount"] = ClampOrderQuantity(symbol, order.Amount).ToStringInvariant();
+            payload["amount"] = (await ClampOrderQuantity(symbol, order.Amount)).ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
             payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
             if (order.OrderType != OrderType.Market)
             {
                 payload["price"] = ClampOrderPrice(symbol, order.Price).ToStringInvariant();
             }
+            else
+            {
+                payload["price"] = "1";
+            }
             order.ExtraParameters.CopyTo(payload);
-
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", BaseUrlV1, payload);
             return ParseOrder(obj);
         }
