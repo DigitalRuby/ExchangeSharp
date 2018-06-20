@@ -381,23 +381,28 @@ namespace ExchangeSharp
             return lookup;
         }
 
-        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
-        {
-            string symbol = NormalizeSymbolV1(order.Symbol);
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
-            payload["symbol"] = symbol;
-            payload["amount"] = ClampOrderQuantity(symbol, order.Amount).ToStringInvariant();
-            payload["side"] = (order.IsBuy ? "buy" : "sell");
-            payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
-            if (order.OrderType != OrderType.Market)
-            {
-                payload["price"] = ClampOrderPrice(symbol, order.Price).ToStringInvariant();
-            }
-            order.ExtraParameters.CopyTo(payload);
+       protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+       {
+           string symbol = NormalizeSymbolV1(order.Symbol);
+           Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+           payload["symbol"] = symbol;
+           payload["amount"] = (await ClampOrderQuantity(symbol, order.Amount)).ToStringInvariant();
+           payload["side"] = (order.IsBuy ? "buy" : "sell");
+           payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
+           if (order.OrderType != OrderType.Market)
+           {
+               payload["price"] = ClampOrderPrice(symbol, order.Price).ToStringInvariant();
+           }
+           else
+           {
+               payload["price"] = 1.ToStringInvariant();
+           }
 
-            JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", BaseUrlV1, payload);
-            return ParseOrder(obj);
-        }
+           order.ExtraParameters.CopyTo(payload);
+
+           JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", BaseUrlV1, payload);
+           return ParseOrder(obj);
+       }
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
