@@ -227,7 +227,7 @@ namespace ExchangeSharp
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [ {"currency": "BTC","available": "0.0504600","reserved": "0.0000000"}, ... ]
             JToken obj = await MakeJsonRequestAsync<JToken>("/trading/balance", null, await OnGetNoncePayloadAsync());
-            foreach (JToken token in obj["balance"])
+            foreach (JToken token in obj)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>() + token["reserved"].ConvertInvariant<decimal>();
                 if (amount > 0m) amounts[token["currency"].ToStringInvariant()] = amount;
@@ -240,7 +240,7 @@ namespace ExchangeSharp
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [ {"currency": "BTC","available": "0.0504600","reserved": "0.0000000"}, ... ]
             JToken obj = await MakeJsonRequestAsync<JToken>("/trading/balance", null, await OnGetNoncePayloadAsync());
-            foreach (JToken token in obj["balance"])
+            foreach (JToken token in obj)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
                 if (amount > 0m) amounts[token["currency"].ToStringInvariant()] = amount;
