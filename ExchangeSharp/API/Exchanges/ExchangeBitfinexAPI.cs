@@ -380,15 +380,30 @@ namespace ExchangeSharp
             }
             return lookup;
         }
-
+        
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        {
+            return await PlaceOrderAsync(order, false);
+        }
+
+        protected override async Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order)
+        {
+            return await PlaceOrderAsync(order, true);
+        }
+
+        private async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order, bool isMargin)
         {
             string symbol = NormalizeSymbolV1(order.Symbol);
             Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
             payload["symbol"] = symbol;
             payload["amount"] = (await ClampOrderQuantity(symbol, order.Amount)).ToStringInvariant();
             payload["side"] = (order.IsBuy ? "buy" : "sell");
-            payload["type"] = (order.OrderType == OrderType.Market ? "exchange market" : "exchange limit");
+
+            if (isMargin)
+                payload["type"] = order.OrderType == OrderType.Market ? "market" : "limit";
+            else
+                payload["type"] = order.OrderType == OrderType.Market ? "exchange market" : "exchange limit";
+            
             if (order.OrderType != OrderType.Market)
             {
                 payload["price"] = ClampOrderPrice(symbol, order.Price).ToStringInvariant();
