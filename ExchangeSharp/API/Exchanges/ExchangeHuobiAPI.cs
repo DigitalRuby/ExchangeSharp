@@ -840,7 +840,6 @@ namespace ExchangeSharp
             }
         }
 
-
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             ExchangeOrderResult result = new ExchangeOrderResult()
@@ -854,6 +853,10 @@ namespace ExchangeSharp
                 IsBuy = token["type"].ToStringInvariant().StartsWith("buy"),
                 Result = ParseState(token["state"].ToStringInvariant()),
             };
+
+            var amountCash = token["field-cash-amount"].ConvertInvariant<decimal>();
+            if (result.Price == 0)
+                result.Price = amountCash / result.AmountFilled;
 
             return result;
         }
