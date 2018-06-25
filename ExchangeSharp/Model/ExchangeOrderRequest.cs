@@ -44,7 +44,8 @@ namespace ExchangeSharp
         /// <summary>
         /// Whether the order is a margin order. Not all exchanges support margin orders, so this parameter may be ignored.
         /// You should verify that your exchange supports margin orders before passing this field as true and expecting
-        /// it to be a margin order.
+        /// it to be a margin order. The best way to determine this in code is to call one of the margin account balance
+        /// methods and see if it fails.
         /// </summary>
         public bool IsMargin { get; set; }
 
