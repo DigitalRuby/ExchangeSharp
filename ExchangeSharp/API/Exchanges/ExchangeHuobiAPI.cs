@@ -697,43 +697,27 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbol(order.Symbol);
 
             var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[AccountType];
 
             var payload = await OnGetNoncePayloadAsync();
-            payload.Add("account-id", account_id);
+            payload.Add("account-id", order.IsMargin ? accounts["margin"] : accounts["spot"]);
             payload.Add("symbol", symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
-            payload.Add("source", "api"); // margin-api
+            payload.Add("source", order.IsMargin ? "margin-api" : "api");
             payload["method"] = "POST";
 
             decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
             decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
+            payload["amount"] = outputQuantity.ToStringInvariant();
+            
             if (order.OrderType == OrderType.Market)
             {
                 payload["type"] += "-market";
-
-                // TODO: Fix later once Okex fixes this on their end
-                throw new NotSupportedException("Huobi confuses price with amount while sending a market order, so market orders are disabled for now");
-
-                /*
-                if (order.IsBuy)
-                {
-                    // for market buy orders, the price is to total amount you want to buy, 
-                    // and it must be higher than the current price of 0.01 BTC (minimum buying unit), 0.1 LTC or 0.01 ETH
-                    payload["amount"] = outputQuantity;
-                }
-                else
-                {
-                    // For market buy roders, the amount is not required
-                    payload["amount"] = outputQuantity;
-                }*/
             }
             else
             {
                 payload["type"] += "-limit";
                 payload["price"] = outputPrice.ToStringInvariant();
-                payload["amount"] = outputQuantity.ToStringInvariant();
             }
 
             order.ExtraParameters.CopyTo(payload);
