@@ -854,9 +854,11 @@ namespace ExchangeSharp
                 Result = ParseState(token["state"].ToStringInvariant()),
             };
 
-            var amountCash = token["field-cash-amount"].ConvertInvariant<decimal>();
             if (result.Price == 0)
+            {
+                var amountCash = token["field-cash-amount"].ConvertInvariant<decimal>();
                 result.Price = amountCash / result.AmountFilled;
+            }
 
             return result;
         }
