@@ -42,6 +42,13 @@ namespace ExchangeSharp
         public bool IsBuy { get; set; }
 
         /// <summary>
+        /// Whether the order is a margin order. Not all exchanges support margin orders, so this parameter may be ignored.
+        /// You should verify that your exchange supports margin orders before passing this field as true and expecting
+        /// it to be a margin order.
+        /// </summary>
+        public bool IsMargin { get; set; }
+
+        /// <summary>
         /// Whether the amount should be rounded - set to false if you know the exact amount, otherwise leave
         /// as true so that the exchange does not reject the order due to too many decimal places.
         /// </summary>

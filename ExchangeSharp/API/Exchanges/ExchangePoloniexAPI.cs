@@ -741,16 +741,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            return await PlaceOrderAsync(order, false);
-        }
-
-        protected override async Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order)
-        {
-            return await PlaceOrderAsync(order, true);
-        }
-
-        private async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order, bool isMargin)
-        {
             if (order.OrderType == OrderType.Market)
             {
                 throw new NotSupportedException("Order type " + order.OrderType + " not supported");
@@ -773,7 +763,7 @@ namespace ExchangeSharp
                 orderParams.Add(kv.Value);
             }
 
-            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (isMargin ? "marginBuy" : "buy") : (isMargin ? "marginSell" : "sell"), orderParams);
+            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (order.IsMargin ? "marginBuy" : "buy") : (order.IsMargin ? "marginSell" : "sell"), orderParams);
             ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result);
             exchangeOrderResult.Symbol = symbol;
             exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, symbol);
