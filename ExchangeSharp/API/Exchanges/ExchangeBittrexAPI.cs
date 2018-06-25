@@ -959,7 +959,12 @@ namespace ExchangeSharp
             }
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             string orderId = result["uuid"].ToStringInvariant();
-            return new ExchangeOrderResult { Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
+            return new ExchangeOrderResult
+            {
+                Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, 
+                Result = ExchangeAPIOrderResult.Pending, Symbol = symbol,
+                Price = order.Price
+            };
         }
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)

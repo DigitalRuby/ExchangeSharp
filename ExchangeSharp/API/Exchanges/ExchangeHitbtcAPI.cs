@@ -343,6 +343,9 @@ namespace ExchangeSharp
             {
                 result.Result = ExchangeAPIOrderResult.Pending;
             }
+
+            ParseAveragePriceAndFeesFromFills(result, token["tradesReport"]);
+
             return result;
         }
 
@@ -350,6 +353,27 @@ namespace ExchangeSharp
         {
             // this call returns info about the success of the cancel. Sure would be nice have a return type on this method.
             JToken token = await MakeJsonRequestAsync<JToken>("/order/" + orderId, null, await OnGetNoncePayloadAsync(), "DELETE");
+        }
+        
+        private void ParseAveragePriceAndFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
+        {
+            decimal totalCost = 0;
+            decimal totalQuantity = 0;
+
+            if (fillsToken is JArray)
+            {
+                foreach (var fill in fillsToken)
+                {
+                    result.Fees += fill["fee"].ConvertInvariant<decimal>();
+
+                    decimal price = fill["price"].ConvertInvariant<decimal>();
+                    decimal quantity = fill["quantity"].ConvertInvariant<decimal>();
+                    totalCost += price * quantity;
+                    totalQuantity += quantity;
+                }
+            }
+
+            result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
