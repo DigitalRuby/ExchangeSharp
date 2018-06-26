@@ -77,6 +77,7 @@ namespace ExchangeSharp
         /// </summary>
         public void Dispose()
         {
+            disposed = true;
             try
             {
                 webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
@@ -84,7 +85,6 @@ namespace ExchangeSharp
             catch
             {
             }
-            disposed = true;
         }
 
         /// <summary>
