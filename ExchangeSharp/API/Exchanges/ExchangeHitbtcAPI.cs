@@ -310,7 +310,7 @@ namespace ExchangeSharp
             var payload = await OnGetNoncePayloadAsync();
             //payload["clientOrderId"] = "neuMedia" + payload["nonce"];     Currently letting hitbtc assign this, but may not be unique for more than 24 hours
             payload["quantity"] = order.Amount;
-            payload["symbol"] = order.Symbol;
+            payload["symbol"] = NormalizeSymbol(order.Symbol);
             payload["side"] = order.IsBuy ? "buy" : "sell";
             payload["type"] = order.OrderType == OrderType.Limit ? "limit" : "market";
             if (order.OrderType == OrderType.Limit)
