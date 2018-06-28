@@ -77,16 +77,7 @@ namespace ExchangeSharp
                         }
 
                         client.AddListener(functionName, callback);
-                        bool result = false;
-                        try
-                        {
-                            result = await client.hubProxy.Invoke<bool>(functionFullName, param).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-
-                            //throw;
-                        }
+                        bool result = client.hubProxy.Invoke<bool>(functionFullName, param).ConfigureAwait(false).GetAwaiter().GetResult();
                         if (result)
                         {
                             this.client = client;
@@ -162,8 +153,7 @@ namespace ExchangeSharp
                 public override Task Send(IConnection con, string data, string conData)
                 {
                     connection.Trace(TraceLevels.Events, "WS: SendMessage({0})", data);
-                    webSocket.SendMessage(data);
-                    return null;
+                    return Task.Run(() => webSocket.SendMessage(data));
                 }
 
                 public override void LostConnection(IConnection con)
@@ -171,7 +161,6 @@ namespace ExchangeSharp
                     connection.Trace(TraceLevels.Events, "WS: LostConnection");
                     connection.Stop();
                 }
-
 
                 protected override void Dispose(bool disposing)
                 {
@@ -214,8 +203,25 @@ namespace ExchangeSharp
             private readonly Dictionary<string, List<Action<string>>> listeners = new Dictionary<string, List<Action<string>>>();
             private bool reconnecting;
 
-            ////private BittrexSocketClientConnection client;
-            ////private BittrexSocketClientConnection Client => this.client ?? (this.client = new BittrexSocketClientConnection());
+            private BittrexSocketClientConnection socketClientConnection;
+            private BittrexSocketClientConnection SocketClientConnection
+            {
+                get
+                {
+                    if (this.socketClientConnection == null)
+                    {
+                        lock (this)
+                        {
+                            if (this.socketClientConnection == null)
+                            {
+                                this.socketClientConnection = new BittrexSocketClientConnection();
+                            }
+                        }
+                    }
+
+                    return this.socketClientConnection;
+                }
+            }
 
             private void AddListener(string functionName, Action<string> callback)
             {
@@ -307,6 +313,7 @@ namespace ExchangeSharp
                 hubConnection.StateChanged += StateChanged;
                 hubProxy = hubConnection.CreateHubProxy("c2");
                 hubProxy.On("uS", (string data) => HandleResponse("uS", data));
+                hubProxy.On("uE", (string data) => HandleResponse("uE", data));
             }
 
             public async Task StartAsync()
@@ -356,21 +363,20 @@ namespace ExchangeSharp
             /// <returns>IDisposable to close the socket</returns>
             public IDisposable SubscribeToSummaryDeltas(Action<string> callback)
             {
-                var client = new BittrexSocketClientConnection();
-                client.OpenAsync(this, "uS", callback).ConfigureAwait(false);
-                return client;
+                this.SocketClientConnection.OpenAsync(this, "uS", callback).ConfigureAwait(false);
+                return this.SocketClientConnection;
             }
 
             /// <summary>
-            /// Subscribe to all market summaries
+            /// Subscribe to order book updates
             /// </summary>
             /// <param name="callback">Callback</param>
+            /// <param name="ticker">The ticker to subscribe to</param>
             /// <returns>IDisposable to close the socket</returns>
             public IDisposable SubscribeToExchangeDeltas(Action<string> callback, string ticker)
             {
-                var client = new BittrexSocketClientConnection();
-                client.OpenAsync(this, "uE", callback, ticker).ConfigureAwait(false);
-                return client;
+                this.SocketClientConnection.OpenAsync(this, "uE", callback, ticker).ConfigureAwait(false);
+                return this.SocketClientConnection;
             }
 
             // The return of GetAuthContext is a challenge string. Call CreateSignature(apiSecret, challenge)
@@ -684,6 +690,7 @@ namespace ExchangeSharp
 
             void innerCallback(string json)
             {
+                #region sample json
                 /*
                 {
                     Nonce : int,
@@ -707,6 +714,7 @@ namespace ExchangeSharp
                     ]
                 }
                 */
+                #endregion
 
                 var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
                 JToken token = JToken.Parse(json);
@@ -747,13 +755,14 @@ namespace ExchangeSharp
             int maxCount = 20,
             params string[] symbols)
         {
-            if (callback == null)
+            if (callback == null || symbols == null || !symbols.Any())
             {
                 return null;
             }
 
             void innerCallback(string json)
             {
+                #region sample json
                 /*
                     {
                         MarketName : string,
@@ -786,14 +795,32 @@ namespace ExchangeSharp
                         ]
                     }
                 */
+                #endregion
 
                 var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
+                var book = new ExchangeOrderBook();
+                foreach (BittrexStreamOrderBookUpdateEntry ask in ordersUpdates.Sells)
+                {
+                    var depth = new ExchangeOrderPrice { Price = ask.Rate, Amount = ask.Quantity };
+                    book.Asks[depth.Price] = depth;
+                }
 
-                //callback(freshTickers);
+                foreach (BittrexStreamOrderBookUpdateEntry bid in ordersUpdates.Buys)
+                {
+                    var depth = new ExchangeOrderPrice { Price = bid.Rate, Amount = bid.Quantity };
+                    book.Bids[depth.Price] = depth;
+                }
+
+                callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(ordersUpdates.Nonce, new KeyValuePair<string, ExchangeOrderBook>(ordersUpdates.MarketName, book)));
             }
-            var client = SocketClient;
-            
-            return client.SubscribeToExchangeDeltas(innerCallback, symbols[0]);
+
+            IDisposable client = null;
+            foreach (var sym in symbols)
+            {
+                client = this.SocketClient.SubscribeToExchangeDeltas(innerCallback, sym);
+            }
+
+            return client;
         }
 
 #endif
