@@ -37,6 +37,26 @@ namespace ExchangeSharp
         }
 
         #region ProcessRequest
+
+        protected override JToken CheckJsonResponse(JToken result)
+        {
+            if (result is JArray)
+            {
+                return result;
+            }
+            JToken innerResult = result["result"];
+            if (innerResult != null && !innerResult.ConvertInvariant<bool>())
+            {
+                throw new APIException("Result is false: " + result.ToString());
+            }
+            innerResult = result["code"];
+            if (innerResult != null && innerResult.ConvertInvariant<int>() != 0)
+            {
+                throw new APIException("Code is non-zero: " + result.ToString());
+            }
+            return result["data"] ?? result;
+        }
+
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
@@ -154,8 +174,6 @@ namespace ExchangeSharp
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
-
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 /*
@@ -213,8 +231,8 @@ namespace ExchangeSharp
                     }
 
                     var sArray = channel.Split('_');
-                    var symbol = sArray[3]+"_"+sArray[4];
-                    var trades = ParseWebSocket(sArray, token) as IEnumerable<ExchangeTrade>;
+                    var symbol = sArray[3] + "_" + sArray[4];
+                    var trades = ParseTradesWebSocket(token["data"]);
                     foreach (var trade in trades)
                     {
                         callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
@@ -225,20 +243,26 @@ namespace ExchangeSharp
                 }
             }, (_socket) =>
             {
-                string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
-                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                _socket.SendMessage(msg);
+                if (symbols.Length == 0)
+                {
+                    symbols = GetSymbols().ToArray();
+                }
+                foreach (string symbol in symbols)
+                {
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
+                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                    _socket.SendMessage(msg);
+                }
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
-
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -296,41 +320,36 @@ namespace ExchangeSharp
 
                     var sArray = channel.Split('_');
                     var symbol = sArray[3] + "_" + sArray[4];
-
                     var data = token["data"];
-                    var seq = data["timestamp"].ConvertInvariant<long>();
-                    var orderBook = ParseWebSocket(sArray, data) as ExchangeOrderBook;
-
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq,
-                        new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
+                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(data, sequence: "timestamp", maxCount: maxCount);
+					book.Symbol = symbol;
+                    callback(book);
                 }
                 catch
                 {
+                    // TODO: Handle exception
                 }
             }, (_socket) =>
             {
-                // subscribe to order book and trades channel for given symbol
-                string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
-                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                _socket.SendMessage(msg);
+                if (symbols.Length == 0)
+                {
+                    symbols = GetSymbols().ToArray();
+                }
+                foreach (string symbol in symbols)
+                {
+                    // subscribe to order book and trades channel for given symbol
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
+                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                    _socket.SendMessage(msg);
+                }
             });
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray ask in token.Item1["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            foreach (JArray bid in token.Item1["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            return book;
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
@@ -693,35 +712,6 @@ namespace ExchangeSharp
             };
 
             return result;
-        }
-
-        private object ParseWebSocket(string[] sArray, JToken token)
-        {
-            switch (sArray[5])
-            {
-                case "depth":
-                    return ParseOrderBookWebSocket(token);
-                case "deals":
-                    return ParseTradesWebSocket(token["data"]);
-            }
-            return null;
-        }
-
-        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
-        {
-            var orderBook = new ExchangeOrderBook();
-            foreach (JArray array in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                orderBook.Asks[depth.Price] = depth;
-            }
-            foreach (JArray array in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                orderBook.Bids[depth.Price] = depth;
-            }
-
-            return orderBook;
         }
 
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)

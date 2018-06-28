@@ -507,7 +507,22 @@ namespace ExchangeSharp
             order.Price = token["Limit"].ConvertInvariant<decimal>(order.AveragePrice);
             order.Message = string.Empty;
             order.OrderId = token["OrderUuid"].ToStringInvariant();
-            order.Result = amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially);
+            if (token["CancelInitiated"].ConvertInvariant<bool>())
+            {
+                order.Result = ExchangeAPIOrderResult.Canceled;
+            }
+            else if (amountFilled >= amount)
+            {
+                order.Result = ExchangeAPIOrderResult.Filled;
+            }
+            else if (amountFilled == 0m)
+            {
+                order.Result = ExchangeAPIOrderResult.Pending;
+            }
+            else
+            {
+                order.Result = ExchangeAPIOrderResult.FilledPartially;
+            }
             order.OrderDate = ConvertDateTimeInvariant(token["Opened"], ConvertDateTimeInvariant(token["TimeStamp"]));
             order.Symbol = token["Exchange"].ToStringInvariant();
             order.Fees = token["Commission"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
@@ -546,7 +561,7 @@ namespace ExchangeSharp
 
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -828,21 +843,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            JToken book = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken bids = book["buy"];
-            foreach (JToken token in bids)
-            {
-                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
-                orders.Bids[depth.Price] = depth;
-            }
-            JToken asks = book["sell"];
-            foreach (JToken token in asks)
-            {
-                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token["Quantity"].ConvertInvariant<decimal>(), Price = token["Rate"].ConvertInvariant<decimal>() };
-                orders.Asks[depth.Price] = depth;
-            }
-            return orders;
+            JToken token = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>
@@ -1061,7 +1063,12 @@ namespace ExchangeSharp
             }
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync());
             string orderId = result["uuid"].ToStringInvariant();
-            return new ExchangeOrderResult { Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, Result = ExchangeAPIOrderResult.Pending, Symbol = symbol };
+            return new ExchangeOrderResult
+            {
+                Amount = orderAmount, IsBuy = order.IsBuy, OrderDate = DateTime.UtcNow, OrderId = orderId, 
+                Result = ExchangeAPIOrderResult.Pending, Symbol = symbol,
+                Price = order.Price
+            };
         }
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)

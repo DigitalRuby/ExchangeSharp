@@ -155,29 +155,12 @@ namespace ExchangeSharp
             return tickers.Where(t => t.Key.Equals(symbol)).Select(t => t.Value).FirstOrDefault();     
         }
 
-
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            ExchangeOrderBook orders = new ExchangeOrderBook();
             var split = symbol.Split('_');
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getorders&coin=" + split[1] + "&market=" + split[0]);
-            if (token != null && token.HasValues)
-            {
-                foreach (JArray order in token["asks"])
-                {
-                    var depth = new ExchangeOrderPrice { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() };
-                    orders.Asks[depth.Price] = depth;
-                }
-
-                foreach (JArray order in token["bids"])
-                {
-                    var depth = new ExchangeOrderPrice { Price = order[0].ConvertInvariant<decimal>(), Amount = order[1].ConvertInvariant<decimal>() };
-                    orders.Bids[depth.Price] = depth;
-                }
-            }
-            return orders;
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
-
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
@@ -214,10 +197,9 @@ namespace ExchangeSharp
 
             long start = startDate == null ? (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
             long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
-            string cur = symbol.Split('_')[1];
-
-
-            JToken token = await MakeJsonRequestAsync<JToken>("/api?method=gettradehistory&coin=" + cur + "&start=" + start + "&end=" + end);
+            string coin = symbol.Split('_')[1];
+            string url = "/api?method=gettradehistory&coin=" + coin + "&start=" + start + "&end=" + end;
+            JToken token = await MakeJsonRequestAsync<JToken>(url);
             foreach (JToken trade in token)
             {
                 trades.Add(new ExchangeTrade()

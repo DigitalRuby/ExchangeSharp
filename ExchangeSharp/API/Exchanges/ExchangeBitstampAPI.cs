@@ -124,18 +124,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/order_book/" + symbol);
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray ask in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            foreach (JArray bid in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            return book;
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)

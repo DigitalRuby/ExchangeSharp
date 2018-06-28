@@ -102,22 +102,6 @@ namespace ExchangeSharp
             };
         }
 
-        private ExchangeOrderBook ParseOrderBook(JToken data)
-        {
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JToken token in data["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            foreach (JToken token in data["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = token["quantity"].ConvertInvariant<decimal>(), Price = token["price"].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            return book;
-        }
-
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
@@ -158,7 +142,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
-            return ParseOrderBook(data.Item1);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(data.Item1, amount: "quantity", sequence: "timestamp", maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
@@ -170,7 +154,8 @@ namespace ExchangeSharp
             {
                 if (book.Name != "timestamp" && book.Name != "payment_currency")
                 {
-                    books.Add(new KeyValuePair<string, ExchangeOrderBook>(book.Name, ParseOrderBook(book.Value)));
+                    ExchangeOrderBook orderBook = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(book.Value);
+                    books.Add(new KeyValuePair<string, ExchangeOrderBook>(book.Name, orderBook));
                 }
             }
             return books;

@@ -94,19 +94,21 @@ namespace ExchangeSharpConsoleApp
                     Console.WriteLine($"API {api.Name} GetOrderBook OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
 
                     var ticker = api.GetTicker(symbol);
-                    Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-                        ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
-                    Console.WriteLine($"API {api.Name} GetTicker OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
+                    try
+                    {
+                        Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
+                            ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
+                        Console.WriteLine($"API {api.Name} GetTicker OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
+                    }
+                    catch
+                    {
+                        Console.WriteLine($"API {api.Name} GetTicker data invalid or empty: {ticker}");
+                    }
 
                     try
                     {
                         api.GetHistoricalTrades(histTradeCallback, symbol);
-                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
-                        Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
-
                         trades = api.GetRecentTrades(symbol).ToArray();
-                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
-                        Console.WriteLine($"API {api.Name} GetRecentTrades OK ({trades.Length} trades)");
                     }
                     catch (NotImplementedException)
                     {
@@ -118,6 +120,18 @@ namespace ExchangeSharpConsoleApp
                         {
                             throw;
                         }
+                    }
+
+                    try
+                    {
+                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                        Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
+                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                        Console.WriteLine($"API {api.Name} GetRecentTrades OK ({trades.Length} trades)");
+                    }
+                    catch
+                    {
+                        Console.WriteLine($"API {api.Name} GetHistoricalTrades/GetRecentTrades data invalid or empty");
                     }
 
                     try

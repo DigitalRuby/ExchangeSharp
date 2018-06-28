@@ -72,6 +72,18 @@ namespace ExchangeSharp
     public sealed class ExchangeOrderBook
     {
         /// <summary>
+        /// The sequence id. This increments as updates come through. Not all exchanges will populate this.
+        /// This property is not serialized using the ToBinary and FromBinary methods.
+        /// </summary>
+        public long SequenceId { get; set; }
+
+        /// <summary>
+        /// The symbol.
+        /// This property is not serialized using the ToBinary and FromBinary methods.
+        /// </summary>
+        public string Symbol { get; set; }
+
+        /// <summary>
         /// List of asks (sells)
         /// </summary>
         public SortedDictionary<decimal, ExchangeOrderPrice> Asks { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>();

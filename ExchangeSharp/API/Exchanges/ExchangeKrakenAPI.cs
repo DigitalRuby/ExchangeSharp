@@ -280,25 +280,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
-            obj = obj[symbol];
-            if (obj == null)
-            {
-                return null;
-            }
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken bids = obj["bids"];
-            foreach (JToken token in bids)
-            {
-                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token[1].ConvertInvariant<decimal>(), Price = token[0].ConvertInvariant<decimal>() };
-                orders.Bids[depth.Price] = depth;
-            }
-            JToken asks = obj["asks"];
-            foreach (JToken token in asks)
-            {
-                ExchangeOrderPrice depth = new ExchangeOrderPrice { Amount = token[1].ConvertInvariant<decimal>(), Price = token[0].ConvertInvariant<decimal>() };
-                orders.Asks[depth.Price] = depth;
-            }
-            return orders;
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[symbol], maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)

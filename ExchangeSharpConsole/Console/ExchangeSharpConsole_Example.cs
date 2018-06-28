@@ -106,15 +106,22 @@ namespace ExchangeSharpConsoleApp
             {
                 throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
             }
-
+            var apiSymbols = api.GetSymbols();
             string[] symbols = dict["symbols"].Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (string symbol in symbols)
+            {
+                if (!apiSymbols.Contains(symbol))
+                {
+                    throw new ArgumentException(string.Format("Symbol {0} does not exist in API {1}, valid symbols: {2}", symbol, api.Name, string.Join(',', apiSymbols.OrderBy(s => s))));
+                }
+            }
 
             IDisposable socket = api.GetOrderBookWebSocket(message => 
             {
                 //print the top bid and ask with amount
-                var topBid = message.Data.Value.Bids.FirstOrDefault();
-                var topAsk = message.Data.Value.Asks.FirstOrDefault();
-                Console.WriteLine($"[{message.Data.Key}:{message.SequenceNumber}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                var topBid = message.Bids.FirstOrDefault();
+                var topAsk = message.Asks.FirstOrDefault();
+                Console.WriteLine($"[{message.Symbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
             }, symbols: symbols);
 
             Console.WriteLine("Press any key to quit.");

@@ -350,34 +350,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
-        {
-            if (callback == null)
-            {
-                return null;
-            }
-
-            string suffix = "@depth" + maxCount.ToStringInvariant();
-            string url = GetWebSocketStreamUrlForSymbols(suffix, symbols);
-            return ConnectWebSocket(url, (msg, _socket) =>
-            {
-                try
-                {
-                    JToken token = JToken.Parse(msg.UTF8String());
-                    string name = token["stream"].ToStringInvariant();
-                    token = token["data"];
-                    ExchangeOrderBook orderBook = ParseOrderBook(token);
-                    string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
-                    int sequenceNumber = token["lastUpdateId"].ConvertInvariant<int>();
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(sequenceNumber, new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
-                }
-                catch
-                {
-                }
-            });
-        }
-
-        protected override IDisposable OnGetOrderBookDeltaSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || !symbols.Any())
             {
@@ -385,26 +358,25 @@ namespace ExchangeSharp
             }
 
             string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
-
             return ConnectWebSocket($"/stream?streams={combined}", (msg, _socket) =>
             {
                 try
                 {
-                    var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(msg.UTF8String());
-                    var book = new ExchangeOrderBook();
+                    string json = msg.UTF8String();
+                    var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(json);
+                    string symbol = update.Data.Symbol;
+                    ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
                     foreach (List<object> ask in update.Data.Asks)
                     {
                         var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
                         book.Asks[depth.Price] = depth;
                     }
-
                     foreach (List<object> bid in update.Data.Bids)
                     {
                         var depth = new ExchangeOrderPrice { Price = bid[0].ConvertInvariant<decimal>(), Amount = bid[1].ConvertInvariant<decimal>() };
                         book.Bids[depth.Price] = depth;
                     }
-
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(update.Data.FinalUpdate, new KeyValuePair<string, ExchangeOrderBook>(update.Data.Symbol, book)));
+                    callback(book);
                 }
                 catch
                 {
@@ -416,7 +388,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + symbol + "&limit=" + maxCount);
-            return ParseOrderBook(obj);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "lastUpdateId", maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
@@ -862,22 +834,6 @@ namespace ExchangeSharp
             };
         }
 
-        private ExchangeOrderBook ParseOrderBook(JToken token)
-        {
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            foreach (JArray array in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            foreach (JArray array in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            return book;
-        }
-
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             /*
@@ -1040,7 +996,7 @@ namespace ExchangeSharp
             return base.ProcessRequestAsync(request, payload);
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -1053,7 +1009,7 @@ namespace ExchangeSharp
                 url.Query = newQuery;
                 return url.Uri;
             }
-            return base.ProcessRequestUrl(url, payload);
+            return base.ProcessRequestUrl(url, payload, method);
         }
 
         /// <summary>

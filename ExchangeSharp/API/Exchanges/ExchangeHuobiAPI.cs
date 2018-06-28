@@ -31,7 +31,7 @@ namespace ExchangeSharp
         public string PrivateUrlV1 { get; set; } = "https://api.huobipro.com/v1";
         public string AccountType { get; set; } = "spot";
 
-        private int SubId = 0;
+        private long webSocketId = 0;
 
         public ExchangeHuobiAPI()
         {
@@ -72,7 +72,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -80,7 +80,7 @@ namespace ExchangeSharp
                 {
                     return url.Uri;
                 }
-                string method = payload["method"].ToStringInvariant();
+                method = payload["method"].ToStringInvariant();
                 payload.Remove("method");
 
                 var dict = new Dictionary<string, object>
@@ -240,8 +240,6 @@ namespace ExchangeSharp
                 return null;
             }
 
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
-
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 /*
@@ -287,7 +285,7 @@ namespace ExchangeSharp
 
                     var tick = token["tick"];
                     var id = tick["id"].ConvertInvariant<long>();
-                    var trades = ParseWebSocket(sArray, tick) as IEnumerable<ExchangeTrade>;
+                    var trades = ParseTradesWebSocket(tick);
                     foreach(var trade in trades)
                     {
                         trade.Id = id;
@@ -299,20 +297,28 @@ namespace ExchangeSharp
                 }
             }, (_socket) =>
             {
-                string channel = $"market.{normalizedSymbol}.trade.detail";
-                string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{++SubId}\"}}";
-                _socket.SendMessage(msg);
+                if (symbols.Length == 0)
+                {
+                    symbols = GetSymbols().ToArray();
+                }
+
+                foreach (string symbol in symbols)
+                {
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    long id = System.Threading.Interlocked.Increment(ref webSocketId);
+                    string channel = $"market.{normalizedSymbol}.trade.detail";
+                    string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
+                    _socket.SendMessage(msg);
+                }
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
-
-            var normalizedSymbol = NormalizeSymbol(symbols[0]);
 
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
@@ -370,28 +376,34 @@ namespace ExchangeSharp
                         _socket.SendMessage(str.Replace("ping", "pong"));
                         return;
                     }
-
                     var ch = token["ch"].ToStringInvariant();
                     var sArray = ch.Split('.');
-                    var symbol = sArray[1];
-
-                    var tick = token["tick"];
-                    var seq = tick["ts"].ConvertInvariant<long>();
-                    var orderBook = ParseWebSocket(sArray, tick) as ExchangeOrderBook;
-
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq,
-                        new KeyValuePair<string, ExchangeOrderBook>(symbol, orderBook)));
+                    var symbol = sArray[1].ToStringInvariant();
+                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
+					book.Symbol = symbol;
+                    callback(book);
                 }
                 catch
                 {
-                    // TODO: Why are we catching and not handling exceptions here?
+                    // TODO: Handle exception
                 }
             }, (_socket) =>
             {
-                // subscribe to order book and trades channel for given symbol
-                string channel = $"market.{normalizedSymbol}.depth.step0";
-                string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{++SubId}\"}}";
-                _socket.SendMessage(msg);
+                if (symbols.Length == 0)
+                {
+                    symbols = GetSymbols().ToArray();
+                }
+
+                // request all symbols, this does not work sadly, only the first is pulled
+                foreach (string symbol in symbols)
+                {
+                    long id = System.Threading.Interlocked.Increment(ref webSocketId);
+                    var normalizedSymbol = NormalizeSymbol(symbols[0]);
+                    // subscribe to order book and trades channel for given symbol
+                    string channel = $"market.{normalizedSymbol}.depth.step0";
+                    string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
+                    _socket.SendMessage(msg);
+                }
             });
         }
 
@@ -438,23 +450,8 @@ namespace ExchangeSharp
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
-            var tick = obj["tick"];
-            foreach (var prop in tick["asks"])
-            {
-                decimal price = prop[1].ConvertInvariant<decimal>();
-                orders.Asks[price] = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = price };
-            }
-
-            foreach (var prop in tick["bids"])
-            {
-                decimal price = prop[0].ConvertInvariant<decimal>();
-                orders.Bids[price] = new ExchangeOrderPrice { Price = price, Amount = prop[1].ConvertInvariant<decimal>() };
-            }
-
-            return orders;
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
         }
-
-
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
@@ -700,43 +697,27 @@ namespace ExchangeSharp
             string symbol = NormalizeSymbol(order.Symbol);
 
             var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[AccountType];
 
             var payload = await OnGetNoncePayloadAsync();
-            payload.Add("account-id", account_id);
+            payload.Add("account-id", order.IsMargin ? accounts["margin"] : accounts["spot"]);
             payload.Add("symbol", symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
-            payload.Add("source", "api"); // margin-api
+            payload.Add("source", order.IsMargin ? "margin-api" : "api");
             payload["method"] = "POST";
 
             decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
             decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
+            payload["amount"] = outputQuantity.ToStringInvariant();
+            
             if (order.OrderType == OrderType.Market)
             {
                 payload["type"] += "-market";
-
-                // TODO: Fix later once Okex fixes this on their end
-                throw new NotSupportedException("Huobi confuses price with amount while sending a market order, so market orders are disabled for now");
-
-                /*
-                if (order.IsBuy)
-                {
-                    // for market buy orders, the price is to total amount you want to buy, 
-                    // and it must be higher than the current price of 0.01 BTC (minimum buying unit), 0.1 LTC or 0.01 ETH
-                    payload["amount"] = outputQuantity;
-                }
-                else
-                {
-                    // For market buy roders, the amount is not required
-                    payload["amount"] = outputQuantity;
-                }*/
             }
             else
             {
                 payload["type"] += "-limit";
                 payload["price"] = outputPrice.ToStringInvariant();
-                payload["amount"] = outputQuantity.ToStringInvariant();
             }
 
             order.ExtraParameters.CopyTo(payload);
@@ -859,7 +840,6 @@ namespace ExchangeSharp
             }
         }
 
-
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             ExchangeOrderResult result = new ExchangeOrderResult()
@@ -874,36 +854,13 @@ namespace ExchangeSharp
                 Result = ParseState(token["state"].ToStringInvariant()),
             };
 
+            if (result.Price == 0 && result.AmountFilled != 0m)
+            {
+                var amountCash = token["field-cash-amount"].ConvertInvariant<decimal>();
+                result.Price = amountCash / result.AmountFilled;
+            }
+
             return result;
-        }
-
-        private object ParseWebSocket(string[] sArray, JToken token)
-        {
-            switch (sArray[2])
-            {
-                case "depth":
-                    return ParseOrderBookWebSocket(token);
-                case "trade":
-                    return ParseTradesWebSocket(token["data"]);
-            }
-            return null;
-        }
-
-        private ExchangeOrderBook ParseOrderBookWebSocket(JToken token)
-        {
-            var orderBook = new ExchangeOrderBook();
-            foreach (JArray array in token["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                orderBook.Bids[depth.Price] = depth;
-            }
-            foreach (JArray array in token["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
-                orderBook.Asks[depth.Price] = depth;
-            }
-
-            return orderBook;
         }
 
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
