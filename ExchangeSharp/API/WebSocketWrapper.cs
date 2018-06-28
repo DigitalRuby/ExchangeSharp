@@ -96,7 +96,7 @@ namespace ExchangeSharp
             SendMessageAsync(message).GetAwaiter().GetResult();
         }
 
-        private async Task SendMessageAsync(string message)
+        public async Task SendMessageAsync(string message)
         {
             try
             {

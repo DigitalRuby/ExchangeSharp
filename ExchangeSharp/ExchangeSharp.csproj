@@ -46,19 +46,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CryptoExchange.Net" Version="0.0.19" />
-    <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.2.3" />
+    <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.3.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Properties\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="CryptoExchange.Net">
-      <HintPath>..\..\packages\CryptoExchange.Net.0.0.19\lib\netstandard2.0\CryptoExchange.Net.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
