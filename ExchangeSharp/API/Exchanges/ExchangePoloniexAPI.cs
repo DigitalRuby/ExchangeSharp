@@ -28,9 +28,6 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
         public override string Name => ExchangeName.Poloniex;
 
-        /// <summary>A mapping of socket IDs to markets</summary>
-        private readonly Dictionary<int, string> orderBookSocketLookup = new Dictionary<int, string>();
-
         static ExchangePoloniexAPI()
         {
             // load withdrawal field counts
@@ -101,10 +98,13 @@ namespace ExchangeSharp
             return order;
         }
 
-        /// <summary>Parses an order which has not been filled.</summary>
+        /// <summary>
+        /// Parses an order which has not been filled.
+        /// </summary>
         /// <param name="result">The JToken to parse.</param>
+        /// <param name="symbol">Symbol or null if it's in the result</param>
         /// <returns>ExchangeOrderResult with the open order and how much is remaining to fill</returns>
-        public ExchangeOrderResult ParseOpenOrder(JToken result)
+        public ExchangeOrderResult ParseOpenOrder(JToken result, string symbol = null)
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {
@@ -114,6 +114,7 @@ namespace ExchangeSharp
                 OrderId = result["orderNumber"].ToStringInvariant(),
                 Price = result["rate"].ConvertInvariant<decimal>(),
                 Result = ExchangeAPIOrderResult.Pending,
+                Symbol = (symbol ?? result.Parent.Path)
             };
 
             decimal amount = result["amount"].ConvertInvariant<decimal>();
@@ -133,18 +134,19 @@ namespace ExchangeSharp
                 if (!orderMetadataSet)
                 {
                     order.IsBuy = trade["type"].ToStringLowerInvariant() != "sell";
-
                     string parsedSymbol = trade["currencyPair"].ToStringInvariant();
-                    if (!string.IsNullOrWhiteSpace(parsedSymbol))
+                    if (string.IsNullOrWhiteSpace(parsedSymbol) && trade.Parent != null)
+                    {
+                        parsedSymbol = trade.Parent.Path;
+                    }
+                    if (order.Symbol == "all" || !string.IsNullOrWhiteSpace(parsedSymbol))
                     {
                         order.Symbol = parsedSymbol;
                     }
-
                     if (!string.IsNullOrWhiteSpace(order.Symbol))
                     {
                         order.FeesCurrency = ParseFeesCurrency(order.IsBuy, order.Symbol);
                     }
-
                     orderMetadataSet = true;
                 }
 
@@ -219,7 +221,6 @@ namespace ExchangeSharp
             {
                 IEnumerable<JToken> tradesForOrder = trades.Where(x => x["orderNumber"].ToStringInvariant() == orderNum);
                 ExchangeOrderResult order = new ExchangeOrderResult { OrderId = orderNum, Symbol = symbol };
-
                 ParseOrderTrades(tradesForOrder, order);
                 order.Price = order.AveragePrice;
                 order.Result = ExchangeAPIOrderResult.Filled;
@@ -445,13 +446,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback, int maxCount = 20, params string[] symbols)
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
                 return null;
             }
 
+            Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
             return ConnectWebSocket(string.Empty, (msg, _socket) =>
             {
                 try
@@ -461,57 +463,72 @@ namespace ExchangeSharp
 
                     //return if this is a heartbeat message
                     if (msgId == 1010)
+                    {
                         return;
+                    }
 
-                    var seq = token[1].ConvertInvariant<int>();
+                    var seq = token[1].ConvertInvariant<long>();
                     var dataArray = token[2];
-                    var orderBook = new ExchangeOrderBook();
+                    ExchangeOrderBook book = new ExchangeOrderBook();
                     foreach (var data in dataArray)
                     {
-                        var dataType = data[0];
-                        switch (dataType.ToStringInvariant())
+                        var dataType = data[0].ToStringInvariant();
+                        if (dataType == "i")
                         {
-                            //poloniex will initially send the entire order book, followed by updates
-                            case "i":
+                            var marketInfo = data[1];
+                            var market = marketInfo["currencyPair"].ToStringInvariant();
+                            messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
+
+                            // we are only returning the deltas, this would create a full order book which we don't want, but keeping it
+                            //  here for historical reference
+                            /*
+                            foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
+                            {
+                                var depth = new ExchangeOrderPrice
                                 {
-                                    var marketInfo = data[1];
-                                    var market = marketInfo["currencyPair"].ToStringInvariant();
-                                    this.orderBookSocketLookup[msgId] = market;
-                                    foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
-                                    {
-                                        var depth = new ExchangeOrderPrice
-                                        {
-                                            Price = jprop.Name.ConvertInvariant<decimal>(),
-                                            Amount = jprop.Value.ConvertInvariant<decimal>()
-                                        };
-                                        orderBook.Asks[depth.Price] = depth;
-                                    }
-
-                                    foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
-                                    {
-                                        var depth = new ExchangeOrderPrice
-                                        {
-                                            Price = jprop.Name.ConvertInvariant<decimal>(),
-                                            Amount = jprop.Value.ConvertInvariant<decimal>()
-                                        };
-                                        orderBook.Bids[depth.Price] = depth;
-                                    }
-
-                                    break;
-                                }
+                                    Price = jprop.Name.ConvertInvariant<decimal>(),
+                                    Amount = jprop.Value.ConvertInvariant<decimal>()
+                                };
+                                book.Asks[depth.Price] = depth;
+                            }
+                            foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
+                            {
+                                var depth = new ExchangeOrderPrice
+                                {
+                                    Price = jprop.Name.ConvertInvariant<decimal>(),
+                                    Amount = jprop.Value.ConvertInvariant<decimal>()
+                                };
+                                book.Bids[depth.Price] = depth;
+                            }
+                            */
+                        }
+                        else if (dataType == "o")
+                        {
                             //removes or modifies an existing item on the order books
-                            case "o":
-                                {
-                                    var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
-                                    (data[1].ConvertInvariant<int>() == 1 ? orderBook.Bids : orderBook.Asks)[depth.Price] = depth;
-                                    break;
-                                }
+                            if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
+                            {
+                                int type = data[1].ConvertInvariant<int>();
+                                var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
+                                var list = (type == 1 ? book.Bids : book.Asks);
+                                list[depth.Price] = depth;
+                                book.Symbol = symbol.Item1;
+                                book.SequenceId = symbol.Item2 + 1;
+                                messageIdToSymbol[msgId] = new Tuple<string, long>(book.Symbol, book.SequenceId);
+                            }
+                        }
+                        else
+                        {
+                            continue;
                         }
                     }
-                    callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(seq, new KeyValuePair<string, ExchangeOrderBook>(this.orderBookSocketLookup[msgId], orderBook)));
+                    if (book != null && (book.Asks.Count != 0 || book.Bids.Count != 0))
+                    {
+                        callback(book);
+                    }
                 }
                 catch
                 {
+                    // TODO: Handle exception
                 }
             }, (_socket) =>
             {
@@ -527,19 +544,8 @@ namespace ExchangeSharp
         {
             // {"asks":[["0.01021997",22.83117932],["0.01022000",82.3204],["0.01022480",140],["0.01023054",241.06436945],["0.01023057",140]],"bids":[["0.01020233",164.195],["0.01020232",66.22565096],["0.01020200",5],["0.01020010",66.79296968],["0.01020000",490.19563761]],"isFrozen":"0","seq":147171861}
             symbol = NormalizeSymbol(symbol);
-            ExchangeOrderBook book = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=" + symbol + "&depth=" + maxCount);
-            foreach (JArray array in obj["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
-                book.Asks[depth.Price] = depth;
-            }
-            foreach (JArray array in obj["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
-                book.Bids[depth.Price] = depth;
-            }
-            return book;
+            JToken token = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=" + symbol + "&depth=" + maxCount);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
@@ -735,16 +741,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            return await PlaceOrderAsync(order, false);
-        }
-
-        protected override async Task<ExchangeOrderResult> OnPlaceMarginOrderAsync(ExchangeOrderRequest order)
-        {
-            return await PlaceOrderAsync(order, true);
-        }
-
-        private async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order, bool isMargin)
-        {
             if (order.OrderType == OrderType.Market)
             {
                 throw new NotSupportedException("Order type " + order.OrderType + " not supported");
@@ -767,7 +763,7 @@ namespace ExchangeSharp
                 orderParams.Add(kv.Value);
             }
 
-            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (isMargin ? "marginBuy" : "buy") : (isMargin ? "marginSell" : "sell"), orderParams);
+            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (order.IsMargin ? "marginBuy" : "buy") : (order.IsMargin ? "marginSell" : "sell"), orderParams);
             ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result);
             exchangeOrderResult.Symbol = symbol;
             exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, symbol);
@@ -792,7 +788,7 @@ namespace ExchangeSharp
                     {
                         foreach (JToken token in array)
                         {
-                            orders.Add(ParseOpenOrder(token));
+                            orders.Add(ParseOpenOrder(token, null));
                         }
                     }
                 }
@@ -801,7 +797,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in array)
                 {
-                    orders.Add(ParseOpenOrder(token));
+                    orders.Add(ParseOpenOrder(token, symbol));
                 }
             }
 

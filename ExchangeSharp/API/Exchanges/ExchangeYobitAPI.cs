@@ -129,20 +129,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null);
-            foreach (JArray prop in obj[symbol]["asks"])
-            {
-                var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
-                orders.Asks[depth.Price] = depth;
-            }
-            foreach (JArray prop in obj[symbol]["bids"])
-            {
-                var depth = new ExchangeOrderPrice { Price = prop[0].ConvertInvariant<decimal>(), Amount = prop[1].ConvertInvariant<decimal>() };
-                orders.Bids[depth.Price] = depth;
-            }
-
-            return orders;
+            JToken token = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token[symbol]);
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)

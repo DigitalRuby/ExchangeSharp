@@ -361,21 +361,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 50)
         {
             string url = "/products/" + symbol.ToUpperInvariant() + "/book?level=2";
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            Dictionary<string, object> books = await MakeJsonRequestAsync<Dictionary<string, object>>(url);
-            JArray asks = books["asks"] as JArray;
-            JArray bids = books["bids"] as JArray;
-            foreach (JArray ask in asks)
-            {
-                var depth = new ExchangeOrderPrice { Amount = ask[1].ConvertInvariant<decimal>(), Price = ask[0].ConvertInvariant<decimal>() };
-                orders.Asks[depth.Price] = depth;
-            }
-            foreach (JArray bid in bids)
-            {
-                var depth = new ExchangeOrderPrice { Amount = bid[1].ConvertInvariant<decimal>(), Price = bid[0].ConvertInvariant<decimal>() };
-                orders.Bids[depth.Price] = depth;
-            }
-            return orders;
+            JToken token = await MakeJsonRequestAsync<JToken>(url);
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
