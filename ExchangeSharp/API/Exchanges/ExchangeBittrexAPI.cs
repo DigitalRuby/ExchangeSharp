@@ -765,8 +765,8 @@ namespace ExchangeSharp
             return client.SubscribeToSummaryDeltas(innerCallback);
         }
 
-        protected override IDisposable OnGetOrderBookWebSocket(
-            Action<ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>> callback,
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(
+            Action<ExchangeOrderBook> callback,
             int maxCount = 20,
             params string[] symbols)
         {
@@ -826,7 +826,9 @@ namespace ExchangeSharp
                     book.Bids[depth.Price] = depth;
                 }
 
-                callback(new ExchangeSequencedWebsocketMessage<KeyValuePair<string, ExchangeOrderBook>>(ordersUpdates.Nonce, new KeyValuePair<string, ExchangeOrderBook>(ordersUpdates.MarketName, book)));
+                book.Symbol = ordersUpdates.MarketName;
+                book.SequenceId = ordersUpdates.Nonce;
+                callback(book);
             }
 
             IDisposable client = null;
