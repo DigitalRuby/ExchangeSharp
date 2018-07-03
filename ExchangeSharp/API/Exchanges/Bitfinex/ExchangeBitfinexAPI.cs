@@ -296,7 +296,7 @@ namespace ExchangeSharp
                     break;
                 }
                 trades.Clear();
-                if (tradeChunk.Length < 500 || startDate == null)
+                if (tradeChunk.Length < maxCount || startDate == null)
                 {
                     break;
                 }
