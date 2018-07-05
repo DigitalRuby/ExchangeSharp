@@ -86,7 +86,7 @@ namespace ExchangeSharpConsoleApp
                 throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
             }
 
-            string[] symbols = dict["symbols"].Split(',', StringSplitOptions.RemoveEmptyEntries);
+            string[] symbols = dict["symbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 
             IDisposable socket = api.GetTradesWebSocket(message =>
             {
@@ -107,7 +107,7 @@ namespace ExchangeSharpConsoleApp
                 throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
             }
             var apiSymbols = api.GetSymbols();
-            string[] symbols = dict["symbols"].Split(',', StringSplitOptions.RemoveEmptyEntries);
+            string[] symbols = dict["symbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
             foreach (string symbol in symbols)
             {
                 if (!apiSymbols.Contains(symbol))
