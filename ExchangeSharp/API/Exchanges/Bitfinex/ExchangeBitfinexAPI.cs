@@ -400,7 +400,7 @@ namespace ExchangeSharp
             
             if (order.OrderType != OrderType.Market)
             {
-                payload["price"] = ClampOrderPrice(symbol, order.Price).ToStringInvariant();
+                payload["price"] = (await ClampOrderPrice(symbol, order.Price)).ToStringInvariant();
             }
             else
             {
