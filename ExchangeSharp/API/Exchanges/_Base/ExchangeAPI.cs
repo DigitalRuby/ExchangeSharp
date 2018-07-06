@@ -1231,6 +1231,11 @@ namespace ExchangeSharp
         public const string Bithumb = "Bithumb";
 
         /// <summary>
+        /// BitMEX
+        /// </summary>
+        public const string BitMEX = "BitMEX";
+
+        /// <summary>
         /// Bitstamp
         /// </summary>
         public const string Bitstamp = "Bitstamp";

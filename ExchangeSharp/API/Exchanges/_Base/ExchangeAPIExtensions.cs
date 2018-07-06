@@ -46,41 +46,81 @@ namespace ExchangeSharp
 			Dictionary<string, ExchangeOrderBook> fullBooks = new Dictionary<string, ExchangeOrderBook>();
 			void innerCallback(ExchangeOrderBook book)
 			{
-				// see if we have a full order book for the symbol
-				if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
-				{
-					fullBooks[book.Symbol] = fullBook = api.GetOrderBook(book.Symbol, 1000);
-					fullBook.Symbol = book.Symbol;
-				}
+                if(api.Name == ExchangeName.Binance)
+                {
+                    // see if we have a full order book for the symbol
+                    if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
+                    {
+                        fullBooks[book.Symbol] = fullBook = api.GetOrderBook(book.Symbol, 1000);
+                        fullBook.Symbol = book.Symbol;
+                    }
 
-				// update deltas as long as the full book is at or before the delta timestamp
-				if (fullBook.SequenceId <= book.SequenceId)
-				{
-					foreach (var ask in book.Asks)
-					{
-						if (ask.Value.Amount <= 0m || ask.Value.Price <= 0m)
-						{
-							fullBook.Asks.Remove(ask.Value.Price);
-						}
-						else
-						{
-							fullBook.Asks[ask.Value.Price] = ask.Value;
-						}
-					}
-					foreach (var bid in book.Bids)
-					{
-						if (bid.Value.Amount <= 0m || bid.Value.Price <= 0m)
-						{
-							fullBook.Bids.Remove(bid.Value.Price);
-						}
-						else
-						{
-							fullBook.Bids[bid.Value.Price] = bid.Value;
-						}
-					}
-					fullBook.SequenceId = book.SequenceId;
-				}
-				callback(fullBook);
+                    // update deltas as long as the full book is at or before the delta timestamp
+                    if (fullBook.SequenceId <= book.SequenceId)
+                    {
+                        foreach (var ask in book.Asks)
+                        {
+                            if (ask.Value.Amount <= 0m || ask.Value.Price <= 0m)
+                            {
+                                fullBook.Asks.Remove(ask.Value.Price);
+                            }
+                            else
+                            {
+                                fullBook.Asks[ask.Value.Price] = ask.Value;
+                            }
+                        }
+                        foreach (var bid in book.Bids)
+                        {
+                            if (bid.Value.Amount <= 0m || bid.Value.Price <= 0m)
+                            {
+                                fullBook.Bids.Remove(bid.Value.Price);
+                            }
+                            else
+                            {
+                                fullBook.Bids[bid.Value.Price] = bid.Value;
+                            }
+                        }
+                        fullBook.SequenceId = book.SequenceId;
+                    }
+                    callback(fullBook);
+                }
+                else if(api.Name == ExchangeName.Okex || api.Name == ExchangeName.BitMEX)
+                {
+                    if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
+                    {
+                        fullBooks[book.Symbol] = book;
+                        fullBook.Symbol = book.Symbol;
+                    }
+
+                    foreach (var ask in book.Asks)
+                    {
+                        if (ask.Value.Amount <= 0m || ask.Value.Price <= 0m)
+                        {
+                            fullBook.Asks.Remove(ask.Value.Price);
+                        }
+                        else
+                        {
+                            fullBook.Asks[ask.Value.Price] = ask.Value;
+                        }
+                    }
+                    foreach (var bid in book.Bids)
+                    {
+                        if (bid.Value.Amount <= 0m || bid.Value.Price <= 0m)
+                        {
+                            fullBook.Bids.Remove(bid.Value.Price);
+                        }
+                        else
+                        {
+                            fullBook.Bids[bid.Value.Price] = bid.Value;
+                        }
+                    }
+
+                    callback(fullBook);
+                }
+                else if(api.Name == ExchangeName.Huobi)
+                {
+                    fullBooks[book.Symbol] = book;
+                }
             };
 
             return api.GetOrderBookDeltasWebSocket(innerCallback, maxCount, symbols);
