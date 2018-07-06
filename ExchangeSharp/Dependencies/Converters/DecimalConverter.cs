@@ -20,9 +20,11 @@ namespace ExchangeSharp
 {
     public class DecimalConverter : JsonConverter
     {
+        private static readonly Type decimalType = typeof(decimal);
+
         public override bool CanConvert(Type objectType)
         {
-            return (objectType == typeof(decimal));
+            return (objectType == decimalType);
         }
 
         public override void WriteJson(JsonWriter writer, object value,
@@ -41,5 +43,7 @@ namespace ExchangeSharp
         {
             throw new NotImplementedException();
         }
+
+        public static DecimalConverter Instance { get; } = new DecimalConverter();
     }
 }
