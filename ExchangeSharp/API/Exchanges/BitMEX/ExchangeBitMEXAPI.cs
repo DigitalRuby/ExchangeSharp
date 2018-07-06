@@ -171,7 +171,6 @@ namespace ExchangeSharp
 
             markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/instrument");
-            var idx = 0;
             foreach (JToken symbol in allSymbols)
             {
                 var market = new ExchangeMarket

@@ -23,30 +23,30 @@ namespace ExchangeSharp
     /// </summary>
     public static class ExchangeAPIExtensions
     {
-		/// <summary>
-		/// Get full order book bids and asks via web socket. This is efficient and will only use the order book deltas.
-		/// </summary>
-		/// <param name="callback">Callback of symbol, order book</param>
-		/// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-		/// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
-		/// <returns>Web socket, call Dispose to close</returns>
-		public static IDisposable GetOrderBookWebSocket(this IExchangeAPI api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
-		{
-			// Gets a delta socket for a collection of order books, then maintains a full order book.
-			// The suggested way to use this is:
-			// 1. Open this socket and begin buffering events you receive
-			// 2. Get a depth snapshot of the order books you care about
-			// 3. Drop any event where SequenceNumber is less than or equal to the snapshot last update id
-			// Notes:
-			// * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
-			// * If the quantity is 0, remove the price level
-			// * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
-			// 
+        /// <summary>
+        /// Get full order book bids and asks via web socket. This is efficient and will only use the order book deltas.
+        /// </summary>
+        /// <param name="callback">Callback of symbol, order book</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
+        /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public static IDisposable GetOrderBookWebSocket(this IExchangeAPI api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        {
+            // Gets a delta socket for a collection of order books, then maintains a full order book.
+            // The suggested way to use this is:
+            // 1. Open this socket and begin buffering events you receive
+            // 2. Get a depth snapshot of the order books you care about
+            // 3. Drop any event where SequenceNumber is less than or equal to the snapshot last update id
+            // Notes:
+            // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
+            // * If the quantity is 0, remove the price level
+            // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
+            // 
 
-			Dictionary<string, ExchangeOrderBook> fullBooks = new Dictionary<string, ExchangeOrderBook>();
-			void innerCallback(ExchangeOrderBook book)
-			{
-                if(api.Name == ExchangeName.Binance)
+            Dictionary<string, ExchangeOrderBook> fullBooks = new Dictionary<string, ExchangeOrderBook>();
+            void innerCallback(ExchangeOrderBook book)
+            {
+                if (api.Name == ExchangeName.Binance)
                 {
                     // see if we have a full order book for the symbol
                     if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
@@ -84,7 +84,7 @@ namespace ExchangeSharp
                     }
                     callback(fullBook);
                 }
-                else if(api.Name == ExchangeName.Okex || api.Name == ExchangeName.BitMEX)
+                else if (api.Name == ExchangeName.Okex || api.Name == ExchangeName.BitMEX)
                 {
                     if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
                     {
@@ -117,7 +117,7 @@ namespace ExchangeSharp
 
                     callback(fullBook);
                 }
-                else if(api.Name == ExchangeName.Huobi)
+                else if (api.Name == ExchangeName.Huobi)
                 {
                     fullBooks[book.Symbol] = book;
                 }
