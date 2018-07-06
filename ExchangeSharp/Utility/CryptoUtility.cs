@@ -417,7 +417,8 @@ namespace ExchangeSharp
         {
             if (payload != null && payload.Count != 0)
             {
-                return JsonConvert.SerializeObject(payload);
+                // the decimal must same as GetFormForPayload
+                return JsonConvert.SerializeObject(payload, new DecimalConverter());
             }
             return string.Empty;
         }
