@@ -208,7 +208,7 @@ namespace ExchangeSharp
                 foreach (JToken currency in token)
                 {
                     decimal amount = currency["Total"].ConvertInvariant<decimal>();
-                    if (amount > 0) amounts.Add(token["Symbol"].ToStringInvariant(), amount);
+                    if (amount > 0) amounts.Add(currency["Symbol"].ToStringInvariant(), amount);
                 }
             }
             return amounts;
@@ -228,7 +228,7 @@ namespace ExchangeSharp
                 foreach (JToken currency in token)
                 {
                     decimal amount = currency["Available"].ConvertInvariant<decimal>();
-                    if (amount > 0) amounts.Add(token["Symbol"].ToStringInvariant(), amount);
+                    if (amount > 0) amounts.Add(currency["Symbol"].ToStringInvariant(), amount);
                 }
             }
             return amounts;
