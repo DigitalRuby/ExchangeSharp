@@ -21,6 +21,7 @@ The following cryptocurrency exchanges are supported:
 | Binance          | x         | x           | TRB       |
 | Bitfinex         | x         | x           | TO        |
 | Bithumb          | x         |             |           |
+| Bitmex           | x         | x           |           |
 | Bitstamp         | x         | x           |           |
 | Bittrex          | x         | x           | T         |
 | Bleutrade        | x         | x           |           |
