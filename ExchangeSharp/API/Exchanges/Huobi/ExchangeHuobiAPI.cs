@@ -29,7 +29,7 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
         public string PrivateUrlV1 { get; set; } = "https://api.huobipro.com/v1";
 
-        public bool IsMargin { get; set; } = false;
+        public bool IsMargin { get; set; }
         public string SubType { get; set; }
 
         private long webSocketId = 0;
