@@ -80,7 +80,7 @@ namespace ExchangeSharp
             disposed = true;
             try
             {
-                webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
+                webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
             }
             catch
             {
