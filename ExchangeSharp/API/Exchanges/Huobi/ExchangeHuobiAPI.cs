@@ -17,8 +17,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
-using System.IO;
-using System.IO.Compression;
+using System.Security.Cryptography;
 
 namespace ExchangeSharp
 {
@@ -29,7 +28,9 @@ namespace ExchangeSharp
         public string BaseUrlV1 { get; set; } = "https://api.huobipro.com/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
         public string PrivateUrlV1 { get; set; } = "https://api.huobipro.com/v1";
-        public string AccountType { get; set; } = "spot";
+
+        public bool IsMargin { get; set; } = false;
+        public string SubType { get; set; }
 
         private long webSocketId = 0;
 
@@ -108,17 +109,24 @@ namespace ExchangeSharp
                     .Append(url.Path).Append("\n")
                     .Append(msg);
 
-                var sig = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
-                msg += "&Signature=" + Uri.EscapeDataString(sig);
+                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
+                var signUrl = Uri.EscapeDataString(sign);
+                msg += $"&Signature={signUrl}";
+
+                // https://github.com/huobiapi/API_Docs_en/wiki/Signing_API_Requests
+                // API Authentication Change
+                var privateSign = GetPrivateSignatureStr(Passphrase.ToUnsecureString(), sign);
+                var privateSignUrl = Uri.EscapeDataString(privateSign);
+                msg += $"&PrivateSignature={privateSignUrl}";
 
                 url.Query = msg;
             }
             return url.Uri;
         }
 
-        #endregion
+#endregion
 
-        #region Public APIs
+#region Public APIs
 
         public override string NormalizeSymbol(string symbol)
         {
@@ -286,7 +294,7 @@ namespace ExchangeSharp
                     var tick = token["tick"];
                     var id = tick["id"].ConvertInvariant<long>();
                     var trades = ParseTradesWebSocket(tick);
-                    foreach(var trade in trades)
+                    foreach (var trade in trades)
                     {
                         trade.Id = id;
                         callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
@@ -380,7 +388,7 @@ namespace ExchangeSharp
                     var sArray = ch.Split('.');
                     var symbol = sArray[1].ToStringInvariant();
                     ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
-					book.Symbol = symbol;
+                    book.Symbol = symbol;
                     callback(book);
                 }
                 catch
@@ -508,12 +516,40 @@ namespace ExchangeSharp
             return candles;
         }
 
-        #endregion
+#endregion
 
-        #region Private APIs
+#region Private APIs
 
         private async Task<Dictionary<string, string>> OnGetAccountsAsync()
         {
+            /*
+            {[
+  {
+    "id": 3274515,
+    "type": "spot",
+    "subtype": "",
+    "state": "working"
+  },
+  {
+    "id": 4267855,
+    "type": "margin",
+    "subtype": "btcusdt",
+    "state": "working"
+  },
+  {
+    "id": 3544747,
+    "type": "margin",
+    "subtype": "ethusdt",
+    "state": "working"
+  },
+  {
+    "id": 3274640,
+    "type": "otc",
+    "subtype": "",
+    "state": "working"
+  }
+]}
+ */
             if (ReadCache("GetAccounts", out Dictionary<string, string> accounts))
             {
                 return accounts;
@@ -523,7 +559,8 @@ namespace ExchangeSharp
             JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload);
             foreach (var acc in data)
             {
-                accounts.Add(acc["type"].ToStringInvariant(), acc["id"].ToStringInvariant());
+                string key = acc["type"].ToStringInvariant() + "_" + acc["subtype"].ToStringInvariant();
+                accounts.Add(key, acc["id"].ToStringInvariant());
             }
 
             WriteCache("GetAccounts", TimeSpan.FromMinutes(60.0), accounts);
@@ -569,8 +606,7 @@ namespace ExchangeSharp
         "balance": "16.467000000000000000"
       },
              */
-            var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[AccountType];
+            var account_id = await GetAccountID();
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await OnGetNoncePayloadAsync();
@@ -598,8 +634,7 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
-            var accounts = await OnGetAccountsAsync();
-            var account_id = accounts[AccountType];
+            var account_id = await GetAccountID();
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await OnGetNoncePayloadAsync();
@@ -696,10 +731,10 @@ namespace ExchangeSharp
         {
             string symbol = NormalizeSymbol(order.Symbol);
 
-            var accounts = await OnGetAccountsAsync();
+            var account_id = await GetAccountID(order.IsMargin, order.Symbol);
 
             var payload = await OnGetNoncePayloadAsync();
-            payload.Add("account-id", order.IsMargin ? accounts["margin"] : accounts["spot"]);
+            payload.Add("account-id", account_id);
             payload.Add("symbol", symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("source", order.IsMargin ? "margin-api" : "api");
@@ -709,7 +744,7 @@ namespace ExchangeSharp
             decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
 
             payload["amount"] = outputQuantity.ToStringInvariant();
-            
+
             if (order.OrderType == OrderType.Market)
             {
                 payload["type"] += "-market";
@@ -766,9 +801,9 @@ namespace ExchangeSharp
         }
 
 
-        #endregion
+#endregion
 
-        #region Private Functions
+#region Private Functions
 
         protected override JToken CheckJsonResponse(JToken result)
         {
@@ -872,7 +907,7 @@ namespace ExchangeSharp
                 {
                     Amount = t["amount"].ConvertInvariant<decimal>(),
                     // System.OverflowException: Value was either too large or too small for an Int64.
-                    // Id = x["id"].ConvertInvariant<long>(),
+                    //Id = t["id"].ConvertInvariant<long>(),
                     IsBuy = t["direction"].ToStringLowerInvariant().EqualsWithOption("buy"),
                     Price = t["price"].ConvertInvariant<decimal>(),
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(t["ts"].ConvertInvariant<long>())
@@ -883,6 +918,64 @@ namespace ExchangeSharp
             return trades;
         }
 
+        private async Task<string> GetAccountID(bool isMargin = false, string subtype = "")
+        {
+            var accounts = await OnGetAccountsAsync();
+            var key = "spot_";
+            if (isMargin)
+            {
+                key = "margin_" + subtype;
+            }
+            var account_id = accounts[key];
+            return account_id;
+        }
         #endregion
+
+
+        /// <summary>
+        /// Sign with ECDsa encryption method with the generated ECDsa private key
+        /// </summary>
+        /// <param name="privateKeyStr"></param>
+        /// <param name="signData"></param>
+        /// <returns></returns>
+        private String GetPrivateSignatureStr(string privateKeyStr, string signData)
+        {
+            var privateSignedData = string.Empty;
+
+#if NET471
+            // net core not support this
+            try
+            {
+                byte[] keyBytes = Convert.FromBase64String(privateKeyStr);
+                CngKey cng = CngKey.Import(keyBytes, CngKeyBlobFormat.Pkcs8PrivateBlob);
+
+                ECDsaCng dsa = new ECDsaCng(cng)
+                {
+                    HashAlgorithm = CngAlgorithm.Sha256
+                };
+
+                byte[] signDataBytes = Encoding.UTF8.GetBytes(signData);
+                privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
+            }
+            catch (CryptographicException e)
+            {
+                Console.WriteLine("Private signature error because: " + e.Message);
+            }
+#endif
+
+            return privateSignedData;
+
+            // net core 
+
+            //var ecDsa = ECDsa.Create();
+            //var ecParameters = new ECParameters();
+            //ecParameters.Curve = null;
+            //ecParameters.D = null;
+            //ecParameters.Q = null;
+            //ecDsa.ImportParameters(ecParameters);
+
+            //byte[] signDataBytes = Encoding.UTF8.GetBytes(signData);
+            //privateSignedData = Convert.ToBase64String(ecDsa.SignData(signDataBytes, HashAlgorithmName.SHA256));
+        }
     }
 }
