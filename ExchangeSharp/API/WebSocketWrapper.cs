@@ -38,6 +38,11 @@ namespace ExchangeSharp
         private Action<WebSocketWrapper> onDisconnected;
         private TimeSpan connectInterval;
         private bool disposed;
+        
+        /// <summary>
+        /// Whether to close the connection gracefully, this can cause the close to take longer.
+        /// </summary
+        public bool CloseCleanly { get; set; }
 
         /// <summary>
         /// Constructor, also begins listening and processing messages immediately
@@ -80,7 +85,14 @@ namespace ExchangeSharp
             disposed = true;
             try
             {
-                webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
+                if (CloseCleanly)
+                {
+                    webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
+                }
+                else
+                {
+                    webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
+                }
             }
             catch
             {
