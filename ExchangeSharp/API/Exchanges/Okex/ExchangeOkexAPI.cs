@@ -156,7 +156,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            var data = await MakeRequestOkexAsync(null, "/spot/markets/index-tickers?limit=100000000", BaseUrlV2);
+            var data = await MakeRequestOkexAsync(null, "/markets/index-tickers?limit=100000000", BaseUrlV2);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             foreach (JToken token in data.Item1)
