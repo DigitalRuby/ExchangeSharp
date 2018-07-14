@@ -43,43 +43,43 @@ namespace ExchangeSharp
                     case ExchangeName.Bittrex:
                     case ExchangeName.Binance:
                     case ExchangeName.Poloniex:
-                    {
-                        // If we don't have an initial order book for this symbol, fetch it
-                        if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
-                            fullOrderBook.Symbol = freshBook.Symbol;
-                        }
+                            // If we don't have an initial order book for this symbol, fetch it
+                            if (!foundFullBook)
+                            {
+                                fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
+                                fullOrderBook.Symbol = freshBook.Symbol;
+                            }
 
-                        // update deltas as long as the full book is at or before the delta timestamp
-                        if (fullOrderBook.SequenceId <= freshBook.SequenceId)
-                        {
-                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                            fullOrderBook.SequenceId = freshBook.SequenceId;
-                        }
+                            // update deltas as long as the full book is at or before the delta timestamp
+                            if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                            {
+                                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                                fullOrderBook.SequenceId = freshBook.SequenceId;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     // First response from exchange will be the full order book.
                     // Subsequent updates will be deltas
                     case ExchangeName.BitMEX:
                     case ExchangeName.Okex:
-                    {
-                        if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
-                            fullOrderBook.Symbol = freshBook.Symbol;
-                        }
-                        else
-                        {
-                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                        }
+                            if (!foundFullBook)
+                            {
+                                fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
+                                fullOrderBook.Symbol = freshBook.Symbol;
+                            }
+                            else
+                            {
+                                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     // Websocket always returns full order book
                     case ExchangeName.Huobi:
@@ -176,13 +176,9 @@ namespace ExchangeSharp
         {
             foreach (ExchangeOrderPrice record in deltaValues.Values)
             {
-                if (record.Amount <= 0)
+                if (record.Amount <= 0 || record.Price <= 0)
                 {
-                    // delete from book
-                    if (bookToEdit.ContainsKey(record.Price))
-                    {
-                        bookToEdit.Remove(record.Price);
-                    }
+                    bookToEdit.Remove(record.Price);
                 }
                 else
                 {
