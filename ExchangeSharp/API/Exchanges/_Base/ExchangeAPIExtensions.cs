@@ -10,125 +10,91 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-using Newtonsoft.Json.Linq;
-
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Contains useful extension methods and parsing for the ExchangeAPI classes
-    /// </summary>
+    using System;
+    using System.Collections.Generic;
+
+    using Newtonsoft.Json.Linq;
+
+    /// <summary>Contains useful extension methods and parsing for the ExchangeAPI classes</summary>
     public static class ExchangeAPIExtensions
     {
-        /// <summary>
-        /// Get full order book bids and asks via web socket. This is efficient and will only use the order book deltas.
-        /// </summary>
-        /// <param name="callback">Callback of symbol, order book</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
+        /// <summary>Get full order book bids and asks via web socket. This is efficient and will
+        /// only use the order book deltas (if supported by the exchange).</summary>
+        /// <param name="callback">Callback containing full order book</param>
+        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this
+        /// parameter</param>
+        /// <param name="symbols">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
         public static IDisposable GetOrderBookWebSocket(this IExchangeAPI api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            // Gets a delta socket for a collection of order books, then maintains a full order book.
-            // The suggested way to use this is:
-            // 1. Open this socket and begin buffering events you receive
-            // 2. Get a depth snapshot of the order books you care about
-            // 3. Drop any event where SequenceNumber is less than or equal to the snapshot last update id
             // Notes:
             // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
-            // * If the quantity is 0, remove the price level
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
-            // 
+            var fullBooks = new Dictionary<string, ExchangeOrderBook>();
 
-            Dictionary<string, ExchangeOrderBook> fullBooks = new Dictionary<string, ExchangeOrderBook>();
-            void innerCallback(ExchangeOrderBook book)
+            void innerCallback(ExchangeOrderBook freshBook)
             {
-                if (api.Name == ExchangeName.Binance)
+                bool foundFullBook = fullBooks.TryGetValue(freshBook.Symbol, out ExchangeOrderBook fullOrderBook);
+                switch (api.Name)
                 {
-                    // see if we have a full order book for the symbol
-                    if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
+                    // Fetch an initial book the first time and apply deltas on top
+                    case ExchangeName.Bittrex:
+                    case ExchangeName.Binance:
+                    case ExchangeName.Poloniex:
                     {
-                        fullBooks[book.Symbol] = fullBook = api.GetOrderBook(book.Symbol, 1000);
-                        fullBook.Symbol = book.Symbol;
+                        // If we don't have an initial order book for this symbol, fetch it
+                        if (!foundFullBook)
+                        {
+                            fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
+                            fullOrderBook.Symbol = freshBook.Symbol;
+                        }
+
+                        // update deltas as long as the full book is at or before the delta timestamp
+                        if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                        {
+                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                            fullOrderBook.SequenceId = freshBook.SequenceId;
+                        }
+
+                        break;
                     }
 
-                    // update deltas as long as the full book is at or before the delta timestamp
-                    if (fullBook.SequenceId <= book.SequenceId)
+                    // First response from exchange will be the full order book.
+                    // Subsequent updates will be deltas
+                    case ExchangeName.BitMEX:
+                    case ExchangeName.Okex:
                     {
-                        foreach (var ask in book.Asks)
+                        if (!foundFullBook)
                         {
-                            if (ask.Value.Amount <= 0m || ask.Value.Price <= 0m)
-                            {
-                                fullBook.Asks.Remove(ask.Value.Price);
-                            }
-                            else
-                            {
-                                fullBook.Asks[ask.Value.Price] = ask.Value;
-                            }
-                        }
-                        foreach (var bid in book.Bids)
-                        {
-                            if (bid.Value.Amount <= 0m || bid.Value.Price <= 0m)
-                            {
-                                fullBook.Bids.Remove(bid.Value.Price);
-                            }
-                            else
-                            {
-                                fullBook.Bids[bid.Value.Price] = bid.Value;
-                            }
-                        }
-                        fullBook.SequenceId = book.SequenceId;
-                    }
-                    callback(fullBook);
-                }
-                else if (api.Name == ExchangeName.Okex || api.Name == ExchangeName.BitMEX)
-                {
-                    if (!fullBooks.TryGetValue(book.Symbol, out ExchangeOrderBook fullBook))
-                    {
-                        fullBooks[book.Symbol] = book;
-                        fullBook.Symbol = book.Symbol;
-                    }
-
-                    foreach (var ask in book.Asks)
-                    {
-                        if (ask.Value.Amount <= 0m || ask.Value.Price <= 0m)
-                        {
-                            fullBook.Asks.Remove(ask.Value.Price);
+                            fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
+                            fullOrderBook.Symbol = freshBook.Symbol;
                         }
                         else
                         {
-                            fullBook.Asks[ask.Value.Price] = ask.Value;
+                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
                         }
-                    }
-                    foreach (var bid in book.Bids)
-                    {
-                        if (bid.Value.Amount <= 0m || bid.Value.Price <= 0m)
-                        {
-                            fullBook.Bids.Remove(bid.Value.Price);
-                        }
-                        else
-                        {
-                            fullBook.Bids[bid.Value.Price] = bid.Value;
-                        }
+
+                        break;
                     }
 
-                    callback(fullBook);
+                    // Websocket always returns full order book
+                    case ExchangeName.Huobi:
+                        fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
+                        break;
                 }
-                else if (api.Name == ExchangeName.Huobi)
-                {
-                    fullBooks[book.Symbol] = book;
-                }
-            };
+
+                callback(fullOrderBook);
+            }
 
             return api.GetOrderBookDeltasWebSocket(innerCallback, maxCount, symbols);
         }
 
-        /// <summary>
-        /// Common order book parsing method, most exchanges use "asks" and "bids" with arrays of length 2 for price and amount (or amount and price)
-        /// </summary>
+        /// <summary>Common order book parsing method, most exchanges use "asks" and "bids" with
+        /// arrays of length 2 for price and amount (or amount and price)</summary>
         /// <param name="token">Token</param>
         /// <param name="asks">Asks key</param>
         /// <param name="bids">Bids key</param>
@@ -136,10 +102,7 @@ namespace ExchangeSharp
         /// <returns>Order book</returns>
         public static ExchangeOrderBook ParseOrderBookFromJTokenArrays(JToken token, string asks = "asks", string bids = "bids", string sequence = "ts", int maxCount = 100)
         {
-            ExchangeOrderBook book = new ExchangeOrderBook
-            {
-                SequenceId = token[sequence].ConvertInvariant<long>()
-            };
+            var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JArray array in token[asks])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
@@ -149,6 +112,7 @@ namespace ExchangeSharp
                     break;
                 }
             }
+
             foreach (JArray array in token[bids])
             {
                 var depth = new ExchangeOrderPrice { Price = array[0].ConvertInvariant<decimal>(), Amount = array[1].ConvertInvariant<decimal>() };
@@ -158,12 +122,12 @@ namespace ExchangeSharp
                     break;
                 }
             }
+
             return book;
         }
 
-        /// <summary>
-        /// Common order book parsing method, checks for "amount" or "quantity" and "price" elements
-        /// </summary>
+        /// <summary>Common order book parsing method, checks for "amount" or "quantity" and "price"
+        /// elements</summary>
         /// <param name="token">Token</param>
         /// <param name="asks">Asks key</param>
         /// <param name="bids">Bids key</param>
@@ -172,12 +136,16 @@ namespace ExchangeSharp
         /// <param name="sequence">Sequence key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries(JToken token, string asks = "asks", string bids = "bids", string price = "price", string amount = "amount", string sequence = "ts", int maxCount = 100)
+        public static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries(
+            JToken token,
+            string asks = "asks",
+            string bids = "bids",
+            string price = "price",
+            string amount = "amount",
+            string sequence = "ts",
+            int maxCount = 100)
         {
-            ExchangeOrderBook book = new ExchangeOrderBook
-            {
-                SequenceId = token[sequence].ConvertInvariant<long>()
-            };
+            var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JToken ask in token[asks])
             {
                 var depth = new ExchangeOrderPrice { Price = ask[price].ConvertInvariant<decimal>(), Amount = ask[amount].ConvertInvariant<decimal>() };
@@ -187,6 +155,7 @@ namespace ExchangeSharp
                     break;
                 }
             }
+
             foreach (JToken bid in token[bids])
             {
                 var depth = new ExchangeOrderPrice { Price = bid[price].ConvertInvariant<decimal>(), Amount = bid[amount].ConvertInvariant<decimal>() };
@@ -196,7 +165,30 @@ namespace ExchangeSharp
                     break;
                 }
             }
+
             return book;
+        }
+
+        /// <summary>Applies the delta order book on top of the existing book.</summary>
+        /// <param name="deltaValues">The delta values.</param>
+        /// <param name="bookToEdit">The book to edit.</param>
+        private static void ApplyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
+        {
+            foreach (ExchangeOrderPrice record in deltaValues.Values)
+            {
+                if (record.Amount <= 0)
+                {
+                    // delete from book
+                    if (bookToEdit.ContainsKey(record.Price))
+                    {
+                        bookToEdit.Remove(record.Price);
+                    }
+                }
+                else
+                {
+                    bookToEdit[record.Price] = record;
+                }
+            }
         }
     }
 }
