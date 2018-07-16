@@ -21,10 +21,12 @@ namespace ExchangeSharp
 {
     using System.Linq;
 
+    using Newtonsoft.Json;
+
     public sealed class ExchangeGdaxAPI : ExchangeAPI
     {
-        public override string BaseUrl { get; set; } = "https://api.gdax.com";
-        public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.gdax.com";
+        public override string BaseUrl { get; set; } = "https://api.pro.coinbase.com";
+        public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.pro.coinbase.com";
         public override string Name => ExchangeName.GDAX;
 
         /// <summary>
@@ -231,6 +233,83 @@ namespace ExchangeSharp
                 evt.WaitOne(10000);
                 return tickers;
             }
+        }
+
+        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        {
+            if (callback == null || symbols == null || symbols.Length == 0)
+            {
+                return null;
+            }
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    string message = msg.UTF8String();
+                    var book = new ExchangeOrderBook();
+
+                    // string comparison on the json text for faster deserialization
+                    // More likely to be an l2update so check for that first
+                    if (message.Contains(@"""l2update"""))
+                    {
+                        // parse delta update
+                        var delta = JsonConvert.DeserializeObject<Level2>(message);
+                        book.Symbol = delta.ProductId;
+                        book.SequenceId = delta.Time.Ticks;
+                        foreach (string[] change in delta.Changes)
+                        {
+                            decimal price = change[1].ConvertInvariant<decimal>();
+                            decimal amount = change[2].ConvertInvariant<decimal>();
+                            if (change[0] == "buy")
+                            {
+                                book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                            }
+                            else
+                            {
+                                book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                            }
+                        }
+
+                        callback(book);
+                    }
+                    else if (message.Contains(@"""snapshot"""))
+                    {
+                        // parse snapshot
+                        var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
+                        book.Symbol = snapshot.ProductId;
+                        foreach (decimal[] ask in snapshot.Asks)
+                        {
+                            decimal price = ask[0];
+                            decimal amount = ask[1];
+                            book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                        }
+
+                        foreach (decimal[] bid in snapshot.Bids)
+                        {
+                            decimal price = bid[0];
+                            decimal amount = bid[1];
+                            book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                        }
+
+                        callback(book);
+                    }
+
+                    // no other message type handled
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ExchangeGdaxAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
+                }
+            }, _socket =>
+            {
+                // subscribe to order book and trades channel for each symbol
+                var chan = new Channel { Name = ChannelType.Level2, ProductIds = symbols.ToList() };
+                var channelAction = new ChannelAction { Type = ActionType.Subscribe, Channels = new List<Channel> { chan } };
+
+                _socket.SendMessage(JsonConvert.SerializeObject(channelAction));
+            });
+
         }
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
