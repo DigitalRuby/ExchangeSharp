@@ -25,7 +25,7 @@ namespace ExchangeSharp
     /// </summary>
     public abstract class ExchangeAPI : BaseAPI, IExchangeAPI
     {
-        #region Cosntants
+        #region Constants
 
         /// <summary>
         /// Separator for global symbols
@@ -1309,5 +1309,10 @@ namespace ExchangeSharp
         /// Yobit
         /// </summary>
         public const string Yobit = "Yobit";
+
+        /// <summary>
+        /// ZB.com
+        /// </summary>
+        public const string ZBcom = "ZB.com";
     }
 }
