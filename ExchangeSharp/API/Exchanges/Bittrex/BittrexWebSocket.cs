@@ -159,7 +159,8 @@ namespace ExchangeSharp
 
                 public override void LostConnection(IConnection con)
                 {
-                    connection.Stop();
+                    // TODO: If we are going to stop the connection we need to restart it somewhere else
+                    //connection.Stop();
                 }
 
                 protected override void Dispose(bool disposing)
@@ -281,16 +282,11 @@ namespace ExchangeSharp
                 reconnecting = false;
             }
 
-            private void StateChanged(StateChange state)
-            {
-            }
-
             public BittrexWebSocket()
             {
                 const string connectionUrl = "https://socket.bittrex.com";
                 hubConnection = new HubConnection(connectionUrl);
                 hubConnection.Closed += SocketClosed;
-                hubConnection.StateChanged += StateChanged;
                 hubProxy = hubConnection.CreateHubProxy("c2");
                 hubProxy.On("uS", (string data) => HandleResponse("uS", data));
                 hubProxy.On("uE", (string data) => HandleResponse("uE", data));
