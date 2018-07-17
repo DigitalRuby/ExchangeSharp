@@ -52,13 +52,13 @@ namespace ExchangeSharp
             {
                 private BittrexWebSocket client;
                 private Action<string> callback;
-                private string functionName;
+                private string functionFullName;
 
                 /// <summary>
                 /// Constructor
                 /// </summary>
                 /// <param name="client">Socket client</param>
-                /// <param name="functionName">Function code, uS is supported</param>
+                /// <param name="functionName">Function name</param>
                 /// <param name="callback"></param>
                 /// <param name="param"></param>
                 /// <returns>Connection</returns>
@@ -66,24 +66,18 @@ namespace ExchangeSharp
                 {
                     if (callback != null)
                     {
-                        string functionFullName;
-                        switch (functionName)
-                        {
-                            case "uS": functionFullName = "SubscribeToSummaryDeltas"; break;
-                            case "uE": functionFullName = "SubscribeToExchangeDeltas"; break;
-                            default: throw new InvalidOperationException("Only 'uS', 'uE' function is supported");
-                        }
-
-                        client.AddListener(functionName, callback);
+                        client.AddListener(functionName, callback, param);
+                        string functionFullName = BittrexWebSocket.GetFunctionFullName(functionName);
                         bool result = await client.hubProxy.Invoke<bool>(functionFullName, param);
                         if (result)
                         {
                             this.client = client;
                             this.callback = callback;
-                            this.functionName = functionName;
+                            this.functionFullName = functionFullName;
                             return;
                         }
 
+                        // fail, remove listener
                         client.RemoveListener(functionName, callback);
                     }
 
@@ -94,7 +88,7 @@ namespace ExchangeSharp
                 {
                     try
                     {
-                        client.RemoveListener(functionName, callback);
+                        client.RemoveListener(functionFullName, callback);
                     }
                     catch
                     {
@@ -160,7 +154,7 @@ namespace ExchangeSharp
                 public override void LostConnection(IConnection con)
                 {
                     // TODO: If we are going to stop the connection we need to restart it somewhere else
-                    //connection.Stop();
+                    connection.Stop();
                 }
 
                 protected override void Dispose(bool disposing)
@@ -199,23 +193,48 @@ namespace ExchangeSharp
                 }
             }
 
+            private class HubListener
+            {
+                public List<Action<string>> Callbacks { get; } = new List<Action<string>>();
+                public string FunctionName { get; set; }
+                public string FunctionFullName { get; set; }
+                public object[] Param { get; set; }
+            }
+
             private HubConnection hubConnection;
             private IHubProxy hubProxy;
-            private readonly Dictionary<string, List<Action<string>>> listeners = new Dictionary<string, List<Action<string>>>();
+            private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
             private bool reconnecting;
 
-            private void AddListener(string functionName, Action<string> callback)
+            internal static string GetFunctionFullName(string functionName)
             {
-                StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                switch (functionName)
+                {
+                    case "uS":
+                    case "SubscribeToSummaryDeltas":
+                        return "SubscribeToSummaryDeltas";
+
+                    case "uE":
+                    case "SubscribeToExchangeDeltas":
+                        return  "SubscribeToExchangeDeltas";
+
+                    default: throw new InvalidOperationException("Only 'uS', 'uE' function is supported");
+                }
+            }
+
+            private void AddListener(string functionName, Action<string> callback, object[] param)
+            {
+                string functionFullName = GetFunctionFullName(functionName);
+                ReconnectLoop().ConfigureAwait(false).GetAwaiter().GetResult();
                 lock (listeners)
                 {
-                    if (!listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
+                    if (!listeners.TryGetValue(functionName, out HubListener listener))
                     {
-                        listeners[functionName] = callbacks = new List<Action<string>>();
+                        listeners[functionFullName] = listener = new HubListener { FunctionName = functionName, FunctionFullName = functionFullName, Param = param };
                     }
-                    if (!callbacks.Contains(callback))
+                    if (!listener.Callbacks.Contains(callback))
                     {
-                        callbacks.Add(callback);
+                        listener.Callbacks.Add(callback);
                     }
                 }
             }
@@ -224,10 +243,11 @@ namespace ExchangeSharp
             {
                 lock (listeners)
                 {
-                    if (listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
+                    string functionFullName = GetFunctionFullName(functionName);
+                    if (listeners.TryGetValue(functionFullName, out HubListener listener))
                     {
-                        callbacks.Remove(callback);
-                        if (callbacks.Count == 0)
+                        listener.Callbacks.Remove(callback);
+                        if (listener.Callbacks.Count == 0)
                         {
                             listeners.Remove(functionName);
                         }
@@ -241,28 +261,46 @@ namespace ExchangeSharp
 
             private void HandleResponse(string functionName, string data)
             {
+                string functionFullName = GetFunctionFullName(functionName);
                 data = Decode(data);
+                Action<string>[] actions = null;
+
                 lock (listeners)
                 {
-                    if (listeners.TryGetValue(functionName, out List<Action<string>> callbacks))
+                    if (listeners.TryGetValue(functionFullName, out HubListener listener))
                     {
-                        Parallel.ForEach(callbacks, (callback) =>
-                        {
-                            try
-                            {
-                                callback(data);
-                            }
-                            catch
-                            {
-                            }
-                        });
+                        actions = listener.Callbacks.ToArray();
+
                     }
+                }
+
+                if (actions != null)
+                {
+                    Parallel.ForEach(actions, (callback) =>
+                    {
+                        try
+                        {
+                            callback(data);
+                        }
+                        catch
+                        {
+                        }
+                    });
                 }
             }
 
             private void SocketClosed()
             {
-                if (reconnecting || listeners.Count == 0)
+                if (listeners.Count == 0 || reconnecting)
+                {
+                    return;
+                }
+                Task.Run(ReconnectLoop);
+            }
+
+            private async Task ReconnectLoop()
+            {
+                if (reconnecting)
                 {
                     return;
                 }
@@ -270,11 +308,17 @@ namespace ExchangeSharp
                 try
                 {
                     // if hubConnection is null, exception will throw out
-                    while (hubConnection.State != ConnectionState.Connected)
+                    while (hubConnection == null || (hubConnection.State != ConnectionState.Connected && hubConnection.State != ConnectionState.Connecting))
                     {
-                        StartAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        try
+                        {
+                            await StartAsync();
+                        }
+                        catch
+                        {
+                            await Task.Delay(5000);
+                        }
                     }
-                    Task.Delay(1000).ConfigureAwait(false).GetAwaiter().GetResult();
                 }
                 catch
                 {
@@ -282,22 +326,36 @@ namespace ExchangeSharp
                 reconnecting = false;
             }
 
-            public BittrexWebSocket()
+            public async Task StartAsync()
             {
                 const string connectionUrl = "https://socket.bittrex.com";
+                hubConnection?.Stop();
+                hubConnection?.Dispose();
                 hubConnection = new HubConnection(connectionUrl);
                 hubConnection.Closed += SocketClosed;
                 hubProxy = hubConnection.CreateHubProxy("c2");
                 hubProxy.On("uS", (string data) => HandleResponse("uS", data));
                 hubProxy.On("uE", (string data) => HandleResponse("uE", data));
-            }
-
-            public async Task StartAsync()
-            {
                 DefaultHttpClient client = new DefaultHttpClient();
                 var autoTransport = new AutoTransport(client, new IClientTransport[] { new WebsocketCustomTransport(client) });
                 hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
                 await hubConnection.Start(autoTransport);
+                HubListener[] listeners;
+                lock (this.listeners)
+                {
+                    listeners = this.listeners.Values.ToArray();
+                }
+                try
+                {
+                    foreach (var listener in listeners)
+                    {
+                        await hubProxy.Invoke<bool>(listener.FunctionFullName, listener.Param);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to re-add listeners: {0}", ex);
+                }
             }
 
             public void Stop()

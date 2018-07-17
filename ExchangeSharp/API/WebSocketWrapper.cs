@@ -32,11 +32,12 @@ namespace ExchangeSharp
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken cancellationToken;
         private readonly BlockingCollection<object> messageQueue = new BlockingCollection<object>(new ConcurrentQueue<object>());
+        private readonly TimeSpan keepAlive;
+        private readonly Action<byte[], WebSocketWrapper> onMessage;
+        private readonly Action<WebSocketWrapper> onConnected;
+        private readonly Action<WebSocketWrapper> onDisconnected;
+        private readonly TimeSpan connectInterval;
 
-        private Action<byte[], WebSocketWrapper> onMessage;
-        private Action<WebSocketWrapper> onConnected;
-        private Action<WebSocketWrapper> onDisconnected;
-        private TimeSpan connectInterval;
         private bool disposed;
         
         /// <summary>
@@ -64,17 +65,19 @@ namespace ExchangeSharp
             TimeSpan? connectInterval = null
         )
         {
-            webSocket = new ClientWebSocket();
-            webSocket.Options.KeepAliveInterval = (keepAlive ?? TimeSpan.FromSeconds(30.0));
             this.uri = new Uri(uri);
-            cancellationToken = cancellationTokenSource.Token;
             this.onMessage = onMessage;
-            onConnected = onConnect;
-            onDisconnected = onDisconnect;
+            this.onConnected = onConnect;
+            this.onDisconnected = onDisconnect;
+            this.keepAlive = (keepAlive ?? TimeSpan.FromSeconds(30.0));
             this.connectInterval = (connectInterval ?? TimeSpan.FromHours(1.0));
+            cancellationToken = cancellationTokenSource.Token;
 
-            Task.Factory.StartNew(MessageWorkerThread);
-            Task.Factory.StartNew(ListenWorkerThread);
+            // avoid null reference exceptions while the tasks spin up
+            webSocket = new ClientWebSocket();
+
+            Task.Run((Action)MessageWorkerThread);
+            Task.Run(ListenWorkerThread);
         }
 
         /// <summary>
@@ -162,7 +165,7 @@ namespace ExchangeSharp
             }
         }
 
-        private void ListenWorkerThread()
+        private async Task ListenWorkerThread()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
             bool wasClosed = true;
@@ -178,8 +181,8 @@ namespace ExchangeSharp
                     {
                         // re-open the socket
                         wasClosed = false;
-                        webSocket = new ClientWebSocket();
-                        webSocket.ConnectAsync(uri, CancellationToken.None).GetAwaiter().GetResult();
+                        webSocket.Options.KeepAliveInterval = this.keepAlive;
+                        await webSocket.ConnectAsync(uri, cancellationToken);
                         QueueActionWithNoExceptions(onConnected);
                     }
 
@@ -187,10 +190,10 @@ namespace ExchangeSharp
                     {
                         do
                         {
-                            result = webSocket.ReceiveAsync(receiveBuffer, cancellationToken).GetAwaiter().GetResult();
+                            result = await webSocket.ReceiveAsync(receiveBuffer, cancellationToken);
                             if (result.MessageType == WebSocketMessageType.Close)
                             {
-                                webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                                 QueueAction(onDisconnected);
                             }
                             else
@@ -210,25 +213,26 @@ namespace ExchangeSharp
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     QueueAction(onDisconnected);
+                    try
+                    {
+                        webSocket?.Dispose();
+                    }
+                    catch
+                    {
+                    }
+                    webSocket = new ClientWebSocket();
                     if (!disposed)
                     {
-                        // wait one half second before attempting reconnect
-                        Task.Delay(500).ConfigureAwait(false).GetAwaiter().GetResult();
+                        // wait one second before attempting reconnect
+                        await Task.Delay(1000);
                     }
                 }
                 finally
                 {
                     wasClosed = true;
-                    try
-                    {
-                        webSocket.Dispose();
-                    }
-                    catch
-                    {
-                    }
                 }
             }
         }
