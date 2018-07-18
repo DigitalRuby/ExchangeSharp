@@ -27,7 +27,7 @@ namespace ExchangeSharp
     {
         private const int receiveChunkSize = 8192;
 
-        private ClientWebSocket webSocket;
+        private ClientWebSocket webSocket = new ClientWebSocket();
         private readonly Uri uri;
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken cancellationToken;
@@ -73,9 +73,7 @@ namespace ExchangeSharp
             this.connectInterval = (connectInterval ?? TimeSpan.FromHours(1.0));
             cancellationToken = cancellationTokenSource.Token;
 
-            // avoid null reference exceptions while the tasks spin up
-            webSocket = new ClientWebSocket();
-
+            // kick off message parser and message listener
             Task.Run((Action)MessageWorkerThread);
             Task.Run(ListenWorkerThread);
         }
