@@ -187,6 +187,7 @@ namespace ExchangeSharp
         private IHubProxy hubProxy;
         private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
         private bool reconnecting;
+        private bool disposed;
 
         /// <summary>
         /// Connection url
@@ -298,7 +299,7 @@ namespace ExchangeSharp
             try
             {
                 // if hubConnection is null, exception will throw out
-                while (hubConnection == null || (hubConnection.State != ConnectionState.Connected && hubConnection.State != ConnectionState.Connecting))
+                while (!disposed && (hubConnection == null || (hubConnection.State != ConnectionState.Connected && hubConnection.State != ConnectionState.Connecting)))
                 {
                     try
                     {
@@ -378,6 +379,7 @@ namespace ExchangeSharp
         /// </summary>
         public void Dispose()
         {
+            disposed = true;
             if (hubConnection == null)
             {
                 return;
