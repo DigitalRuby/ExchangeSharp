@@ -51,9 +51,9 @@ namespace ExchangeSharp
                             fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
                             fullOrderBook.Symbol = freshBook.Symbol;
                         }
-                            else
+                        else
                         {
-                                UpdateOrderBook(fullOrderBook, freshBook);
+                            UpdateOrderBook(fullOrderBook, freshBook);
                         }
 
                         break;
@@ -71,7 +71,7 @@ namespace ExchangeSharp
                         }
                         else
                         {
-                                UpdateOrderBook(fullOrderBook, freshBook);
+                            UpdateOrderBook(fullOrderBook, freshBook);
                         }
 
                         break;
@@ -96,7 +96,8 @@ namespace ExchangeSharp
                 fullBooks.Clear();
             };
             return socket;
-            
+        }
+
         private static void UpdateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
         {
             // update deltas as long as the full book is at or before the delta timestamp
