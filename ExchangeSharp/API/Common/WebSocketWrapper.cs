@@ -88,11 +88,11 @@ namespace ExchangeSharp
             {
                 if (CloseCleanly)
                 {
-                    webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
+                    webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
                 }
                 else
                 {
-                    webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", CancellationToken.None).GetAwaiter().GetResult();
+                    webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
                 }
             }
             catch
@@ -189,7 +189,7 @@ namespace ExchangeSharp
                             result = await webSocket.ReceiveAsync(receiveBuffer, cancellationToken);
                             if (result.MessageType == WebSocketMessageType.Close)
                             {
-                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
                                 QueueAction(onDisconnected);
                             }
                             else
