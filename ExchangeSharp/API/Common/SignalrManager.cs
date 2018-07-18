@@ -389,6 +389,9 @@ namespace ExchangeSharp
             hubConnection.Closed += SocketClosed;
             hubConnection.Reconnected += Reconnected;
             hubConnection.Reconnecting += Reconnecting;
+            hubConnection.Error += Errored;
+            hubConnection.TraceLevel = TraceLevels.All;
+            hubConnection.TraceWriter = Console.Out;
             hubProxy = hubConnection.CreateHubProxy(HubName);
 
             // assign callbacks for events
@@ -456,6 +459,11 @@ namespace ExchangeSharp
                     await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
                 }
             }
+        }
+
+        private void Errored(Exception obj)
+        {
+            Console.WriteLine($"Error hit: {obj.Message}");
         }
 
         private void Reconnecting()

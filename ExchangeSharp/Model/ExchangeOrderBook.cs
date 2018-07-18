@@ -83,6 +83,9 @@ namespace ExchangeSharp
         /// </summary>
         public string Symbol { get; set; }
 
+        /// <summary>The last updated UTC</summary>
+        public DateTime LastUpdatedUtc { get; set; } = DateTime.MinValue;
+
         /// <summary>
         /// List of asks (sells)
         /// </summary>
