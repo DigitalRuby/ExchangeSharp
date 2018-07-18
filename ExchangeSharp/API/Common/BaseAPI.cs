@@ -405,7 +405,13 @@ namespace ExchangeSharp
         public WebSocketWrapper ConnectWebSocket(string url, Action<byte[], WebSocketWrapper> messageCallback, Action<WebSocketWrapper> connectCallback = null)
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
-            return new WebSocketWrapper(fullUrl, messageCallback, connectCallback);
+            WebSocketWrapper wrapper = new WebSocketWrapper { Uri = new Uri(fullUrl), OnMessage = messageCallback };
+            if (connectCallback != null)
+            {
+                wrapper.Connected += (s) => connectCallback(wrapper);
+            }
+            wrapper.Start();
+            return wrapper;
         }
 
         /// <summary>

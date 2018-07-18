@@ -78,47 +78,6 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Constructor, also begins listening and processing messages immediately
-        /// </summary>
-        /// <param name="uri">Uri to connect to</param>
-        /// <param name="onMessage">Message callback</param>
-        /// <param name="onConnect">Connect callback, will get called on connection and every connectInterval (default 1 hour). This is a great place
-        /// to do setup, such as creating lookup dictionaries, etc. This method will re-execute until it executes without exceptions thrown.</param>
-        /// <param name="onDisconnect">Disconnect callback</param>
-        /// <param name="keepAlive">Keep alive time, default is 30 seconds</param>
-        /// <param name="connectInterval">How often to call the onConnect action (default is 1 hour)</param>
-        public WebSocketWrapper
-        (
-            string uri,
-            Action<byte[], WebSocketWrapper> onMessage,
-            Action<WebSocketWrapper> onConnect = null,
-            Action<WebSocketWrapper> onDisconnect = null,
-            TimeSpan? keepAlive = null,
-            TimeSpan? connectInterval = null
-        ) : this()
-        {
-            Uri = new Uri(uri);
-            OnMessage = onMessage;
-            if (onConnect != null)
-            {
-                Connected += (s) => onConnect(this);
-            }
-            if (onDisconnect != null)
-            {
-                Disconnected += (s) => onDisconnect(this);
-            }
-            if (keepAlive != null)
-            {
-                KeepAlive = keepAlive.Value;
-            }
-            if (connectInterval != null)
-            {
-                ConnectInterval = connectInterval.Value;
-            }
-            Start();
-        }
-
-        /// <summary>
         /// Start the web socket listening and processing
         /// </summary>
         public void Start()
