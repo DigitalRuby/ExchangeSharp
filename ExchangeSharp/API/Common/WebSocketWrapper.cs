@@ -213,7 +213,7 @@ namespace ExchangeSharp
                         }
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
                     QueueAction(onDisconnected);
                     try

@@ -25,15 +25,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Security.Cryptography;
 
-#if HAS_SIGNALR
-
-using Microsoft.AspNet.SignalR.Client;
-using Microsoft.AspNet.SignalR.Client.Http;
-using Microsoft.AspNet.SignalR.Client.Transports;
-using Microsoft.AspNet.SignalR.Client.Infrastructure;
-
-#endif
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -44,350 +35,12 @@ namespace ExchangeSharp
 
 #if HAS_SIGNALR
 
-        public sealed class BittrexWebSocket
+        public sealed class BittrexWebSocketManager : SignalrManager
         {
-            // https://bittrex.github.io/
-
-            private sealed class BittrexSocketClientConnection : IDisposable
+            public BittrexWebSocketManager() : base("https://socket.bittrex.com", "c2")
             {
-                private BittrexWebSocket client;
-                private Action<string> callback;
-                private string functionFullName;
-
-                /// <summary>
-                /// Constructor
-                /// </summary>
-                /// <param name="client">Socket client</param>
-                /// <param name="functionName">Function name</param>
-                /// <param name="callback"></param>
-                /// <param name="param"></param>
-                /// <returns>Connection</returns>
-                public async Task OpenAsync(BittrexWebSocket client, string functionName, Action<string> callback, params object[] param)
-                {
-                    if (callback != null)
-                    {
-                        client.AddListener(functionName, callback, param);
-                        string functionFullName = BittrexWebSocket.GetFunctionFullName(functionName);
-                        bool result = await client.hubProxy.Invoke<bool>(functionFullName, param);
-                        if (result)
-                        {
-                            this.client = client;
-                            this.callback = callback;
-                            this.functionFullName = functionFullName;
-                            return;
-                        }
-
-                        // fail, remove listener
-                        client.RemoveListener(functionName, callback);
-                    }
-
-                    throw new APIException("Unable to open web socket to Bittrex");
-                }
-
-                public void Dispose()
-                {
-                    try
-                    {
-                        client.RemoveListener(functionFullName, callback);
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-
-            private sealed class WebsocketCustomTransport : ClientTransportBase
-            {
-                private IConnection connection;
-                private string connectionData;
-                private WebSocketWrapper webSocket;
-
-                public override bool SupportsKeepAlive => true;
-
-                public WebsocketCustomTransport(IHttpClient client) : base(client, "webSockets")
-                {
-                }
-
-                ~WebsocketCustomTransport()
-                {
-                    Dispose(false);
-                }
-
-                protected override void OnStart(IConnection con, string conData, CancellationToken disconToken)
-                {
-                    connection = con;
-                    connectionData = conData;
-
-                    var connectUrl = UrlBuilder.BuildConnect(connection, Name, connectionData);
-
-                    if (webSocket != null)
-                    {
-                        DisposeWebSocket();
-                    }
-
-                    // SignalR uses https, websocket4net uses wss
-                    connectUrl = connectUrl.Replace("http://", "ws://").Replace("https://", "wss://");
-
-                    IDictionary<string, string> cookies = new Dictionary<string, string>();
-                    if (connection.CookieContainer != null)
-                    {
-                        var container = connection.CookieContainer.GetCookies(new Uri(connection.Url));
-                        foreach (Cookie cookie in container)
-                        {
-                            cookies.Add(cookie.Name, cookie.Value);
-                        }
-                    }
-
-                    webSocket = new WebSocketWrapper(connectUrl, WebSocketOnMessageReceived);
-                }
-
-                protected override void OnStartFailed()
-                {
-                    Dispose();
-                }
-
-                public override async Task Send(IConnection con, string data, string conData)
-                {
-                    await webSocket.SendMessageAsync(data);
-                }
-
-                public override void LostConnection(IConnection con)
-                {
-                    // TODO: If we are going to stop the connection we need to restart it somewhere else
-                    connection.Stop();
-                }
-
-                protected override void Dispose(bool disposing)
-                {
-                    if (disposing)
-                    {
-                        if (webSocket != null)
-                        {
-                            DisposeWebSocket();
-                        }
-                    }
-
-                    base.Dispose(disposing);
-                }
-
-                private void DisposeWebSocket()
-                {
-                    webSocket.Dispose();
-                    webSocket = null;
-                }
-
-                private void WebSocketOnClosed()
-                {
-                    connection.Stop();
-                }
-
-                private void WebSocketOnError(Exception e)
-                {
-                    connection.OnError(e);
-                }
-
-                private void WebSocketOnMessageReceived(byte[] data, WebSocketWrapper _webSocket)
-                {
-                    string dataText = CryptoUtility.UTF8EncodingNoPrefix.GetString(data);
-                    ProcessResponse(connection, dataText);
-                }
-            }
-
-            private class HubListener
-            {
-                public List<Action<string>> Callbacks { get; } = new List<Action<string>>();
-                public string FunctionName { get; set; }
-                public string FunctionFullName { get; set; }
-                public object[] Param { get; set; }
-            }
-
-            private HubConnection hubConnection;
-            private IHubProxy hubProxy;
-            private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
-            private bool reconnecting;
-
-            internal static string GetFunctionFullName(string functionName)
-            {
-                switch (functionName)
-                {
-                    case "uS":
-                    case "SubscribeToSummaryDeltas":
-                        return "SubscribeToSummaryDeltas";
-
-                    case "uE":
-                    case "SubscribeToExchangeDeltas":
-                        return  "SubscribeToExchangeDeltas";
-
-                    default: throw new InvalidOperationException("Only 'uS', 'uE' function is supported");
-                }
-            }
-
-            private void AddListener(string functionName, Action<string> callback, object[] param)
-            {
-                string functionFullName = GetFunctionFullName(functionName);
-                ReconnectLoop().ConfigureAwait(false).GetAwaiter().GetResult();
-                lock (listeners)
-                {
-                    if (!listeners.TryGetValue(functionName, out HubListener listener))
-                    {
-                        listeners[functionFullName] = listener = new HubListener { FunctionName = functionName, FunctionFullName = functionFullName, Param = param };
-                    }
-                    if (!listener.Callbacks.Contains(callback))
-                    {
-                        listener.Callbacks.Add(callback);
-                    }
-                }
-            }
-
-            private void RemoveListener(string functionName, Action<string> callback)
-            {
-                lock (listeners)
-                {
-                    string functionFullName = GetFunctionFullName(functionName);
-                    if (listeners.TryGetValue(functionFullName, out HubListener listener))
-                    {
-                        listener.Callbacks.Remove(callback);
-                        if (listener.Callbacks.Count == 0)
-                        {
-                            listeners.Remove(functionName);
-                        }
-                    }
-                    if (listeners.Count == 0)
-                    {
-                        Stop();
-                    }
-                }
-            }
-
-            private void HandleResponse(string functionName, string data)
-            {
-                string functionFullName = GetFunctionFullName(functionName);
-                data = Decode(data);
-                Action<string>[] actions = null;
-
-                lock (listeners)
-                {
-                    if (listeners.TryGetValue(functionFullName, out HubListener listener))
-                    {
-                        actions = listener.Callbacks.ToArray();
-
-                    }
-                }
-
-                if (actions != null)
-                {
-                    Parallel.ForEach(actions, (callback) =>
-                    {
-                        try
-                        {
-                            callback(data);
-                        }
-                        catch
-                        {
-                        }
-                    });
-                }
-            }
-
-            private void SocketClosed()
-            {
-                if (listeners.Count == 0 || reconnecting)
-                {
-                    return;
-                }
-                Task.Run(ReconnectLoop);
-            }
-
-            private async Task ReconnectLoop()
-            {
-                if (reconnecting)
-                {
-                    return;
-                }
-                reconnecting = true;
-                try
-                {
-                    // if hubConnection is null, exception will throw out
-                    while (hubConnection == null || (hubConnection.State != ConnectionState.Connected && hubConnection.State != ConnectionState.Connecting))
-                    {
-                        try
-                        {
-                            await StartAsync();
-                        }
-                        catch
-                        {
-                            await Task.Delay(5000);
-                        }
-                    }
-                }
-                catch
-                {
-                }
-                reconnecting = false;
-            }
-
-            public async Task StartAsync()
-            {
-                const string connectionUrl = "https://socket.bittrex.com";
-                hubConnection?.Stop();
-                hubConnection?.Dispose();
-                hubConnection = new HubConnection(connectionUrl);
-                hubConnection.Closed += SocketClosed;
-                hubProxy = hubConnection.CreateHubProxy("c2");
-                hubProxy.On("uS", (string data) => HandleResponse("uS", data));
-                hubProxy.On("uE", (string data) => HandleResponse("uE", data));
-                DefaultHttpClient client = new DefaultHttpClient();
-                var autoTransport = new AutoTransport(client, new IClientTransport[] { new WebsocketCustomTransport(client) });
-                hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
-                await hubConnection.Start(autoTransport);
-                HubListener[] listeners;
-                lock (this.listeners)
-                {
-                    listeners = this.listeners.Values.ToArray();
-                }
-                try
-                {
-                    foreach (var listener in listeners)
-                    {
-                        await hubProxy.Invoke<bool>(listener.FunctionFullName, listener.Param);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Failed to re-add listeners: {0}", ex);
-                }
-            }
-
-            public void Stop()
-            {
-                hubConnection.Stop(TimeSpan.FromSeconds(1.0));
-            }
-
-            ~BittrexWebSocket()
-            {
-                Dispose();
-            }
-
-            public void Dispose()
-            {
-                if (hubConnection == null)
-                {
-                    return;
-                }
-                listeners.Clear();
-
-                // null out hub so we don't try to reconnect
-                var tmp = hubConnection;
-                hubConnection = null;
-                try
-                {
-                    tmp.Transport.Dispose();
-                    tmp.Dispose();
-                }
-                catch
-                {
-                    // eat exceptions here, we don't care if it fails
-                }
+                FunctionNamesToFullNames["uS"] = "SubscribeToSummaryDeltas";
+                FunctionNamesToFullNames["uE"] = "SubscribeToExchangeDeltas";
             }
 
             /// <summary>
@@ -397,7 +50,7 @@ namespace ExchangeSharp
             /// <returns>IDisposable to close the socket</returns>
             public IDisposable SubscribeToSummaryDeltas(Action<string> callback)
             {
-                BittrexSocketClientConnection conn = new BittrexSocketClientConnection();
+                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
                 conn.OpenAsync(this, "uS", callback).ConfigureAwait(false).GetAwaiter().GetResult();
                 return conn;
             }
@@ -410,49 +63,13 @@ namespace ExchangeSharp
             /// <returns>IDisposable to close the socket</returns>
             public IDisposable SubscribeToExchangeDeltas(Action<string> callback, string ticker)
             {
-                BittrexSocketClientConnection conn = new BittrexSocketClientConnection();
+                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
                 conn.OpenAsync(this, "uE", callback, ticker).ConfigureAwait(false).GetAwaiter().GetResult();
                 return conn;
             }
-
-            // The return of GetAuthContext is a challenge string. Call CreateSignature(apiSecret, challenge)
-            // for the response to the challenge, and pass it to Authenticate().
-            public async Task<string> GetAuthContext(string apiKey) => await hubProxy.Invoke<string>("GetAuthContext", apiKey);
-
-            public async Task<bool> Authenticate(string apiKey, string signedChallenge) => await hubProxy.Invoke<bool>("Authenticate", apiKey, signedChallenge);
-
-            // Decode converts Bittrex CoreHub2 socket wire protocol data into JSON.
-            // Data goes from base64 encoded to gzip (byte[]) to minifed JSON.
-            public static string Decode(string wireData)
-            {
-                // Step 1: Base64 decode the wire data into a gzip blob
-                byte[] gzipData = Convert.FromBase64String(wireData);
-
-                // Step 2: Decompress gzip blob into minified JSON
-                using (var decompressedStream = new MemoryStream())
-                using (var compressedStream = new MemoryStream(gzipData))
-                using (var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress))
-                {
-                    deflateStream.CopyTo(decompressedStream);
-                    decompressedStream.Position = 0;
-
-                    using (var streamReader = new StreamReader(decompressedStream))
-                    {
-                        return streamReader.ReadToEnd();
-                    }
-                }
-            }
-
-            public static string CreateSignature(string apiSecret, string challenge)
-            {
-                // Get hash by using apiSecret as key, and challenge as data
-                var hmacSha512 = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(apiSecret));
-                var hash = hmacSha512.ComputeHash(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(challenge));
-                return BitConverter.ToString(hash).Replace("-", string.Empty);
-            }
         }
 
-        private BittrexWebSocket webSocket;
+        private BittrexWebSocketManager webSocket;
 
         protected override IDisposable OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
@@ -519,7 +136,7 @@ namespace ExchangeSharp
                 }
                 callback(freshTickers);
             }
-            var client = SocketClient;
+            var client = SocketManager;
             return client.SubscribeToSummaryDeltas(innerCallback);
         }
 
@@ -592,7 +209,7 @@ namespace ExchangeSharp
             IDisposable client = null;
             foreach (var sym in symbols)
             {
-                client = this.SocketClient.SubscribeToExchangeDeltas(innerCallback, sym);
+                client = this.SocketManager.SubscribeToExchangeDeltas(innerCallback, sym);
             }
 
             return client;
@@ -601,7 +218,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the BittrexSocketClient for this API
         /// </summary>
-        private BittrexWebSocket SocketClient
+        private BittrexWebSocketManager SocketManager
         {
             get
             {
@@ -611,7 +228,7 @@ namespace ExchangeSharp
                     {
                         if (webSocket == null)
                         {
-                            webSocket = new BittrexWebSocket();
+                            webSocket = new BittrexWebSocketManager();
                         }
                     }
                 }
