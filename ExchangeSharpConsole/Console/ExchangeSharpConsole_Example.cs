@@ -77,6 +77,18 @@ namespace ExchangeSharpConsoleApp
             }
         }
 
+        private static void SetWebSocketEvents(IWebSocket socket)
+        {
+            socket.Connected += (s) =>
+            {
+                Console.WriteLine("Web socket connected");
+            };
+            socket.Disconnected += (s) =>
+            {
+                Console.WriteLine("Web socket disconnected");
+            };
+        }
+
         private static void RunTradesWebSocket(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName");
@@ -88,12 +100,13 @@ namespace ExchangeSharpConsoleApp
 
             string[] symbols = dict["symbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 
-            IDisposable socket = api.GetTradesWebSocket(message =>
+            IWebSocket socket = api.GetTradesWebSocket(message =>
             {
                 Console.WriteLine($"{message.Key}: {message.Value}");
             }, symbols: symbols);
 
             Console.WriteLine("Press any key to quit.");
+            SetWebSocketEvents(socket);
             Console.ReadKey();
             socket.Dispose();
         }
@@ -116,7 +129,7 @@ namespace ExchangeSharpConsoleApp
                 }
             }
 
-            IDisposable socket = api.GetOrderBookWebSocket(message => 
+            IWebSocket socket = api.GetOrderBookWebSocket(message => 
             {
                 //print the top bid and ask with amount
                 var topBid = message.Bids.FirstOrDefault();
@@ -125,6 +138,7 @@ namespace ExchangeSharpConsoleApp
             }, symbols: symbols);
 
             Console.WriteLine("Press any key to quit.");
+            SetWebSocketEvents(socket);
             Console.ReadKey();
             socket.Dispose();
         }

@@ -241,7 +241,7 @@ namespace ExchangeSharp
             throw new NotImplementedException("Too many pairs and this exchange does not support a single call to get all the tickers");
         }
 
-        protected override IDisposable OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
@@ -321,7 +321,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IDisposable OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {

@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace ExchangeSharp
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
 
     using Newtonsoft.Json.Linq;
@@ -27,12 +28,12 @@ namespace ExchangeSharp
         /// parameter</param>
         /// <param name="symbols">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public static IDisposable GetOrderBookWebSocket(this IExchangeAPI api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        public static IWebSocket GetOrderBookWebSocket(this IExchangeAPI api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             // Notes:
             // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
-            var fullBooks = new Dictionary<string, ExchangeOrderBook>();
+            var fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
 
             void innerCallback(ExchangeOrderBook freshBook)
             {
@@ -43,54 +44,63 @@ namespace ExchangeSharp
                     case ExchangeName.Bittrex:
                     case ExchangeName.Binance:
                     case ExchangeName.Poloniex:
+                    {
+                        // If we don't have an initial order book for this symbol, fetch it
+                        if (!foundFullBook)
                         {
-                            // If we don't have an initial order book for this symbol, fetch it
-                            if (!foundFullBook)
-                            {
-                                fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
-                                fullOrderBook.Symbol = freshBook.Symbol;
-                            }
-
-                            // update deltas as long as the full book is at or before the delta timestamp
-                            if (fullOrderBook.SequenceId <= freshBook.SequenceId)
-                            {
-                                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                                fullOrderBook.SequenceId = freshBook.SequenceId;
-                            }
-
-                            break;
+                            fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
+                            fullOrderBook.Symbol = freshBook.Symbol;
                         }
+
+                        // update deltas as long as the full book is at or before the delta timestamp
+                        if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                        {
+                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                            fullOrderBook.SequenceId = freshBook.SequenceId;
+                        }
+
+                        break;
+                    }
 
                     // First response from exchange will be the full order book.
                     // Subsequent updates will be deltas
                     case ExchangeName.BitMEX:
                     case ExchangeName.Okex:
+                    {
+                        if (!foundFullBook)
                         {
-                            if (!foundFullBook)
-                            {
-                                fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
-                                fullOrderBook.Symbol = freshBook.Symbol;
-                            }
-                            else
-                            {
-                                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                            }
-
-                            break;
+                            fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
+                            fullOrderBook.Symbol = freshBook.Symbol;
                         }
+                        else
+                        {
+                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                        }
+
+                        break;
+                    }
 
                     // Websocket always returns full order book
                     case ExchangeName.Huobi:
+                    {
                         fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
                         break;
+                    }
                 }
 
                 callback(fullOrderBook);
             }
 
-            return api.GetOrderBookDeltasWebSocket(innerCallback, maxCount, symbols);
+            IWebSocket socket = api.GetOrderBookDeltasWebSocket(innerCallback, maxCount, symbols);
+            socket.Connected += (s) =>
+            {
+                // when we re-connect, we must invalidate the order books, who knows how long we were disconnected
+                //  and how out of date the order books are
+                fullBooks.Clear();
+            };
+            return socket;
         }
 
         /// <summary>Common order book parsing method, most exchanges use "asks" and "bids" with

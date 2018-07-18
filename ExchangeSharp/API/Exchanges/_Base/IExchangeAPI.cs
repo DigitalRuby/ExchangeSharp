@@ -448,7 +448,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback);
+        IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback);
 
         /// <summary>
         /// Get information about trades via web socket
@@ -456,7 +456,7 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="symbols">Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
+        IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
 
         /// <summary>
         /// Get delta order book bids and asks via web socket. Only the deltas are returned for each callback. To manage a full order book, use ExchangeAPIExtensions.GetOrderBookWebSocket.
@@ -465,16 +465,32 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
+        IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IDisposable GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        IWebSocket GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
 
         #endregion Web Socket
+    }
+
+    /// <summary>
+    /// Web socket interface
+    /// </summary>
+    public interface IWebSocket : IDisposable
+    {
+        /// <summary>
+        /// Connected event
+        /// </summary>
+        event Action<IWebSocket> Connected;
+
+        /// <summary>
+        /// Disconnected event
+        /// </summary>
+        event Action<IWebSocket> Disconnected;
     }
 
     /// <summary>

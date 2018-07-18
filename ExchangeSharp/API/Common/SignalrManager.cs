@@ -28,11 +28,21 @@ namespace ExchangeSharp
         /// <summary>
         /// A connection to a specific end point in the hub
         /// </summary>
-        public sealed class SignalrSocketConnection : IDisposable
+        public sealed class SignalrSocketConnection : IWebSocket
         {
             private SignalrManager manager;
             private Action<string> callback;
             private string functionFullName;
+
+            /// <summary>
+            /// Connected event
+            /// </summary>
+            public event Action<IWebSocket> Connected;
+
+            /// <summary>
+            /// Disconnected event
+            /// </summary>
+            public event Action<IWebSocket> Disconnected;
 
             /// <summary>
             /// Constructor
@@ -54,6 +64,10 @@ namespace ExchangeSharp
                         this.manager = manager;
                         this.callback = callback;
                         this.functionFullName = functionFullName;
+                        lock (manager.sockets)
+                        {
+                            manager.sockets.Add(this);
+                        }
                         return;
                     }
 
@@ -64,14 +78,39 @@ namespace ExchangeSharp
                 throw new APIException("Unable to open web socket to Bittrex");
             }
 
+            internal void InvokeConnected()
+            {
+                Connected?.Invoke(this);
+            }
+
+            internal void InvokeDisconnected()
+            {
+                Disconnected?.Invoke(this);
+            }
+
+            private void WebSocket_Connected(IWebSocket obj)
+            {
+                Connected?.Invoke(this);
+            }
+
+            private void WebSocket_Disconnected(IWebSocket obj)
+            {
+                Disconnected?.Invoke(this);
+            }
+
             /// <summary>
-            /// Dispose of the socket
+            /// Dispose of the socket and remove from listeners
             /// </summary>
             public void Dispose()
             {
                 try
                 {
+                    lock (manager.sockets)
+                    {
+                        manager.sockets.Remove(this);
+                    }
                     manager.RemoveListener(functionFullName, callback);
+                    Disconnected?.Invoke(this);
                 }
                 catch
                 {
@@ -79,16 +118,17 @@ namespace ExchangeSharp
             }
         }
 
-        private sealed class WebsocketCustomTransport : ClientTransportBase
+        public sealed class WebsocketCustomTransport : ClientTransportBase
         {
             private IConnection connection;
             private string connectionData;
-            private WebSocketWrapper webSocket;
+            public WebSocketWrapper WebSocket { get; private set; }
 
             public override bool SupportsKeepAlive => true;
 
             public WebsocketCustomTransport(IHttpClient client) : base(client, "webSockets")
             {
+                WebSocket = new WebSocketWrapper();
             }
 
             ~WebsocketCustomTransport()
@@ -103,11 +143,6 @@ namespace ExchangeSharp
 
                 var connectUrl = UrlBuilder.BuildConnect(connection, Name, connectionData);
 
-                if (webSocket != null)
-                {
-                    DisposeWebSocket();
-                }
-
                 // SignalR uses https, websocket4net uses wss
                 connectUrl = connectUrl.Replace("http://", "ws://").Replace("https://", "wss://");
 
@@ -121,7 +156,9 @@ namespace ExchangeSharp
                     }
                 }
 
-                webSocket = new WebSocketWrapper(connectUrl, WebSocketOnMessageReceived);
+                WebSocket.Uri = new Uri(connectUrl);
+                WebSocket.OnMessage = WebSocketOnMessageReceived;
+                WebSocket.Start();
             }
 
             protected override void OnStartFailed()
@@ -131,7 +168,7 @@ namespace ExchangeSharp
 
             public override async Task Send(IConnection con, string data, string conData)
             {
-                await webSocket.SendMessageAsync(data);
+                await WebSocket.SendMessageAsync(data);
             }
 
             public override void LostConnection(IConnection con)
@@ -143,7 +180,7 @@ namespace ExchangeSharp
             {
                 if (disposing)
                 {
-                    if (webSocket != null)
+                    if (WebSocket != null)
                     {
                         DisposeWebSocket();
                     }
@@ -154,8 +191,8 @@ namespace ExchangeSharp
 
             private void DisposeWebSocket()
             {
-                webSocket.Dispose();
-                webSocket = null;
+                WebSocket.Dispose();
+                WebSocket = null;
             }
 
             private void WebSocketOnClosed()
@@ -183,9 +220,12 @@ namespace ExchangeSharp
             public object[] Param { get; set; }
         }
 
+        private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
+        private readonly List<IWebSocket> sockets = new List<IWebSocket>();
+
         private HubConnection hubConnection;
         private IHubProxy hubProxy;
-        private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
+        private WebsocketCustomTransport customTransport;
         private bool reconnecting;
         private bool disposed;
 
@@ -307,6 +347,7 @@ namespace ExchangeSharp
                     }
                     catch
                     {
+                        // wait 5 seconds before attempting reconnect
                         await Task.Delay(5000);
                     }
                 }
@@ -344,8 +385,42 @@ namespace ExchangeSharp
                 hubProxy.On(key, (string data) => HandleResponse(key, data));
             }
             DefaultHttpClient client = new DefaultHttpClient();
-            var autoTransport = new AutoTransport(client, new IClientTransport[] { new WebsocketCustomTransport(client) });
+            customTransport = new WebsocketCustomTransport(client);
+            var autoTransport = new AutoTransport(client, new IClientTransport[] { customTransport });
             hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
+            customTransport.WebSocket.Connected += (ws) =>
+            {
+                lock (sockets)
+                {
+                    foreach (IWebSocket socket in sockets)
+                    {
+                        (socket as SignalrSocketConnection).InvokeConnected();
+                    }
+                }
+            };
+            customTransport.WebSocket.Disconnected += (ws) =>
+            {
+                lock (sockets)
+                {
+                    foreach (IWebSocket socket in sockets)
+                    {
+                        (socket as SignalrSocketConnection).InvokeDisconnected();
+                    }
+                }
+
+                // start a task to tear down the hub connection
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        // tear down the hub connection, we must re-create it whenever a web socket disconnects
+                        hubConnection?.Dispose();
+                    }
+                    catch
+                    {
+                    }
+                });
+            };
             await hubConnection.Start(autoTransport);
             HubListener[] listeners;
             lock (this.listeners)
