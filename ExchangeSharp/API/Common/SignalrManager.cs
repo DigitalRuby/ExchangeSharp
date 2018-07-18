@@ -50,15 +50,20 @@ namespace ExchangeSharp
             /// <param name="manager">Manager</param>
             /// <param name="functionName">Function name</param>
             /// <param name="callback">Callback for data</param>
-            /// <param name="param">End point parameters</param>
+            /// <param name="param">End point parameters, each array of strings is a separate call to the end point function</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(SignalrManager manager, string functionName, Action<string> callback, params object[] param)
+            public async Task OpenAsync(SignalrManager manager, string functionName, Action<string> callback, string[][] param = null)
             {
                 if (callback != null)
                 {
+                    param = (param ?? new string[][] { new string[0] });
                     manager.AddListener(functionName, callback, param);
                     string functionFullName = manager.GetFunctionFullName(functionName);
-                    bool result = await manager.hubProxy.Invoke<bool>(functionFullName, param);
+                    bool result = true;
+                    foreach (string[] p in param)
+                    {
+                        result &= await manager.hubProxy.Invoke<bool>(functionFullName, p);
+                    }
                     if (result)
                     {
                         this.manager = manager;
@@ -217,7 +222,7 @@ namespace ExchangeSharp
             public List<Action<string>> Callbacks { get; } = new List<Action<string>>();
             public string FunctionName { get; set; }
             public string FunctionFullName { get; set; }
-            public object[] Param { get; set; }
+            public string[][] Param { get; set; }
         }
 
         private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
@@ -253,7 +258,7 @@ namespace ExchangeSharp
             return fullFunctionName;
         }
 
-        private void AddListener(string functionName, Action<string> callback, object[] param)
+        private void AddListener(string functionName, Action<string> callback, string[][] param)
         {
             string functionFullName = GetFunctionFullName(functionName);
             ReconnectLoop().ConfigureAwait(false).GetAwaiter().GetResult();
@@ -375,19 +380,28 @@ namespace ExchangeSharp
         /// <returns></returns>
         public async Task StartAsync()
         {
+            // stop any previous hub connection
             hubConnection?.Stop();
             hubConnection?.Dispose();
+
+            // make a new hub connection
             hubConnection = new HubConnection(ConnectionUrl);
             hubConnection.Closed += SocketClosed;
             hubProxy = hubConnection.CreateHubProxy(HubName);
+
+            // assign callbacks for events
             foreach (string key in FunctionNamesToFullNames.Keys)
             {
                 hubProxy.On(key, (string data) => HandleResponse(key, data));
             }
+
+            // create a custom transport, the default transport is really buggy
             DefaultHttpClient client = new DefaultHttpClient();
             customTransport = new WebsocketCustomTransport(client);
             var autoTransport = new AutoTransport(client, new IClientTransport[] { customTransport });
             hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
+
+            // setup connect event
             customTransport.WebSocket.Connected += (ws) =>
             {
                 lock (sockets)
@@ -398,6 +412,8 @@ namespace ExchangeSharp
                     }
                 }
             };
+
+            // setup disconnect event
             customTransport.WebSocket.Disconnected += (ws) =>
             {
                 lock (sockets)
@@ -422,14 +438,21 @@ namespace ExchangeSharp
                 });
             };
             await hubConnection.Start(autoTransport);
+
+            // get list of listeners quickly to limit lock
             HubListener[] listeners;
             lock (this.listeners)
             {
                 listeners = this.listeners.Values.ToArray();
             }
+
+            // re-call the end point to enable messages
             foreach (var listener in listeners)
             {
-                await hubProxy.Invoke<bool>(listener.FunctionFullName, listener.Param);
+                foreach (string[] p in listener.Param)
+                {
+                    await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                }
             }
         }
 

@@ -59,12 +59,17 @@ namespace ExchangeSharp
             /// Subscribe to order book updates
             /// </summary>
             /// <param name="callback">Callback</param>
-            /// <param name="ticker">The ticker to subscribe to</param>
+            /// <param name="symbols">The ticker to subscribe to</param>
             /// <returns>IDisposable to close the socket</returns>
-            public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, string ticker)
+            public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] symbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
-                conn.OpenAsync(this, "uE", callback, ticker).ConfigureAwait(false).GetAwaiter().GetResult();
+                List<string[]> paramList = new List<string[]>();
+                foreach (string symbol in symbols)
+                {
+                    paramList.Add(new string[] { symbol });
+                }
+                conn.OpenAsync(this, "uE", callback, paramList.ToArray()).ConfigureAwait(false).GetAwaiter().GetResult();
                 return conn;
             }
         }
@@ -151,10 +156,6 @@ namespace ExchangeSharp
             {
                 return null;
             }
-            else if (symbols.Length > 1)
-            {
-                throw new ArgumentException("Bittrex only supports one symbol for order book web socket");
-            }
 
             void innerCallback(string json)
             {
@@ -212,7 +213,7 @@ namespace ExchangeSharp
                 callback(book);
             }
 
-            return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, symbols[0]);
+            return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, symbols);
         }
 
         /// <summary>
