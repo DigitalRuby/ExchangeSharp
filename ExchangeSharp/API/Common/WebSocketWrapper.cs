@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 namespace ExchangeSharp
 {
     /// <summary>
-    /// Wraps a web socket for easy dispose later
+    /// Wraps a web socket for easy dispose later, along with auto-reconnect and message and reader queues
     /// </summary>
     public sealed class WebSocketWrapper : IDisposable
     {
@@ -177,6 +177,9 @@ namespace ExchangeSharp
                     // open the socket
                     webSocket.Options.KeepAliveInterval = this.keepAlive;
                     await webSocket.ConnectAsync(uri, cancellationToken);
+
+                    // on connect may make additional calls that must succeed, such as rest calls
+                    // for lists, etc.
                     QueueActionWithNoExceptions(onConnected);
 
                     while (webSocket.State == WebSocketState.Open)
@@ -208,20 +211,22 @@ namespace ExchangeSharp
                 }
                 catch
                 {
-                    QueueAction(onDisconnected);
-                    try
-                    {
-                        webSocket?.Dispose();
-                    }
-                    catch
-                    {
-                    }
+                    // eat exceptions, most likely a result of a disconnect, either way we will re-create the web socket
+                }
+
+                QueueAction(onDisconnected);
+                try
+                {
+                    webSocket.Dispose();
+                }
+                catch
+                {
+                }
+                if (!disposed)
+                {
+                    // wait one second before attempting reconnect
                     webSocket = new ClientWebSocket();
-                    if (!disposed)
-                    {
-                        // wait one second before attempting reconnect
-                        await Task.Delay(1000);
-                    }
+                    await Task.Delay(1000);
                 }
             }
         }
@@ -252,6 +257,8 @@ namespace ExchangeSharp
                 if (connectInterval.Ticks > 0 && (DateTime.UtcNow - lastCheck) >= connectInterval)
                 {
                     lastCheck = DateTime.UtcNow;
+
+                    // this must succeed, the callback may be requests lists or other resources that must not fail
                     QueueActionWithNoExceptions(onConnected);
                 }
             }
