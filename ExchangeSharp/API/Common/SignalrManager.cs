@@ -387,6 +387,8 @@ namespace ExchangeSharp
             // make a new hub connection
             hubConnection = new HubConnection(ConnectionUrl);
             hubConnection.Closed += SocketClosed;
+            hubConnection.Reconnected += Reconnected;
+            hubConnection.Reconnecting += Reconnecting;
             hubProxy = hubConnection.CreateHubProxy(HubName);
 
             // assign callbacks for events
@@ -454,6 +456,16 @@ namespace ExchangeSharp
                     await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
                 }
             }
+        }
+
+        private void Reconnecting()
+        {
+            Console.WriteLine("Reconnecting");
+        }
+
+        private void Reconnected()
+        {
+            Console.WriteLine("Reconnected");
         }
 
         /// <summary>
