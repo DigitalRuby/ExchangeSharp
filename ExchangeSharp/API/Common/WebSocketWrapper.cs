@@ -166,7 +166,6 @@ namespace ExchangeSharp
         private async Task ListenWorkerThread()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
-            bool wasClosed = true;
             TimeSpan keepAlive = webSocket.Options.KeepAliveInterval;
             MemoryStream stream = new MemoryStream();
             WebSocketReceiveResult result;
@@ -175,14 +174,10 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    if (wasClosed)
-                    {
-                        // re-open the socket
-                        wasClosed = false;
-                        webSocket.Options.KeepAliveInterval = this.keepAlive;
-                        await webSocket.ConnectAsync(uri, cancellationToken);
-                        QueueActionWithNoExceptions(onConnected);
-                    }
+                    // open the socket
+                    webSocket.Options.KeepAliveInterval = this.keepAlive;
+                    await webSocket.ConnectAsync(uri, cancellationToken);
+                    QueueActionWithNoExceptions(onConnected);
 
                     while (webSocket.State == WebSocketState.Open)
                     {
@@ -227,10 +222,6 @@ namespace ExchangeSharp
                         // wait one second before attempting reconnect
                         await Task.Delay(1000);
                     }
-                }
-                finally
-                {
-                    wasClosed = true;
                 }
             }
         }
