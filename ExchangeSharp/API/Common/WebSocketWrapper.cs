@@ -106,7 +106,7 @@ namespace ExchangeSharp
         /// <param name="message">The message to send</param>
         public void SendMessage(string message)
         {
-            SendMessageAsync(message).GetAwaiter().GetResult();
+            SendMessageAsync(message).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public async Task SendMessageAsync(string message)
