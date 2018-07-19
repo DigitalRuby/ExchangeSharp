@@ -438,6 +438,18 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol</param>
         /// <returns>Close margin position result</returns>
         Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string symbol);
+         
+        /// <summary>
+        /// Get fees
+        /// </summary>
+        /// <returns>The customer trading fees</returns>
+        Dictionary<string, decimal> GetFees();
+
+        /// <summary>
+        /// ASYNC - Get fees
+        /// </summary>
+        /// <returns>The customer trading fees</returns>
+        Task<Dictionary<string, decimal>> GetFeesAync();
 
         #endregion REST
 

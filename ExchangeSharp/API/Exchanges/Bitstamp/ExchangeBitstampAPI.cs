@@ -151,36 +151,45 @@ namespace ExchangeSharp
         {
             string url = "/balance/";
             var payload = await OnGetNoncePayloadAsync();
-            JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
-            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
-            foreach (var property in responseObject)
-            {
-                if (property.Key.Contains("_balance"))
-                {
-                    decimal balance = property.Value.ConvertInvariant<decimal>();
-                    if (balance == 0) { continue; }
-                    balances.Add(property.Key.Replace("_balance", "").Trim(), balance);
-                }
-            }
-            return balances;
+            var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
+            return ExtractDictionary(responseObject, "balance");
+        }
+
+
+        protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
+        {
+            string url = "/balance/";
+            var payload = await OnGetNoncePayloadAsync();
+            var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
+            return ExtractDictionary(responseObject, "fee");
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             string url = "/balance/";
             var payload = await OnGetNoncePayloadAsync();
-            JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
-            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
+            return ExtractDictionary(responseObject, "available");
+        }
+
+        private static Dictionary<string, decimal> ExtractDictionary(JObject responseObject, string key)
+        {
+            var result = new Dictionary<string, decimal>();
+            var suffix = $"_{key}";
             foreach (var property in responseObject)
             {
-                if (property.Key.Contains("_available"))
+                if (property.Key.Contains(suffix))
                 {
-                    decimal balance = property.Value.ConvertInvariant<decimal>();
-                    if (balance == 0) { continue; }
-                    balances.Add(property.Key.Replace("_available", "").Trim(), balance);
+                    decimal value = property.Value.ConvertInvariant<decimal>();
+                    if (value == 0)
+                    {
+                        continue;
+                    }
+
+                    result.Add(property.Key.Replace(suffix, "").Trim(), value);
                 }
             }
-            return balances;
+            return result;
         }
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
@@ -193,6 +202,12 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
 
             if (order.OrderType != OrderType.Market)
+            {
+                payload["price"] = order.Price.ToStringInvariant();
+            }
+
+            payload["amount"] = order.Amount.ToStringInvariant();
+            foreach (var kv in order.ExtraParameters)
             {
                 payload["price"] = order.Price.ToStringInvariant();
             }
