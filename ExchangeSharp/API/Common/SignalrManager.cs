@@ -163,6 +163,7 @@ namespace ExchangeSharp
 
                 WebSocket.Uri = new Uri(connectUrl);
                 WebSocket.OnMessage = WebSocketOnMessageReceived;
+                WebSocket.KeepAlive = TimeSpan.FromSeconds(5.0);
                 WebSocket.Start();
             }
 
