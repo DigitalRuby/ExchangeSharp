@@ -118,6 +118,7 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAsync() => throw new NotImplementedException();
+        protected virtual Task<Dictionary<string, decimal>> OnGetFeesAsync() => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null) => throw new NotImplementedException();
@@ -845,6 +846,24 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             return await OnGetAmountsAsync();
         }
+
+
+        /// <summary>
+        ///  Get fees
+        /// </summary>
+        /// <returns>The customer trading fees</returns>
+        public Dictionary<string, decimal> GetFees() => GetFeesAync().GetAwaiter().GetResult();
+
+        /// <summary>
+        /// ASYNC - Get fees
+        /// </summary>
+        /// <returns>The customer trading fees</returns>
+        public async Task<Dictionary<string, decimal>> GetFeesAync()
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetFeesAsync();
+        }
+
 
         /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary
