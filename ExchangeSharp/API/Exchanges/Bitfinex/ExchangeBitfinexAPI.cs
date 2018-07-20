@@ -124,7 +124,7 @@ namespace ExchangeSharp
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
                     MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>()
                 };
-                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR)");
+                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
                 if (m.Success)
                 {
                     market.MarketCurrency = m.Value;
@@ -132,7 +132,7 @@ namespace ExchangeSharp
                 }
                 else
                 {
-                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|GBP|JPY|EUR)$");
+                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|GBP|JPY|EUR|EOS)$");
                     if (m.Success)
                     {
                         market.MarketCurrency = market.MarketName.Substring(0, m.Index);
@@ -140,7 +140,9 @@ namespace ExchangeSharp
                     }
                     else
                     {
-                        throw new System.IO.InvalidDataException("Unexpected market name: " + market.MarketName);
+                        // TODO: Figure out a nicer way to handle newly added pairs
+                        market.MarketCurrency = market.MarketName.Substring(0, 3);
+                        market.BaseCurrency = market.MarketName.Substring(3);
                     }
                 }
                 int pricePrecision = pair["price_precision"].ConvertInvariant<int>();
