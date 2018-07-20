@@ -1,4 +1,4 @@
-﻿namespace ExchangeSharp.Coinbase
+﻿namespace ExchangeSharp
 {
     using System;
     using System.Collections.Generic;
