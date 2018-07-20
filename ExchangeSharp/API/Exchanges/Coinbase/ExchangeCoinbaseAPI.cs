@@ -22,7 +22,7 @@ namespace ExchangeSharp
     using System.Net;
     using System.Threading.Tasks;
 
-    public sealed class ExchangeGdaxAPI : ExchangeAPI
+    public sealed class ExchangeCoinbaseAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.pro.coinbase.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.pro.coinbase.com";
@@ -129,7 +129,7 @@ namespace ExchangeSharp
             cursorBefore = response.Headers["CB-BEFORE"];
         }
 
-        public ExchangeGdaxAPI()
+        public ExchangeCoinbaseAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
