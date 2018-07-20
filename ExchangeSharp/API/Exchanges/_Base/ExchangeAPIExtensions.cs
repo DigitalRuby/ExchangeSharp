@@ -85,6 +85,7 @@ namespace ExchangeSharp
                     }
                 }
 
+                fullOrderBook.LastUpdatedUtc = DateTime.UtcNow;
                 callback(fullOrderBook);
             }
 

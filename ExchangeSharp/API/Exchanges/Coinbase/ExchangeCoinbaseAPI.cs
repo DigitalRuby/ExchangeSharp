@@ -303,10 +303,9 @@ namespace ExchangeSharp
                 }
             }, _socket =>
             {
-                // subscribe to order book and trades channel for each symbol
+                // subscribe to order book channel for each symbol
                 var chan = new Channel { Name = ChannelType.Level2, ProductIds = symbols.ToList() };
                 var channelAction = new ChannelAction { Type = ActionType.Subscribe, Channels = new List<Channel> { chan } };
-
                 _socket.SendMessage(JsonConvert.SerializeObject(channelAction));
             });
 
