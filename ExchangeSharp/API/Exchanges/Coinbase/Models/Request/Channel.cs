@@ -10,39 +10,20 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace ExchangeSharp.CoinbaseModels
+namespace ExchangeSharp.Coinbase
 {
-    using System.Runtime.Serialization;
+    using System.Collections.Generic;
 
-    public enum ResponseType
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
+
+    public class Channel
     {
-        Unknown = 0,
+        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty("name")]
+        public ChannelType Name { get; set; }
 
-        Subscriptions,
-
-        Heartbeat,
-
-        Ticker,
-
-        Snapshot,
-
-        L2Update,
-
-        Received,
-
-        Open,
-
-        Done,
-
-        Match,
-
-        [EnumMember(Value = "last_match")]
-        LastMatch,
-
-        Change,
-
-        Activate,
-
-        Error
+        [JsonProperty("product_ids")]
+        public List<string> ProductIds { get; set; }
     }
 }

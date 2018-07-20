@@ -22,7 +22,7 @@ namespace ExchangeSharp
     using System.Diagnostics;
     using System.Linq;
 
-    using ExchangeSharp.CoinbaseModels;
+    using ExchangeSharp.Coinbase;
 
     using Newtonsoft.Json;
 
