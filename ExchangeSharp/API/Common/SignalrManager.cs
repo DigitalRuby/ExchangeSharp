@@ -388,9 +388,6 @@ namespace ExchangeSharp
             // make a new hub connection
             hubConnection = new HubConnection(ConnectionUrl);
             hubConnection.Closed += SocketClosed;
-            hubConnection.Reconnected += Reconnected;
-            hubConnection.Reconnecting += Reconnecting;
-            hubConnection.Error += Errored;
             hubConnection.TraceLevel = TraceLevels.All;
             hubConnection.TraceWriter = Console.Out;
             hubProxy = hubConnection.CreateHubProxy(HubName);
@@ -460,21 +457,6 @@ namespace ExchangeSharp
                     await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
                 }
             }
-        }
-
-        private void Errored(Exception obj)
-        {
-            Console.WriteLine($"Error hit: {obj.Message}");
-        }
-
-        private void Reconnecting()
-        {
-            Console.WriteLine("Reconnecting");
-        }
-
-        private void Reconnected()
-        {
-            Console.WriteLine("Reconnected");
         }
 
         /// <summary>

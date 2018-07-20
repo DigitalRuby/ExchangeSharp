@@ -26,7 +26,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.pro.coinbase.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.pro.coinbase.com";
-        public override string Name => ExchangeName.GDAX;
+        public override string Name => ExchangeName.Coinbase;
 
         /// <summary>
         /// The response will also contain a CB-AFTER header which will return the cursor id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.
@@ -105,7 +105,7 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
+                // Coinbase is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
                 string timestamp = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
                 string form = CryptoUtility.GetJsonForPayload(payload);
@@ -206,7 +206,7 @@ namespace ExchangeSharp
             System.Threading.ManualResetEvent evt = new System.Threading.ManualResetEvent(false);
             List<string> symbols = (await GetSymbolsAsync()).ToList();
 
-            // stupid gdax does not have a one shot API call for tickers outside of web sockets
+            // stupid Coinbase does not have a one shot API call for tickers outside of web sockets
             using (var socket = GetTickersWebSocket((t) =>
             {
                 lock (tickers)
@@ -299,7 +299,7 @@ namespace ExchangeSharp
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine($"ExchangeGdaxAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
+                    Trace.WriteLine($"ExchangeCoinbaseAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
                 }
             }, _socket =>
             {
@@ -452,7 +452,7 @@ namespace ExchangeSharp
             }
 
             // /products/<product-id>/candles
-            // https://api.gdax.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
+            // https://api.pro.coinbase.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
             List<MarketCandle> candles = new List<MarketCandle>();
             symbol = NormalizeSymbol(symbol);
             string url = "/products/" + symbol + "/candles?granularity=" + periodSeconds;

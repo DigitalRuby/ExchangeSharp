@@ -63,7 +63,7 @@ namespace ExchangeSharp
                     // Subsequent updates will be deltas
                     case ExchangeName.BitMEX:
                     case ExchangeName.Okex:
-                    case ExchangeName.GDAX:
+                    case ExchangeName.Coinbase:
                     {
                         if (!foundFullBook)
                         {
