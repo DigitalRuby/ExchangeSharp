@@ -19,7 +19,10 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    using System.Diagnostics;
     using System.Linq;
+
+    using ExchangeSharp.CoinbaseModels;
 
     using Newtonsoft.Json;
 
@@ -270,8 +273,6 @@ namespace ExchangeSharp
                                 book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
                             }
                         }
-
-                        callback(book);
                     }
                     else if (message.Contains(@"""snapshot"""))
                     {
@@ -291,15 +292,18 @@ namespace ExchangeSharp
                             decimal amount = bid[1];
                             book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
                         }
-
-                        callback(book);
+                    }
+                    else
+                    {
+                        // no other message type handled
+                        return;
                     }
 
-                    // no other message type handled
+                    callback(book);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ExchangeGdaxAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
+                    Trace.WriteLine($"ExchangeGdaxAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
                 }
             }, _socket =>
             {
