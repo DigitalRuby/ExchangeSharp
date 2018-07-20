@@ -10,22 +10,23 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
-
-using Newtonsoft.Json.Linq;
-
 namespace ExchangeSharp
 {
+    using ExchangeSharp.Coinbase;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
 
-    public sealed class ExchangeGdaxAPI : ExchangeAPI
+    public sealed class ExchangeCoinbaseAPI : ExchangeAPI
     {
-        public override string BaseUrl { get; set; } = "https://api.gdax.com";
-        public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.gdax.com";
-        public override string Name => ExchangeName.GDAX;
+        public override string BaseUrl { get; set; } = "https://api.pro.coinbase.com";
+        public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.pro.coinbase.com";
+        public override string Name => ExchangeName.Coinbase;
 
         /// <summary>
         /// The response will also contain a CB-AFTER header which will return the cursor id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.
@@ -104,7 +105,7 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                // gdax is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
+                // Coinbase is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
                 string timestamp = payload["nonce"].ToStringInvariant();
                 payload.Remove("nonce");
                 string form = CryptoUtility.GetJsonForPayload(payload);
@@ -128,7 +129,7 @@ namespace ExchangeSharp
             cursorBefore = response.Headers["CB-BEFORE"];
         }
 
-        public ExchangeGdaxAPI()
+        public ExchangeCoinbaseAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
@@ -205,7 +206,7 @@ namespace ExchangeSharp
             System.Threading.ManualResetEvent evt = new System.Threading.ManualResetEvent(false);
             List<string> symbols = (await GetSymbolsAsync()).ToList();
 
-            // stupid gdax does not have a one shot API call for tickers outside of web sockets
+            // stupid Coinbase does not have a one shot API call for tickers outside of web sockets
             using (var socket = GetTickersWebSocket((t) =>
             {
                 lock (tickers)
@@ -231,6 +232,83 @@ namespace ExchangeSharp
                 evt.WaitOne(10000);
                 return tickers;
             }
+        }
+
+        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        {
+            if (callback == null || symbols == null || symbols.Length == 0)
+            {
+                return null;
+            }
+
+            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            {
+                try
+                {
+                    string message = msg.UTF8String();
+                    var book = new ExchangeOrderBook();
+
+                    // string comparison on the json text for faster deserialization
+                    // More likely to be an l2update so check for that first
+                    if (message.Contains(@"""l2update"""))
+                    {
+                        // parse delta update
+                        var delta = JsonConvert.DeserializeObject<Level2>(message);
+                        book.Symbol = delta.ProductId;
+                        book.SequenceId = delta.Time.Ticks;
+                        foreach (string[] change in delta.Changes)
+                        {
+                            decimal price = change[1].ConvertInvariant<decimal>();
+                            decimal amount = change[2].ConvertInvariant<decimal>();
+                            if (change[0] == "buy")
+                            {
+                                book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                            }
+                            else
+                            {
+                                book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                            }
+                        }
+                    }
+                    else if (message.Contains(@"""snapshot"""))
+                    {
+                        // parse snapshot
+                        var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
+                        book.Symbol = snapshot.ProductId;
+                        foreach (decimal[] ask in snapshot.Asks)
+                        {
+                            decimal price = ask[0];
+                            decimal amount = ask[1];
+                            book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                        }
+
+                        foreach (decimal[] bid in snapshot.Bids)
+                        {
+                            decimal price = bid[0];
+                            decimal amount = bid[1];
+                            book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                        }
+                    }
+                    else
+                    {
+                        // no other message type handled
+                        return;
+                    }
+
+                    callback(book);
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"ExchangeCoinbaseAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
+                }
+            }, _socket =>
+            {
+                // subscribe to order book channel for each symbol
+                var chan = new Channel { Name = ChannelType.Level2, ProductIds = symbols.ToList() };
+                var channelAction = new ChannelAction { Type = ActionType.Subscribe, Channels = new List<Channel> { chan } };
+                _socket.SendMessage(JsonConvert.SerializeObject(channelAction));
+            });
+
         }
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
@@ -373,7 +451,7 @@ namespace ExchangeSharp
             }
 
             // /products/<product-id>/candles
-            // https://api.gdax.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
+            // https://api.pro.coinbase.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
             List<MarketCandle> candles = new List<MarketCandle>();
             symbol = NormalizeSymbol(symbol);
             string url = "/products/" + symbol + "/candles?granularity=" + periodSeconds;

@@ -51,13 +51,9 @@ namespace ExchangeSharp
                             fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
                             fullOrderBook.Symbol = freshBook.Symbol;
                         }
-
-                        // update deltas as long as the full book is at or before the delta timestamp
-                        if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                        else
                         {
-                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                            fullOrderBook.SequenceId = freshBook.SequenceId;
+                            UpdateOrderBook(fullOrderBook, freshBook);
                         }
 
                         break;
@@ -67,16 +63,15 @@ namespace ExchangeSharp
                     // Subsequent updates will be deltas
                     case ExchangeName.BitMEX:
                     case ExchangeName.Okex:
+                    case ExchangeName.Coinbase:
                     {
                         if (!foundFullBook)
                         {
                             fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
-                            fullOrderBook.Symbol = freshBook.Symbol;
                         }
                         else
                         {
-                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                            UpdateOrderBook(fullOrderBook, freshBook);
                         }
 
                         break;
@@ -90,6 +85,7 @@ namespace ExchangeSharp
                     }
                 }
 
+                fullOrderBook.LastUpdatedUtc = DateTime.UtcNow;
                 callback(fullOrderBook);
             }
 
@@ -101,6 +97,17 @@ namespace ExchangeSharp
                 fullBooks.Clear();
             };
             return socket;
+        }
+
+        private static void UpdateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
+        {
+            // update deltas as long as the full book is at or before the delta timestamp
+            if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+            {
+                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                fullOrderBook.SequenceId = freshBook.SequenceId;
+            }
         }
 
         /// <summary>Common order book parsing method, most exchanges use "asks" and "bids" with

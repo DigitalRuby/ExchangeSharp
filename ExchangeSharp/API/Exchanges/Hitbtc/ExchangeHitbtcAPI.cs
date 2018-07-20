@@ -32,7 +32,7 @@ namespace ExchangeSharp
         public ExchangeHitbtcAPI()
         {
             RequestContentType = "application/json";
-            NonceStyle = ExchangeSharp.NonceStyle.UnixMillisecondsString;
+            NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = string.Empty;
         }
 

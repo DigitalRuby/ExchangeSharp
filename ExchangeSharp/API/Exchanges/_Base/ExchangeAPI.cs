@@ -1275,9 +1275,9 @@ namespace ExchangeSharp
         public const string Cryptopia = "Cryptopia";
 
         /// <summary>
-        /// GDAX
+        /// Coinbase
         /// </summary>
-        public const string GDAX = "GDAX";
+        public const string Coinbase = "Coinbase";
 
         /// <summary>
         /// Gemini

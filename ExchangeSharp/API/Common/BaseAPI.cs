@@ -115,7 +115,7 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
-        /// Most services do not require this, but GDAX is an example of one that does
+        /// Most services do not require this, but Coinbase is an example of one that does
         /// </summary>
         public System.Security.SecureString Passphrase { get; set; }
 

@@ -388,6 +388,8 @@ namespace ExchangeSharp
             // make a new hub connection
             hubConnection = new HubConnection(ConnectionUrl);
             hubConnection.Closed += SocketClosed;
+            hubConnection.TraceLevel = TraceLevels.All;
+            hubConnection.TraceWriter = Console.Out;
             hubProxy = hubConnection.CreateHubProxy(HubName);
 
             // assign callbacks for events
