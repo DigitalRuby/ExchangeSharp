@@ -24,15 +24,15 @@ namespace ExchangeSharpConsoleApp
         {
             string symbol = "BTC-USD";
             string symbol2 = "XXBTZUSD";
-            IExchangeAPI apiGDAX = new ExchangeGdaxAPI();
+            IExchangeAPI apiCoinbase = new ExchangeCoinbaseAPI();
             IExchangeAPI apiGemini = new ExchangeGeminiAPI();
             IExchangeAPI apiKraken = new ExchangeKrakenAPI();
             IExchangeAPI apiBitfinex = new ExchangeBitfinexAPI();
 
             while (true)
             {
-                ExchangeTicker ticker = apiGDAX.GetTicker(symbol);
-                ExchangeOrderBook orders = apiGDAX.GetOrderBook(symbol);
+                ExchangeTicker ticker = apiCoinbase.GetTicker(symbol);
+                ExchangeOrderBook orders = apiCoinbase.GetOrderBook(symbol);
                 decimal askAmountSum = orders.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum = orders.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum = orders.Bids.Values.Sum(o => o.Amount);

@@ -58,7 +58,6 @@ namespace ExchangeSharpConsoleApp
 
         private static void TestMethod()
         {
-
         }
 
         public static int ConsoleMain(string[] args)
