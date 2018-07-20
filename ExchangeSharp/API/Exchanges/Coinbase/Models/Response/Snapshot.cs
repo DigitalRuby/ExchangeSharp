@@ -16,7 +16,7 @@ namespace ExchangeSharp.Coinbase
 
     using Newtonsoft.Json;
 
-    public class Snapshot : BaseMessage
+    internal class Snapshot : BaseMessage
     {
         [JsonProperty("product_id")]
         public string ProductId { get; set; }

@@ -14,7 +14,7 @@ namespace ExchangeSharp.Coinbase
 {
     using System.Runtime.Serialization;
 
-    public enum ChannelType
+    internal enum ChannelType
     {
         [EnumMember(Value = "full")]
         Full,

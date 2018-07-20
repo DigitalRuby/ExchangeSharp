@@ -14,7 +14,7 @@ namespace ExchangeSharp.Coinbase
 {
     using System.Runtime.Serialization;
 
-    public enum ResponseType
+    internal enum ResponseType
     {
         Unknown = 0,
 

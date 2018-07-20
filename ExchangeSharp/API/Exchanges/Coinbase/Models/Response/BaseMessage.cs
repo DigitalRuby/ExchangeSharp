@@ -12,7 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Coinbase
 {
-    public class BaseMessage
+    internal class BaseMessage
     {
         public ResponseType Type { get; set; }
     }

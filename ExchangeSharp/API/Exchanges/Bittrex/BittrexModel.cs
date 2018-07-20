@@ -173,7 +173,7 @@ namespace ExchangeSharp
             /// <summary>The side of the order</summary>
             [JsonConverter(typeof(OrderSideConverter))]
             [JsonProperty("OT")]
-            public OrderSide OrderType { get; set; }
+            public OrderSide OrderSide { get; set; }
         }
 
         public class BittrexStreamQueryExchangeState
@@ -244,7 +244,7 @@ namespace ExchangeSharp
             /// <summary>The side of the order</summary>
             [JsonConverter(typeof(OrderSideConverter))]
             [JsonProperty("OT")]
-            public OrderSide OrderType { get; set; }
+            public OrderSide OrderSide { get; set; }
 
             public class FillTypeConverter : BaseConverter<FillType>
             {

@@ -17,7 +17,7 @@ namespace ExchangeSharp.Coinbase
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
-    public class ChannelAction
+    internal class ChannelAction
     {
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty("type")]
