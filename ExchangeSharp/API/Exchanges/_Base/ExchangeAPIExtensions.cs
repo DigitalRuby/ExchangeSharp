@@ -101,12 +101,16 @@ namespace ExchangeSharp
 
         private static void UpdateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
         {
-            // update deltas as long as the full book is at or before the delta timestamp
-            if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+            // Lock the order book so someone can avoid reading it while it is being updated
+            lock (fullOrderBook)
             {
-                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                fullOrderBook.SequenceId = freshBook.SequenceId;
+                // update deltas as long as the full book is at or before the delta timestamp
+                if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                {
+                    ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
+                    ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                    fullOrderBook.SequenceId = freshBook.SequenceId;
+                }
             }
         }
 
