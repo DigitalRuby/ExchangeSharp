@@ -35,6 +35,35 @@ namespace ExchangeSharp
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
             var fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
 
+            void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
+            {
+                foreach (ExchangeOrderPrice record in deltaValues.Values)
+                {
+                    if (record.Amount <= 0 || record.Price <= 0)
+                    {
+                        bookToEdit.Remove(record.Price);
+                    }
+                    else
+                    {
+                        bookToEdit[record.Price] = record;
+                    }
+                }
+            }
+
+            void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
+            {
+                lock (fullOrderBook)
+                {
+                    // update deltas as long as the full book is at or before the delta timestamp
+                    if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                    {
+                        applyDelta(freshBook.Asks, fullOrderBook.Asks);
+                        applyDelta(freshBook.Bids, fullOrderBook.Bids);
+                        fullOrderBook.SequenceId = freshBook.SequenceId;
+                    }
+                }
+            }
+
             void innerCallback(ExchangeOrderBook freshBook)
             {
                 bool foundFullBook = fullBooks.TryGetValue(freshBook.Symbol, out ExchangeOrderBook fullOrderBook);
@@ -53,7 +82,7 @@ namespace ExchangeSharp
                         }
                         else
                         {
-                            UpdateOrderBook(fullOrderBook, freshBook);
+                            updateOrderBook(fullOrderBook, freshBook);
                         }
 
                         break;
@@ -71,7 +100,7 @@ namespace ExchangeSharp
                         }
                         else
                         {
-                            UpdateOrderBook(fullOrderBook, freshBook);
+                            updateOrderBook(fullOrderBook, freshBook);
                         }
 
                         break;
@@ -97,17 +126,6 @@ namespace ExchangeSharp
                 fullBooks.Clear();
             };
             return socket;
-        }
-
-        private static void UpdateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
-        {
-            // update deltas as long as the full book is at or before the delta timestamp
-            if (fullOrderBook.SequenceId <= freshBook.SequenceId)
-            {
-                ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                fullOrderBook.SequenceId = freshBook.SequenceId;
-            }
         }
 
         /// <summary>Common order book parsing method, most exchanges use "asks" and "bids" with
@@ -184,24 +202,6 @@ namespace ExchangeSharp
             }
 
             return book;
-        }
-
-        /// <summary>Applies the delta order book on top of the existing book.</summary>
-        /// <param name="deltaValues">The delta values.</param>
-        /// <param name="bookToEdit">The book to edit.</param>
-        private static void ApplyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
-        {
-            foreach (ExchangeOrderPrice record in deltaValues.Values)
-            {
-                if (record.Amount <= 0 || record.Price <= 0)
-                {
-                    bookToEdit.Remove(record.Price);
-                }
-                else
-                {
-                    bookToEdit[record.Price] = record;
-                }
-            }
         }
     }
 }
