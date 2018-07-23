@@ -15,7 +15,7 @@ namespace ExchangeSharp
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-
+    using System.Threading.Tasks;
     using Newtonsoft.Json.Linq;
 
     /// <summary>Contains useful extension methods and parsing for the ExchangeAPI classes</summary>
@@ -64,7 +64,7 @@ namespace ExchangeSharp
                 }
             }
 
-            void innerCallback(ExchangeOrderBook freshBook)
+            async Task innerCallback(ExchangeOrderBook freshBook)
             {
                 bool foundFullBook = fullBooks.TryGetValue(freshBook.Symbol, out ExchangeOrderBook fullOrderBook);
                 switch (api.Name)
@@ -77,14 +77,13 @@ namespace ExchangeSharp
                         // If we don't have an initial order book for this symbol, fetch it
                         if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
+                            fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, 1000);
                             fullOrderBook.Symbol = freshBook.Symbol;
                         }
                         else
                         {
                             updateOrderBook(fullOrderBook, freshBook);
                         }
-
                         break;
                     }
 
@@ -118,7 +117,7 @@ namespace ExchangeSharp
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetOrderBookDeltasWebSocket(innerCallback, maxCount, symbols);
+            IWebSocket socket = api.GetOrderBookDeltasWebSocket(async (b) => await innerCallback(b), maxCount, symbols);
             socket.Connected += (s) =>
             {
                 // when we re-connect, we must invalidate the order books, who knows how long we were disconnected

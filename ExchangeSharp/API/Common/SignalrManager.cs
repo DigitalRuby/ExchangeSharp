@@ -50,21 +50,37 @@ namespace ExchangeSharp
             /// <param name="manager">Manager</param>
             /// <param name="functionName">Function name</param>
             /// <param name="callback">Callback for data</param>
-            /// <param name="param">End point parameters, each array of strings is a separate call to the end point function</param>
+            /// <param name="delayMilliseconds">Delay after invoking each object[] in param, used if the server will disconnect you for too many invoke too fast</param>
+            /// <param name="param">End point parameters, each array of strings is a separate call to the end point function. For no parameters, pass null.</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(SignalrManager manager, string functionName, Action<string> callback, string[][] param = null)
+            public async Task OpenAsync(SignalrManager manager, string functionName, Action<string> callback, int delayMilliseconds = 0, object[][] param = null)
             {
                 if (callback != null)
                 {
-                    param = (param ?? new string[][] { new string[0] });
+                    param = (param ?? new object[][] { new object[0] });
                     manager.AddListener(functionName, callback, param);
                     string functionFullName = manager.GetFunctionFullName(functionName);
-                    bool result = true;
-                    foreach (string[] p in param)
+                    Exception ex = null;
+                    try
                     {
-                        result &= await manager.hubProxy.Invoke<bool>(functionFullName, p);
+                        for (int i = 0; i < param.Length; i++)
+                        {
+                            if (i != 0)
+                            {
+                                await Task.Delay(delayMilliseconds);
+                            }
+                            if (!(await manager.hubProxy.Invoke<bool>(functionFullName, param[i])))
+                            {
+                                throw new APIException("Invoke returned success code of false");
+                            }
+                        }
                     }
-                    if (result)
+                    catch (Exception _ex)
+                    {
+                        ex = _ex;
+                        Console.WriteLine("Error invoking hub proxy {0}: {1}", functionFullName, ex);
+                    }
+                    if (ex == null)
                     {
                         this.manager = manager;
                         this.callback = callback;
@@ -78,9 +94,9 @@ namespace ExchangeSharp
 
                     // fail, remove listener
                     manager.RemoveListener(functionName, callback);
+                    throw ex;
                 }
-
-                throw new APIException("Unable to open web socket to Bittrex");
+                throw new ArgumentNullException(nameof(callback));
             }
 
             internal void InvokeConnected()
@@ -223,7 +239,7 @@ namespace ExchangeSharp
             public List<Action<string>> Callbacks { get; } = new List<Action<string>>();
             public string FunctionName { get; set; }
             public string FunctionFullName { get; set; }
-            public string[][] Param { get; set; }
+            public object[][] Param { get; set; }
         }
 
         private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
@@ -259,7 +275,7 @@ namespace ExchangeSharp
             return fullFunctionName;
         }
 
-        private void AddListener(string functionName, Action<string> callback, string[][] param)
+        private void AddListener(string functionName, Action<string> callback, object[][] param)
         {
             string functionFullName = GetFunctionFullName(functionName);
 
@@ -311,7 +327,6 @@ namespace ExchangeSharp
                 if (listeners.TryGetValue(functionFullName, out HubListener listener))
                 {
                     actions = listener.Callbacks.ToArray();
-
                 }
             }
 
@@ -390,7 +405,7 @@ namespace ExchangeSharp
             hubConnection?.Dispose();
 
             // make a new hub connection
-            hubConnection = new HubConnection(ConnectionUrl);
+            hubConnection = new HubConnection(ConnectionUrl, false);
             hubConnection.Closed += SocketClosed;
 
 #if DEBUG

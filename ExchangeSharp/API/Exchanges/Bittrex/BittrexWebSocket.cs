@@ -37,7 +37,7 @@ namespace ExchangeSharp
 
         public sealed class BittrexWebSocketManager : SignalrManager
         {
-            public BittrexWebSocketManager() : base("https://socket.bittrex.com", "c2")
+            public BittrexWebSocketManager() : base("https://socket.bittrex.com/signalr", "c2")
             {
                 FunctionNamesToFullNames["uS"] = "SubscribeToSummaryDeltas";
                 FunctionNamesToFullNames["uE"] = "SubscribeToExchangeDeltas";
@@ -64,12 +64,12 @@ namespace ExchangeSharp
             public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] symbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
-                List<string[]> paramList = new List<string[]>();
+                List<object[]> paramList = new List<object[]>();
                 foreach (string symbol in symbols)
                 {
-                    paramList.Add(new string[] { symbol });
+                    paramList.Add(new object[] { symbol });
                 }
-                Task.Run(() => conn.OpenAsync(this, "uE", callback, paramList.ToArray()));
+                Task.Run(() => conn.OpenAsync(this, "uE", callback, 0, paramList.ToArray()));
                 return conn;
             }
         }
