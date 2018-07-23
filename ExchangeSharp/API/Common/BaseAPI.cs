@@ -387,8 +387,7 @@ namespace ExchangeSharp
 
             string stringResult = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
             T jsonResult = JsonConvert.DeserializeObject<T>(stringResult);
-            JToken token = jsonResult as JToken;
-            if (token != null)
+            if (jsonResult is JToken token)
             {
                 return (T)(object)CheckJsonResponse(token);
             }
@@ -516,7 +515,7 @@ namespace ExchangeSharp
                     cache.Remove(key);
                 }
             }
-            value = default(T);
+            value = default;
             return false;
         }
 
@@ -563,7 +562,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="obj">Object to convert</param>
         /// <returns>DateTime with DateTimeKind kind or defaultValue if no conversion possible</returns>
-        protected DateTime ConvertDateTimeInvariant(object obj, DateTime defaultValue = default(DateTime))
+        protected DateTime ConvertDateTimeInvariant(object obj, DateTime defaultValue = default)
         {
             return obj.ToDateTimeInvariant(DateTimeAreLocal, defaultValue);
         }

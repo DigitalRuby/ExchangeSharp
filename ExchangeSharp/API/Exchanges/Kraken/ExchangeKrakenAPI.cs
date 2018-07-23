@@ -302,8 +302,7 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                JArray outerArray = result[symbol] as JArray;
-                if (outerArray == null || outerArray.Count == 0)
+                if (!(result[symbol] is JArray outerArray) || outerArray.Count == 0)
                 {
                     break;
                 }

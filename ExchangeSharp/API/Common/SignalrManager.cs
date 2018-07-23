@@ -262,18 +262,22 @@ namespace ExchangeSharp
         private void AddListener(string functionName, Action<string> callback, string[][] param)
         {
             string functionFullName = GetFunctionFullName(functionName);
-            ReconnectLoop().ConfigureAwait(false).GetAwaiter().GetResult();
-            lock (listeners)
+
+            // ensure connected before adding the listener
+            ReconnectLoop().ContinueWith((t) =>
             {
-                if (!listeners.TryGetValue(functionName, out HubListener listener))
+                lock (listeners)
                 {
-                    listeners[functionFullName] = listener = new HubListener { FunctionName = functionName, FunctionFullName = functionFullName, Param = param };
+                    if (!listeners.TryGetValue(functionName, out HubListener listener))
+                    {
+                        listeners[functionFullName] = listener = new HubListener { FunctionName = functionName, FunctionFullName = functionFullName, Param = param };
+                    }
+                    if (!listener.Callbacks.Contains(callback))
+                    {
+                        listener.Callbacks.Add(callback);
+                    }
                 }
-                if (!listener.Callbacks.Contains(callback))
-                {
-                    listener.Callbacks.Add(callback);
-                }
-            }
+            }).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         private void RemoveListener(string functionName, Action<string> callback)

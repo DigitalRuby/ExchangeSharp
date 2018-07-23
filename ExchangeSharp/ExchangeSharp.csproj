@@ -13,14 +13,17 @@
     <PackageReleaseNotes>Fix web socket memory leak.</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
     <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -79,10 +82,6 @@
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net471'">
     <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.1|AnyCPU'">
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
 </Project>

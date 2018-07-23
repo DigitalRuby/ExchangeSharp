@@ -51,7 +51,7 @@ namespace ExchangeSharp
             public IWebSocket SubscribeToSummaryDeltas(Action<string> callback)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
-                conn.OpenAsync(this, "uS", callback).ConfigureAwait(false).GetAwaiter().GetResult();
+                Task.Run(() => conn.OpenAsync(this, "uS", callback));
                 return conn;
             }
 
@@ -69,7 +69,7 @@ namespace ExchangeSharp
                 {
                     paramList.Add(new string[] { symbol });
                 }
-                conn.OpenAsync(this, "uE", callback, paramList.ToArray()).ConfigureAwait(false).GetAwaiter().GetResult();
+                Task.Run(() => conn.OpenAsync(this, "uE", callback, paramList.ToArray()));
                 return conn;
             }
         }

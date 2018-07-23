@@ -55,8 +55,7 @@ namespace ExchangeSharpTests
             }
             else if (UrlAndResponse.TryGetValue(url, out object response))
             {
-                Exception ex = response as Exception;
-                if (ex == null)
+                if (!(response is Exception ex))
                 {
                     RequestStateChanged?.Invoke(this, RequestMakerState.Finished, response as string);
                     return response as string;
