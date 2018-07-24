@@ -30,7 +30,7 @@ namespace ExchangeSharp
         /// </summary>
         public sealed class SignalrSocketConnection : IWebSocket
         {
-            private SignalrManager manager;
+            private readonly SignalrManager manager;
             private Action<string> callback;
             private string functionFullName;
 
@@ -48,12 +48,20 @@ namespace ExchangeSharp
             /// Constructor
             /// </summary>
             /// <param name="manager">Manager</param>
+            public SignalrSocketConnection(SignalrManager manager)
+            {
+                this.manager = manager;
+            }
+
+            /// <summary>
+            /// Constructor
+            /// </summary>
             /// <param name="functionName">Function name</param>
             /// <param name="callback">Callback for data</param>
             /// <param name="delayMilliseconds">Delay after invoking each object[] in param, used if the server will disconnect you for too many invoke too fast</param>
             /// <param name="param">End point parameters, each array of strings is a separate call to the end point function. For no parameters, pass null.</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(SignalrManager manager, string functionName, Action<string> callback, int delayMilliseconds = 0, object[][] param = null)
+            public async Task OpenAsync(string functionName, Action<string> callback, int delayMilliseconds = 0, object[][] param = null)
             {
                 if (callback != null)
                 {
@@ -82,7 +90,6 @@ namespace ExchangeSharp
                     }
                     if (ex == null)
                     {
-                        this.manager = manager;
                         this.callback = callback;
                         this.functionFullName = functionFullName;
                         lock (manager.sockets)

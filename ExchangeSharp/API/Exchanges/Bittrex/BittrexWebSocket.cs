@@ -50,8 +50,8 @@ namespace ExchangeSharp
             /// <returns>IDisposable to close the socket</returns>
             public IWebSocket SubscribeToSummaryDeltas(Action<string> callback)
             {
-                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
-                Task.Run(() => conn.OpenAsync(this, "uS", callback));
+                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
+                Task.Run(() => conn.OpenAsync("uS", callback));
                 return conn;
             }
 
@@ -63,13 +63,13 @@ namespace ExchangeSharp
             /// <returns>IDisposable to close the socket</returns>
             public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] symbols)
             {
-                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection();
+                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
                 List<object[]> paramList = new List<object[]>();
                 foreach (string symbol in symbols)
                 {
                     paramList.Add(new object[] { symbol });
                 }
-                Task.Run(() => conn.OpenAsync(this, "uE", callback, 0, paramList.ToArray()));
+                Task.Run(() => conn.OpenAsync("uE", callback, 0, paramList.ToArray()));
                 return conn;
             }
         }
