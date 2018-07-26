@@ -145,8 +145,8 @@ namespace ExchangeSharp
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(token["datetime"].ConvertInvariant<long>()).DateTime,
-                        ConvertedVolume = token["vol"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = token["coinType"].ToStringInvariant(),
+                        ConvertedVolume = token["volValue"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = token["coinTypePair"].ToStringInvariant(),
                         BaseVolume = token["vol"].ConvertInvariant<decimal>(),
                         BaseSymbol = token["coinType"].ToStringInvariant()
                     }
@@ -170,8 +170,8 @@ namespace ExchangeSharp
                     Volume = new ExchangeVolume()
                     {
                         Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tick["datetime"].ConvertInvariant<long>()).DateTime,
-                        ConvertedVolume = tick["vol"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = tick["coinType"].ToStringInvariant(),
+                        ConvertedVolume = tick["volValue"].ConvertInvariant<decimal>(),
+                        ConvertedSymbol = tick["coinTypePair"].ToStringInvariant(),
                         BaseVolume = tick["vol"].ConvertInvariant<decimal>(),
                         BaseSymbol = tick["coinType"].ToStringInvariant()
                     }
