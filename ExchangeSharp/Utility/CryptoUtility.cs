@@ -368,13 +368,9 @@ namespace ExchangeSharp
         /// <returns>Unix epoch in seconds</returns>
         public static double UnixTimestampFromDateTimeSeconds(this DateTime dt)
         {
-            if (dt.Kind == DateTimeKind.Local)
+            if (dt.Kind != DateTimeKind.Utc)
             {
                 dt = dt.ToUniversalTime();
-            }
-            else if (dt.Kind == DateTimeKind.Unspecified)
-            {
-                throw new InvalidOperationException("Unable to create unix epoch from DateTime with unspecified date time kind");
             }
             return (dt - unixEpoch).TotalSeconds;
         }
@@ -386,13 +382,9 @@ namespace ExchangeSharp
         /// <returns>Unix timestamp in milliseconds</returns>
         public static double UnixTimestampFromDateTimeMilliseconds(this DateTime dt)
         {
-            if (dt.Kind == DateTimeKind.Local)
+            if (dt.Kind != DateTimeKind.Utc)
             {
                 dt = dt.ToUniversalTime();
-            }
-            else if (dt.Kind == DateTimeKind.Unspecified)
-            {
-                throw new InvalidOperationException("Unable to create unix epoch from DateTime with unspecified date time kind");
             }
             return (dt - unixEpoch).TotalMilliseconds;
         }
