@@ -13,7 +13,7 @@ Please follow these guidelines...
   - Please use CryptoUtility.UTF8EncodingNoPrefix for all encoding, unless you have specific needs.
   - For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange.
   - Before adding NuGet packages, consider copying in the bits of the source that matter into the Dependencies folder. The fewer packages that ExchangeSharp depends on, the better.
-  - Each exchange API is in it's own folder. If you are creating model objects or helper classes for an exchange, put them inside a partial class in a new file in the exchange folder. See Binance or Bittrex for an example.
+  - Each exchange API is in it's own folder. If you are creating model objects or helper classes for an exchange, put them inside a partial class or namespace for the exchange with internal instead of public classes and put in a new file in the exchange sub-folder. See Binance or Bittrex for an example.
  
 
 
