@@ -355,7 +355,8 @@ namespace ExchangeSharp
                         book.Symbol = symbol;
                     }
 
-                    callback(book);
+                    if(!string.IsNullOrEmpty(book.Symbol))
+                        callback(book);
                 }
                 catch
                 {
