@@ -102,6 +102,8 @@ public static void Main(string[] args)
     }
 }
 ```
+## How to contribute
+Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
 
 ## I Can Help
 I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
