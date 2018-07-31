@@ -112,12 +112,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
-            if (ReadCache("GetSymbols", out List<string> symbols))
-            {
-                return symbols;
-            }
-
-            symbols = new List<string>();
+            List<string> symbols = new List<string>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/allPrices");
             foreach (JToken token in obj)
             {
@@ -128,7 +123,6 @@ namespace ExchangeSharp
                     symbols.Add(symbol);
                 }
             }
-            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), symbols);
             return symbols;
         }
 

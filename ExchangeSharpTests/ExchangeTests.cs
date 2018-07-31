@@ -29,7 +29,7 @@ namespace ExchangeSharpTests
             string altSymbol = "BTC-KRW"; // WTF Bitthumb...
 
             // sanity test that all exchanges return the same global symbol when converted back and forth
-            foreach (IExchangeAPI api in ExchangeAPI.GetExchangeAPIDictionary().Values)
+            foreach (IExchangeAPI api in ExchangeAPI.GetExchangeAPIs())
             {
                 try
                 {

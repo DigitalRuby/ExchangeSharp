@@ -37,37 +37,7 @@ namespace ExchangeSharp
         #region Private methods
 
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
-
-        private readonly Dictionary<string, ExchangeMarket> exchangeMarkets = new Dictionary<string, ExchangeMarket>();
-        private readonly SemaphoreSlim exchangeMarketsSemaphore = new SemaphoreSlim(1, 1);
         private bool disposed;
-
-        /// <summary>
-        /// Call GetSymbolsMetadataAsync if exchangeMarkets is empty and store the results.
-        /// </summary>
-        /// <param name="forceRefresh">True to force a network request, false to use existing cache data if it exists</param>
-        private async Task PopulateExchangeMarketsAsync(bool forceRefresh)
-        {
-            // Get the exchange markets if we haven't gotten them yet.
-            if (forceRefresh || exchangeMarkets.Count == 0)
-            {
-                await exchangeMarketsSemaphore.WaitAsync();
-                try
-                {
-                    if (forceRefresh || exchangeMarkets.Count == 0)
-                    {
-                        foreach (ExchangeMarket market in await GetSymbolsMetadataAsync())
-                        {
-                            exchangeMarkets[market.MarketName] = market;
-                        }
-                    }
-                }
-                finally
-                {
-                    exchangeMarketsSemaphore.Release();
-                }
-            }
-        }
 
         #endregion Private methods
 
@@ -428,8 +398,14 @@ namespace ExchangeSharp
         {
             foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
             {
-                ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI;
-                apis[api.Name] = api;
+                // lazy create, we just create an instance to get the name, nothing more
+                // we don't want to pro-actively create all of these becanse an API
+                // may be running a timer or other house-keeping which we don't want
+                // the overhead of if a user is only using one or a handful of the apis
+                using (ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI)
+                {
+                    apis[api.Name] = null;
+                }
                 ExchangeGlobalCurrencyReplacements[type] = new KeyValuePair<string, string>[0];
             }
         }
@@ -451,6 +427,7 @@ namespace ExchangeSharp
             {
                 disposed = true;
                 OnDispose();
+                Cache.Dispose();
             }
         }
 
@@ -461,21 +438,55 @@ namespace ExchangeSharp
         /// <returns>Exchange API or null if not found</returns>
         public static IExchangeAPI GetExchangeAPI(string exchangeName)
         {
-            GetExchangeAPIDictionary().TryGetValue(exchangeName, out IExchangeAPI api);
-            if (api == null)
+            lock (apis)
             {
-                throw new ArgumentException("No API available with name " + exchangeName);
+                if (!apis.TryGetValue(exchangeName, out IExchangeAPI api))
+                {
+                    throw new ArgumentException("No API available with name " + exchangeName);
+                }
+                if (api == null)
+                {
+                    foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
+                    {
+                        api = Activator.CreateInstance(type) as ExchangeAPI;
+                        if (api.Name == exchangeName)
+                        {
+                            apis[exchangeName] = api;
+                            break;
+                        }
+                        else
+                        {
+                            api.Dispose();
+                            api = null;
+                        }
+                    }
+                }
+                return api;
             }
-            return api;
         }
 
         /// <summary>
-        /// Get a dictionary of exchange APIs for all exchanges
+        /// Get all exchange APIs
         /// </summary>
-        /// <returns>Dictionary of string exchange name and value exchange api</returns>
-        public static IReadOnlyDictionary<string, IExchangeAPI> GetExchangeAPIDictionary()
+        /// <returns>All APIs</returns>
+        public static IExchangeAPI[] GetExchangeAPIs()
         {
-            return apis;
+            lock (apis)
+            {
+                List<IExchangeAPI> apiList = new List<IExchangeAPI>();
+                foreach (var kv in apis.ToArray())
+                {
+                    if (kv.Value == null)
+                    {
+                        apiList.Add(GetExchangeAPI(kv.Key));
+                    }
+                    else
+                    {
+                        apiList.Add(kv.Value);
+                    }
+                }
+                return apiList.ToArray();
+            }
         }
 
         /// <summary>
@@ -597,7 +608,10 @@ namespace ExchangeSharp
         public async Task<IEnumerable<string>> GetSymbolsAsync()
         {
             await new SynchronizationContextRemover();
-            return await OnGetSymbolsAsync();
+            return (await Cache.Get<string[]>(nameof(GetSymbolsAsync), async () =>
+            {
+                return new CachedItem<string[]>((await OnGetSymbolsAsync()).ToArray(), DateTime.UtcNow.AddHours(1.0));
+            })).Value;
         }
 
         /// <summary>
@@ -613,7 +627,10 @@ namespace ExchangeSharp
         public async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync()
         {
             await new SynchronizationContextRemover();
-            return await OnGetSymbolsMetadataAsync();
+            return (await Cache.Get<ExchangeMarket[]>(nameof(GetSymbolsMetadataAsync), async () =>
+            {
+                return new CachedItem<ExchangeMarket[]>((await OnGetSymbolsMetadataAsync()).ToArray(), DateTime.UtcNow.AddHours(1.0));
+            })).Value;
         }
 
         /// <summary>
@@ -636,21 +653,23 @@ namespace ExchangeSharp
             {
                 // not sure if this is needed, but adding it just in case
                 await new SynchronizationContextRemover();
-                await PopulateExchangeMarketsAsync(false);
-                exchangeMarkets.TryGetValue(symbol, out ExchangeMarket market);
+                ExchangeMarket[] markets = (await GetSymbolsMetadataAsync()).ToArray();
+                ExchangeMarket market = markets.FirstOrDefault(m => m.MarketName == symbol);
                 if (market == null)
                 {
                     // try again with a fresh request, every symbol *should* be in the response from PopulateExchangeMarketsAsync
-                    await PopulateExchangeMarketsAsync(true);
+                    Cache.Remove(nameof(GetSymbolsMetadataAsync));
 
-                    // try again to retrieve from dictionary
-                    exchangeMarkets.TryGetValue(symbol, out market);
+                    markets = (await GetSymbolsMetadataAsync()).ToArray();
+
+                    // try and find the market again, this time if not found we give up and just return null
+                    market = markets.FirstOrDefault(m => m.MarketName == symbol);
                 }
                 return market;
             }
             catch
             {
-                // TODO: Report the error somehow, for now a failed network request will just return null symbol which fill force the caller to use default handling
+                // TODO: Report the error somehow, for now a failed network request will just return null symbol which will force the caller to use default handling
             }
             return null;
         }
@@ -954,7 +973,11 @@ namespace ExchangeSharp
         public async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetCompletedOrderDetailsAsync(symbol, afterDate);
+            string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty) + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
+            return (await Cache.Get<ExchangeOrderResult[]>(cacheKey, async () =>
+            {
+                return new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), DateTime.UtcNow.AddMinutes(2.0));
+            })).Value;
         }
 
         /// <summary>

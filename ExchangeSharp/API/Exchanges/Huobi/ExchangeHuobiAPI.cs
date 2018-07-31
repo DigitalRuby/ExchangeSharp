@@ -162,12 +162,7 @@ namespace ExchangeSharp
                 }, 
              
              */
-            if (ReadCache("GetSymbolsMetadata", out List<ExchangeMarket> markets))
-            {
-                return markets;
-            }
-
-            markets = new List<ExchangeMarket>();
+            List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
             foreach (var symbol in allSymbols)
             {
@@ -193,9 +188,6 @@ namespace ExchangeSharp
 
                 markets.Add(market);
             }
-
-            WriteCache("GetSymbolsMetadata", TimeSpan.FromMinutes(60.0), markets);
-
             return markets;
         }
 
@@ -516,9 +508,9 @@ namespace ExchangeSharp
             return candles;
         }
 
-#endregion
+        #endregion
 
-#region Private APIs
+        #region Private APIs
 
         private async Task<Dictionary<string, string>> OnGetAccountsAsync()
         {
@@ -550,11 +542,7 @@ namespace ExchangeSharp
   }
 ]}
  */
-            if (ReadCache("GetAccounts", out Dictionary<string, string> accounts))
-            {
-                return accounts;
-            }
-            accounts = new Dictionary<string, string>();
+            Dictionary<string, string> accounts = new Dictionary<string, string>();
             var payload = await OnGetNoncePayloadAsync();
             JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload);
             foreach (var acc in data)
@@ -562,9 +550,6 @@ namespace ExchangeSharp
                 string key = acc["type"].ToStringInvariant() + "_" + acc["subtype"].ToStringInvariant();
                 accounts.Add(key, acc["id"].ToStringInvariant());
             }
-
-            WriteCache("GetAccounts", TimeSpan.FromMinutes(60.0), accounts);
-
             return accounts;
         }
 

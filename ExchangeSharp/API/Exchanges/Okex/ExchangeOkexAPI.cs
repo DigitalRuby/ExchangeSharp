@@ -107,12 +107,7 @@ namespace ExchangeSharp
     "symbol": "ltc_btc"
 },
              */
-            if (ReadCache("GetSymbolsMetadata", out List<ExchangeMarket> markets))
-            {
-                return markets;
-            }
-
-            markets = new List<ExchangeMarket>();
+            List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/markets/products", BaseUrlV2);
             foreach (JToken symbol in allSymbols)
             {
@@ -142,9 +137,6 @@ namespace ExchangeSharp
 
                 markets.Add(market);
             }
-
-            WriteCache("GetSymbolsMetadata", TimeSpan.FromMinutes(60.0), markets);
-
             return markets;
         }
 

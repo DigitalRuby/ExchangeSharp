@@ -106,16 +106,9 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
-            if (ReadCache("GetSymbols", out List<ExchangeMarket> cachedMarkets))
-            {
-                return cachedMarkets;
-            }
-
             var markets = new List<ExchangeMarket>();
-
             JToken allPairs = await MakeJsonRequestAsync<JToken>("/symbols_details", BaseUrlV1);
             Match m;
-
             foreach (JToken pair in allPairs)
             {
                 var market = new ExchangeMarket
@@ -149,8 +142,6 @@ namespace ExchangeSharp
                 market.PriceStepSize = (decimal)Math.Pow(0.1, pricePrecision);
                 markets.Add(market);
             }
-
-            WriteCache("GetSymbols", TimeSpan.FromMinutes(60.0), markets);
             return markets;
         }
 
@@ -433,26 +424,17 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty) + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
-            if (!ReadCache<ExchangeOrderResult[]>(cacheKey, out ExchangeOrderResult[] orders))
+            if (string.IsNullOrWhiteSpace(symbol))
             {
-                if (string.IsNullOrWhiteSpace(symbol))
-                {
-                    // HACK: Bitfinex does not provide a way to get all historical order details beyond a few days in one call, so we have to
-                    //  get the historical details one by one for each symbol.
-                    var symbols = (await GetSymbolsAsync()).Where(s => s.IndexOf("usd", StringComparison.OrdinalIgnoreCase) < 0 && s.IndexOf("btc", StringComparison.OrdinalIgnoreCase) >= 0);
-                    orders = (await GetOrderDetailsInternalV1(symbols, afterDate)).ToArray();
-                }
-                else
-                {
-                    symbol = NormalizeSymbol(symbol);
-                    orders = (await GetOrderDetailsInternalV1(new string[] { symbol }, afterDate)).ToArray();
-                }
-
-                // Bitfinex gets angry if this is called more than once a minute
-                WriteCache(cacheKey, TimeSpan.FromMinutes(2.0), orders);
+                // HACK: Bitfinex does not provide a way to get all historical order details beyond a few days in one call, so we have to
+                //  get the historical details one by one for each symbol.
+                var symbols = (await GetSymbolsAsync()).Where(s => s.IndexOf("usd", StringComparison.OrdinalIgnoreCase) < 0 && s.IndexOf("btc", StringComparison.OrdinalIgnoreCase) >= 0);
+                return await GetOrderDetailsInternalV1(symbols, afterDate);
             }
-            return orders;
+
+            // retrieve orders for the one symbol
+            symbol = NormalizeSymbol(symbol);
+            return await GetOrderDetailsInternalV1(new string[] { symbol }, afterDate);
         }
 
         protected override IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)

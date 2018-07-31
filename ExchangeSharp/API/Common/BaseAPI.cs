@@ -164,7 +164,10 @@ namespace ExchangeSharp
         /// </summary>
         public bool DateTimeAreLocal { get; set; }
 
-        private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// Fast in memory cache
+        /// </summary>
+        protected MemoryCache Cache { get; } = new MemoryCache();
 
         private decimal lastNonce;
 
@@ -482,7 +485,8 @@ namespace ExchangeSharp
                     (result["status"].ToStringInvariant() == "error") ||
                     (result["Status"].ToStringInvariant() == "error") ||
                     (result["success"] != null && result["success"].ConvertInvariant<bool>() != true) ||
-                    (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true)
+                    (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true) ||
+                    (result["ok"] != null && result["ok"].ToStringInvariant().ToLowerInvariant() != "ok")
                 )
                 {
                     throw new APIException(result.ToStringInvariant());
@@ -491,47 +495,6 @@ namespace ExchangeSharp
                     result["Result"] ?? result["Data"] ?? result["Return"] ?? result);
             }
             return result;
-        }
-
-        /// <summary>
-        /// Read a value from the cache
-        /// </summary>
-        /// <typeparam name="T">Type to read</typeparam>
-        /// <param name="key">Key</param>
-        /// <param name="value">Value</param>
-        /// <returns>True if read, false if not. If false, value is default(T).</returns>
-        protected bool ReadCache<T>(string key, out T value)
-        {
-            lock (cache)
-            {
-                if (cache.TryGetValue(key, out KeyValuePair<DateTime, object> cacheValue))
-                {
-                    // if not expired, return
-                    if (cacheValue.Key > DateTime.UtcNow)
-                    {
-                        value = (T)cacheValue.Value;
-                        return true;
-                    }
-                    cache.Remove(key);
-                }
-            }
-            value = default;
-            return false;
-        }
-
-        /// <summary>
-        /// Write a value to the cache
-        /// </summary>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <param name="key">Key</param>
-        /// <param name="expiration">Expiration from now</param>
-        /// <param name="value">Value</param>
-        protected void WriteCache<T>(string key, TimeSpan expiration, T value)
-        {
-            lock (cache)
-            {
-                cache[key] = new KeyValuePair<DateTime, object>(DateTime.UtcNow + expiration, value);
-            }
         }
 
         /// <summary>
