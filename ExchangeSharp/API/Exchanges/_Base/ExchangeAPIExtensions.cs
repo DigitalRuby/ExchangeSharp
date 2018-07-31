@@ -134,7 +134,14 @@ namespace ExchangeSharp
         /// <param name="bids">Bids key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenArrays(JToken token, string asks = "asks", string bids = "bids", string sequence = "ts", int maxCount = 100)
+        public static ExchangeOrderBook ParseOrderBookFromJTokenArrays
+        (
+            this JToken token,
+            string asks = "asks",
+            string bids = "bids",
+            string sequence = "ts",
+            int maxCount = 100
+        )
         {
             var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JArray array in token[asks])
@@ -170,14 +177,16 @@ namespace ExchangeSharp
         /// <param name="sequence">Sequence key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries(
-            JToken token,
+        public static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries
+        (
+            this JToken token,
             string asks = "asks",
             string bids = "bids",
             string price = "price",
             string amount = "amount",
             string sequence = "ts",
-            int maxCount = 100)
+            int maxCount = 100
+        )
         {
             var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JToken ask in token[asks])
