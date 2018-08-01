@@ -295,20 +295,35 @@ namespace ExchangeSharp
         /// <returns>Clamped value</returns>
         public static decimal ClampDecimal(decimal minValue, decimal maxValue, decimal? stepSize, decimal value)
         {
-            if (minValue < 0) throw new ArgumentOutOfRangeException(nameof(minValue));
-            if (maxValue < 0) throw new ArgumentOutOfRangeException(nameof(maxValue));
-            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
-            if (minValue > maxValue) throw new ArgumentOutOfRangeException(nameof(minValue));
+            if (minValue < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minValue));
+            }
+            else if (maxValue < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxValue));
+            }
+            else if (value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value));
+            }
+            else if (minValue > maxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minValue));
+            }
 
             if (stepSize.HasValue)
             {
-                if (stepSize < 0) throw new ArgumentOutOfRangeException(nameof(stepSize));
-
-                value = Math.Min(maxValue, value);
-                value = Math.Max(minValue, value);
+                if (stepSize < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(stepSize));
+                }
                 decimal mod = value % stepSize.Value;
                 value -= mod;
             }
+
+            value = Math.Min(maxValue, value);
+            value = Math.Max(minValue, value);
 
             return value.Normalize();
         }
