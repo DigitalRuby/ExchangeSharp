@@ -38,7 +38,11 @@ namespace ExchangeSharp
         public ExchangeYobitAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            NonceStyle = NonceStyle.IntegerFile; // yobit is not easy to use - you must maintain the nonce in a file and keep incrementing and make new keys when it hits int.MaxValue
+
+            // yobit is not easy to use - you must maintain the nonce in a file and keep incrementing and make new keys when it hits long.MaxValue
+            // to add insult to injury you must always increment by exactly one from the last use of your API key, even when rebooting the computer and restarting your process
+            NonceStyle = NonceStyle.IntegerFile;
+
             SymbolSeparator = "_";
             SymbolIsUppercase = false;
         }

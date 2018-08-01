@@ -43,6 +43,11 @@ namespace ExchangeSharp
         TicksString,
 
         /// <summary>
+        /// Start with ticks, then increment by one
+        /// </summary>
+        TicksThenIncrement,
+
+        /// <summary>
         /// Milliseconds (int64)
         /// </summary>
         UnixMilliseconds,
@@ -51,6 +56,11 @@ namespace ExchangeSharp
         /// Milliseconds (string)
         /// </summary>
         UnixMillisecondsString,
+
+        /// <summary>
+        /// Start with Unix milliseconds then increment by one
+        /// </summary>
+        UnixMillisecondsThenIncrement,
 
         /// <summary>
         /// Seconds (double)
@@ -63,7 +73,7 @@ namespace ExchangeSharp
         UnixSecondsString,
 
         /// <summary>
-        /// Persist nonce to counter and file for the API key, once it hits int.MaxValue, it is useless
+        /// Persist nonce to counter and file for the API key, once it hits long.MaxValue, it is useless
         /// </summary>
         IntegerFile
     }
@@ -229,14 +239,13 @@ namespace ExchangeSharp
                 await OnGetNonceOffset();
             }
 
-            // exclusive lock, no two nonces must match
             lock (this)
             {
                 object nonce;
 
                 while (true)
                 {
-                    // some API (Binance) have a problem with requests being after server time, subtract of one second fixes it
+                    // some API (Binance) have a problem with requests being after server time, subtract of offset can help
                     DateTime now = DateTime.UtcNow - NonceOffset;
                     Task.Delay(1).Wait();
 
@@ -250,12 +259,34 @@ namespace ExchangeSharp
                             nonce = now.Ticks.ToStringInvariant();
                             break;
 
+                        case NonceStyle.TicksThenIncrement:
+                            if (lastNonce == 0m)
+                            {
+                                nonce = now.Ticks;
+                            }
+                            else
+                            {
+                                nonce = (long)(lastNonce + 1m);
+                            }
+                            break;
+
                         case NonceStyle.UnixMilliseconds:
                             nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
                             break;
 
                         case NonceStyle.UnixMillisecondsString:
                             nonce = ((long)now.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+                            break;
+
+                        case NonceStyle.UnixMillisecondsThenIncrement:
+                            if (lastNonce == 0m)
+                            {
+                                nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
+                            }
+                            else
+                            {
+                                nonce = (long)(lastNonce + 1m);
+                            }
                             break;
 
                         case NonceStyle.UnixSeconds:
@@ -276,16 +307,17 @@ namespace ExchangeSharp
                             }
                             unchecked
                             {
-                                int intNonce = int.Parse(File.ReadAllText(tempFile), CultureInfo.InvariantCulture) + 1;
-                                if (intNonce < 1)
+                                long longNonce = long.Parse(File.ReadAllText(tempFile), CultureInfo.InvariantCulture) + 1;
+                                if (longNonce < 1)
                                 {
-                                    throw new APIException("Nonce is out of bounds of a signed 32 bit integer (1 - " + int.MaxValue.ToStringInvariant() +
+                                    throw new APIException("Nonce is out of bounds of a signed 64 bit integer (1 - " + long.MaxValue.ToStringInvariant() +
                                         "), please regenerate new API keys. Please contact the API support and ask them to change this horrible nonce behavior.");
                                 }
-                                nonce = (long)intNonce;
-                                File.WriteAllText(tempFile, intNonce.ToStringInvariant());
+                                File.WriteAllText(tempFile, longNonce.ToStringInvariant());
+                                nonce = longNonce;
                             }
-                        } break;
+                            break;
+                        }
 
                         default:
                             throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
@@ -475,7 +507,7 @@ namespace ExchangeSharp
             {
                 throw new APIException("No result from server");
             }
-            else if (!(result is JArray))
+            else if (!(result is JArray) && result.Type == JTokenType.Object)
             {
                 if
                 (
@@ -486,7 +518,7 @@ namespace ExchangeSharp
                     (result["Status"].ToStringInvariant() == "error") ||
                     (result["success"] != null && result["success"].ConvertInvariant<bool>() != true) ||
                     (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true) ||
-                    (result["ok"] != null && result["ok"].ToStringInvariant().ToLowerInvariant() != "ok")
+                    (!string.IsNullOrWhiteSpace(result["ok"].ToStringInvariant()) && result["ok"].ToStringInvariant().ToLowerInvariant() != "ok")
                 )
                 {
                     throw new APIException(result.ToStringInvariant());
