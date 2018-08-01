@@ -111,6 +111,9 @@ namespace ExchangeSharp
                         fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
                         break;
                     }
+
+                    default:
+                        throw new NotSupportedException("Full order book web socket not supported for exchange " + api.Name);
                 }
 
                 fullOrderBook.LastUpdatedUtc = DateTime.UtcNow;
