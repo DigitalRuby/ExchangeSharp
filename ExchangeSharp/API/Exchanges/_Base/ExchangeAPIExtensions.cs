@@ -77,7 +77,7 @@ namespace ExchangeSharp
                         // If we don't have an initial order book for this symbol, fetch it
                         if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, 1000);
+                            fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, maxCount);
                             fullOrderBook.Symbol = freshBook.Symbol;
                         }
                         else
