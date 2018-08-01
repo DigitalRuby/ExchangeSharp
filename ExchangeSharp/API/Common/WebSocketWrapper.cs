@@ -130,7 +130,7 @@ namespace ExchangeSharp
             {
                 if (webSocket.State == WebSocketState.Open)
                 {
-                    ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
+                    ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(message.ToBytesUTF8());
                     await webSocket.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, cancellationToken);
                     return true;
                 }

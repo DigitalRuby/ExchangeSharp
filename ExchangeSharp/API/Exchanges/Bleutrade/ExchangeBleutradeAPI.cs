@@ -138,7 +138,7 @@ namespace ExchangeSharp
                     BaseSymbol = result["BaseCurrency"].ToStringInvariant(),
                     ConvertedVolume = result["BaseVolume"].ConvertInvariant<decimal>(),
                     ConvertedSymbol = result["MarketCurrency"].ToStringInvariant(),
-                    Timestamp = ConvertDateTimeInvariant(result["TimeStamp"])
+                    Timestamp = result["TimeStamp"].ToDateTimeInvariant()
                 }
             };
         }
@@ -157,7 +157,7 @@ namespace ExchangeSharp
                     Last = token["Last"].ConvertInvariant<decimal>(),
                     Volume = new ExchangeVolume()
                     {
-                        Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
+                        Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
                         BaseSymbol = token["BaseCurrency"].ToStringInvariant(),
                         BaseVolume = token["BaseVolume"].ConvertInvariant<decimal>(),
                         ConvertedSymbol = token["MarketCurrency"].ToStringInvariant(),
@@ -198,7 +198,7 @@ namespace ExchangeSharp
                 {
                     ExchangeName = this.Name,
                     Name = symbol,
-                    Timestamp = ConvertDateTimeInvariant(jsonCandle["TimeStamp"]),
+                    Timestamp = jsonCandle["TimeStamp"].ToDateTimeInvariant(),
                     OpenPrice = jsonCandle["Open"].ConvertInvariant<decimal>(),
                     HighPrice = jsonCandle["High"].ConvertInvariant<decimal>(),
                     LowPrice = jsonCandle["Low"].ConvertInvariant<decimal>(),
@@ -356,7 +356,7 @@ namespace ExchangeSharp
                 {
                     PaymentId = token["Id"].ToStringInvariant(),
                     BlockchainTxId = token["TransactionId"].ToStringInvariant(),
-                    Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
+                    Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
                     Symbol = token["Coin"].ToStringInvariant(),
                     Amount = token["Amount"].ConvertInvariant<decimal>(),
                     Notes = token["Label"].ToStringInvariant(),
@@ -390,7 +390,7 @@ namespace ExchangeSharp
         {
             return new ExchangeTrade()
             {
-                Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
+                Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
                 IsBuy = token["OrderType"].ToStringInvariant().Equals("BUY"),
                 Price = token["Price"].ConvertInvariant<decimal>(),
                 Amount = token["Quantity"].ConvertInvariant<decimal>()
@@ -406,7 +406,7 @@ namespace ExchangeSharp
                 IsBuy = token["Type"].ToStringInvariant().Equals("BUY"),
                 Symbol = token["Exchange"].ToStringInvariant(),
                 Amount = token["Quantity"].ConvertInvariant<decimal>(),
-                OrderDate = ConvertDateTimeInvariant(token["Created"]),
+                OrderDate = token["Created"].ToDateTimeInvariant(),
                 AveragePrice = token["Price"].ConvertInvariant<decimal>(),
                 AmountFilled = token["QuantityBaseTraded"].ConvertInvariant<decimal>(),
                 Message = token["Comments"].ToStringInvariant(),

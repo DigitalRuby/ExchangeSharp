@@ -61,7 +61,7 @@ namespace ExchangeSharp
 
                 using (Stream stream = await request.GetRequestStreamAsync())
                 {
-                    byte[] content = Encoding.UTF8.GetBytes(msg);
+                    byte[] content = msg.ToBytesUTF8();
                     stream.Write(content, 0, content.Length);
                 }
             }

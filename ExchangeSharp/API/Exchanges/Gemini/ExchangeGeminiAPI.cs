@@ -72,7 +72,7 @@ namespace ExchangeSharp
             {
                 payload.Add("request", request.RequestUri.AbsolutePath);
                 string json = JsonConvert.SerializeObject(payload);
-                string json64 = System.Convert.ToBase64String(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(json));
+                string json64 = System.Convert.ToBase64String(json.ToBytesUTF8());
                 string hexSha384 = CryptoUtility.SHA384Sign(json64, CryptoUtility.ToUnsecureString(PrivateApiKey));
                 request.Headers["X-GEMINI-PAYLOAD"] = json64;
                 request.Headers["X-GEMINI-SIGNATURE"] = hexSha384;

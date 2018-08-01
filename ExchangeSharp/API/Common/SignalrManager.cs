@@ -256,7 +256,7 @@ namespace ExchangeSharp
 
             private void WebSocketOnMessageReceived(byte[] data, WebSocketWrapper _webSocket)
             {
-                string dataText = CryptoUtility.UTF8EncodingNoPrefix.GetString(data);
+                string dataText = data.ToStringFromUTF8();
                 ProcessResponse(connection, dataText);
             }
         }
@@ -603,8 +603,8 @@ namespace ExchangeSharp
         public static string CreateSignature(string apiSecret, string challenge)
         {
             // Get hash by using apiSecret as key, and challenge as data
-            var hmacSha512 = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(apiSecret));
-            var hash = hmacSha512.ComputeHash(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(challenge));
+            var hmacSha512 = new HMACSHA512(apiSecret.ToBytesUTF8());
+            var hash = hmacSha512.ComputeHash(challenge.ToBytesUTF8());
             return BitConverter.ToString(hash).Replace("-", string.Empty);
         }
     }

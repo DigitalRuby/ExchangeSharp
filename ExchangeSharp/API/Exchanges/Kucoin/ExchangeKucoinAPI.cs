@@ -48,7 +48,7 @@ namespace ExchangeSharp
 
                 var endpoint = request.RequestUri.AbsolutePath;
                 var message = string.Format("{0}/{1}/{2}", endpoint, payload["nonce"], CryptoUtility.GetFormForPayload(payload, false));
-                var sig = CryptoUtility.SHA256Sign(Convert.ToBase64String(Encoding.UTF8.GetBytes(message)), PrivateApiKey.ToUnsecureString());
+                var sig = CryptoUtility.SHA256Sign(Convert.ToBase64String(message.ToBytesUTF8()), PrivateApiKey.ToUnsecureString());
 
                 request.Headers.Add("KC-API-SIGNATURE", sig);
 
@@ -57,7 +57,7 @@ namespace ExchangeSharp
                     string msg = CryptoUtility.GetFormForPayload(payload, false);
                     using (Stream stream = await request.GetRequestStreamAsync())
                     {
-                        byte[] content = Encoding.UTF8.GetBytes(msg);
+                        byte[] content = msg.ToBytesUTF8();
                         stream.Write(content, 0, content.Length);
                     }
                 }

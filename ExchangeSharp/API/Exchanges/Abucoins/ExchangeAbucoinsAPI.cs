@@ -352,7 +352,7 @@ namespace ExchangeSharp
                 result.AveragePrice = token["price"].ConvertInvariant<decimal>();
                 result.Fees = token["fill_fees"].ConvertInvariant<decimal>();
                 result.IsBuy = token["buy"].ToStringInvariant().Equals("buy");
-                result.OrderDate = ConvertDateTimeInvariant(token["created_at"]);
+                result.OrderDate = token["created_at"].ToDateTimeInvariant();
                 result.Price = token["price"].ConvertInvariant<decimal>();
                 result.Symbol = token["product_id"].ToStringInvariant();
                 result.Message = token["reject_reason"].ToStringInvariant();
@@ -391,7 +391,7 @@ namespace ExchangeSharp
                 {
                     Symbol = token["currency"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
-                    Timestamp = ConvertDateTimeInvariant(token["date"]),
+                    Timestamp = token["date"].ToDateTimeInvariant(),
                     PaymentId = token["deposit_id"].ToStringInvariant(),
                     TxFee = token["fee"].ConvertInvariant<decimal>()
                 };
@@ -476,14 +476,14 @@ namespace ExchangeSharp
                 try
                 {
                     //{"type":"done","time":"2018-02-20T14:59:45Z","product_id":"BTC-PLN","sequence":648771,"price":"39034.08000000","order_id":"277370262","reason":"canceled",  "side":"sell","remaining_size":0.503343}
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if ((string)token["type"] == "done")
                     {
                         callback.Invoke(new ExchangeOrderResult()
                         {
                             OrderId = token["order_id"].ToStringInvariant(),
                             Symbol = token["product_id"].ToStringInvariant(),
-                            OrderDate = ConvertDateTimeInvariant(token["time"]),
+                            OrderDate = token["time"].ToDateTimeInvariant(),
                             Message = token["reason"].ToStringInvariant(),
                             IsBuy = token["side"].ToStringInvariant().Equals("buy"),
                             Price = token["price"].ConvertInvariant<decimal>()
@@ -510,7 +510,7 @@ namespace ExchangeSharp
                 try
                 {
                     //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token["type"].ToStringInvariant() == "ticker")
                     {
                         string symbol = token["product_id"].ToStringInvariant();
@@ -526,7 +526,7 @@ namespace ExchangeSharp
                                 {
                                     ConvertedSymbol = token["product_id"].ToStringInvariant(),
                                     ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
-                                    Timestamp = ConvertDateTimeInvariant(token["time"])
+                                    Timestamp = token["time"].ToDateTimeInvariant()
                                 }
                             })
                         });
@@ -549,7 +549,7 @@ namespace ExchangeSharp
             return new ExchangeTrade()
             {
                 Id = token["trade_id"].ConvertInvariant<long>(),
-                Timestamp = ConvertDateTimeInvariant(token["time"]),
+                Timestamp = token["time"].ToDateTimeInvariant(),
                 Amount = token["size"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
                 IsBuy = token["buy"].ToStringLowerInvariant().Equals("buy")

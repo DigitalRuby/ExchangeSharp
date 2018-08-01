@@ -214,7 +214,7 @@ namespace ExchangeSharp
                  */
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     token = token[0];
                     var channel = token["channel"].ToStringInvariant();
                     if (channel.EqualsWithOption("addChannel"))
@@ -302,7 +302,7 @@ namespace ExchangeSharp
                  */
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     token = token[0];
                     var channel = token["channel"].ToStringInvariant();
                     if (channel.EqualsWithOption("addChannel"))

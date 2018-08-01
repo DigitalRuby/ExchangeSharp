@@ -57,7 +57,7 @@ namespace ExchangeSharp
                 FeesCurrency = symbol.Substring(0, symbol.IndexOf('-')),
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
-                OrderDate = ConvertDateTimeInvariant(result["created_at"]),
+                OrderDate = result["created_at"].ToDateTimeInvariant(),
                 Symbol = symbol,
                 OrderId = result["id"].ToStringInvariant()
             };
@@ -190,7 +190,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, string> ticker = await MakeJsonRequestAsync<Dictionary<string, string>>("/products/" + symbol + "/ticker");
             decimal volume = Convert.ToDecimal(ticker["volume"], System.Globalization.CultureInfo.InvariantCulture);
-            DateTime timestamp = ConvertDateTimeInvariant(ticker["time"]);
+            DateTime timestamp = ticker["time"].ToDateTimeInvariant();
             decimal price = Convert.ToDecimal(ticker["price"], System.Globalization.CultureInfo.InvariantCulture);
             return new ExchangeTicker
             {
@@ -246,7 +246,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    string message = msg.UTF8String();
+                    string message = msg.ToStringFromUTF8();
                     var book = new ExchangeOrderBook();
 
                     // string comparison on the json text for faster deserialization
@@ -323,7 +323,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token["type"].ToStringInvariant() != "ticker") return;
                     ExchangeTicker ticker = ParseTickerWebSocket(token);
                     callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
@@ -404,7 +404,7 @@ namespace ExchangeSharp
                         Id = token["trade_id"].ConvertInvariant<long>(),
                         IsBuy = token["side"].ToStringInvariant() == "buy",
                         Price = token["price"].ConvertInvariant<decimal>(),
-                        Timestamp = ConvertDateTimeInvariant(token["time"])
+                        Timestamp = token["time"].ToDateTimeInvariant()
                     };
                 },
                 StartDate = startDate,

@@ -491,7 +491,7 @@ namespace ExchangeSharp
             else
             {
                 rsa = new RSACryptoServiceProvider(4096);
-                byte[] xmlBytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(RSAKeyExtensions.ToXmlString(rsa, true));
+                byte[] xmlBytes = RSAKeyExtensions.ToXmlString(rsa, true).ToBytesUTF8();
                 xmlBytes = CryptoUtility.AesEncryption(xmlBytes, esp, esl);
                 File.WriteAllBytes(xmlFile, xmlBytes);
             }

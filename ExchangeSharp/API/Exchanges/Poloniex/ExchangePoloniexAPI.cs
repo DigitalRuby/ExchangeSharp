@@ -110,7 +110,7 @@ namespace ExchangeSharp
             {
                 Amount = result["startingAmount"].ConvertInvariant<decimal>(),
                 IsBuy = result["type"].ToStringLowerInvariant() != "sell",
-                OrderDate = ConvertDateTimeInvariant(result["date"]),
+                OrderDate = result["date"].ToDateTimeInvariant(),
                 OrderId = result["orderNumber"].ToStringInvariant(),
                 Price = result["rate"].ConvertInvariant<decimal>(),
                 Result = ExchangeAPIOrderResult.Pending,
@@ -159,7 +159,7 @@ namespace ExchangeSharp
 
                 if (order.OrderDate == DateTime.MinValue)
                 {
-                    order.OrderDate = ConvertDateTimeInvariant(trade["date"]);
+                    order.OrderDate = trade["date"].ToDateTimeInvariant();
                 }
 
                 // fee is a percentage taken from the traded amount rounded to 8 decimals
@@ -198,7 +198,7 @@ namespace ExchangeSharp
 
                 if (closePosition.CloseDate == DateTime.MinValue)
                 {
-                    closePosition.CloseDate = ConvertDateTimeInvariant(trade["date"]);
+                    closePosition.CloseDate = trade["date"].ToDateTimeInvariant();
                 }
 
                 // fee is a percentage taken from the traded amount rounded to 8 decimals
@@ -420,7 +420,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token[0].ConvertInvariant<int>() == 1002)
                     {
                         if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array && array.Count > 9 &&
@@ -460,7 +460,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     int msgId = token[0].ConvertInvariant<int>();
 
                     //return if this is a heartbeat message
@@ -586,7 +586,7 @@ namespace ExchangeSharp
                     {
                         Amount = token["amount"].ConvertInvariant<decimal>(),
                         Price = token["rate"].ConvertInvariant<decimal>(),
-                        Timestamp = ConvertDateTimeInvariant(token["date"]),
+                        Timestamp = token["date"].ToDateTimeInvariant(),
                         Id = token["globalTradeID"].ConvertInvariant<long>(),
                         IsBuy = token["type"].ToStringInvariant() == "buy"
                     };

@@ -212,8 +212,8 @@ namespace ExchangeSharp
                 using (SHA256 sha256 = SHA256Managed.Create())
                 {
                     string hashString = nonce + form;
-                    byte[] sha256Bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(hashString));
-                    byte[] pathBytes = Encoding.UTF8.GetBytes(request.RequestUri.AbsolutePath);
+                    byte[] sha256Bytes = sha256.ComputeHash(hashString.ToBytesUTF8());
+                    byte[] pathBytes = request.RequestUri.AbsolutePath.ToBytesUTF8();
                     byte[] sigBytes = new byte[sha256Bytes.Length + pathBytes.Length];
                     pathBytes.CopyTo(sigBytes, 0);
                     sha256Bytes.CopyTo(sigBytes, pathBytes.Length);

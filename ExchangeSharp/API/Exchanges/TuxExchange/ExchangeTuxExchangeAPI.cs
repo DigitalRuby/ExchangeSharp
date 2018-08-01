@@ -49,13 +49,13 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
 
                 var msg = CryptoUtility.GetFormForPayload(payload) + "&nonce=" + nonce;
-                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytes(PrivateApiKey)).ToLower();
+                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytesUTF8(PrivateApiKey)).ToLower();
                 request.Headers.Add("Sign", sig);
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
 
                 using (Stream stream = await request.GetRequestStreamAsync())
                 {
-                    byte[] content = Encoding.UTF8.GetBytes(msg);
+                    byte[] content = msg.ToBytesUTF8();
                     stream.Write(content, 0, content.Length);
                 }
             }
@@ -182,7 +182,7 @@ namespace ExchangeSharp
             {
                 trades.Add(new ExchangeTrade()
                 {
-                    Timestamp = ConvertDateTimeInvariant(trade["date"]),
+                    Timestamp = trade["date"].ToDateTimeInvariant(),
                     Id = trade["tradeid"].ConvertInvariant<long>(),
                     IsBuy = trade["type"].ToStringInvariant().Equals("buy"),
                     Amount = trade["amount"].ConvertInvariant<decimal>(),
@@ -206,7 +206,7 @@ namespace ExchangeSharp
             {
                 trades.Add(new ExchangeTrade()
                 {
-                    Timestamp = ConvertDateTimeInvariant(trade["date"]),
+                    Timestamp = trade["date"].ToDateTimeInvariant(),
                     Id = trade["tradeid"].ConvertInvariant<long>(),
                     IsBuy = trade["type"].ToStringInvariant().Equals("buy"),
                     Amount = trade["amount"].ConvertInvariant<decimal>(),
@@ -369,7 +369,7 @@ namespace ExchangeSharp
                 if (deposit["symbol"].ToStringInvariant().Equals(symbol)) deposits.Add(new ExchangeTransaction()
                 {
                     Symbol = symbol,
-                    Timestamp = ConvertDateTimeInvariant(deposit["date"]),
+                    Timestamp = deposit["date"].ToDateTimeInvariant(),
                     Address = deposit["coin"].ToStringInvariant(),
                     BlockchainTxId = deposit["txid"].ToStringInvariant(),
                     Amount = deposit["amount"].ConvertInvariant<decimal>(),

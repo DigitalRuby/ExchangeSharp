@@ -94,26 +94,6 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convenience method to get utf-8 string from bytes
-        /// </summary>
-        /// <param name="bytes">Bytes</param>
-        /// <returns>UTF-8 string or empty string if bytes is null or empty</returns>
-        public static string UTF8String(this byte[] bytes)
-        {
-            return (bytes == null ? string.Empty : Encoding.UTF8.GetString(bytes));
-        }
-
-        /// <summary>
-        /// Convenience method to get utf-8 string from gzipped bytes
-        /// </summary>
-        /// <param name="bytes">Gzipped bytes</param>
-        /// <returns>UTF-8 string or empty string if bytes is null or empty</returns>
-        public static string UTF8StringFromGzip(this byte[] bytes)
-        {
-            return (bytes == null ? string.Empty : Encoding.UTF8.GetString(DecompressGzip(bytes)));
-        }
-
-        /// <summary>
         /// Decompress gzip bytes
         /// </summary>
         /// <param name="bytes">Bytes that are gzipped</param>
@@ -137,10 +117,9 @@ namespace ExchangeSharp
         /// Convert a DateTime and set the kind using the DateTimeKind property.
         /// </summary>
         /// <param name="obj">Object to convert</param>
-        /// <param name="isLocalDateTime">True if the obj has a date time that is a local date time, false if it is UTC</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
         /// <returns>DateTime with DateTimeKind kind or defaultValue if no conversion possible</returns>
-        public static DateTime ToDateTimeInvariant(this object obj, bool isLocalDateTime = false, DateTime defaultValue = default)
+        public static DateTime ToDateTimeInvariant(this object obj, DateTime defaultValue = default)
         {
             if (obj == null)
             {
@@ -152,15 +131,7 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-            if (isLocalDateTime)
-            {
-                dt = DateTime.SpecifyKind(dt, DateTimeKind.Local);
-                dt = dt.ToUniversalTime();
-            }
-            else
-            {
-                dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-            }
+            dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
             return dt;
         }
 
@@ -237,16 +208,13 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
-        public static byte[] ToBytes(this SecureString s)
+        public static byte[] ToBytesUTF8(this SecureString s)
         {
             if (s == null)
             {
                 return null;
             }
-            string unsecure = ToUnsecureString(s);
-            byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(unsecure);
-            unsecure = null;
-            return bytes;
+            return ToUnsecureString(s).ToBytesUTF8();
         }
 
         /// <summary>
@@ -260,10 +228,7 @@ namespace ExchangeSharp
             {
                 return null;
             }
-            string unsecure = ToUnsecureString(s);
-            byte[] bytes = Convert.FromBase64String(unsecure);
-            unsecure = null;
-            return bytes;
+            return Convert.FromBase64String(ToUnsecureString(s));
         }
 
         /// <summary>
@@ -283,6 +248,48 @@ namespace ExchangeSharp
                 secure.AppendChar(c);
             }
             return secure;
+        }
+
+        /// <summary>
+        /// Get utf-8 bytes from a string
+        /// </summary>
+        /// <param name="s">String</param>
+        /// <returns>UTF8 bytes or null if s is null</returns>
+        public static byte[] ToBytesUTF8(this string s)
+        {
+            if (s == null)
+            {
+                return null;
+            }
+            return utf8EncodingNoPrefix.GetBytes(s);
+        }
+
+        /// <summary>
+        /// Convert utf-8 bytes to a string
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns>UTF-8 string or null if bytes is null</returns>
+        public static string ToStringFromUTF8(this byte[] bytes)
+        {
+            if (bytes == null)
+            {
+                return null;
+            }
+            return utf8EncodingNoPrefix.GetString(bytes);
+        }
+
+        /// <summary>
+        /// Convert gzipped utf-8 bytes to a string
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns>UTF-8 string or null if bytes is null</returns>
+        public static string ToStringFromUTF8Gzip(this byte[] bytes)
+        {
+            if (bytes == null)
+            {
+                return null;
+            }
+            return DecompressGzip(bytes).ToStringFromUTF8();
         }
 
         /// <summary>
@@ -412,7 +419,7 @@ namespace ExchangeSharp
         /// <returns>Full authorization header text</returns>
         public static string BasicAuthenticationString(string userName, string password)
         {
-            return "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(userName + ":" + password));
+            return "Basic " + Convert.ToBase64String((userName + ":" + password).ToBytesUTF8());
         }
 
         /// <summary>
@@ -439,7 +446,7 @@ namespace ExchangeSharp
         {
             if (!string.IsNullOrEmpty(form))
             {
-                byte[] bytes = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(form);
+                byte[] bytes = form.ToBytesUTF8();
                 request.ContentLength = bytes.Length;
                 using (Stream stream = await request.GetRequestStreamAsync())
                 {
@@ -564,7 +571,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, string key)
         {
-            return new HMACSHA256(Encoding.UTF8.GetBytes(key)).ComputeHash(Encoding.UTF8.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA256(key.ToBytesUTF8()).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -575,7 +582,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, byte[] key)
         {
-            return new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA256(key).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -586,7 +593,7 @@ namespace ExchangeSharp
         /// <returns>Signature in base64</returns>
         public static string SHA256SignBase64(string message, byte[] key)
         {
-            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(message.ToBytesUTF8()));
         }
 
         /// <summary>
@@ -597,7 +604,7 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA384Sign(string message, string key)
         {
-            return new HMACSHA384(utf8EncodingNoPrefix.GetBytes(key)).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(key.ToBytesUTF8()).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -608,7 +615,7 @@ namespace ExchangeSharp
         /// <returns>Signature</returns>
         public static string SHA384Sign(string message, byte[] key)
         {
-            return new HMACSHA384(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(key).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
         /// <summary>
@@ -619,7 +626,7 @@ namespace ExchangeSharp
         /// <returns>Signature in base64</returns>
         public static string SHA384SignBase64(string message, byte[] key)
         {
-            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
+            return Convert.ToBase64String(new HMACSHA384(key).ComputeHash(message.ToBytesUTF8()));
         }
 
         /// <summary>
@@ -630,8 +637,8 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-            var hmac = new HMACSHA512(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(key));
-            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
+            var hmac = new HMACSHA512(key.ToBytesUTF8());
+            var messagebyte = message.ToBytesUTF8();
             var hashmessage = hmac.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
@@ -645,7 +652,7 @@ namespace ExchangeSharp
         public static string SHA512Sign(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
-            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
+            var messagebyte = message.ToBytesUTF8();
             var hashmessage = hmac.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }
@@ -659,7 +666,7 @@ namespace ExchangeSharp
         public static string SHA512SignBase64(string message, byte[] key)
         {
             var hmac = new HMACSHA512(key);
-            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
+            var messagebyte = message.ToBytesUTF8();
             var hashmessage = hmac.ComputeHash(messagebyte);
             return Convert.ToBase64String(hashmessage);
         }
@@ -672,7 +679,7 @@ namespace ExchangeSharp
         public static string MD5Sign(string message)
         {
             var md5 = new MD5CryptoServiceProvider();
-            var messagebyte = CryptoUtility.UTF8EncodingNoPrefix.GetBytes(message);
+            var messagebyte = message.ToBytesUTF8();
             var hashmessage = md5.ComputeHash(messagebyte);
             return BitConverter.ToString(hashmessage).Replace("-", "");
         }

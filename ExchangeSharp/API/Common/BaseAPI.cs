@@ -175,11 +175,6 @@ namespace ExchangeSharp
         public System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
 
         /// <summary>
-        /// Whether the DateTime values from the api are in local time. Most API use UTC, but there are some (Poloniex) that return local DateTime for some odd reason.
-        /// </summary>
-        public bool DateTimeAreLocal { get; set; }
-
-        /// <summary>
         /// Fast in memory cache
         /// </summary>
         protected MemoryCache Cache { get; } = new MemoryCache();
@@ -559,16 +554,6 @@ namespace ExchangeSharp
         /// Derived classes can override to get a nonce offset from the API itself
         /// </summary>
         protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }        
-
-        /// <summary>
-        /// Convert a DateTime and set the kind using the DateTimeKind property.
-        /// </summary>
-        /// <param name="obj">Object to convert</param>
-        /// <returns>DateTime with DateTimeKind kind or defaultValue if no conversion possible</returns>
-        protected DateTime ConvertDateTimeInvariant(object obj, DateTime defaultValue = default)
-        {
-            return obj.ToDateTimeInvariant(DateTimeAreLocal, defaultValue);
-        }
 
         async Task IAPIRequestHandler.ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {

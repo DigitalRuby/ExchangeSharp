@@ -261,7 +261,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
                     ExchangeTicker ticker;
                     foreach (JToken childToken in token["data"])
@@ -308,7 +308,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     string name = token["stream"].ToStringInvariant();
                     token = token["data"];
                     string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
@@ -343,7 +343,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    string json = msg.UTF8String();
+                    string json = msg.ToStringFromUTF8();
                     var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
                     string symbol = update.Data.Symbol;
                     ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
@@ -985,7 +985,7 @@ namespace ExchangeSharp
                 var query = HttpUtility.ParseQueryString(url.Query);
                 string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
                     (payload.Count > 1 ? "&" + CryptoUtility.GetFormForPayload(payload, false) : string.Empty);
-                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToBytes(PrivateApiKey));
+                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToBytesUTF8(PrivateApiKey));
                 newQuery += "&signature=" + signature;
                 url.Query = newQuery;
                 return url.Uri;

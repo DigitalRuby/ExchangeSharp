@@ -109,7 +109,7 @@ namespace ExchangeSharp
                     .Append(url.Path).Append("\n")
                     .Append(msg);
 
-                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
+                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytesUTF8());
                 var signUrl = Uri.EscapeDataString(sign);
                 msg += $"&Signature={signUrl}";
 
@@ -266,7 +266,7 @@ namespace ExchangeSharp
                  */
                 try
                 {
-                    var str = msg.UTF8StringFromGzip();
+                    var str = msg.ToStringFromUTF8Gzip();
                     JToken token = JToken.Parse(str);
 
                     if (token["status"] != null)
@@ -364,7 +364,7 @@ namespace ExchangeSharp
                  */
                 try
                 {
-                    var str = msg.UTF8StringFromGzip();
+                    var str = msg.ToStringFromUTF8Gzip();
                     JToken token = JToken.Parse(str);
 
                     if (token["status"] != null)
@@ -927,7 +927,7 @@ namespace ExchangeSharp
         {
             var privateSignedData = string.Empty;
 
-#if NET471
+#if NET472
             // net core not support this
             try
             {
@@ -939,7 +939,7 @@ namespace ExchangeSharp
                     HashAlgorithm = CngAlgorithm.Sha256
                 };
 
-                byte[] signDataBytes = Encoding.UTF8.GetBytes(signData);
+                byte[] signDataBytes = signData.ToBytes();
                 privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
             }
             catch (CryptographicException e)
@@ -959,7 +959,7 @@ namespace ExchangeSharp
             //ecParameters.Q = null;
             //ecDsa.ImportParameters(ecParameters);
 
-            //byte[] signDataBytes = Encoding.UTF8.GetBytes(signData);
+            //byte[] signDataBytes = signData.ToBytes();
             //privateSignedData = Convert.ToBase64String(ecDsa.SignData(signDataBytes, HashAlgorithmName.SHA256));
         }
     }

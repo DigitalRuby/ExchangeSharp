@@ -200,7 +200,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token is JArray array)
                     {
                         if (array.Count > 10)
@@ -448,7 +448,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
                     {
                         foreach (JToken orderToken in array[2])
@@ -656,7 +656,7 @@ namespace ExchangeSharp
                     // bitfinex v1 doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
                     payload.Add("request", request.RequestUri.AbsolutePath);
                     string json = JsonConvert.SerializeObject(payload);
-                    string json64 = System.Convert.ToBase64String(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(json));
+                    string json64 = System.Convert.ToBase64String(json.ToBytesUTF8());
                     string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
                     request.Headers["X-BFX-PAYLOAD"] = json64;
                     request.Headers["X-BFX-SIGNATURE"] = hexSha384;

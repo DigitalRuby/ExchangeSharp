@@ -100,7 +100,7 @@ namespace ExchangeSharp
             {
                 order.Result = ExchangeAPIOrderResult.FilledPartially;
             }
-            order.OrderDate = ConvertDateTimeInvariant(token["Opened"], ConvertDateTimeInvariant(token["TimeStamp"]));
+            order.OrderDate = token["Opened"].ToDateTimeInvariant(token["TimeStamp"].ToDateTimeInvariant());
             order.Symbol = token["Exchange"].ToStringInvariant();
             order.Fees = token["Commission"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
 
@@ -224,7 +224,7 @@ namespace ExchangeSharp
                         BaseSymbol = symbol,
                         ConvertedVolume = ticker["BaseVolume"].ConvertInvariant<decimal>(),
                         ConvertedSymbol = symbol,
-                        Timestamp = ConvertDateTimeInvariant(ticker["TimeStamp"])
+                        Timestamp = ticker["TimeStamp"].ToDateTimeInvariant()
                     }
                 };
             }
@@ -250,7 +250,7 @@ namespace ExchangeSharp
                         BaseSymbol = symbol,
                         ConvertedVolume = ticker["Volume"].ConvertInvariant<decimal>(),
                         ConvertedSymbol = symbol,
-                        Timestamp = ConvertDateTimeInvariant(ticker["TimeStamp"])
+                        Timestamp = ticker["TimeStamp"].ToDateTimeInvariant()
                     }
                 };
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
@@ -318,7 +318,7 @@ namespace ExchangeSharp
                 }
                 if (startDate != null)
                 {
-                    startDate = ConvertDateTimeInvariant(array.Last["T"]);
+                    startDate = array.Last["T"].ToDateTimeInvariant();
                 }
                 foreach (JToken trade in array)
                 {
@@ -327,7 +327,7 @@ namespace ExchangeSharp
                     {
                         Amount = trade["V"].ConvertInvariant<decimal>(),
                         Price = trade["C"].ConvertInvariant<decimal>(),
-                        Timestamp = ConvertDateTimeInvariant(trade["T"]),
+                        Timestamp = trade["T"].ToDateTimeInvariant(),
                         Id = -1,
                         IsBuy = true
                     });
@@ -359,7 +359,7 @@ namespace ExchangeSharp
                     Amount = token["Quantity"].ConvertInvariant<decimal>(),
                     IsBuy = token["OrderType"].ToStringUpperInvariant() == "BUY",
                     Price = token["Price"].ConvertInvariant<decimal>(),
-                    Timestamp = ConvertDateTimeInvariant(token["TimeStamp"]),
+                    Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
                     Id = token["Id"].ConvertInvariant<long>()
                 });
             }
@@ -415,7 +415,7 @@ namespace ExchangeSharp
                         Name = symbol,
                         OpenPrice = jsonCandle["O"].ConvertInvariant<decimal>(),
                         PeriodSeconds = periodSeconds,
-                        Timestamp = ConvertDateTimeInvariant(jsonCandle["T"]),
+                        Timestamp = jsonCandle["T"].ToDateTimeInvariant(),
                         BaseVolume = jsonCandle["BV"].ConvertInvariant<double>(),
                         ConvertedVolume = jsonCandle["V"].ConvertInvariant<double>()
                     };

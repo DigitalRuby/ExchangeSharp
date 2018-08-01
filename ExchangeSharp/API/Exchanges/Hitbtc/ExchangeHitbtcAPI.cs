@@ -166,7 +166,7 @@ namespace ExchangeSharp
                 {
                     ExchangeName = this.Name,
                     Name = symbol,
-                    Timestamp = ConvertDateTimeInvariant(token["timestamp"]),
+                    Timestamp = token["timestamp"].ToDateTimeInvariant(),
                     OpenPrice = token["open"].ConvertInvariant<decimal>(),
                     ClosePrice = token["close"].ConvertInvariant<decimal>(),
                     LowPrice = token["min"].ConvertInvariant<decimal>(),
@@ -328,7 +328,7 @@ namespace ExchangeSharp
             {
                 OrderId = token["clientOrderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant(),
-                OrderDate = ConvertDateTimeInvariant(token["createdAt"]),
+                OrderDate = token["createdAt"].ToDateTimeInvariant(),
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
                 AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>()
@@ -421,7 +421,7 @@ namespace ExchangeSharp
                             Amount = token["amount"].ConvertInvariant<decimal>(),
                             Notes = token["type"].ToStringInvariant(),                    // since no notes are returned, we'll use this to show the transaction type
                             TxFee = token["fee"].ConvertInvariant<decimal>(),
-                            Timestamp = ConvertDateTimeInvariant(token["createdAt"])
+                            Timestamp = token["createdAt"].ToDateTimeInvariant()
                         };
 
                         string status = token["status"].ToStringInvariant();
@@ -507,7 +507,7 @@ namespace ExchangeSharp
                 Last = token["last"].ConvertInvariant<decimal>(),
                 Volume = new ExchangeVolume()
                 {
-                    Timestamp = ConvertDateTimeInvariant(token["timestamp"]),
+                    Timestamp = token["timestamp"].ToDateTimeInvariant(),
                     BaseVolume = token["volumeQuote"].ConvertInvariant<decimal>(),
                     ConvertedVolume = token["volume"].ConvertInvariant<decimal>()
                 }
@@ -520,7 +520,7 @@ namespace ExchangeSharp
             return new ExchangeTrade()
             {
                 Id = token["id"].ConvertInvariant<long>(),
-                Timestamp = ConvertDateTimeInvariant(token["timestamp"]),
+                Timestamp = token["timestamp"].ToDateTimeInvariant(),
                 Price = token["price"].ConvertInvariant<decimal>(),
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
                 IsBuy = token["side"].ToStringInvariant().Equals("buy")
@@ -539,7 +539,7 @@ namespace ExchangeSharp
                 AmountFilled = token["quantity"].ConvertInvariant<decimal>(), // these are closed, so I guess the filled quantity matches the order quantiity
                 Price = token["price"].ConvertInvariant<decimal>(),
                 Fees = token["fee"].ConvertInvariant<decimal>(),
-                OrderDate = ConvertDateTimeInvariant(token["timestamp"]),
+                OrderDate = token["timestamp"].ToDateTimeInvariant(),
                 Result = ExchangeAPIOrderResult.Filled
             };
         }
@@ -555,7 +555,7 @@ namespace ExchangeSharp
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
                 AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
-                OrderDate = ConvertDateTimeInvariant(token["createdAt"]),
+                OrderDate = token["createdAt"].ToDateTimeInvariant(),
                 Message = string.Format("OrderType: {0}, TimeInForce: {1}", token["type"].ToStringInvariant(), token["timeInForce"].ToStringInvariant())   // A bit arbitrary, but this will show the ordertype and timeinforce
             };
             // new, suspended, partiallyFilled, filled, canceled, expired

@@ -58,7 +58,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
                 var msg = CryptoUtility.GetJsonForPayload(payload);
                 var sign = $"{request.Method}{request.RequestUri.AbsolutePath}{request.RequestUri.Query}{nonce}{msg}";
-                string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytes(PrivateApiKey));
+                string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytesUTF8(PrivateApiKey));
 
                 request.Headers["api-nonce"] = nonce.ToStringInvariant();
                 request.Headers["api-key"] = PublicApiKey.ToUnsecureString();
@@ -233,7 +233,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    var str = msg.UTF8String();
+                    var str = msg.ToStringFromUTF8();
                     JToken token = JToken.Parse(str);
 
                     if (token["table"] == null)
@@ -290,7 +290,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    var str = msg.UTF8String();
+                    var str = msg.ToStringFromUTF8();
                     JToken token = JToken.Parse(str);
 
                     if (token["table"] == null)
