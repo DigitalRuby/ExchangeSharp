@@ -73,9 +73,14 @@ namespace ExchangeSharp
         UnixSecondsString,
 
         /// <summary>
+        /// Persist nonce to counter and file for the API key, once it hits int.MaxValue, it is useless
+        /// </summary>
+        Int32File,
+
+        /// <summary>
         /// Persist nonce to counter and file for the API key, once it hits long.MaxValue, it is useless
         /// </summary>
-        IntegerFile
+        Int64File
     }
 
     /// <summary>
@@ -297,9 +302,11 @@ namespace ExchangeSharp
                             nonce = now.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
                             break;
 
-                        case NonceStyle.IntegerFile:
+                        case NonceStyle.Int32File:
+                        case NonceStyle.Int64File:
                         {
                             // why an API would use a persistent incrementing counter for nonce is beyond me, ticks is so much better with a sliding window...
+                            // making it required to increment by 1 is also a pain - especially when restarting a process or rebooting.
                             string tempFile = Path.Combine(Path.GetTempPath(), PublicApiKey.ToUnsecureString() + ".nonce");
                             if (!File.Exists(tempFile))
                             {
@@ -308,10 +315,11 @@ namespace ExchangeSharp
                             unchecked
                             {
                                 long longNonce = long.Parse(File.ReadAllText(tempFile), CultureInfo.InvariantCulture) + 1;
-                                if (longNonce < 1)
+                                long maxValue = (NonceStyle == NonceStyle.Int32File ? int.MaxValue : long.MaxValue);
+                                if (longNonce < 1 || longNonce > maxValue)
                                 {
-                                    throw new APIException("Nonce is out of bounds of a signed 64 bit integer (1 - " + long.MaxValue.ToStringInvariant() +
-                                        "), please regenerate new API keys. Please contact the API support and ask them to change this horrible nonce behavior.");
+                                    throw new APIException($"Nonce {longNonce.ToStringInvariant()} is out of bounds, valid ranges are 1 to {maxValue.ToStringInvariant()}, " +
+                                        $"please regenerate new API keys. Please contact {Name} API support and ask them to change to a sensible nonce algorithm.");
                                 }
                                 File.WriteAllText(tempFile, longNonce.ToStringInvariant());
                                 nonce = longNonce;

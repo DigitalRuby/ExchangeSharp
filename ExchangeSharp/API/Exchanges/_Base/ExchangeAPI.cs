@@ -333,6 +333,7 @@ namespace ExchangeSharp
 
         /// <summary>
         /// List of exchange to global currency conversions. Exchange currency is key, global currency is value.
+        /// Exchange classes can add entries for their type in their static constructor.
         /// </summary>
         protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
 
