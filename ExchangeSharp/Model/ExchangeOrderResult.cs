@@ -75,7 +75,7 @@ namespace ExchangeSharp
             FeesCurrency = other.FeesCurrency;
             AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
             OrderId = other.OrderId;
-            OrderDate = OrderDate == default(DateTime) ? other.OrderDate : OrderDate;
+            OrderDate = OrderDate == default ? other.OrderDate : OrderDate;
             Symbol = other.Symbol;
             IsBuy = other.IsBuy;
         }
