@@ -12,96 +12,187 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Binance
 {
+    using Newtonsoft.Json;
+
     public class Currency
     {
-        public string id { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
 
-        public string assetCode { get; set; }
+        [JsonProperty("assetCode")]
 
-        public string assetName { get; set; }
+        public string AssetCode { get; set; }
 
-        public string unit { get; set; }
+        [JsonProperty("assetName")]
 
-        public decimal transactionFee { get; set; }
+        public string AssetName { get; set; }
 
-        public int commissionRate { get; set; }
+        [JsonProperty("unit")]
 
-        public int freeAuditWithdrawAmt { get; set; }
+        public string Unit { get; set; }
 
-        public long freeUserChargeAmount { get; set; }
+        [JsonProperty("transactionFee")]
 
-        public string minProductWithdraw { get; set; }
+        public decimal TransactionFee { get; set; }
 
-        public string withdrawIntegerMultiple { get; set; }
+        [JsonProperty("commissionRate")]
 
-        public string confirmTimes { get; set; }
+        public int CommissionRate { get; set; }
 
-        public string chargeLockConfirmTimes { get; set; }
+        [JsonProperty("freeAuditWithdrawAmt")]
 
-        public string url { get; set; }
+        public int FreeAuditWithdrawAmt { get; set; }
 
-        public string addressUrl { get; set; }
+        [JsonProperty("freeUserChargeAmount")]
 
-        public string blockUrl { get; set; }
+        public long FreeUserChargeAmount { get; set; }
 
-        public bool enableCharge { get; set; }
+        [JsonProperty("minProductWithdraw")]
 
-        public bool enableWithdraw { get; set; }
+        public string MinProductWithdraw { get; set; }
 
-        public string regEx { get; set; }
+        [JsonProperty("withdrawIntegerMultiple")]
 
-        public string regExTag { get; set; }
+        public string WithdrawIntegerMultiple { get; set; }
 
-        public int gas { get; set; }
+        [JsonProperty("confirmTimes")]
 
-        public string parentCode { get; set; }
+        public string ConfirmTimes { get; set; }
 
-        public bool isLegalMoney { get; set; }
+        [JsonProperty("chargeLockConfirmTimes")]
 
-        public int reconciliationAmount { get; set; }
+        public string ChargeLockConfirmTimes { get; set; }
 
-        public string seqNum { get; set; }
+        [JsonProperty("url")]
 
-        public string chineseName { get; set; }
+        public string Url { get; set; }
 
-        public string cnLink { get; set; }
+        [JsonProperty("addressUrl")]
 
-        public string enLink { get; set; }
+        public string AddressUrl { get; set; }
 
-        public string logoUrl { get; set; }
+        [JsonProperty("blockUrl")]
 
-        public string fullLogoUrl { get; set; }
+        public string BlockUrl { get; set; }
 
-        public bool forceStatus { get; set; }
+        [JsonProperty("enableCharge")]
 
-        public bool resetAddressStatus { get; set; }
+        public bool EnableCharge { get; set; }
 
-        public object chargeDescCn { get; set; }
+        [JsonProperty("enableWithdraw")]
 
-        public object chargeDescEn { get; set; }
+        public bool EnableWithdraw { get; set; }
 
-        public object assetLabel { get; set; }
+        [JsonProperty("regEx")]
 
-        public bool sameAddress { get; set; }
+        public string RegEx { get; set; }
 
-        public bool depositTipStatus { get; set; }
+        [JsonProperty("regExTag")]
 
-        public bool dynamicFeeStatus { get; set; }
+        public string RegExTag { get; set; }
 
-        public object depositTipEn { get; set; }
+        [JsonProperty("gas")]
 
-        public object depositTipCn { get; set; }
+        public int Gas { get; set; }
 
-        public object assetLabelEn { get; set; }
+        [JsonProperty("parentCode")]
 
-        public object supportMarket { get; set; }
+        public string ParentCode { get; set; }
 
-        public string feeReferenceAsset { get; set; }
+        [JsonProperty("isLegalMoney")]
 
-        public decimal? feeRate { get; set; }
+        public bool IsLegalMoney { get; set; }
 
-        public int? feeDigit { get; set; }
+        [JsonProperty("reconciliationAmount")]
 
-        public bool legalMoney { get; set; }
+        public int ReconciliationAmount { get; set; }
+
+        [JsonProperty("seqNum")]
+
+        public string SeqNum { get; set; }
+
+        [JsonProperty("chineseName")]
+
+        public string ChineseName { get; set; }
+
+        [JsonProperty("cnLink")]
+
+        public string CnLink { get; set; }
+
+        [JsonProperty("enLink")]
+
+        public string EnLink { get; set; }
+
+        [JsonProperty("logoUrl")]
+
+        public string LogoUrl { get; set; }
+
+        [JsonProperty("fullLogoUrl")]
+
+        public string FullLogoUrl { get; set; }
+
+        [JsonProperty("forceStatus")]
+
+        public bool ForceStatus { get; set; }
+
+        [JsonProperty("resetAddressStatus")]
+
+        public bool ResetAddressStatus { get; set; }
+
+        [JsonProperty("chargeDescCn")]
+
+        public object ChargeDescCn { get; set; }
+
+        [JsonProperty("chargeDescEn")]
+
+        public object ChargeDescEn { get; set; }
+
+        [JsonProperty("assetLabel")]
+
+        public object AssetLabel { get; set; }
+
+        [JsonProperty("sameAddress")]
+
+        public bool SameAddress { get; set; }
+
+        [JsonProperty("depositTipStatus")]
+
+        public bool DepositTipStatus { get; set; }
+
+        [JsonProperty("dynamicFeeStatus")]
+
+        public bool DynamicFeeStatus { get; set; }
+
+        [JsonProperty("depositTipEn")]
+
+        public object DepositTipEn { get; set; }
+
+        [JsonProperty("depositTipCn")]
+
+        public object DepositTipCn { get; set; }
+
+        [JsonProperty("assetLabelEn")]
+
+        public object AssetLabelEn { get; set; }
+
+        [JsonProperty("supportMarket")]
+
+        public object SupportMarket { get; set; }
+
+        [JsonProperty("feeReferenceAsset")]
+
+        public string FeeReferenceAsset { get; set; }
+
+        [JsonProperty("feeRate")]
+
+        public decimal? FeeRate { get; set; }
+
+        [JsonProperty("feeDigit")]
+
+        public int? FeeDigit { get; set; }
+
+        [JsonProperty("legalMoney")]
+
+        public bool LegalMoney { get; set; }
     }
 }

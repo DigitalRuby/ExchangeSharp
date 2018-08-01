@@ -222,15 +222,15 @@ namespace ExchangeSharp
             List<Currency> currencies = await MakeJsonRequestAsync<List<Currency>>(GetCurrenciesUrl, BaseWebUrl);
             foreach (Currency coin in currencies)
             {
-                allCoins[coin.assetCode] = new ExchangeCurrency
+                allCoins[coin.AssetCode] = new ExchangeCurrency
                 {
-                    CoinType = coin.parentCode,
-                    DepositEnabled = coin.enableCharge,
-                    FullName = coin.assetName,
-                    MinConfirmations = coin.confirmTimes.ConvertInvariant<int>(),
-                    Name = coin.assetCode,
-                    TxFee = coin.transactionFee,
-                    WithdrawalEnabled = coin.enableWithdraw
+                    CoinType = coin.ParentCode,
+                    DepositEnabled = coin.EnableCharge,
+                    FullName = coin.AssetName,
+                    MinConfirmations = coin.ConfirmTimes.ConvertInvariant<int>(),
+                    Name = coin.AssetCode,
+                    TxFee = coin.TransactionFee,
+                    WithdrawalEnabled = coin.EnableWithdraw
                 };
             }
 
