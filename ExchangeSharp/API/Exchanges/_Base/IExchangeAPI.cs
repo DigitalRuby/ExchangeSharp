@@ -480,6 +480,13 @@ namespace ExchangeSharp
         IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
 
         /// <summary>
+        /// Get the details of all changed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+
+        /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>

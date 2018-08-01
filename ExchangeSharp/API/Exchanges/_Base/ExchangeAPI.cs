@@ -103,6 +103,7 @@ namespace ExchangeSharp
         protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
+        protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
         protected class HistoricalTradeHelperState
@@ -1218,6 +1219,13 @@ namespace ExchangeSharp
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
         public IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookDeltasWebSocket(callback, maxCount, symbols);
+
+        /// <summary>
+        /// Get the details of all changed orders via web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => OnGetOrderDetailsWebSocket(callback);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
