@@ -16,7 +16,7 @@ namespace ExchangeSharp.Binance
 
     using Newtonsoft.Json;
 
-    public class MarketDepthDiffUpdate
+    internal class MarketDepthDiffUpdate
     {
         [JsonProperty("e")]
         public string EventType { get; set; }

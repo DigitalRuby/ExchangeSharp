@@ -14,7 +14,7 @@ namespace ExchangeSharp.Binance
 {
     using Newtonsoft.Json;
 
-    public class Currency
+    internal class Currency
     {
         [JsonProperty("id")]
         public string Id { get; set; }

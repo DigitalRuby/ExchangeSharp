@@ -14,7 +14,7 @@ namespace ExchangeSharp.Binance
 {
     using Newtonsoft.Json;
 
-    public class MultiDepthStream
+    internal class MultiDepthStream
     {
         [JsonProperty("stream")]
         public string Stream { get; set; }
