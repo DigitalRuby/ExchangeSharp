@@ -27,6 +27,9 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
+    /// <summary>
+    /// Useful extension methods for all sorts of things. Who says a kitchen sink class is bad?
+    /// </summary>
     public static class CryptoUtility
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
