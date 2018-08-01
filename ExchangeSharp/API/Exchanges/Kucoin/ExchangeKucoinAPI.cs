@@ -90,7 +90,8 @@ namespace ExchangeSharp
             {
                 Name = currency["coin"].ToStringInvariant(),
                 FullName = currency["name"].ToStringInvariant(),
-                IsEnabled = currency["enableWithdraw"].ConvertInvariant<bool>() && currency["enableDepost"].ConvertInvariant<bool>(),
+                WithdrawalEnabled = currency["enableWithdraw"].ConvertInvariant<bool>(),
+                DepositEnabled = currency["enableDepost"].ConvertInvariant<bool>(),
                 TxFee = currency["withdrawFeeRate"].ConvertInvariant<decimal>(),
                 MinConfirmations = currency["confirmationCount"].ConvertInvariant<int>(),
             });

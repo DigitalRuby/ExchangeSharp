@@ -61,6 +61,34 @@ namespace ExchangeSharpTests {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to [
+        ///{
+        ///&quot;id&quot;: &quot;10&quot;,
+        ///&quot;assetCode&quot;: &quot;BNB&quot;,
+        ///&quot;assetName&quot;: &quot;Binance Coin&quot;,
+        ///&quot;unit&quot;: &quot;&quot;,
+        ///&quot;transactionFee&quot;: 0.23,
+        ///&quot;commissionRate&quot;: 0,
+        ///&quot;freeAuditWithdrawAmt&quot;: 20000,
+        ///&quot;freeUserChargeAmount&quot;: 10000000,
+        ///&quot;minProductWithdraw&quot;: &quot;0.460000000000000000&quot;,
+        ///&quot;withdrawIntegerMultiple&quot;: &quot;0E-18&quot;,
+        ///&quot;confirmTimes&quot;: &quot;30&quot;,
+        ///&quot;chargeLockConfirmTimes&quot;: null,
+        ///&quot;createTime&quot;: null,
+        ///&quot;test&quot;: 0,
+        ///&quot;url&quot;: &quot;https://etherscan.io/tx/&quot;,
+        ///&quot;addressUrl&quot;: &quot;https://etherscan.io/address/&quot;,
+        ///&quot;blockUrl&quot;: &quot;https://etherscan.io/blocks/&quot;,
+        ///&quot;enableCharge [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string BinanceGetAllAssets {
+            get {
+                return ResourceManager.GetString("BinanceGetAllAssets", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {&quot;BTC_AMP&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:53458743},&quot;BTC_ARDR&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:40603963},&quot;BTC_BCN&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:10872588},&quot;BTC_BCY&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:28184309},&quot;BTC_BLK&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:23874966},&quot;BTC_BTCD&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:25198804},&quot;BTC_BTM&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:20151600},&quot;BTC_BTS&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:67659413},&quot;BTC_BURST&quot;:{ [rest of string wa....
         /// </summary>
         internal static string PoloniexGetSymbolsMetadata1 {

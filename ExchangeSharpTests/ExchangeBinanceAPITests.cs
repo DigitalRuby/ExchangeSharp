@@ -12,7 +12,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharpTests
 {
+    using System.Collections.Generic;
+
     using ExchangeSharp;
+    using ExchangeSharp.Binance;
 
     using FluentAssertions;
 
@@ -20,8 +23,10 @@ namespace ExchangeSharpTests
 
     using Newtonsoft.Json;
 
+    using NSubstitute;
+
     [TestClass]
-    public class BinanceMarketDepthDiffTests
+    public class ExchangeBinanceAPITests
     {
         [TestMethod]
         public void DeserializeDiff()
@@ -47,7 +52,7 @@ namespace ExchangeSharpTests
     ]
   ]
 }";
-            var diff = JsonConvert.DeserializeObject<ExchangeBinanceAPI.BinanceMarketDepthDiffUpdate>(toParse);
+            var diff = JsonConvert.DeserializeObject<MarketDepthDiffUpdate>(toParse);
             ValidateDiff(diff);
         }
 
@@ -77,7 +82,7 @@ namespace ExchangeSharpTests
 	}
 }";
 
-            var multistream = JsonConvert.DeserializeObject<ExchangeBinanceAPI.BinanceMultiDepthStream>(toParse);
+            var multistream = JsonConvert.DeserializeObject<MultiDepthStream>(toParse);
             multistream.Stream.Should().Be("bnbbtc@depth");
             ValidateDiff(multistream.Data);
         }
@@ -85,12 +90,42 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void DeserializeRealData()
         {
-            string real = "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
-            var diff = JsonConvert.DeserializeObject<ExchangeBinanceAPI.BinanceMultiDepthStream>(real);
+            string real =
+                "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
+            var diff = JsonConvert.DeserializeObject<MultiDepthStream>(real);
             diff.Data.EventTime.Should().Be(1527540113575);
         }
 
-        private static void ValidateDiff(ExchangeBinanceAPI.BinanceMarketDepthDiffUpdate diff)
+        [TestMethod]
+        public void CurrenciesParsedCorrectly()
+        {
+            var requestMaker = Substitute.For<IAPIRequestMaker>();
+            requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, ExchangeBinanceAPI.BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
+            var binance = new ExchangeBinanceAPI { RequestMaker = requestMaker };
+            IReadOnlyDictionary<string, ExchangeCurrency> currencies = binance.GetCurrencies();
+            currencies.Should().HaveCount(3);
+            currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
+            bnb.DepositEnabled.Should().BeFalse();
+            bnb.WithdrawalEnabled.Should().BeTrue();
+            bnb.MinConfirmations.Should().Be(30);
+            bnb.FullName.Should().Be("Binance Coin");
+            bnb.Name.Should().Be("BNB");
+            bnb.TxFee.Should().Be(0.23m);
+            bnb.CoinType.Should().Be("ETH");
+
+            bnb.BaseAddress.Should().BeNullOrEmpty("api does not provide this info");
+
+            currencies.TryGetValue("NEO", out ExchangeCurrency neo).Should().BeTrue();
+            neo.Name.Should().Be("NEO");
+            neo.FullName.Should().Be("NEO");
+            neo.DepositEnabled.Should().BeTrue();
+            neo.WithdrawalEnabled.Should().BeFalse();
+            neo.TxFee.Should().Be(0);
+            neo.MinConfirmations.Should().Be(5);
+            neo.CoinType.Should().Be("NEO");
+        }
+
+        private static void ValidateDiff(MarketDepthDiffUpdate diff)
         {
             diff.EventType.Should().Be("depthUpdate");
             diff.EventTime.Should().Be(123456789);

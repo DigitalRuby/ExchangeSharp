@@ -79,11 +79,13 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getcurrencies", null, null);
             foreach (JToken token in result)
             {
+                bool isMaintenanceMode = token["MaintenanceMode"].ConvertInvariant<bool>();
                 var coin = new ExchangeCurrency
                 {
                     CoinType = token["CoinType"].ToStringInvariant(),
                     FullName = token["CurrencyLong"].ToStringInvariant(),
-                    IsEnabled = token["MaintenanceMode"].ConvertInvariant<bool>().Equals(false),
+                    DepositEnabled = !isMaintenanceMode,
+                    WithdrawalEnabled = !isMaintenanceMode,
                     MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
                     Name = token["Currency"].ToStringUpperInvariant(),
                     Notes = token["Notice"].ToStringInvariant(),

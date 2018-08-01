@@ -62,11 +62,13 @@ namespace ExchangeSharp
             {
                 foreach (JToken currency in token["info"])
                 {
+                    bool enabled = currency["walletStatus"].ToStringInvariant().Equals("normal");
                     currencies.Add(currency["symbol"].ToStringInvariant(), new ExchangeCurrency()
                     {
                         Name = currency["symbol"].ToStringInvariant(),
                         FullName = currency["name"].ToStringInvariant(),
-                        IsEnabled = currency["walletStatus"].ToStringInvariant().Equals("normal"),
+                        DepositEnabled = enabled,
+                        WithdrawalEnabled = enabled,
                         TxFee = currency["withdrawFee"].ConvertInvariant<decimal>()
                     });
                 }

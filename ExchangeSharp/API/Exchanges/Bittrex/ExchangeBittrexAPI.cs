@@ -151,12 +151,14 @@ namespace ExchangeSharp
             JToken array = await MakeJsonRequestAsync<JToken>("/public/getcurrencies");
             foreach (JToken token in array)
             {
+                bool enabled = token["IsActive"].ConvertInvariant<bool>();
                 var coin = new ExchangeCurrency
                 {
                     BaseAddress = token["BaseAddress"].ToStringInvariant(),
                     CoinType = token["CoinType"].ToStringInvariant(),
                     FullName = token["CurrencyLong"].ToStringInvariant(),
-                    IsEnabled = token["IsActive"].ConvertInvariant<bool>(),
+                    DepositEnabled = enabled,
+                    WithdrawalEnabled = enabled,
                     MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
                     Name = token["Currency"].ToStringUpperInvariant(),
                     Notes = token["Notice"].ToStringInvariant(),
