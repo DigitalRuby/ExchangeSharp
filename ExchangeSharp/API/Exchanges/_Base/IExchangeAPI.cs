@@ -495,37 +495,4 @@ namespace ExchangeSharp
 
         #endregion Web Socket
     }
-
-    /// <summary>
-    /// Web socket interface
-    /// </summary>
-    public interface IWebSocket : IDisposable
-    {
-        /// <summary>
-        /// Connected event
-        /// </summary>
-        event Action<IWebSocket> Connected;
-
-        /// <summary>
-        /// Disconnected event
-        /// </summary>
-        event Action<IWebSocket> Disconnected;
-    }
-
-    /// <summary>
-    /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
-    /// Types of orders
-    /// </summary>
-    public enum OrderType
-    {
-        /// <summary>
-        /// A limit order, the order will not buy or sell beyond the price you specify
-        /// </summary>
-        Limit,
-
-        /// <summary>
-        /// A market order, you will buy or sell the full amount - use with caution as this will give you a terrible deal if the order book is thin
-        /// </summary>
-        Market
-    }
 }

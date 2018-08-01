@@ -113,12 +113,18 @@ namespace ExchangeSharp
         /// Send a message to the WebSocket server.
         /// </summary>
         /// <param name="message">The message to send</param>
-        public void SendMessage(string message)
+        /// <returns>True if success, false if error</returns>
+        public bool SendMessage(string message)
         {
-            SendMessageAsync(message).ConfigureAwait(false).GetAwaiter().GetResult();
+            return SendMessageAsync(message).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
-        public async Task SendMessageAsync(string message)
+        /// <summary>
+        /// ASYNC - send a message to the WebSocket server.
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <returns>True if success, false if error</returns>
+        public async Task<bool> SendMessageAsync(string message)
         {
             try
             {
@@ -126,12 +132,14 @@ namespace ExchangeSharp
                 {
                     ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
                     await webSocket.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, cancellationToken);
+                    return true;
                 }
             }
             catch
             {
                 // don't care if this fails, maybe the socket is in process of dispose, who knows...
             }
+            return false;
         }
 
         private void QueueActions(params Action<WebSocketWrapper>[] actions)
@@ -284,5 +292,35 @@ namespace ExchangeSharp
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Web socket interface
+    /// </summary>
+    public interface IWebSocket : IDisposable
+    {
+        /// <summary>
+        /// Connected event
+        /// </summary>
+        event Action<IWebSocket> Connected;
+
+        /// <summary>
+        /// Disconnected event
+        /// </summary>
+        event Action<IWebSocket> Disconnected;
+
+        /// <summary>
+        /// Send a message over the web socket
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <returns>True if success, false if error</returns>
+        bool SendMessage(string message);
+
+        /// <summary>
+        /// ASYNC - Send a message over the web socket
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <returns>True if success, false if error</returns>
+        Task<bool> SendMessageAsync(string message);
     }
 }
