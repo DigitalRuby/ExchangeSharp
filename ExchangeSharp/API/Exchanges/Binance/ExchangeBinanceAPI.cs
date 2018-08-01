@@ -23,8 +23,14 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed partial class ExchangeBinanceAPI : ExchangeAPI
+    using ExchangeSharp.Binance;
+
+    public sealed class ExchangeBinanceAPI : ExchangeAPI
     {
+        public const string GetCurrenciesUrl = "/assetWithdraw/getAllAsset.html";
+
+        public const string BaseWebUrl = "https://www.binance.com";
+
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
@@ -208,9 +214,26 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
-            throw new NotSupportedException("Binance does not provide data about its currencies via the API");
+            // https://www.binance.com/assetWithdraw/getAllAsset.html
+            Dictionary<string, ExchangeCurrency> allCoins = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+
+            List<Currency> currencies = await MakeJsonRequestAsync<List<Currency>>(GetCurrenciesUrl, BaseWebUrl);
+            foreach (Currency coin in currencies)
+            {
+                allCoins[coin.assetCode] = new ExchangeCurrency
+                {
+                    DepositEnabled = coin.enableCharge,
+                    FullName = coin.assetName,
+                    MinConfirmations = coin.confirmTimes.ConvertInvariant<int>(),
+                    Name = coin.assetCode,
+                    TxFee = coin.transactionFee,
+                    WithdrawalEnabled = coin.enableWithdraw,
+                };
+            }
+
+            return allCoins;
         }
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
@@ -326,7 +349,7 @@ namespace ExchangeSharp
                 try
                 {
                     string json = msg.UTF8String();
-                    var update = JsonConvert.DeserializeObject<BinanceMultiDepthStream>(json);
+                    var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
                     string symbol = update.Data.Symbol;
                     ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
                     foreach (List<object> ask in update.Data.Asks)

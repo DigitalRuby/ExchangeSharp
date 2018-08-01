@@ -176,7 +176,8 @@ namespace ExchangeSharp
                 {
                     Name = product["id"].ToStringUpperInvariant(),
                     FullName = product["name"].ToStringInvariant(),
-                    IsEnabled = true
+                    DepositEnabled = true,
+                    WithdrawalEnabled = true
                 };
 
                 currencies[currency.Name] = currency;

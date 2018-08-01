@@ -83,7 +83,7 @@ namespace ExchangeSharp
             Dictionary<string, ExchangeCurrency> currencies = new Dictionary<string, ExchangeCurrency>();
             //[{"Id":1, "Name":"Bitcoin", "Symbol":"BTC", "Algorithm":"sha256" "WithdrawFee":0.00010000, "MinWithdraw":0.00040000, "MinBaseTrade":0.0, "IsTipEnabled":false, "MinTip":0.0, "DepositConfirmations":6, "Status":"Maintenance","StatusMessage":"Unable to sync network","ListingStatus": "Active" }, ... ]
             JToken result = await MakeJsonRequestAsync<JToken>("/GetCurrencies");
-            foreach(JToken token in result)
+            foreach (JToken token in result)
             {
                 ExchangeCurrency currency = new ExchangeCurrency()
                 {
@@ -93,8 +93,10 @@ namespace ExchangeSharp
                     Notes = token["StatusMessage"].ToStringInvariant(),
                     TxFee = token["WithdrawFee"].ConvertInvariant<decimal>()
                 };
-                if (token["ListingStatus"].ToStringInvariant().Equals("Active")) currency.IsEnabled = !token["Status"].ToStringInvariant().Equals("Maintenance");
-                else currency.IsEnabled = false;
+
+                bool enabled = !token["Status"].ToStringInvariant().Equals("Maintenance") && token["ListingStatus"].ToStringInvariant().Equals("Active");
+                currency.DepositEnabled = enabled;
+                currency.WithdrawalEnabled = enabled;
 
                 currencies[token["Symbol"].ToStringInvariant()] = currency;
             }
@@ -117,18 +119,18 @@ namespace ExchangeSharp
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             //[{ "Id":104, "Label":"LTC/BTC", "Currency":"Litecoin", "Symbol":"LTC", "BaseCurrency":"Bitcoin", "BaseSymbol":"BTC", "Status":"OK", "StatusMessage":"", "TradeFee":"0.20000000", "MinimumTrade":"0.00000001, "MaximumTrade":"1000000000.00000000", "MinimumBaseTrade":"0.00000500", "MaximumBaseTrade":"1000000000.00000000", "MinimumPrice":"0.00000001", "MaximumPrice":"1000000000.00000000" }, ... ]
             JToken result = await MakeJsonRequestAsync<JToken>("/GetTradePairs");
-            foreach(JToken token in result)
+            foreach (JToken token in result)
             {
                 markets.Add(new ExchangeMarket()
                 {
-                     MarketName = token["Label"].ToStringInvariant(),
-                     BaseCurrency = token["BaseSymbol"].ToStringInvariant(),
-                     MarketCurrency = token["Symbol"].ToStringInvariant(),
-                     MaxTradeSize = token["MaximumTrade"].ConvertInvariant<decimal>(),
-                     MaxPrice = token["MaximumPrice"].ConvertInvariant<decimal>(),
-                     MinTradeSize = token["MinimumTrade"].ConvertInvariant<decimal>(),
-                     MinPrice = token["MinimumPrice"].ConvertInvariant<decimal>(),
-                     IsActive  = token["Status"].ToStringInvariant().Equals("OK")
+                    MarketName = token["Label"].ToStringInvariant(),
+                    BaseCurrency = token["BaseSymbol"].ToStringInvariant(),
+                    MarketCurrency = token["Symbol"].ToStringInvariant(),
+                    MaxTradeSize = token["MaximumTrade"].ConvertInvariant<decimal>(),
+                    MaxPrice = token["MaximumPrice"].ConvertInvariant<decimal>(),
+                    MinTradeSize = token["MinimumTrade"].ConvertInvariant<decimal>(),
+                    MinPrice = token["MinimumPrice"].ConvertInvariant<decimal>(),
+                    IsActive = token["Status"].ToStringInvariant().Equals("OK")
                 });
             }
             return markets;
@@ -168,7 +170,7 @@ namespace ExchangeSharp
         {
             string hours = startDate == null ? "24" : ((DateTime.Now - startDate).Value.TotalHours).ToStringInvariant();
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbol(symbol) + "/" + hours);      
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbol(symbol) + "/" + hours);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
             var rc = callback?.Invoke(trades);
             // should we loop here to get additional more recent trades after a delay? 
@@ -281,7 +283,7 @@ namespace ExchangeSharp
                     Symbol = data["Market"].ToStringInvariant(),
                     Amount = data["Amount"].ConvertInvariant<decimal>(),
                     Price = data["Rate"].ConvertInvariant<decimal>(),
-                    IsBuy = data["Type"].ToStringInvariant() == "Buy"  
+                    IsBuy = data["Type"].ToStringInvariant() == "Buy"
                 };
                 order.AveragePrice = order.Price;
                 order.AmountFilled = order.Amount - data["Remaining"].ConvertInvariant<decimal>();
@@ -355,23 +357,23 @@ namespace ExchangeSharp
 
             // [ {"Id": 23467,"Currency": "DOT", "TxId": "6ddbaca454c97ba4e8a87a1cb49fa5ceace80b89eaced84b46a8f52c2b8c8ca3", "Type": "Deposit", "Amount": 145.98000000, "Fee": "0.00000000", "Status": "Confirmed", "Confirmations": "20", "TimeStamp":"2014-12-07T20:04:05.3947572", "Address": "" }, ... ]
             JToken token = await MakeJsonRequestAsync<JToken>("/GetTransactions", null, payload, "POST");
-            foreach(JToken data in token)
+            foreach (JToken data in token)
             {
                 if (data["Currency"].ToStringInvariant().Equals(symbol))
                 {
                     ExchangeTransaction tx = new ExchangeTransaction()
                     {
-                         Address = data["Address"].ToStringInvariant(),                 
-                         Amount = data["Amount"].ConvertInvariant<decimal>(),
-                         BlockchainTxId = data["TxId"].ToStringInvariant(),
-                         Notes = data["Type"].ToStringInvariant(),
-                         PaymentId = data["Id"].ToStringInvariant(),
-                         Timestamp = ConvertDateTimeInvariant(data["TimeStamp"]),
-                         Symbol = data["Currency"].ToStringInvariant(),
-                         TxFee = data["Fee"].ConvertInvariant<decimal>()
+                        Address = data["Address"].ToStringInvariant(),
+                        Amount = data["Amount"].ConvertInvariant<decimal>(),
+                        BlockchainTxId = data["TxId"].ToStringInvariant(),
+                        Notes = data["Type"].ToStringInvariant(),
+                        PaymentId = data["Id"].ToStringInvariant(),
+                        Timestamp = ConvertDateTimeInvariant(data["TimeStamp"]),
+                        Symbol = data["Currency"].ToStringInvariant(),
+                        TxFee = data["Fee"].ConvertInvariant<decimal>()
                     };
                     // They may support more status types, but it's not documented
-                    switch((string)data["Status"])
+                    switch ((string)data["Status"])
                     {
                         case "Confirmed": tx.Status = TransactionStatus.Complete; break;
                         case "Pending": tx.Status = TransactionStatus.Processing; break;
@@ -389,7 +391,7 @@ namespace ExchangeSharp
             var payload = await OnGetNoncePayloadAsync();
             payload["Currency"] = symbol;
             JToken token = await MakeJsonRequestAsync<JToken>("/GetDepositAddress", null, payload, "POST");
-            if (token["Address"] == null ) return null;
+            if (token["Address"] == null) return null;
             return new ExchangeDepositDetails()
             {
                 Symbol = symbol,

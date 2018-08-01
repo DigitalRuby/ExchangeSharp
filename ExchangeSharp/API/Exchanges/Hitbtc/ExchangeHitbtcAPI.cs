@@ -77,13 +77,15 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/currency");
             foreach (JToken token in obj)
             {
+                bool enabled = token["delisted"].ToStringInvariant().Equals("false");
                 currencies.Add(token["id"].ToStringInvariant(), new ExchangeCurrency()
                 {
                     Name = token["id"].ToStringInvariant(),
                     FullName = token["fullName"].ToStringInvariant(),
                     TxFee = token["payoutFee"].ConvertInvariant<decimal>(),
                     MinConfirmations = token["payinConfirmations"].ConvertInvariant<int>(),
-                    IsEnabled = token["delisted"].ToStringInvariant().Equals("false")
+                    DepositEnabled = enabled,
+                    WithdrawalEnabled = enabled
                 });
             }
             return currencies;
@@ -354,7 +356,7 @@ namespace ExchangeSharp
             // this call returns info about the success of the cancel. Sure would be nice have a return type on this method.
             JToken token = await MakeJsonRequestAsync<JToken>("/order/" + orderId, null, await OnGetNoncePayloadAsync(), "DELETE");
         }
-        
+
         private void ParseAveragePriceAndFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
         {
             decimal totalCost = 0;
@@ -437,7 +439,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false }; 
+            ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false };
             var payload = await OnGetNoncePayloadAsync();
             payload["amount"] = withdrawalRequest.Amount;
             payload["currency_code"] = withdrawalRequest.Symbol;

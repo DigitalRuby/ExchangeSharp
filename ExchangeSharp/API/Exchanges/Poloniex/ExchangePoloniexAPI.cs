@@ -289,7 +289,8 @@ namespace ExchangeSharp
                 {
                     BaseAddress = kvp.Value["depositAddress"].ToStringInvariant(),
                     FullName = kvp.Value["name"].ToStringInvariant(),
-                    IsEnabled = true,
+                    DepositEnabled = true,
+                    WithdrawalEnabled = true,
                     MinConfirmations = kvp.Value["minConf"].ConvertInvariant<int>(),
                     Name = kvp.Key,
                     TxFee = kvp.Value["txFee"].ConvertInvariant<decimal>(),
@@ -300,7 +301,8 @@ namespace ExchangeSharp
                 string frozen = kvp.Value["frozen"].ToStringInvariant();
                 if (string.Equals(disabled, "1") || string.Equals(delisted, "1") || string.Equals(frozen, "1"))
                 {
-                    currency.IsEnabled = false;
+                    currency.DepositEnabled = false;
+                    currency.WithdrawalEnabled = false;
                 }
 
                 currencies[currency.Name] = currency;
