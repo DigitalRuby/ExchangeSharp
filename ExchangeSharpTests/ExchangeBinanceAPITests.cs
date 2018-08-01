@@ -101,27 +101,28 @@ namespace ExchangeSharpTests
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
             requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, ExchangeBinanceAPI.BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
-            var binance = new ExchangeBinanceAPI(){RequestMaker = requestMaker};
+            var binance = new ExchangeBinanceAPI { RequestMaker = requestMaker };
             IReadOnlyDictionary<string, ExchangeCurrency> currencies = binance.GetCurrencies();
             currencies.Should().HaveCount(3);
-            currencies.TryGetValue("bnb", out var bnb).Should().BeTrue();
+            currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
             bnb.DepositEnabled.Should().BeFalse();
             bnb.WithdrawalEnabled.Should().BeTrue();
             bnb.MinConfirmations.Should().Be(30);
             bnb.FullName.Should().Be("Binance Coin");
             bnb.Name.Should().Be("BNB");
             bnb.TxFee.Should().Be(0.23m);
+            bnb.CoinType.Should().Be("ETH");
 
             bnb.BaseAddress.Should().BeNullOrEmpty("api does not provide this info");
-            bnb.CoinType.Should().BeNullOrEmpty("api does not provide this info");
 
-            currencies.TryGetValue("NEO", out var neo).Should().BeTrue();
+            currencies.TryGetValue("NEO", out ExchangeCurrency neo).Should().BeTrue();
             neo.Name.Should().Be("NEO");
             neo.FullName.Should().Be("NEO");
             neo.DepositEnabled.Should().BeTrue();
             neo.WithdrawalEnabled.Should().BeFalse();
             neo.TxFee.Should().Be(0);
             neo.MinConfirmations.Should().Be(5);
+            neo.CoinType.Should().Be("NEO");
         }
 
         private static void ValidateDiff(MarketDepthDiffUpdate diff)

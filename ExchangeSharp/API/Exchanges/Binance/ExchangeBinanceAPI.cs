@@ -224,12 +224,13 @@ namespace ExchangeSharp
             {
                 allCoins[coin.assetCode] = new ExchangeCurrency
                 {
+                    CoinType = coin.parentCode,
                     DepositEnabled = coin.enableCharge,
                     FullName = coin.assetName,
                     MinConfirmations = coin.confirmTimes.ConvertInvariant<int>(),
                     Name = coin.assetCode,
                     TxFee = coin.transactionFee,
-                    WithdrawalEnabled = coin.enableWithdraw,
+                    WithdrawalEnabled = coin.enableWithdraw
                 };
             }
 
