@@ -22,7 +22,7 @@ namespace ExchangeSharp
 
     using Newtonsoft.Json;
 
-    public sealed class ExchangePoloniexAPI : ExchangeAPI
+    public sealed partial class ExchangePoloniexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://poloniex.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";

@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeLivecoinAPI : ExchangeAPI
+    public sealed partial class ExchangeLivecoinAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Livecoin;
         public override string BaseUrl { get; set; } = "https://api.livecoin.net";

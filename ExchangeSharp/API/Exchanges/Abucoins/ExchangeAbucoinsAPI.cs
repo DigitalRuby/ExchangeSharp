@@ -23,7 +23,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeAbucoinsAPI : ExchangeAPI
+    public sealed partial class ExchangeAbucoinsAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Abucoins;
         public override string BaseUrl { get; set; } = "https://api.abucoins.com";

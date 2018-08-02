@@ -23,7 +23,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeHitbtcAPI : ExchangeAPI
+    public sealed partial class ExchangeHitbtcAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Hitbtc;
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";

@@ -21,7 +21,7 @@ using System.Security.Cryptography;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeHuobiAPI : ExchangeAPI
+    public sealed partial class ExchangeHuobiAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Huobi;
         public override string BaseUrl { get; set; } = "https://api.huobipro.com";

@@ -19,7 +19,7 @@ using System.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeOkexAPI : ExchangeAPI
+    public sealed partial class ExchangeOkexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";

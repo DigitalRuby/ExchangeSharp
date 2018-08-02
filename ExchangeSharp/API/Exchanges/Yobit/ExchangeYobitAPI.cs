@@ -21,7 +21,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeYobitAPI : ExchangeAPI
+    public sealed partial class ExchangeYobitAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Yobit;
         public override string BaseUrl { get; set; } = "https://yobit.net/api/3";

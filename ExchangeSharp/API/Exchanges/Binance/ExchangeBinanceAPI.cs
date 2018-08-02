@@ -25,7 +25,7 @@ namespace ExchangeSharp
 {
     using ExchangeSharp.Binance;
 
-    public sealed class ExchangeBinanceAPI : ExchangeAPI
+    public sealed partial class ExchangeBinanceAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";

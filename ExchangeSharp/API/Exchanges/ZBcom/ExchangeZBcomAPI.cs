@@ -18,7 +18,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeZBcomAPI : ExchangeAPI
+    public sealed partial class ExchangeZBcomAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "http://api.zb.com/data/v1";
         public override string Name => ExchangeName.ZBcom;

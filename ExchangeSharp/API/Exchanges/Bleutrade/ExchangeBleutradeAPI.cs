@@ -21,7 +21,7 @@ using Newtonsoft.Json.Linq;
 namespace ExchangeSharp
 {
 
-    public sealed class ExchangeBleutradeAPI : ExchangeAPI
+    public sealed partial class ExchangeBleutradeAPI : ExchangeAPI
     {
         public override string Name => ExchangeName.Bleutrade;
         public override string BaseUrl { get; set; } = "https://bleutrade.com/api/v2";

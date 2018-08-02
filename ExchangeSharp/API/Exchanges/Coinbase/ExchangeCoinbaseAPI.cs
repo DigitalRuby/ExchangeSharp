@@ -22,7 +22,7 @@ namespace ExchangeSharp
     using System.Net;
     using System.Threading.Tasks;
 
-    public sealed class ExchangeCoinbaseAPI : ExchangeAPI
+    public sealed partial class ExchangeCoinbaseAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.pro.coinbase.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.pro.coinbase.com";
