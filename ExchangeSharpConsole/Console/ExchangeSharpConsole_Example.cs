@@ -72,10 +72,12 @@ namespace ExchangeSharpConsoleApp
             socket.Connected += (s) =>
             {
                 Console.WriteLine("Web socket connected");
+                return Task.CompletedTask;
             };
             socket.Disconnected += (s) =>
             {
                 Console.WriteLine("Web socket disconnected");
+                return Task.CompletedTask;
             };
         }
 

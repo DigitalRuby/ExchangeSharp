@@ -37,12 +37,12 @@ namespace ExchangeSharp
             /// <summary>
             /// Connected event
             /// </summary>
-            public event Action<IWebSocket> Connected;
+            public event Func<IWebSocket, Task> Connected;
 
             /// <summary>
             /// Disconnected event
             /// </summary>
-            public event Action<IWebSocket> Disconnected;
+            public event Func<IWebSocket, Task> Disconnected;
 
             /// <summary>
             /// Constructor
@@ -106,14 +106,14 @@ namespace ExchangeSharp
                 throw new ArgumentNullException(nameof(callback));
             }
 
-            internal void InvokeConnected()
+            internal async Task InvokeConnected()
             {
-                Connected?.Invoke(this);
+                await Connected?.Invoke(this);
             }
 
-            internal void InvokeDisconnected()
+            internal async Task InvokeDisconnected()
             {
-                Disconnected?.Invoke(this);
+                await Disconnected?.Invoke(this);
             }
 
             private void WebSocket_Connected(IWebSocket obj)
@@ -254,10 +254,11 @@ namespace ExchangeSharp
                 connection.OnError(e);
             }
 
-            private void WebSocketOnMessageReceived(byte[] data, WebSocketWrapper _webSocket)
+            private Task WebSocketOnMessageReceived(IWebSocket socket, byte[] data)
             {
                 string dataText = data.ToStringFromUTF8();
                 ProcessResponse(connection, dataText);
+                return Task.CompletedTask;
             }
         }
 
@@ -457,30 +458,34 @@ namespace ExchangeSharp
             hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
 
             // setup connect event
-            customTransport.WebSocket.Connected += (ws) =>
+            customTransport.WebSocket.Connected += async (ws) =>
             {
+                IWebSocket[] socketsCopy;
                 lock (sockets)
                 {
-                    foreach (IWebSocket socket in sockets)
-                    {
-                        (socket as SignalrSocketConnection).InvokeConnected();
-                    }
+                    socketsCopy = sockets.ToArray();
+                }
+                foreach (IWebSocket socket in socketsCopy)
+                {
+                    await (socket as SignalrSocketConnection).InvokeConnected();
                 }
             };
 
             // setup disconnect event
-            customTransport.WebSocket.Disconnected += (ws) =>
+            customTransport.WebSocket.Disconnected += async (ws) =>
             {
+                IWebSocket[] socketsCopy;
                 lock (sockets)
                 {
-                    foreach (IWebSocket socket in sockets)
-                    {
-                        (socket as SignalrSocketConnection).InvokeDisconnected();
-                    }
+                    socketsCopy = sockets.ToArray();
+                }
+                foreach (IWebSocket socket in socketsCopy)
+                {
+                    await (socket as SignalrSocketConnection).InvokeDisconnected();
                 }
 
                 // start a task to tear down the hub connection
-                Task.Run(() =>
+                await Task.Run(() =>
                 {
                     try
                     {

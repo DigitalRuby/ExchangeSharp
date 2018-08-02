@@ -678,9 +678,9 @@ namespace ExchangeSharp
             return trades;
         }
 
-        private IWebSocket ConnectWebSocketOkex(Func<WebSocketWrapper, Task> connected, Func<WebSocketWrapper, string[], JToken, Task> callback)
+        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string[], JToken, Task> callback)
         {
-            return ConnectWebSocket(string.Empty, async (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 token = token[0];

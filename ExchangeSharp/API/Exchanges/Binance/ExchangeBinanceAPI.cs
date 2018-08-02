@@ -257,26 +257,21 @@ namespace ExchangeSharp
             {
                 return null;
             }
-            return ConnectWebSocket("/stream?streams=!ticker@arr", (msg, _socket) =>
+            return ConnectWebSocket("/stream?streams=!ticker@arr", (_socket, msg) =>
             {
-                try
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+                ExchangeTicker ticker;
+                foreach (JToken childToken in token["data"])
                 {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
-                    ExchangeTicker ticker;
-                    foreach (JToken childToken in token["data"])
-                    {
-                        ticker = ParseTickerWebSocket(childToken);
-                        tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.BaseSymbol, ticker));
-                    }
-                    if (tickerList.Count != 0)
-                    {
-                        callback(tickerList);
-                    }
+                    ticker = ParseTickerWebSocket(childToken);
+                    tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.BaseSymbol, ticker));
                 }
-                catch
+                if (tickerList.Count != 0)
                 {
+                    callback(tickerList);
                 }
+                return Task.CompletedTask;
             });
         }
 
@@ -303,65 +298,62 @@ namespace ExchangeSharp
             }
             */
 
-            string url = GetWebSocketStreamUrlForSymbols("@trade", symbols);
-            return ConnectWebSocket(url, (msg, _socket) =>
+            else if (symbols == null || symbols.Length == 0)
             {
-                try
-                {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    string name = token["stream"].ToStringInvariant();
-                    token = token["data"];
-                    string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+                symbols = GetSymbols().ToArray();
+            }
+            string url = GetWebSocketStreamUrlForSymbols("@trade", symbols);
+            return ConnectWebSocket(url, (_socket, msg) =>
+            {
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                string name = token["stream"].ToStringInvariant();
+                token = token["data"];
+                string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
 
-                    // buy=0 -> m = true (The buyer is maker, while the seller is taker).
-                    // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                    ExchangeTrade trade = new ExchangeTrade
-                    {
-                        Amount = token["q"].ConvertInvariant<decimal>(),
-                        Id = token["t"].ConvertInvariant<long>(),
-                        IsBuy = !token["m"].ConvertInvariant<bool>(),
-                        Price = token["p"].ConvertInvariant<decimal>(),
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
-                    };
-                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                }
-                catch
+                // buy=0 -> m = true (The buyer is maker, while the seller is taker).
+                // buy=1 -> m = false(The seller is maker, while the buyer is taker).
+                ExchangeTrade trade = new ExchangeTrade
                 {
-                }
+                    Amount = token["q"].ConvertInvariant<decimal>(),
+                    Id = token["t"].ConvertInvariant<long>(),
+                    IsBuy = !token["m"].ConvertInvariant<bool>(),
+                    Price = token["p"].ConvertInvariant<decimal>(),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
+                };
+                callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                return Task.CompletedTask;
             });
         }
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || !symbols.Any())
+            if (callback == null)
             {
                 return null;
             }
-
-            string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
-            return ConnectWebSocket($"/stream?streams={combined}", (msg, _socket) =>
+            else if (symbols == null || symbols.Length == 0)
             {
-                try
+                symbols = GetSymbols().ToArray();
+            }
+            string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
+            return ConnectWebSocket($"/stream?streams={combined}", (_socket, msg) =>
+            {
+                string json = msg.ToStringFromUTF8();
+                var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
+                string symbol = update.Data.Symbol;
+                ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
+                foreach (List<object> ask in update.Data.Asks)
                 {
-                    string json = msg.ToStringFromUTF8();
-                    var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
-                    string symbol = update.Data.Symbol;
-                    ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
-                    foreach (List<object> ask in update.Data.Asks)
-                    {
-                        var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
-                        book.Asks[depth.Price] = depth;
-                    }
-                    foreach (List<object> bid in update.Data.Bids)
-                    {
-                        var depth = new ExchangeOrderPrice { Price = bid[0].ConvertInvariant<decimal>(), Amount = bid[1].ConvertInvariant<decimal>() };
-                        book.Bids[depth.Price] = depth;
-                    }
-                    callback(book);
+                    var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
+                    book.Asks[depth.Price] = depth;
                 }
-                catch
+                foreach (List<object> bid in update.Data.Bids)
                 {
+                    var depth = new ExchangeOrderPrice { Price = bid[0].ConvertInvariant<decimal>(), Amount = bid[1].ConvertInvariant<decimal>() };
+                    book.Bids[depth.Price] = depth;
                 }
+                callback(book);
+                return Task.CompletedTask;
             });
         }
 

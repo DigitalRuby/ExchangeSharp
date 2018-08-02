@@ -126,6 +126,7 @@ namespace ExchangeSharp
                 // when we re-connect, we must invalidate the order books, who knows how long we were disconnected
                 //  and how out of date the order books are
                 fullBooks.Clear();
+                return Task.CompletedTask;
             };
             return socket;
         }

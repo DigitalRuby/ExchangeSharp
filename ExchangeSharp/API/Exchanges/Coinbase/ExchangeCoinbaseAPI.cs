@@ -242,74 +242,67 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                string message = msg.ToStringFromUTF8();
+                var book = new ExchangeOrderBook();
+
+                // string comparison on the json text for faster deserialization
+                // More likely to be an l2update so check for that first
+                if (message.Contains(@"""l2update"""))
                 {
-                    string message = msg.ToStringFromUTF8();
-                    var book = new ExchangeOrderBook();
-
-                    // string comparison on the json text for faster deserialization
-                    // More likely to be an l2update so check for that first
-                    if (message.Contains(@"""l2update"""))
+                    // parse delta update
+                    var delta = JsonConvert.DeserializeObject<Level2>(message);
+                    book.Symbol = delta.ProductId;
+                    book.SequenceId = delta.Time.Ticks;
+                    foreach (string[] change in delta.Changes)
                     {
-                        // parse delta update
-                        var delta = JsonConvert.DeserializeObject<Level2>(message);
-                        book.Symbol = delta.ProductId;
-                        book.SequenceId = delta.Time.Ticks;
-                        foreach (string[] change in delta.Changes)
+                        decimal price = change[1].ConvertInvariant<decimal>();
+                        decimal amount = change[2].ConvertInvariant<decimal>();
+                        if (change[0] == "buy")
                         {
-                            decimal price = change[1].ConvertInvariant<decimal>();
-                            decimal amount = change[2].ConvertInvariant<decimal>();
-                            if (change[0] == "buy")
-                            {
-                                book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
-                            }
-                            else
-                            {
-                                book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
-                            }
-                        }
-                    }
-                    else if (message.Contains(@"""snapshot"""))
-                    {
-                        // parse snapshot
-                        var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
-                        book.Symbol = snapshot.ProductId;
-                        foreach (decimal[] ask in snapshot.Asks)
-                        {
-                            decimal price = ask[0];
-                            decimal amount = ask[1];
-                            book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
-                        }
-
-                        foreach (decimal[] bid in snapshot.Bids)
-                        {
-                            decimal price = bid[0];
-                            decimal amount = bid[1];
                             book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
                         }
+                        else
+                        {
+                            book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                        }
                     }
-                    else
+                }
+                else if (message.Contains(@"""snapshot"""))
+                {
+                    // parse snapshot
+                    var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
+                    book.Symbol = snapshot.ProductId;
+                    foreach (decimal[] ask in snapshot.Asks)
                     {
-                        // no other message type handled
-                        return;
+                        decimal price = ask[0];
+                        decimal amount = ask[1];
+                        book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
                     }
 
-                    callback(book);
+                    foreach (decimal[] bid in snapshot.Bids)
+                    {
+                        decimal price = bid[0];
+                        decimal amount = bid[1];
+                        book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Trace.WriteLine($"ExchangeCoinbaseAPI.OnGetOrderBookDeltasWebSocket: {ex.Message}");
+                    // no other message type handled
+                    return Task.CompletedTask;
                 }
-            }, _socket =>
+
+                callback(book);
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 // subscribe to order book channel for each symbol
                 var chan = new Channel { Name = ChannelType.Level2, ProductIds = symbols.ToList() };
                 var channelAction = new ChannelAction { Type = ActionType.Subscribe, Channels = new List<Channel> { chan } };
-                _socket.SendMessage(JsonConvert.SerializeObject(channelAction));
+                await _socket.SendMessageAsync(JsonConvert.SerializeObject(channelAction));
             });
-
         }
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
@@ -319,37 +312,33 @@ namespace ExchangeSharp
                 return null;
             }
 
-            var wrapper = ConnectWebSocket("/", (msg, _socket) =>
+            return ConnectWebSocket("/", (_socket, msg) =>
             {
-                try
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token["type"].ToStringInvariant() == "ticker")
                 {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token["type"].ToStringInvariant() != "ticker") return;
                     ExchangeTicker ticker = ParseTickerWebSocket(token);
                     callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
                 }
-                catch
-                {
-                }
-            }) as WebSocketWrapper;
-
-            var symbols = GetSymbols();
-
-            var subscribeRequest = new
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
-                type = "subscribe",
-                product_ids = symbols,
-                channels = new object[]
+                var symbols = await GetSymbolsAsync();
+                var subscribeRequest = new
                 {
-                    new {
-                        name = "ticker",
-                        product_ids = symbols
+                    type = "subscribe",
+                    product_ids = symbols,
+                    channels = new object[]
+                    {
+                        new
+                        {
+                            name = "ticker",
+                            product_ids = symbols.ToArray()
+                        }
                     }
-                }
-            };
-            wrapper.SendMessage(Newtonsoft.Json.JsonConvert.SerializeObject(subscribeRequest));
-
-            return wrapper;
+                };
+                await _socket.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(subscribeRequest));
+            });
         }
 
         private ExchangeTicker ParseTickerWebSocket(JToken token)

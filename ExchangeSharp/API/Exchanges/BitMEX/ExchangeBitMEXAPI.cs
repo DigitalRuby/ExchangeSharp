@@ -229,39 +229,33 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
-                {
-                    var str = msg.ToStringFromUTF8();
-                    JToken token = JToken.Parse(str);
+                var str = msg.ToStringFromUTF8();
+                JToken token = JToken.Parse(str);
 
-                    if (token["table"] == null)
-                    {
-                        return;
-                    }
-
-                    var action = token["action"].ToStringInvariant();
-                    JArray data = token["data"] as JArray;
-                    foreach (var t in data)
-                    {
-                        var symbol = t["symbol"].ToStringInvariant();
-                        var trade = new ExchangeTrade()
-                        {
-                            Amount = t["size"].ConvertInvariant<decimal>(),
-                            //Id = t["trdMatchID"].ToStringInvariant(),
-                            IsBuy = t["side"].ToStringLowerInvariant().EqualsWithOption("buy"),
-                            Price = t["price"].ConvertInvariant<decimal>(),
-                            Timestamp = t["timestamp"].ConvertInvariant<DateTime>(),
-                        };
-                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                    }
-                }
-                catch
+                if (token["table"] == null)
                 {
-                    // TODO: Handle exception
+                    return Task.CompletedTask;
                 }
-            }, (_socket) =>
+
+                var action = token["action"].ToStringInvariant();
+                JArray data = token["data"] as JArray;
+                foreach (var t in data)
+                {
+                    var symbol = t["symbol"].ToStringInvariant();
+                    var trade = new ExchangeTrade()
+                    {
+                        Amount = t["size"].ConvertInvariant<decimal>(),
+                        //Id = t["trdMatchID"].ToStringInvariant(),
+                        IsBuy = t["side"].ToStringLowerInvariant().EqualsWithOption("buy"),
+                        Price = t["price"].ConvertInvariant<decimal>(),
+                        Timestamp = t["timestamp"].ConvertInvariant<DateTime>(),
+                    };
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                }
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 if (symbols.Length == 0)
                 {
@@ -270,7 +264,7 @@ namespace ExchangeSharp
 
                 string combined = string.Join(",", symbols.Select(s => "\"trade:" + this.NormalizeSymbol(s) + "\""));
                 string msg = $"{{\"op\":\"subscribe\",\"args\":[{combined}]}}";
-                _socket.SendMessage(msg);
+                await _socket.SendMessageAsync(msg);
             });
         }
 
@@ -281,79 +275,78 @@ namespace ExchangeSharp
 {"success":true,"subscribe":"orderBookL2:XBTUSD","request":{"op":"subscribe","args":["orderBookL2:XBTUSD"]}}
 {"table":"orderBookL2","action":"update","data":[{"symbol":"XBTUSD","id":8799343000,"side":"Buy","size":350544}]}
              */
-            if (callback == null || symbols == null || !symbols.Any())
+            if (callback == null)
             {
                 return null;
             }
-
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            else if (symbols == null || symbols.Length == 0)
             {
-                try
-                {
-                    var str = msg.ToStringFromUTF8();
-                    JToken token = JToken.Parse(str);
+                symbols = GetSymbols().ToArray();
+            }
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            {
+                var str = msg.ToStringFromUTF8();
+                JToken token = JToken.Parse(str);
 
-                    if (token["table"] == null)
+                if (token["table"] == null)
+                {
+                    return Task.CompletedTask;
+                }
+
+                var action = token["action"].ToStringInvariant();
+                JArray data = token["data"] as JArray;
+
+                ExchangeOrderBook book = new ExchangeOrderBook();
+                var price = 0m;
+                var size = 0m;
+                foreach (var d in data)
+                {
+                    var symbol = d["symbol"].ToStringInvariant();
+                    var id = d["id"].ConvertInvariant<long>();
+                    if (d["price"] == null)
                     {
-                        return;
+                        if (!dict_long_decimal.TryGetValue(id, out price))
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        price = d["price"].ConvertInvariant<decimal>();
+                        dict_long_decimal[id] = price;
+                        dict_decimal_long[price] = id;
                     }
 
-                    var action = token["action"].ToStringInvariant();
-                    JArray data = token["data"] as JArray;
+                    var side = d["side"].ToStringInvariant();
 
-                    ExchangeOrderBook book = new ExchangeOrderBook();
-                    var price = 0m;
-                    var size = 0m;
-                    foreach (var d in data)
+                    if (d["size"] == null)
                     {
-                        var symbol = d["symbol"].ToStringInvariant();
-                        var id = d["id"].ConvertInvariant<long>();
-                        if (d["price"] == null)
-                        {
-                            if (!dict_long_decimal.TryGetValue(id, out price))
-                            {
-                                continue;
-                            }
-                        }
-                        else
-                        {
-                            price = d["price"].ConvertInvariant<decimal>();
-                            dict_long_decimal[id] = price;
-                            dict_decimal_long[price] = id;
-                        }
-
-                        var side = d["side"].ToStringInvariant();
-
-                        if (d["size"] == null)
-                        {
-                            size = 0m;
-                        }
-                        else
-                        {
-                            size = d["size"].ConvertInvariant<decimal>();
-                        }
-
-                        var depth = new ExchangeOrderPrice { Price = price, Amount = size };
-
-                        if (side.EqualsWithOption("Buy"))
-                        {
-                            book.Bids[depth.Price] = depth;
-                        }
-                        else
-                        {
-                            book.Asks[depth.Price] = depth;
-                        }
-                        book.Symbol = symbol;
+                        size = 0m;
+                    }
+                    else
+                    {
+                        size = d["size"].ConvertInvariant<decimal>();
                     }
 
-                    if(!string.IsNullOrEmpty(book.Symbol))
-                        callback(book);
+                    var depth = new ExchangeOrderPrice { Price = price, Amount = size };
+
+                    if (side.EqualsWithOption("Buy"))
+                    {
+                        book.Bids[depth.Price] = depth;
+                    }
+                    else
+                    {
+                        book.Asks[depth.Price] = depth;
+                    }
+                    book.Symbol = symbol;
                 }
-                catch
+
+                if (!string.IsNullOrEmpty(book.Symbol))
                 {
-                    // TODO: Handle exception
+                    callback(book);
                 }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 if (symbols.Length == 0)
                 {
@@ -362,7 +355,7 @@ namespace ExchangeSharp
 
                 string combined = string.Join(",", symbols.Select(s => "\"orderBookL2:" + this.NormalizeSymbol(s) + "\""));
                 string msg = $"{{\"op\":\"subscribe\",\"args\":[{combined}]}}";
-                _socket.SendMessage(msg);
+                await _socket.SendMessageAsync(msg);
             });
         }
 

@@ -471,30 +471,27 @@ namespace ExchangeSharp
             var orders = GetOpenOrderDetails().Select(o => o.OrderId).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(orders));
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                //{"type":"done","time":"2018-02-20T14:59:45Z","product_id":"BTC-PLN","sequence":648771,"price":"39034.08000000","order_id":"277370262","reason":"canceled",  "side":"sell","remaining_size":0.503343}
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if ((string)token["type"] == "done")
                 {
-                    //{"type":"done","time":"2018-02-20T14:59:45Z","product_id":"BTC-PLN","sequence":648771,"price":"39034.08000000","order_id":"277370262","reason":"canceled",  "side":"sell","remaining_size":0.503343}
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if ((string)token["type"] == "done")
+                    callback.Invoke(new ExchangeOrderResult()
                     {
-                        callback.Invoke(new ExchangeOrderResult()
-                        {
-                            OrderId = token["order_id"].ToStringInvariant(),
-                            Symbol = token["product_id"].ToStringInvariant(),
-                            OrderDate = token["time"].ToDateTimeInvariant(),
-                            Message = token["reason"].ToStringInvariant(),
-                            IsBuy = token["side"].ToStringInvariant().Equals("buy"),
-                            Price = token["price"].ConvertInvariant<decimal>()
-                        });
-                    }
+                        OrderId = token["order_id"].ToStringInvariant(),
+                        Symbol = token["product_id"].ToStringInvariant(),
+                        OrderDate = token["time"].ToDateTimeInvariant(),
+                        Message = token["reason"].ToStringInvariant(),
+                        IsBuy = token["side"].ToStringInvariant().Equals("buy"),
+                        Price = token["price"].ConvertInvariant<decimal>()
+                    });
                 }
-                catch (Exception ex) { Debug.WriteLine(ex.Message); }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 // subscribe to done channel
-                _socket.SendMessage("{\"type\":\"subscribe\",\"channels\":[{ \"name\":\"done\",\"product_ids\":" + ids + "}]}");
+                await _socket.SendMessageAsync("{\"type\":\"subscribe\",\"channels\":[{ \"name\":\"done\",\"product_ids\":" + ids + "}]}");
             });
         }
 
@@ -505,38 +502,35 @@ namespace ExchangeSharp
             var symbols = GetTickers().Select(t => t.Key).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(symbols));
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token["type"].ToStringInvariant() == "ticker")
                 {
-                    //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token["type"].ToStringInvariant() == "ticker")
+                    string symbol = token["product_id"].ToStringInvariant();
+                    tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
                     {
-                        string symbol = token["product_id"].ToStringInvariant();
-                        tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
+                        new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
                         {
-                            new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
+                            Id = token["trade_id"].ConvertInvariant<long>().ToStringInvariant(),
+                            Last = token["price"].ConvertInvariant<decimal>(),
+                            Ask = token["best_ask"].ConvertInvariant<decimal>(),
+                            Bid = token["best_bid"].ConvertInvariant<decimal>(),
+                            Volume = new ExchangeVolume()
                             {
-                                Id = token["trade_id"].ConvertInvariant<long>().ToStringInvariant(),
-                                Last = token["price"].ConvertInvariant<decimal>(),
-                                Ask = token["best_ask"].ConvertInvariant<decimal>(),
-                                Bid = token["best_bid"].ConvertInvariant<decimal>(),
-                                Volume = new ExchangeVolume()
-                                {
-                                    ConvertedSymbol = token["product_id"].ToStringInvariant(),
-                                    ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
-                                    Timestamp = token["time"].ToDateTimeInvariant()
-                                }
-                            })
-                        });
-                    }
+                                ConvertedSymbol = token["product_id"].ToStringInvariant(),
+                                ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
+                                Timestamp = token["time"].ToDateTimeInvariant()
+                            }
+                        })
+                    });
                 }
-                catch (Exception ex) { Debug.WriteLine(ex.Message); }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 // subscribe to ticker channel
-                _socket.SendMessage("{\"type\": \"subscribe\", \"channels\": [{ \"name\": \"ticker\", \"product_ids\": " + ids + " }] }");
+                await _socket.SendMessageAsync("{\"type\": \"subscribe\", \"channels\": [{ \"name\": \"ticker\", \"product_ids\": " + ids + " }] }");
             });
         }
 

@@ -439,13 +439,23 @@ namespace ExchangeSharp
         /// <param name="messageCallback">Callback for messages</param>
         /// <param name="connectCallback">Connect callback</param>
         /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-        public WebSocketWrapper ConnectWebSocket(string url, Action<byte[], WebSocketWrapper> messageCallback, Action<WebSocketWrapper> connectCallback = null)
+        public WebSocketWrapper ConnectWebSocket
+        (
+            string url,
+            Func<IWebSocket, byte[], Task> messageCallback,
+            Func<IWebSocket, Task> connectCallback = null,
+            Func<IWebSocket, Task> disconnectCallback = null
+        )
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
             WebSocketWrapper wrapper = new WebSocketWrapper { Uri = new Uri(fullUrl), OnMessage = messageCallback, KeepAlive = TimeSpan.FromSeconds(5.0) };
             if (connectCallback != null)
             {
-                wrapper.Connected += (s) => connectCallback(wrapper);
+                wrapper.Connected += connectCallback;
+            }
+            if (disconnectCallback != null)
+            {
+                wrapper.Disconnected += disconnectCallback;
             }
             wrapper.Start();
             return wrapper;

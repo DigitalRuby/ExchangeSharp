@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -42,7 +43,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Action to handle incoming messages
         /// </summary>
-        public Action<byte[], WebSocketWrapper> OnMessage { get; set; }
+        public Func<IWebSocket, byte[], Task> OnMessage { get; set; }
 
         /// <summary>
         /// Interval to call connect at regularly (default is 1 hour)
@@ -57,12 +58,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Allows additional listeners for connect event
         /// </summary>
-        public event Action<IWebSocket> Connected;
+        public event Func<IWebSocket, Task> Connected;
 
         /// <summary>
         /// Allows additional listeners for disconnect event
         /// </summary>
-        public event Action<IWebSocket> Disconnected;
+        public event Func<IWebSocket, Task> Disconnected;
 
         /// <summary>
         /// Whether to close the connection gracefully, this can cause the close to take longer.
@@ -83,12 +84,12 @@ namespace ExchangeSharp
         public void Start()
         {
             // kick off message parser and message listener
-            Task.Run((Action)MessageWorkerThread);
-            Task.Run(ListenWorkerThread);
+            Task.Run(MessageTask);
+            Task.Run(ReadTask);
         }
 
         /// <summary>
-        /// Close and dispose of all resources, stops the web socket
+        /// Close and dispose of all resources, stops the web socket and shuts it down.
         /// </summary>
         public void Dispose()
         {
@@ -142,17 +143,17 @@ namespace ExchangeSharp
             return false;
         }
 
-        private void QueueActions(params Action<WebSocketWrapper>[] actions)
+        private void QueueActions(params Func<WebSocketWrapper, Task>[] actions)
         {
             if (actions != null && actions.Length != 0)
             {
-                messageQueue.Add((Action)(() =>
+                messageQueue.Add((Func<Task>)(async () =>
                 {
-                    foreach (var action in actions)
+                    foreach (var action in actions.Where(a => a != null))
                     {
                         try
                         {
-                            action?.Invoke(this);
+                            await action.Invoke(this);
                         }
                         catch
                         {
@@ -162,19 +163,19 @@ namespace ExchangeSharp
             }
         }
 
-        private void QueueActionsWithNoExceptions(params Action<WebSocketWrapper>[] actions)
+        private void QueueActionsWithNoExceptions(params Func<WebSocketWrapper, Task>[] actions)
         {
             if (actions != null && actions.Length != 0)
             {
-                messageQueue.Add((Action)(() =>
+                messageQueue.Add((Func<Task>)(async () =>
                 {
-                    foreach (var action in actions)
+                    foreach (var action in actions.Where(a => a != null))
                     {
                         while (true)
                         {
                             try
                             {
-                                action?.Invoke(this);
+                                await action.Invoke(this);
                                 break;
                             }
                             catch
@@ -186,7 +187,7 @@ namespace ExchangeSharp
             }
         }
 
-        private async Task ListenWorkerThread()
+        private async Task ReadTask()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
             TimeSpan keepAlive = webSocket.Options.KeepAliveInterval;
@@ -260,7 +261,7 @@ namespace ExchangeSharp
             }
         }
 
-        private void MessageWorkerThread()
+        private async Task MessageTask()
         {
             DateTime lastCheck = DateTime.UtcNow;
 
@@ -270,13 +271,13 @@ namespace ExchangeSharp
                 {
                     try
                     {
-                        if (message is Action action)
+                        if (message is Func<Task> action)
                         {
-                            action();
+                            await action();
                         }
                         else if (message is byte[] messageBytes)
                         {
-                            OnMessage?.Invoke(messageBytes, this);
+                            await OnMessage?.Invoke(this, messageBytes);
                         }
                     }
                     catch
@@ -302,12 +303,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Connected event
         /// </summary>
-        event Action<IWebSocket> Connected;
+        event Func<IWebSocket, Task> Connected;
 
         /// <summary>
         /// Disconnected event
         /// </summary>
-        event Action<IWebSocket> Disconnected;
+        event Func<IWebSocket, Task> Disconnected;
 
         /// <summary>
         /// Send a message over the web socket

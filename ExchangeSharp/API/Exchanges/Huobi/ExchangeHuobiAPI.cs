@@ -240,7 +240,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 /*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
@@ -264,38 +264,32 @@ namespace ExchangeSharp
   }
 }}
                  */
-                try
+                var str = msg.ToStringFromUTF8Gzip();
+                JToken token = JToken.Parse(str);
+
+                if (token["status"] != null)
                 {
-                    var str = msg.ToStringFromUTF8Gzip();
-                    JToken token = JToken.Parse(str);
-
-                    if (token["status"] != null)
-                    {
-                        return;
-                    }
-                    else if (token["ping"] != null)
-                    {
-                        _socket.SendMessage(str.Replace("ping", "pong"));
-                        return;
-                    }
-
-                    var ch = token["ch"].ToStringInvariant();
-                    var sArray = ch.Split('.');
-                    var symbol = sArray[1];
-
-                    var tick = token["tick"];
-                    var id = tick["id"].ConvertInvariant<long>();
-                    var trades = ParseTradesWebSocket(tick);
-                    foreach (var trade in trades)
-                    {
-                        trade.Id = id;
-                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                    }
+                    return;
                 }
-                catch
+                else if (token["ping"] != null)
                 {
+                    await _socket.SendMessageAsync(str.Replace("ping", "pong"));
+                    return;
                 }
-            }, (_socket) =>
+
+                var ch = token["ch"].ToStringInvariant();
+                var sArray = ch.Split('.');
+                var symbol = sArray[1];
+
+                var tick = token["tick"];
+                var id = tick["id"].ConvertInvariant<long>();
+                var trades = ParseTradesWebSocket(tick);
+                foreach (var trade in trades)
+                {
+                    trade.Id = id;
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                }
+            }, async (_socket) =>
             {
                 if (symbols.Length == 0)
                 {
@@ -308,7 +302,7 @@ namespace ExchangeSharp
                     long id = System.Threading.Interlocked.Increment(ref webSocketId);
                     string channel = $"market.{normalizedSymbol}.trade.detail";
                     string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
-                    _socket.SendMessage(msg);
+                    await _socket.SendMessageAsync(msg);
                 }
             });
         }
@@ -320,7 +314,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 /*
 {{
@@ -362,32 +356,25 @@ namespace ExchangeSharp
   }
 }}
                  */
-                try
-                {
-                    var str = msg.ToStringFromUTF8Gzip();
-                    JToken token = JToken.Parse(str);
+                var str = msg.ToStringFromUTF8Gzip();
+                JToken token = JToken.Parse(str);
 
-                    if (token["status"] != null)
-                    {
-                        return;
-                    }
-                    else if (token["ping"] != null)
-                    {
-                        _socket.SendMessage(str.Replace("ping", "pong"));
-                        return;
-                    }
-                    var ch = token["ch"].ToStringInvariant();
-                    var sArray = ch.Split('.');
-                    var symbol = sArray[1].ToStringInvariant();
-                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
-                    book.Symbol = symbol;
-                    callback(book);
-                }
-                catch
+                if (token["status"] != null)
                 {
-                    // TODO: Handle exception
+                    return;
                 }
-            }, (_socket) =>
+                else if (token["ping"] != null)
+                {
+                    await _socket.SendMessageAsync(str.Replace("ping", "pong"));
+                    return;
+                }
+                var ch = token["ch"].ToStringInvariant();
+                var sArray = ch.Split('.');
+                var symbol = sArray[1].ToStringInvariant();
+                ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
+                book.Symbol = symbol;
+                callback(book);
+            }, async (_socket) =>
             {
                 if (symbols.Length == 0)
                 {
@@ -402,7 +389,7 @@ namespace ExchangeSharp
                     // subscribe to order book and trades channel for given symbol
                     string channel = $"market.{normalizedSymbol}.depth.step0";
                     string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
-                    _socket.SendMessage(msg);
+                    await _socket.SendMessageAsync(msg);
                 }
             });
         }

@@ -196,42 +196,37 @@ namespace ExchangeSharp
                 return null;
             }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token is JArray array)
                 {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token is JArray array)
+                    if (array.Count > 10)
                     {
-                        if (array.Count > 10)
+                        List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+                        if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
                         {
-                            List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
-                            if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
+                            ExchangeTicker ticker = ParseTickerWebSocket(symbol, array);
+                            if (ticker != null)
                             {
-                                ExchangeTicker ticker = ParseTickerWebSocket(symbol, array);
-                                if (ticker != null)
-                                {
-                                    callback(new KeyValuePair<string, ExchangeTicker>[] { new KeyValuePair<string, ExchangeTicker>(symbol, ticker) });
-                                }
+                                callback(new KeyValuePair<string, ExchangeTicker>[] { new KeyValuePair<string, ExchangeTicker>(symbol, ticker) });
                             }
                         }
                     }
-                    else if (token["event"].ToStringInvariant() == "subscribed" && token["channel"].ToStringInvariant() == "ticker")
-                    {
-                        // {"event":"subscribed","channel":"ticker","chanId":1,"pair":"BTCUSD"}
-                        int channelId = token["chanId"].ConvertInvariant<int>();
-                        channelIdToSymbol[channelId] = token["pair"].ToStringInvariant();
-                    }
                 }
-                catch
+                else if (token["event"].ToStringInvariant() == "subscribed" && token["channel"].ToStringInvariant() == "ticker")
                 {
+                    // {"event":"subscribed","channel":"ticker","chanId":1,"pair":"BTCUSD"}
+                    int channelId = token["chanId"].ConvertInvariant<int>();
+                    channelIdToSymbol[channelId] = token["pair"].ToStringInvariant();
                 }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
-                var symbols = GetSymbols();
+                var symbols = await GetSymbolsAsync();
                 foreach (var symbol in symbols)
                 {
-                    _socket.SendMessage("{\"event\":\"subscribe\",\"channel\":\"ticker\",\"pair\":\"" + symbol + "\"}");
+                    await _socket.SendMessageAsync("{\"event\":\"subscribe\",\"channel\":\"ticker\",\"pair\":\"" + symbol + "\"}");
                 }
             });
         }
@@ -444,23 +439,18 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
                 {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
+                    foreach (JToken orderToken in array[2])
                     {
-                        foreach (JToken orderToken in array[2])
-                        {
-                            callback.Invoke(ParseOrderWebSocket(orderToken));
-                        }
+                        callback.Invoke(ParseOrderWebSocket(orderToken));
                     }
                 }
-                catch
-                {
-                }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 object nonce = GenerateNonce();
                 string authPayload = "AUTH" + nonce;
@@ -473,7 +463,7 @@ namespace ExchangeSharp
                     { "authSig", signature }
                 };
                 string payloadJSON = CryptoUtility.GetJsonForPayload(payload);
-                _socket.SendMessage(payloadJSON);
+                await _socket.SendMessageAsync(payloadJSON);
             });
         }
 

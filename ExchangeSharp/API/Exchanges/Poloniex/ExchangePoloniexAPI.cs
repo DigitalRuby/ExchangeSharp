@@ -416,35 +416,30 @@ namespace ExchangeSharp
                 return null;
             }
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token[0].ConvertInvariant<int>() == 1002)
                 {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token[0].ConvertInvariant<int>() == 1002)
+                    if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array && array.Count > 9 &&
+                        idsToSymbols.TryGetValue(array[0].ToStringInvariant(), out string symbol))
                     {
-                        if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array && array.Count > 9 &&
-                            idsToSymbols.TryGetValue(array[0].ToStringInvariant(), out string symbol))
+                        callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
                         {
-                            callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
-                            {
-                                new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerWebSocket(symbol, array))
-                            });
-                        }
+                            new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerWebSocket(symbol, array))
+                        });
                     }
                 }
-                catch
-                {
-                }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
-                var tickers = GetTickers();
+                var tickers = await GetTickersAsync();
                 foreach (var ticker in tickers)
                 {
                     idsToSymbols[ticker.Value.Id] = ticker.Key;
                 }
                 // subscribe to ticker channel
-                _socket.SendMessage("{\"command\":\"subscribe\",\"channel\":1002}");
+                await _socket.SendMessageAsync("{\"command\":\"subscribe\",\"channel\":1002}");
             });
         }
 
@@ -456,88 +451,82 @@ namespace ExchangeSharp
             }
 
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                int msgId = token[0].ConvertInvariant<int>();
+
+                //return if this is a heartbeat message
+                if (msgId == 1010)
                 {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    int msgId = token[0].ConvertInvariant<int>();
+                    return Task.CompletedTask;
+                }
 
-                    //return if this is a heartbeat message
-                    if (msgId == 1010)
+                var seq = token[1].ConvertInvariant<long>();
+                var dataArray = token[2];
+                ExchangeOrderBook book = new ExchangeOrderBook();
+                foreach (var data in dataArray)
+                {
+                    var dataType = data[0].ToStringInvariant();
+                    if (dataType == "i")
                     {
-                        return;
+                        var marketInfo = data[1];
+                        var market = marketInfo["currencyPair"].ToStringInvariant();
+                        messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
+
+                        // we are only returning the deltas, this would create a full order book which we don't want, but keeping it
+                        //  here for historical reference
+                        /*
+                        foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
+                        {
+                            var depth = new ExchangeOrderPrice
+                            {
+                                Price = jprop.Name.ConvertInvariant<decimal>(),
+                                Amount = jprop.Value.ConvertInvariant<decimal>()
+                            };
+                            book.Asks[depth.Price] = depth;
+                        }
+                        foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
+                        {
+                            var depth = new ExchangeOrderPrice
+                            {
+                                Price = jprop.Name.ConvertInvariant<decimal>(),
+                                Amount = jprop.Value.ConvertInvariant<decimal>()
+                            };
+                            book.Bids[depth.Price] = depth;
+                        }
+                        */
                     }
-
-                    var seq = token[1].ConvertInvariant<long>();
-                    var dataArray = token[2];
-                    ExchangeOrderBook book = new ExchangeOrderBook();
-                    foreach (var data in dataArray)
+                    else if (dataType == "o")
                     {
-                        var dataType = data[0].ToStringInvariant();
-                        if (dataType == "i")
+                        //removes or modifies an existing item on the order books
+                        if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
                         {
-                            var marketInfo = data[1];
-                            var market = marketInfo["currencyPair"].ToStringInvariant();
-                            messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
-
-                            // we are only returning the deltas, this would create a full order book which we don't want, but keeping it
-                            //  here for historical reference
-                            /*
-                            foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
-                            {
-                                var depth = new ExchangeOrderPrice
-                                {
-                                    Price = jprop.Name.ConvertInvariant<decimal>(),
-                                    Amount = jprop.Value.ConvertInvariant<decimal>()
-                                };
-                                book.Asks[depth.Price] = depth;
-                            }
-                            foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
-                            {
-                                var depth = new ExchangeOrderPrice
-                                {
-                                    Price = jprop.Name.ConvertInvariant<decimal>(),
-                                    Amount = jprop.Value.ConvertInvariant<decimal>()
-                                };
-                                book.Bids[depth.Price] = depth;
-                            }
-                            */
-                        }
-                        else if (dataType == "o")
-                        {
-                            //removes or modifies an existing item on the order books
-                            if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
-                            {
-                                int type = data[1].ConvertInvariant<int>();
-                                var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
-                                var list = (type == 1 ? book.Bids : book.Asks);
-                                list[depth.Price] = depth;
-                                book.Symbol = symbol.Item1;
-                                book.SequenceId = symbol.Item2 + 1;
-                                messageIdToSymbol[msgId] = new Tuple<string, long>(book.Symbol, book.SequenceId);
-                            }
-                        }
-                        else
-                        {
-                            continue;
+                            int type = data[1].ConvertInvariant<int>();
+                            var depth = new ExchangeOrderPrice { Price = data[2].ConvertInvariant<decimal>(), Amount = data[3].ConvertInvariant<decimal>() };
+                            var list = (type == 1 ? book.Bids : book.Asks);
+                            list[depth.Price] = depth;
+                            book.Symbol = symbol.Item1;
+                            book.SequenceId = symbol.Item2 + 1;
+                            messageIdToSymbol[msgId] = new Tuple<string, long>(book.Symbol, book.SequenceId);
                         }
                     }
-                    if (book != null && (book.Asks.Count != 0 || book.Bids.Count != 0))
+                    else
                     {
-                        callback(book);
+                        continue;
                     }
                 }
-                catch
+                if (book != null && (book.Asks.Count != 0 || book.Bids.Count != 0))
                 {
-                    // TODO: Handle exception
+                    callback(book);
                 }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 // subscribe to order book and trades channel for each symbol
                 foreach (var sym in symbols)
                 {
-                    _socket.SendMessage(JsonConvert.SerializeObject(new { command = "subscribe", channel = NormalizeSymbol(sym) }));
+                    await _socket.SendMessageAsync(JsonConvert.SerializeObject(new { command = "subscribe", channel = NormalizeSymbol(sym) }));
                 }
             });
         }
