@@ -684,9 +684,19 @@ namespace ExchangeSharp
                 {
                     return;
                 }
-                var sArray = channel.Split('_');
-                string symbol = sArray[symbolArrayIndex] + SymbolSeparator + sArray[symbolArrayIndex + 1];
-                await callback(_socket, symbol, sArray, token["data"]);
+                else if (channel.EqualsWithOption("login"))
+                {
+                    if (token["data"] != null && token["data"]["result"] != null && token["data"]["result"].ConvertInvariant<bool>())
+                    {
+                        await callback(_socket, "login", null, null);
+                    }
+                }
+                else
+                {
+                    var sArray = channel.Split('_');
+                    string symbol = sArray[symbolArrayIndex] + SymbolSeparator + sArray[symbolArrayIndex + 1];
+                    await callback(_socket, symbol, sArray, token["data"]);
+                }
             }, async (_socket) =>
             {
                 await connected(_socket);
