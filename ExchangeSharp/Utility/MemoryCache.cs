@@ -102,9 +102,9 @@ namespace ExchangeSharp
         {
             DateTime now = DateTime.UtcNow;
             WaitForReadLock();
-            WaitForWriteLock();
             try
             {
+                WaitForWriteLock();
                 try
                 {
                     foreach (var item in cache.ToArray())
