@@ -36,10 +36,18 @@ namespace ExchangeSharp
         private string GetPayloadForm(Dictionary<string, object> payload)
         {
             payload["api_key"] = PublicApiKey.ToUnsecureString();
-            var form = CryptoUtility.GetFormForPayload(payload, false);
-            var sign = form + "&secret_key=" + PrivateApiKey.ToUnsecureString();
+            string form = CryptoUtility.GetFormForPayload(payload, false);
+            string sign = form + "&secret_key=" + PrivateApiKey.ToUnsecureString();
             sign = CryptoUtility.MD5Sign(sign);
             return form + "&sign=" + sign;
+        }
+
+        private string GetAuthForWebSocket()
+        {
+            string apiKey = PublicApiKey.ToUnsecureString();
+            string param = "api_key=" + apiKey + "&secret_key=" + PrivateApiKey.ToUnsecureString();
+            string sign = CryptoUtility.MD5Sign(param);
+            return $"{{ \"event\": \"login\", \"parameters\": {{ \"api_key\": \"{apiKey}\", \"sign\": \"{sign}\" }} }}";
         }
 
         #region ProcessRequest
