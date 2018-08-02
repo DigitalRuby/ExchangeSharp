@@ -663,7 +663,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback)
+        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
@@ -675,14 +675,15 @@ namespace ExchangeSharp
                     return;
                 }
                 var sArray = channel.Split('_');
-                await callback(_socket, sArray[3] + SymbolSeparator + sArray[4], sArray, token["data"]);
+                string symbol = sArray[symbolArrayIndex] + SymbolSeparator + sArray[symbolArrayIndex + 1];
+                await callback(_socket, symbol, sArray, token["data"]);
             }, async (_socket) =>
             {
                 await connected(_socket);
             });
         }
 
-        private async Task<string[]> AddSymbolsToChannel(IWebSocket socket, string channelFormat, string[] symbols)
+        private async Task<string[]> AddSymbolsToChannel(IWebSocket socket, string channelFormat, string[] symbols, bool useJustFirstSymbol = false)
         {
             if (symbols == null || symbols.Length == 0)
             {
@@ -691,6 +692,10 @@ namespace ExchangeSharp
             foreach (string symbol in symbols)
             {
                 string normalizedSymbol = NormalizeSymbol(symbol);
+                if (useJustFirstSymbol)
+                {
+                    normalizedSymbol = normalizedSymbol.Substring(0, normalizedSymbol.IndexOf(SymbolSeparator[0]));
+                }
                 string channel = string.Format(channelFormat, normalizedSymbol);
                 string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
                 await socket.SendMessageAsync(msg);
