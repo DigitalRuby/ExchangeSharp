@@ -213,17 +213,7 @@ namespace ExchangeSharp
 
             return ConnectWebSocketOkex(async (_socket) =>
             {
-                if (symbols == null || symbols.Length == 0)
-                {
-                    symbols = (await GetSymbolsAsync()).ToArray();
-                }
-                foreach (string symbol in symbols)
-                {
-                    string normalizedSymbol = NormalizeSymbol(symbol);
-                    string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
-                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                    await _socket.SendMessageAsync(msg);
-                }
+                symbols = await AddSymbolsToChannel(_socket, "ok_sub_spot_{0}_deals", symbols);
             }, (_socket, sArray, token) =>
             {
                 var symbol = sArray[3] + "_" + sArray[4];
@@ -288,18 +278,7 @@ namespace ExchangeSharp
 
             return ConnectWebSocketOkex(async (_socket) =>
             {
-                if (symbols.Length == 0)
-                {
-                    symbols = (await GetSymbolsAsync()).ToArray();
-                }
-                foreach (string symbol in symbols)
-                {
-                    // subscribe to order book and trades channel for given symbol
-                    string normalizedSymbol = NormalizeSymbol(symbol);
-                    string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
-                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                    await _socket.SendMessageAsync(msg);
-                }
+                symbols = await AddSymbolsToChannel(_socket, $"ok_sub_spot_{{0}}_depth_{maxCount}", symbols);
             }, (_socket, sArray, token) =>
             {
                 ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, sequence: "timestamp", maxCount: maxCount);
@@ -716,6 +695,22 @@ namespace ExchangeSharp
             {
                 await connected(_socket);
             });
+        }
+
+        private async Task<string[]> AddSymbolsToChannel(IWebSocket socket, string channelFormat, string[] symbols)
+        {
+            if (symbols == null || symbols.Length == 0)
+            {
+                symbols = (await GetSymbolsAsync()).ToArray();
+            }
+            foreach (string symbol in symbols)
+            {
+                string normalizedSymbol = NormalizeSymbol(symbol);
+                string channel = string.Format(channelFormat, normalizedSymbol);
+                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                await socket.SendMessageAsync(msg);
+            }
+            return symbols;
         }
 
         #endregion
