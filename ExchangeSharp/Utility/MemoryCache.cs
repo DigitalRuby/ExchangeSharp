@@ -48,6 +48,13 @@ namespace ExchangeSharp
     {
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
         private readonly Timer cacheTimer;
+
+#if DEBUG
+
+        private readonly int cacheTimerInterval;
+
+#endif
+
         private int readers;
         private int writers;
 
@@ -73,16 +80,16 @@ namespace ExchangeSharp
 
         private void WaitForWriteLock()
         {
-            if (readers == 0 || writers != 0)
+            if (readers == 0)
             {
                 throw new InvalidOperationException("Must acquire read lock first");
             }
 
-            Interlocked.Increment(ref writers);
-
-            // wait for any other readers to finish up
-            while (readers > 1)
+            // in order to acquire the write lock, there can be no other writers, and only 1 reader (the reader that was acquired right before this right lock)
+            while (Interlocked.Increment(ref writers) != 1 || readers != 1)
             {
+                Interlocked.Decrement(ref writers);
+
                 // should be rare
                 Thread.Sleep(1);
             }
@@ -100,6 +107,14 @@ namespace ExchangeSharp
 
         private void TimerCallback(object state)
         {
+
+#if DEBUG
+
+            // disable timer during debug, we don't want multiple callbacks fouling things up
+            cacheTimer.Change(-1, -1);
+
+#endif
+
             DateTime now = DateTime.UtcNow;
             WaitForReadLock();
             try
@@ -124,6 +139,13 @@ namespace ExchangeSharp
             {
                 ReleaseReadLock();
             }
+
+#if DEBUG
+
+            cacheTimer.Change(cacheTimerInterval, cacheTimerInterval);
+
+#endif
+
         }
 
         /// <summary>
@@ -132,6 +154,13 @@ namespace ExchangeSharp
         /// <param name="cleanupIntervalMilliseconds">Cleanup interval in milliseconds, removes expired items from cache</param>
         public MemoryCache(int cleanupIntervalMilliseconds = 10000)
         {
+
+#if DEBUG
+
+            cacheTimerInterval = cleanupIntervalMilliseconds;
+
+#endif
+
             // set timer to remove expired cache items
             cacheTimer = new Timer(new System.Threading.TimerCallback(TimerCallback), null, cleanupIntervalMilliseconds, cleanupIntervalMilliseconds);
         }
