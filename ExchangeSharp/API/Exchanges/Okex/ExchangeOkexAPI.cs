@@ -161,104 +161,89 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
+            if (callback == null)
             {
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
-            {
-                /*
-{[
-  {
-    "binary": 0,
-    "channel": "addChannel",
-    "data": {
-      "result": true,
-      "channel": "ok_sub_spot_btc_usdt_deals"
-    }
-  }
-]}
-
-
-{[
-  {
-    "binary": 0,
-    "channel": "ok_sub_spot_btc_usdt_deals",
-    "data": [
-      [
-        "335599480",
-        "7396",
-        "0.0031002",
-        "20:23:51",
-        "bid"
-      ],
-      [
-        "335599497",
-        "7395.9153",
-        "0.0031",
-        "20:23:51",
-        "bid"
-      ],
-      [
-        "335599499",
-        "7395.7889",
-        "0.00409436",
-        "20:23:51",
-        "ask"
-      ],
-      
-    ]
-  }
-]}
-                 */
-                try
-                {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    token = token[0];
-                    var channel = token["channel"].ToStringInvariant();
-                    if (channel.EqualsWithOption("addChannel"))
-                    {
-                        return;
-                    }
-
-                    var sArray = channel.Split('_');
-                    var symbol = sArray[3] + "_" + sArray[4];
-                    var trades = ParseTradesWebSocket(token["data"]);
-                    foreach (var trade in trades)
-                    {
-                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                    }
+            /*
+            {[
+              {
+                "binary": 0,
+                "channel": "addChannel",
+                "data": {
+                  "result": true,
+                  "channel": "ok_sub_spot_btc_usdt_deals"
                 }
-                catch
-                {
-                }
-            }, (_socket) =>
+              }
+            ]}
+
+
+            {[
+              {
+                "binary": 0,
+                "channel": "ok_sub_spot_btc_usdt_deals",
+                "data": [
+                  [
+                    "335599480",
+                    "7396",
+                    "0.0031002",
+                    "20:23:51",
+                    "bid"
+                  ],
+                  [
+                    "335599497",
+                    "7395.9153",
+                    "0.0031",
+                    "20:23:51",
+                    "bid"
+                  ],
+                  [
+                    "335599499",
+                    "7395.7889",
+                    "0.00409436",
+                    "20:23:51",
+                    "ask"
+                  ],
+
+                ]
+              }
+            ]}
+            */
+
+            return ConnectWebSocketOkex(async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (symbols == null || symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
                 foreach (string symbol in symbols)
                 {
                     string normalizedSymbol = NormalizeSymbol(symbol);
                     string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
                     string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                    _socket.SendMessage(msg);
+                    await _socket.SendMessageAsync(msg);
                 }
+            }, (_socket, sArray, token) =>
+            {
+                var symbol = sArray[3] + "_" + sArray[4];
+                var trades = ParseTradesWebSocket(token);
+                foreach (var trade in trades)
+                {
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                }
+                return Task.CompletedTask;
             });
         }
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
+            if (callback == null)
             {
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
-            {
-                /*
+            /*
 {[
   {
     "binary": 0,
@@ -300,32 +285,12 @@ namespace ExchangeSharp
 ]}
                  
                  */
-                try
-                {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    token = token[0];
-                    var channel = token["channel"].ToStringInvariant();
-                    if (channel.EqualsWithOption("addChannel"))
-                    {
-                        return;
-                    }
 
-                    var sArray = channel.Split('_');
-                    var symbol = sArray[3] + "_" + sArray[4];
-                    var data = token["data"];
-                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(data, sequence: "timestamp", maxCount: maxCount);
-					book.Symbol = symbol;
-                    callback(book);
-                }
-                catch
-                {
-                    // TODO: Handle exception
-                }
-            }, (_socket) =>
+            return ConnectWebSocketOkex(async (_socket) =>
             {
                 if (symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
                 foreach (string symbol in symbols)
                 {
@@ -333,8 +298,15 @@ namespace ExchangeSharp
                     string normalizedSymbol = NormalizeSymbol(symbol);
                     string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
                     string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                    _socket.SendMessage(msg);
+                    await _socket.SendMessageAsync(msg);
                 }
+            }, (_socket, sArray, token) =>
+            {
+                ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, sequence: "timestamp", maxCount: maxCount);
+                string symbol = sArray[3] + "_" + sArray[4];
+                book.Symbol = symbol;
+                callback(book);
+                return Task.CompletedTask;
             });
         }
 
@@ -726,6 +698,26 @@ namespace ExchangeSharp
 
             return trades;
         }
+
+        private IWebSocket ConnectWebSocketOkex(Func<WebSocketWrapper, Task> connected, Func<WebSocketWrapper, string[], JToken, Task> callback)
+        {
+            return ConnectWebSocket(string.Empty, async (msg, _socket) =>
+            {
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                token = token[0];
+                var channel = token["channel"].ToStringInvariant();
+                if (channel.EqualsWithOption("addChannel"))
+                {
+                    return;
+                }
+                var sArray = channel.Split('_');
+                await callback(_socket, sArray, token["data"]);
+            }, async (_socket) =>
+            {
+                await connected(_socket);
+            });
+        }
+
         #endregion
     }
 }
