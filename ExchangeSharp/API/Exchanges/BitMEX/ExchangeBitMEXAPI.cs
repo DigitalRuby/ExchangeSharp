@@ -40,14 +40,8 @@ namespace ExchangeSharp
             RequestWindow = TimeSpan.Zero;
             NonceStyle = NonceStyle.UnixSeconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
-            SymbolSeparator = "_";
-            SymbolIsReversed = false;
+            SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", "_").Replace("/", "_").ToUpperInvariant();
         }
 
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
@@ -275,11 +269,8 @@ namespace ExchangeSharp
 {"success":true,"subscribe":"orderBookL2:XBTUSD","request":{"op":"subscribe","args":["orderBookL2:XBTUSD"]}}
 {"table":"orderBookL2","action":"update","data":[{"symbol":"XBTUSD","id":8799343000,"side":"Buy","size":350544}]}
              */
-            if (callback == null)
-            {
-                return null;
-            }
-            else if (symbols == null || symbols.Length == 0)
+
+            if (symbols == null || symbols.Length == 0)
             {
                 symbols = GetSymbols().ToArray();
             }

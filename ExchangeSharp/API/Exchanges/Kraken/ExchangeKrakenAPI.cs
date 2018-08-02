@@ -48,11 +48,6 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
-        }
-
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
             if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))

@@ -466,8 +466,6 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
-            if (callback == null) return null;
-
             var orders = GetOpenOrderDetails().Select(o => o.OrderId).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(orders));
 

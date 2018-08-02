@@ -29,6 +29,8 @@ namespace ExchangeSharp
 
         public ExchangeGeminiAPI()
         {
+            SymbolIsUppercase = false;
+            SymbolSeparator = string.Empty;
         }
 
         private ExchangeVolume ParseVolume(JToken token)
@@ -82,11 +84,6 @@ namespace ExchangeSharp
                 // gemini doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
             }
             return base.ProcessRequestAsync(request, payload);
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant();
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()

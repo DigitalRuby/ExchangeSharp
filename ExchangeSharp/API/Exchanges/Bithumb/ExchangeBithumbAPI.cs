@@ -23,21 +23,18 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
         public override string Name => ExchangeName.Bithumb;
 
-        private static readonly char[] normalizeSeps = new char[] { '-', '_' };
-
         public ExchangeBithumbAPI()
         {
+            SymbolIsUppercase = true;
         }
 
         public override string NormalizeSymbol(string symbol)
         {
-            if (symbol != null)
+            symbol = base.NormalizeSymbol(symbol);
+            int pos = symbol.IndexOf(SymbolSeparator);
+            if (pos >= 0)
             {
-                int pos = symbol.IndexOfAny(normalizeSeps);
-                if (pos >= 0)
-                {
-                    symbol = symbol.Substring(0, pos).ToLowerInvariant();
-                }
+                symbol = symbol.Substring(0, pos);
             }
             return symbol;
         }

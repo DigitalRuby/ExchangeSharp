@@ -30,11 +30,6 @@ namespace ExchangeSharp
             SymbolSeparator = "/";
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace('_', '/').Replace('-', '/');
-        }
-
         #region ProcessRequest 
 
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)

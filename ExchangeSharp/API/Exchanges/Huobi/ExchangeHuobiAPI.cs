@@ -124,14 +124,9 @@ namespace ExchangeSharp
             return url.Uri;
         }
 
-#endregion
+        #endregion
 
-#region Public APIs
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", "").Replace("/", "").Replace("_", "").ToLowerInvariant();
-        }
+        #region Public APIs
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {

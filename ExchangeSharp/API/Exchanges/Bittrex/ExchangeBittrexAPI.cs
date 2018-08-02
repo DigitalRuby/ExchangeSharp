@@ -67,11 +67,6 @@ namespace ExchangeSharp
             };
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToUpperInvariant();
-        }
-
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             ExchangeOrderResult order = new ExchangeOrderResult();

@@ -41,11 +41,6 @@ namespace ExchangeSharp
             SymbolIsReversed = true;
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace('/', '_').Replace('-', '_');
-        }
-
         #region ProcessRequest 
 
         protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)

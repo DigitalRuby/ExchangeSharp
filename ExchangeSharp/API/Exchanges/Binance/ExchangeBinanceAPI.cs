@@ -75,11 +75,6 @@ namespace ExchangeSharp
             SymbolIsReversed = true;
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).Replace("/", string.Empty).ToUpperInvariant();
-        }
-
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
             // All pairs in Binance end with BTC, ETH, BNB or USDT
@@ -253,10 +248,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            if (callback == null)
-            {
-                return null;
-            }
             return ConnectWebSocket("/stream?streams=!ticker@arr", (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -277,11 +268,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             /*
             {
               "e": "trade",     // Event type
@@ -298,7 +284,7 @@ namespace ExchangeSharp
             }
             */
 
-            else if (symbols == null || symbols.Length == 0)
+            if (symbols == null || symbols.Length == 0)
             {
                 symbols = GetSymbols().ToArray();
             }
@@ -327,11 +313,7 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-            else if (symbols == null || symbols.Length == 0)
+            if (symbols == null || symbols.Length == 0)
             {
                 symbols = GetSymbols().ToArray();
             }

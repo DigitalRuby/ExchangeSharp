@@ -50,7 +50,7 @@ namespace ExchangeSharp
 
             ExchangeGlobalCurrencyReplacements[typeof(ExchangePoloniexAPI)] = new KeyValuePair<string, string>[]
             {
-                new KeyValuePair<string, string>("STR", "XLM")
+                new KeyValuePair<string, string>("STR", "XLM") // WTF
             };
         }
 
@@ -58,7 +58,6 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
-            SymbolIsReversed = false;
         }
 
         /// <summary>
@@ -269,11 +268,6 @@ namespace ExchangeSharp
             }
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToUpperInvariant().Replace('-', '_');
-        }
-
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             /*
@@ -411,10 +405,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            if (callback == null)
-            {
-                return null;
-            }
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {

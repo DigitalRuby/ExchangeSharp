@@ -36,36 +36,36 @@ namespace ExchangeSharpConsoleApp
         {
             string GetSymbol(IExchangeAPI api)
             {
-                if (api is ExchangeCryptopiaAPI || api is ExchangeLivecoinAPI)
+                if (api is ExchangeCryptopiaAPI || api is ExchangeLivecoinAPI || api is ExchangeZBcomAPI)
                 {
-                    return "LTC/BTC";
+                    return "LTC-BTC";
                 }
                 else if (api is ExchangeKrakenAPI)
                 {
-                    return api.NormalizeSymbol("XXBTZUSD");
+                    return "XXBTZ-USD";
                 }
                 else if (api is ExchangeBittrexAPI || api is ExchangePoloniexAPI)
                 {
-                    return api.NormalizeSymbol("BTC-LTC");
+                    return "BTC-LTC";
                 }
                 else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI || api is ExchangeBleutradeAPI ||
-                    api is ExchangeKucoinAPI || api is ExchangeHuobiAPI)
+                    api is ExchangeKucoinAPI || api is ExchangeHuobiAPI || api is ExchangeAbucoinsAPI)
                 {
-                    return api.NormalizeSymbol("ETH-BTC");
+                    return "ETH-BTC";
                 }
                 else if (api is ExchangeYobitAPI)
                 {
-                    return api.NormalizeSymbol("LTC_BTC");
+                    return "LTC-BTC";
                 }
-                else if (api is ExchangeTuxExchangeAPI || api is ExchangeAbucoinsAPI)
+                else if (api is ExchangeTuxExchangeAPI)
                 {
-                    return api.NormalizeSymbol("BTC_ETH");
+                    return "BTC-ETH";
                 }
                 else if (api is ExchangeBitMEXAPI)
                 {
-                    return api.NormalizeSymbol("XBTUSD");
+                    return "XBT-USD";
                 }
-                return api.NormalizeSymbol("BTC-USD");
+                return "BTC-USD";
             }
 
             ExchangeTrade[] trades = null;
@@ -86,7 +86,7 @@ namespace ExchangeSharpConsoleApp
                 // test all public API for each exchange
                 try
                 {
-                    string symbol = GetSymbol(api);
+                    string symbol = api.NormalizeSymbol(GetSymbol(api));
 
                     IReadOnlyCollection<string> symbols = api.GetSymbols().ToArray();
                     Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));

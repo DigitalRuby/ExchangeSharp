@@ -36,16 +36,6 @@ namespace ExchangeSharp
             SymbolSeparator = string.Empty;
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("/", string.Empty).Replace("_", string.Empty);
-        }
-
-        public override string ExchangeSymbolToGlobalSymbol(string symbol)
-        {
-            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + symbol.Substring(symbol.Length - 3, 3), GlobalSymbolSeparator);
-        }
-
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (method != "PUT" && method != "POST" && payload != null && payload.Count != 0)

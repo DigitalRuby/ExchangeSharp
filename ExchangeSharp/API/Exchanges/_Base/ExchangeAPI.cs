@@ -318,16 +318,19 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Separator for exchange symbol, derived classes can change in constructor. This should be a single char string or empty string.
+        /// Default is hyphen '-'.
         /// </summary>
         protected string SymbolSeparator { get; set; } = "-";
 
         /// <summary>
-        /// Whether the exchange symbol is reversed from most other exchanges, derived classes can change to true in constructor
+        /// Whether the exchange symbol is reversed from most other exchanges, derived classes can change to true in constructor.
+        /// Default is false.
         /// </summary>
         protected bool SymbolIsReversed { get; set; }
 
         /// <summary>
-        /// Whether the exchange symbol is uppercase
+        /// Whether the exchange symbol is uppercase.
+        /// Default is true.
         /// </summary>
         protected bool SymbolIsUppercase { get; set; } = true;
 
@@ -430,6 +433,15 @@ namespace ExchangeSharp
                 disposed = true;
                 OnDispose();
                 Cache.Dispose();
+
+                // take out of global api dictionary if disposed
+                lock (apis)
+                {
+                    if (apis[Name] == this)
+                    {
+                        apis[Name] = null;
+                    }
+                }
             }
         }
 
@@ -492,14 +504,24 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Normalize a symbol for use on this exchange. The symbol should already be in the correct order,
+        /// Normalize an exchange specific symbol. The symbol should already be in the correct order,
         /// this method just deals with casing and putting in the right separator.
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Normalized symbol</returns>
         public virtual string NormalizeSymbol(string symbol)
         {
-            return (symbol ?? string.Empty);
+            symbol = (symbol ?? string.Empty).Trim();
+            symbol = symbol.Replace("-", SymbolSeparator)
+                .Replace("/", SymbolSeparator)
+                .Replace("_", SymbolSeparator)
+                .Replace(" ", SymbolSeparator)
+                .Replace(":", SymbolSeparator);
+            if (SymbolIsUppercase)
+            {
+                return symbol.ToUpperInvariant();
+            }
+            return symbol.ToLowerInvariant();
         }
 
         /// <summary>
@@ -514,7 +536,11 @@ namespace ExchangeSharp
         {
             if (string.IsNullOrWhiteSpace(SymbolSeparator))
             {
-                throw new ArgumentException("Exchange has set an empty SymbolSeparator, the exchange must override this method");
+                if (symbol.Length != 6)
+                {
+                    throw new InvalidOperationException(Name + " symbol must be 6 chars: '" + symbol + "' is not. Override this method to handle symbols that are not 6 chars in length.");
+                }
+                return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + (symbol.Substring(symbol.Length - 3, 3)), GlobalSymbolSeparator);
             }
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol, SymbolSeparator[0]);
         }

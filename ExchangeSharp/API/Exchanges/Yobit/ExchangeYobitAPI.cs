@@ -71,11 +71,6 @@ namespace ExchangeSharp
 
         #region Public APIs
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace('-', '_').Replace('/', '_').ToLowerInvariant();
-        }
-
         protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             throw new NotSupportedException("Yobit does not provide data about its currencies via the API");

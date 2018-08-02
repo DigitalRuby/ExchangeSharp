@@ -78,11 +78,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             void innerCallback(string json)
             {
                 #region sample json

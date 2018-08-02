@@ -43,6 +43,8 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMilliseconds;
+            SymbolIsUppercase = false;
+            SymbolSeparator = string.Empty;
         }
 
         /// <summary>
@@ -82,11 +84,6 @@ namespace ExchangeSharp
                 throw new APIException(token["error"].ToStringInvariant());
             }
             return token;
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("/", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()

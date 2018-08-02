@@ -26,21 +26,7 @@ namespace ExchangeSharp
         public ExchangeZBcomAPI()
         {
             SymbolSeparator = "_";
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
-        }
-
-        public override string ExchangeSymbolToGlobalSymbol(string symbol)
-        {
-            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol, SymbolSeparator[0]);
-        }
-
-        public override string GlobalSymbolToExchangeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
+            SymbolIsUppercase = false;
         }
 
         #region publicAPI
@@ -96,6 +82,17 @@ namespace ExchangeSharp
                     Timestamp = date
                 }
             };
+        }
+
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        {
+            var data = await MakeRequestZBcomAsync(string.Empty, "/markets");
+            List<string> symbols = new List<string>();
+            foreach (JProperty prop in data.Item1)
+            {
+                symbols.Add(prop.Name);
+            }
+            return symbols;
         }
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)

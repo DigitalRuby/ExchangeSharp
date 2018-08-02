@@ -196,10 +196,10 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-
+            symbol = NormalizeSymbol(symbol);
             long start = startDate == null ? (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
             long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
-            string coin = symbol.Split('_')[1];
+            string coin = symbol.Split(SymbolSeparator[0])[1];
             string url = "/api?method=gettradehistory&coin=" + coin + "&start=" + start + "&end=" + end;
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             foreach (JToken trade in token)

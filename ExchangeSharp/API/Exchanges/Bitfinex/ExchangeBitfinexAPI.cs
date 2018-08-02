@@ -60,11 +60,8 @@ namespace ExchangeSharp
                 ["YYW"] = "yoyow",
                 ["ZEC"] = "zcash",
             };
-        }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).ToUpperInvariant();
+            SymbolSeparator = string.Empty;
         }
 
         public string NormalizeSymbolV1(string symbol)
@@ -191,10 +188,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            if (callback == null)
-            {
-                return null;
-            }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
@@ -434,11 +427,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());

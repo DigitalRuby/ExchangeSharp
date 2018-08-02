@@ -135,11 +135,6 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixSeconds;
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace('_', '-').ToUpperInvariant();
-        }
-
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
@@ -307,11 +302,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             return ConnectWebSocket("/", (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());

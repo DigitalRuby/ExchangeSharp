@@ -29,11 +29,8 @@ namespace ExchangeSharp
         public ExchangeOkexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
+            SymbolSeparator = "_";
+            SymbolIsUppercase = false;
         }
 
         #region ProcessRequest
@@ -161,11 +158,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             /*
             {[
               {
@@ -214,10 +206,9 @@ namespace ExchangeSharp
             return ConnectWebSocketOkex(async (_socket) =>
             {
                 symbols = await AddSymbolsToChannel(_socket, "ok_sub_spot_{0}_deals", symbols);
-            }, (_socket, sArray, token) =>
+            }, (_socket, symbol, sArray, token) =>
             {
-                var symbol = sArray[3] + "_" + sArray[4];
-                var trades = ParseTradesWebSocket(token);
+                IEnumerable<ExchangeTrade> trades = ParseTradesWebSocket(token);
                 foreach (var trade in trades)
                 {
                     callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
@@ -228,11 +219,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             /*
 {[
   {
@@ -279,10 +265,9 @@ namespace ExchangeSharp
             return ConnectWebSocketOkex(async (_socket) =>
             {
                 symbols = await AddSymbolsToChannel(_socket, $"ok_sub_spot_{{0}}_depth_{maxCount}", symbols);
-            }, (_socket, sArray, token) =>
+            }, (_socket, symbol, sArray, token) =>
             {
                 ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, sequence: "timestamp", maxCount: maxCount);
-                string symbol = sArray[3] + "_" + sArray[4];
                 book.Symbol = symbol;
                 callback(book);
                 return Task.CompletedTask;
@@ -678,7 +663,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string[], JToken, Task> callback)
+        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback)
         {
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
@@ -690,7 +675,7 @@ namespace ExchangeSharp
                     return;
                 }
                 var sArray = channel.Split('_');
-                await callback(_socket, sArray, token["data"]);
+                await callback(_socket, sArray[3] + SymbolSeparator + sArray[4], sArray, token["data"]);
             }, async (_socket) =>
             {
                 await connected(_socket);
