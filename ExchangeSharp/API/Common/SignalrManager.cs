@@ -170,13 +170,13 @@ namespace ExchangeSharp
         {
             private IConnection connection;
             private string connectionData;
-            public WebSocketWrapper WebSocket { get; private set; }
+            public ExchangeSharp.ClientWebSocket WebSocket { get; private set; }
 
             public override bool SupportsKeepAlive => true;
 
             public WebsocketCustomTransport(IHttpClient client) : base(client, "webSockets")
             {
-                WebSocket = new WebSocketWrapper();
+                WebSocket = new ExchangeSharp.ClientWebSocket();
             }
 
             ~WebsocketCustomTransport()

@@ -24,16 +24,131 @@ namespace ExchangeSharp
     /// <summary>
     /// Wraps a web socket for easy dispose later, along with auto-reconnect and message and reader queues
     /// </summary>
-    public sealed class WebSocketWrapper : IWebSocket
+    public sealed class ClientWebSocket : IWebSocket
     {
+        /// <summary>
+        /// Client web socket implementation
+        /// </summary>
+        public interface IClientWebSocketImplementation : IDisposable
+        {
+            /// <summary>
+            /// Web socket state
+            /// </summary>
+            WebSocketState State { get; }
+
+            /// <summary>
+            /// Keep alive interval (heartbeat)
+            /// </summary>
+            TimeSpan KeepAliveInterval { get; set; }
+
+            /// <summary>
+            /// Close cleanly
+            /// </summary>
+            /// <param name="closeStatus"></param>
+            /// <param name="statusDescription"></param>
+            /// <param name="cancellationToken"></param>
+            /// <returns></returns>
+            Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
+
+            /// <summary>
+            /// Close output immediately
+            /// </summary>
+            /// <param name="closeStatus"></param>
+            /// <param name="statusDescription"></param>
+            /// <param name="cancellationToken"></param>
+            /// <returns></returns>
+            Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
+
+            /// <summary>
+            /// Connect
+            /// </summary>
+            /// <param name="uri"></param>
+            /// <param name="cancellationToken"></param>
+            /// <returns></returns>
+            Task ConnectAsync(Uri uri, CancellationToken cancellationToken);
+
+            /// <summary>
+            /// Receive
+            /// </summary>
+            /// <param name="buffer"></param>
+            /// <param name="cancellationToken"></param>
+            /// <returns></returns>
+            Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken);
+
+            /// <summary>
+            /// Send
+            /// </summary>
+            /// <param name="buffer"></param>
+            /// <param name="messageType"></param>
+            /// <param name="endOfMessage"></param>
+            /// <param name="cancellationToken"></param>
+            /// <returns></returns>
+            Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken);
+        }
+
+        private class ClientWebSocketImplementation : IClientWebSocketImplementation
+        {
+            private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket();
+
+            public WebSocketState State
+            {
+                get { return webSocket.State; }
+            }
+
+            public TimeSpan KeepAliveInterval
+            {
+                get { return webSocket.Options.KeepAliveInterval; }
+                set { webSocket.Options.KeepAliveInterval = value; }
+            }
+
+            public void Dispose()
+            {
+                webSocket.Dispose();
+            }
+
+            public Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+            {
+                return webSocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+            }
+
+            public Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+            {
+                return webSocket.CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
+            }
+
+            public Task ConnectAsync(Uri uri, CancellationToken cancellationToken)
+            {
+                return webSocket.ConnectAsync(uri, cancellationToken);
+            }
+
+            public Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
+            {
+                return webSocket.ReceiveAsync(buffer, cancellationToken);
+            }
+
+            public Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
+            {
+                return webSocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+            }
+        }
+
         private const int receiveChunkSize = 8192;
 
-        private ClientWebSocket webSocket = new ClientWebSocket();
+        private static Func<IClientWebSocketImplementation> webSocketCreator = () => new ClientWebSocketImplementation();
+
+        // created from factory, allows swapping out underlying implementation
+        private IClientWebSocketImplementation webSocket;
+
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken cancellationToken;
         private readonly BlockingCollection<object> messageQueue = new BlockingCollection<object>(new ConcurrentQueue<object>());
 
         private bool disposed;
+
+        private void CreateWebSocket()
+        {
+            webSocket = webSocketCreator();
+        }
 
         /// <summary>
         /// The uri to connect to
@@ -71,9 +186,27 @@ namespace ExchangeSharp
         public bool CloseCleanly { get; set; }
 
         /// <summary>
+        /// Register a function that will be responsible for creating the underlying web socket implementation
+        /// By default, C# built-in web sockets are used (Windows 8.1+ required). But you could swap out
+        /// a different web socket for other platforms, testing, or other specialized needs.
+        /// </summary>
+        /// <param name="creator">Creator function. Pass null to go back to the default implementation.</param>
+        public static void RegisterWebSocketCreator(Func<IClientWebSocketImplementation> creator)
+        {
+            if (creator == null)
+            {
+                webSocketCreator = () => new ClientWebSocketImplementation();
+            }
+            else
+            {
+                webSocketCreator = creator;
+            }
+        }
+
+        /// <summary>
         /// Default constructor, does not begin listening immediately. You must set the properties and then call Start.
         /// </summary>
-        public WebSocketWrapper()
+        public ClientWebSocket()
         {
             cancellationToken = cancellationTokenSource.Token;
         }
@@ -83,6 +216,8 @@ namespace ExchangeSharp
         /// </summary>
         public void Start()
         {
+            CreateWebSocket();
+
             // kick off message parser and message listener
             Task.Run(MessageTask);
             Task.Run(ReadTask);
@@ -143,7 +278,7 @@ namespace ExchangeSharp
             return false;
         }
 
-        private void QueueActions(params Func<WebSocketWrapper, Task>[] actions)
+        private void QueueActions(params Func<IWebSocket, Task>[] actions)
         {
             if (actions != null && actions.Length != 0)
             {
@@ -163,7 +298,7 @@ namespace ExchangeSharp
             }
         }
 
-        private void QueueActionsWithNoExceptions(params Func<WebSocketWrapper, Task>[] actions)
+        private void QueueActionsWithNoExceptions(params Func<IWebSocket, Task>[] actions)
         {
             if (actions != null && actions.Length != 0)
             {
@@ -190,7 +325,7 @@ namespace ExchangeSharp
         private async Task ReadTask()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
-            TimeSpan keepAlive = webSocket.Options.KeepAliveInterval;
+            TimeSpan keepAlive = webSocket.KeepAliveInterval;
             MemoryStream stream = new MemoryStream();
             WebSocketReceiveResult result;
             bool wasConnected = false;
@@ -200,7 +335,7 @@ namespace ExchangeSharp
                 try
                 {
                     // open the socket
-                    webSocket.Options.KeepAliveInterval = KeepAlive;
+                    webSocket.KeepAliveInterval = KeepAlive;
                     wasConnected = false;
                     await webSocket.ConnectAsync(Uri, cancellationToken);
                     wasConnected = true;
@@ -255,7 +390,7 @@ namespace ExchangeSharp
                 if (!disposed)
                 {
                     // wait 5 seconds before attempting reconnect
-                    webSocket = new ClientWebSocket();
+                    CreateWebSocket();
                     await Task.Delay(5000);
                 }
             }
