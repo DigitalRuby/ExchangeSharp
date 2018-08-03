@@ -106,7 +106,7 @@ namespace ExchangeSharp
             //{ "hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"},"tvqc":{ "vol":"2125511.1",
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
-            var date = DateTime.Now; //ZB.com doesn't give a timestamp when asking all tickers
+            var date = DateTime.UtcNow; //ZB.com doesn't give a timestamp when asking all tickers
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             foreach (JToken token in data.Item1)
