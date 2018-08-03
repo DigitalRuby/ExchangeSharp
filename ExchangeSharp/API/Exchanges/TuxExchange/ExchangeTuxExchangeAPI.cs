@@ -239,7 +239,7 @@ namespace ExchangeSharp
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmybalances");
 
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
@@ -257,7 +257,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmybalances");
 
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
@@ -282,7 +282,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmytradehistory");
 
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
@@ -302,7 +302,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmyopenorders");
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
 
@@ -320,7 +320,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             var split = order.Symbol.Split('_');
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", order.IsBuy ? "buy" : "sell");
             payload.Add("market", split[0]);
             payload.Add("coin", split[1]);
@@ -347,7 +347,7 @@ namespace ExchangeSharp
         // This should have a return value for success
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "cancelorder");
             payload.Add("id", orderId);
             // TODO: a 'market' payload with split symbol *may* be required, in which case we'll have to do a lookup, but we can't. Again, the documentation is incomplete
@@ -358,7 +358,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmydeposithistory");
 
             // {"365": { "coin": "DOGE","amount": "3","address": "D7ssLc8M4L3bKaku232GBeqxshbbD43hFM","date": "2016-02-11 21:23:44","txid": "ae4d47bc130ac8e2e1960ee3c3545963a380f6ef268d384f8fc3d6a2220c92fb" }
@@ -382,7 +382,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmyaddresses");
 
             // "addresses": { "BTC": "14iuWRBwB35HYG98vBxmVJoJZG73BZy4bZ", "LTC": "LXLWHFLpPbcKx69diMVEXVLAzSMXsyrQH2", "DOGE": "DGon17FjjTTVXaHeotm1gvw6ewUZ49WeZr",  }
@@ -402,7 +402,7 @@ namespace ExchangeSharp
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("method", "withdraw");
             payload.Add("coin", withdrawalRequest.Symbol);
             payload.Add("amount", withdrawalRequest.Amount);

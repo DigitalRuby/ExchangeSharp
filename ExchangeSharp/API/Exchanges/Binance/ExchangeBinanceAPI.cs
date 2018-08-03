@@ -439,7 +439,7 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, await OnGetNoncePayloadAsync());
+            JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, await GetNoncePayloadAsync());
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
@@ -454,7 +454,7 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, await OnGetNoncePayloadAsync());
+            JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, await GetNoncePayloadAsync());
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JToken balance in token["balances"])
             {
@@ -470,7 +470,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["symbol"] = symbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
             payload["type"] = order.OrderType.ToStringUpperInvariant();
@@ -496,7 +496,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (string.IsNullOrEmpty(symbol))
             {
                 throw new InvalidOperationException("Binance single order details request requires symbol");
@@ -508,7 +508,7 @@ namespace ExchangeSharp
             ExchangeOrderResult result = ParseOrder(token);
 
             // Add up the fees from each trade in the order
-            Dictionary<string, object> feesPayload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> feesPayload = await GetNoncePayloadAsync();
             feesPayload["symbol"] = symbol;
             JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, feesPayload);
             ParseFees(feesToken, result);
@@ -540,7 +540,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (!string.IsNullOrWhiteSpace(symbol))
             {
                 payload["symbol"] = NormalizeSymbol(symbol);
@@ -601,7 +601,7 @@ namespace ExchangeSharp
             }
             else
             {
-                Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+                Dictionary<string, object> payload = await GetNoncePayloadAsync();
                 payload["symbol"] = NormalizeSymbol(symbol);
                 if (afterDate != null)
                 {
@@ -664,7 +664,7 @@ namespace ExchangeSharp
             }
             else
             {
-                Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+                Dictionary<string, object> payload = await GetNoncePayloadAsync();
                 payload["symbol"] = NormalizeSymbol(symbol);
                 if (afterDate != null)
                 {
@@ -681,7 +681,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (string.IsNullOrEmpty(symbol))
             {
                 throw new InvalidOperationException("Binance cancel order request requires symbol");
@@ -709,7 +709,7 @@ namespace ExchangeSharp
                 throw new ArgumentException("Withdrawal amount must be positive and non-zero");
             }
 
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["asset"] = withdrawalRequest.Symbol;
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
@@ -983,7 +983,7 @@ namespace ExchangeSharp
             * Need to test calling this API after depositing IOTA.
             */
 
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["asset"] = NormalizeSymbol(symbol);
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
@@ -1003,7 +1003,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             // TODO: API supports searching on status, startTime, endTime
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (!string.IsNullOrWhiteSpace(symbol))
             {
                 payload["asset"] = NormalizeSymbol(symbol);

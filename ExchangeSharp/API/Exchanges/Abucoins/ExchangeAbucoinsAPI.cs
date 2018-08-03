@@ -221,7 +221,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["balance"].ConvertInvariant<decimal>();
@@ -233,7 +233,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -244,7 +244,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/orders?orderID", null, await OnGetNoncePayloadAsync());
+            JToken token = await MakeJsonRequestAsync<JToken>("/orders?orderID", null, await GetNoncePayloadAsync());
             ExchangeOrderResult eor = new ExchangeOrderResult()
             {
                 OrderId = token["id"].ToStringInvariant(),
@@ -269,7 +269,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> result = new List<ExchangeOrderResult>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=done", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=done", null, await GetNoncePayloadAsync());
             foreach (var token in array)
             {
                 ExchangeOrderResult eor = new ExchangeOrderResult()
@@ -298,7 +298,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> result = new List<ExchangeOrderResult>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=open", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=open", null, await GetNoncePayloadAsync());
             foreach (var token in array)
             {
                 ExchangeOrderResult eor = new ExchangeOrderResult()
@@ -327,7 +327,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["priduct_id"] = order.Symbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
             payload["size"] = order.Amount;
@@ -372,14 +372,14 @@ namespace ExchangeSharp
         // This should have a return value for success
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JArray>("/orders/" + orderId, null, await OnGetNoncePayloadAsync(), "DELETE");
+            await MakeJsonRequestAsync<JArray>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
         }
 
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["limit"] = 1000;
 
             // History by symbol is not supported, so we'll get max and filter the results
@@ -409,12 +409,12 @@ namespace ExchangeSharp
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             symbol = NormalizeSymbol(symbol);
-            var payload = await OnGetNoncePayloadAsync();
-            JArray array = MakeJsonRequest<JArray>("/payment-methods", null, await OnGetNoncePayloadAsync());
+            var payload = await GetNoncePayloadAsync();
+            JArray array = MakeJsonRequest<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
                 var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
-                payload = await OnGetNoncePayloadAsync();
+                payload = await GetNoncePayloadAsync();
                 payload["currency"] = NormalizeSymbol(symbol);
                 payload["method"] = rc["id"].ToStringInvariant();
 
@@ -434,13 +434,13 @@ namespace ExchangeSharp
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
             string symbol = NormalizeSymbol(withdrawalRequest.Symbol);
-            var payload = await OnGetNoncePayloadAsync();
-            JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await OnGetNoncePayloadAsync());
+            var payload = await GetNoncePayloadAsync();
+            JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
                 var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
 
-                payload = await OnGetNoncePayloadAsync();
+                payload = await GetNoncePayloadAsync();
                 payload["amount"] = withdrawalRequest.Amount;
                 payload["currency"] = symbol;
                 payload["method"] = rc["id"].ToStringInvariant();

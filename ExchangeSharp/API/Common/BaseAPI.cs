@@ -547,7 +547,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="key">Key</param>
         /// <returns>Dictionary with nonce</returns>
-        protected virtual async Task<Dictionary<string, object>> OnGetNoncePayloadAsync()
+        protected virtual async Task<Dictionary<string, object>> GetNoncePayloadAsync()
         {
             Dictionary<string, object> noncePayload = new Dictionary<string, object>
             {

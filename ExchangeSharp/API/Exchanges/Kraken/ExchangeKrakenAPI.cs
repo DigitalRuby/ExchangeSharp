@@ -177,7 +177,7 @@ namespace ExchangeSharp
         private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JToken result = await MakeJsonRequestAsync<JToken>(path, null, await OnGetNoncePayloadAsync());
+            JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["open"];
             symbol = NormalizeSymbol(symbol);
             foreach (JProperty order in result)
@@ -377,7 +377,7 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, await OnGetNoncePayloadAsync());
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, await GetNoncePayloadAsync());
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty prop in result)
             {

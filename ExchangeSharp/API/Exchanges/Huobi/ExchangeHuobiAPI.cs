@@ -525,7 +525,7 @@ namespace ExchangeSharp
 ]}
  */
             Dictionary<string, string> accounts = new Dictionary<string, string>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload);
             foreach (var acc in data)
             {
@@ -535,9 +535,9 @@ namespace ExchangeSharp
             return accounts;
         }
 
-        protected override async Task<Dictionary<string, object>> OnGetNoncePayloadAsync()
+        protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
         {
-            var result = await base.OnGetNoncePayloadAsync();
+            var result = await base.GetNoncePayloadAsync();
             result["method"] = "GET";
             return result;
         }
@@ -576,7 +576,7 @@ namespace ExchangeSharp
             var account_id = await GetAccountID();
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
             var list = token["list"];
             foreach (var item in list)
@@ -604,7 +604,7 @@ namespace ExchangeSharp
             var account_id = await GetAccountID();
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
             var list = token["list"];
             foreach (var item in list)
@@ -653,7 +653,7 @@ namespace ExchangeSharp
               }
             }}
              */
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload);
             return ParseOrder(data);
         }
@@ -663,7 +663,7 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("states", "partial-canceled,filled,canceled");
             if (afterDate != null)
@@ -683,7 +683,7 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("states", "pre-submitted,submitting,submitted,partial-filled");
             JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload);
@@ -700,7 +700,7 @@ namespace ExchangeSharp
 
             var account_id = await GetAccountID(order.IsMargin, order.Symbol);
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("account-id", account_id);
             payload.Add("symbol", symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
@@ -732,7 +732,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["method"] = "POST";
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }

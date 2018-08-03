@@ -68,7 +68,7 @@ namespace ExchangeSharp
 
         private async Task<JToken> MakePrivateAPIRequestAsync(string command, IReadOnlyList<object> parameters = null)
         {
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["command"] = command;
             if (parameters != null && parameters.Count % 2 == 0)
             {

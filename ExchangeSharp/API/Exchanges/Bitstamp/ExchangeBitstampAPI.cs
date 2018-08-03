@@ -147,7 +147,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             string url = "/balance/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return ExtractDictionary(responseObject, "balance");
         }
@@ -156,7 +156,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
         {
             string url = "/balance/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return ExtractDictionary(responseObject, "fee");
         }
@@ -164,7 +164,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             string url = "/balance/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return ExtractDictionary(responseObject, "available");
         }
@@ -196,7 +196,7 @@ namespace ExchangeSharp
             string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
             string url = $"/{action}{market}/{symbol}/";
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
 
             if (order.OrderType != OrderType.Market)
             {
@@ -243,7 +243,7 @@ namespace ExchangeSharp
                 return null;
             }
             string url = "/order_status/";
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["id"] = orderId;
             JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
 
@@ -304,7 +304,7 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
-            JArray result = await MakeJsonRequestAsync<JArray>(url, null, await OnGetNoncePayloadAsync(), "POST");
+            JArray result = await MakeJsonRequestAsync<JArray>(url, null, await GetNoncePayloadAsync(), "POST");
             foreach (JToken token in result)
             {
                 //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
@@ -332,7 +332,7 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync(), "POST");
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync(), "POST");
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             foreach (var transaction in result as JArray)
             {
@@ -385,7 +385,7 @@ namespace ExchangeSharp
             {
                 throw new APIException("OrderId is needed for canceling order");
             }
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["id"] = orderId;
             await MakeJsonRequestAsync<JToken>("/cancel_order/", null, payload, "POST");
         }
@@ -412,7 +412,7 @@ namespace ExchangeSharp
                     break;
             }
 
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["address"] = withdrawalRequest.Address.ToStringInvariant();
             payload["amount"] = withdrawalRequest.Amount.ToStringInvariant();
             payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();
