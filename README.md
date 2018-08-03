@@ -1,17 +1,18 @@
 <img src='logo.png' width='600' />
 
-# Overview
+## Overview
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+### I Can Help
+I do cryptocurrency consulting, please don't hesitate to contact me if you have enhancements to ExchangeSharp that you need or a custom solution you would like me to implement (exchangesharp@digitalruby.com).
 
-## Features
+### Features
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
 - Optional global symbol normalization, since each exchange has their own way of doing symbols
 - Runs anywhere .NET core will run (Windows 8.1 or newer, MAC, Linux, iOS, Android, Unity 2018+, etc.)
 
-## Exchanges
+### Exchanges
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = order book, O = private orders)
 
@@ -41,12 +42,12 @@ The following cryptocurrency exchanges are supported:
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
 
-## Notes
+### Notes
 ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
 
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
-## Building
+### Building
 Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.0+ is required.
 If running on Windows, you should use Windows 8.1 or newer.
 
@@ -63,7 +64,7 @@ Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.1 -c Relea
 
 You can also publish from Visual Studio (right click project, select publish), which allows easily changing the platform, .NET core version and self-contained binary settings.
 
-## Nuget
+### Nuget
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.3 ```  
 </a> 
@@ -113,14 +114,14 @@ public static void Main(string[] args)
     }
 }
 ```
-## How to contribute
+### How to contribute
 Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
 
-## I Can Help
+### I Can Help
 I do cryptocurrency consulting, please don't hesitate to contact me if you have enhancements to ExchangeSharp that you need or a custom solution you would like me to implement (exchangesharp@digitalruby.com).
 
-## Donations Gratefully Accepted
-If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
+### Donations Gratefully Accepted
+Believe it or not, donations are quite rare. I've posted publicly the total donation amounts below. If ExchangeSharp has helped you in anyway, please consider donating.
 
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
 
