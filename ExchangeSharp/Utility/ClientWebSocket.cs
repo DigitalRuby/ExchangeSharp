@@ -228,20 +228,24 @@ namespace ExchangeSharp
         /// </summary>
         public void Dispose()
         {
-            disposed = true;
-            try
+            if (!disposed)
             {
-                if (CloseCleanly)
+                disposed = true;
+                cancellationTokenSource.Cancel();
+                try
                 {
-                    webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
+                    if (CloseCleanly)
+                    {
+                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
+                    }
                 }
-                else
+                catch
                 {
-                    webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
                 }
-            }
-            catch
-            {
             }
         }
 
@@ -344,25 +348,29 @@ namespace ExchangeSharp
                     // for lists, etc.
                     QueueActionsWithNoExceptions(Connected);
 
-                    while (webSocket.State == WebSocketState.Open)
+                    while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.Connecting)
                     {
                         do
                         {
                             result = await webSocket.ReceiveAsync(receiveBuffer, cancellationToken);
-                            if (result.MessageType == WebSocketMessageType.Close)
+                            if (result != null)
                             {
-                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
-                                QueueActions(Disconnected);
-                            }
-                            else
-                            {
-                                stream.Write(receiveBuffer.Array, 0, result.Count);
+                                if (result.MessageType == WebSocketMessageType.Close)
+                                {
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
+                                    QueueActions(Disconnected);
+                                }
+                                else
+                                {
+                                    stream.Write(receiveBuffer.Array, 0, result.Count);
+                                }
                             }
                         }
-                        while (!result.EndOfMessage);
+                        while (result != null && !result.EndOfMessage);
                         if (stream.Length != 0)
                         {
                             // make a copy of the bytes, the memory stream will be re-used and could potentially corrupt in multi-threaded environments
+                            // not using ToArray just in case it is making a slice/span from the internal bytes, we want an actual physical copy
                             byte[] bytesCopy = new byte[stream.Length];
                             Array.Copy(stream.GetBuffer(), bytesCopy, stream.Length);
                             stream.SetLength(0);

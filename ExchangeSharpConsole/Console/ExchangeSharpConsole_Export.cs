@@ -14,7 +14,7 @@ using System;
 using System.Collections.Generic;
 using ExchangeSharp;
 
-namespace ExchangeSharpConsoleApp
+namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsole
     {

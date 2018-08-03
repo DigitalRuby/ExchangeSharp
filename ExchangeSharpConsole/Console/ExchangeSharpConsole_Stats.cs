@@ -16,7 +16,7 @@ using System.Linq;
 using System.Threading;
 using ExchangeSharp;
 
-namespace ExchangeSharpConsoleApp
+namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsole
     {

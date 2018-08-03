@@ -22,7 +22,7 @@ using System.Threading;
 
 using ExchangeSharp;
 
-namespace ExchangeSharpConsoleApp
+namespace ExchangeSharpConsole
 {
     public static partial class ExchangeSharpConsole
     {
@@ -64,6 +64,9 @@ namespace ExchangeSharpConsoleApp
         {
             try
             {
+                // swap out to external web socket implementation for older Windows pre 8.1
+                // ClientWebSocket.RegisterWebSocketCreator(() => new WebSocket4NetClientWebSocket());
+
                 // TestMethod(); // uncomment for ad-hoc code testing
 
                 Dictionary<string, string> argsDictionary = ParseCommandLine(args);

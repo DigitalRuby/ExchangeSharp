@@ -20,7 +20,7 @@ using System.Security.Cryptography;
 
 using ExchangeSharp;
 
-namespace ExchangeSharpConsoleApp
+namespace ExchangeSharpConsole
 {
     public static partial class ExchangeSharpConsole
     {
