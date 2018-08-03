@@ -106,7 +106,7 @@ public static void Main(string[] args)
 Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
 
 ## I Can Help
-I do cryptocurrency consulting, please don't hesitate to contact me if you have a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+I do cryptocurrency consulting, please don't hesitate to contact me if you have enhancements to ExchangeSharp that you need or a custom solution you would like me to implement (exchangesharp@digitalruby.com).
 
 ## Donations Gratefully Accepted
 If you want help with your project, have questions that need answering or this project has helped you in any way, I accept donations.
