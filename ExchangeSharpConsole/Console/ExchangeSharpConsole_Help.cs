@@ -16,7 +16,7 @@ using System.Collections.Generic;
 
 namespace ExchangeSharpConsole
 {
-	public static partial class ExchangeSharpConsole
+	public static partial class ExchangeSharpConsoleMain
     {
         public static void RunShowHelp(Dictionary<string, string> dict)
         {

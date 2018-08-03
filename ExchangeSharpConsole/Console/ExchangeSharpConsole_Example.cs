@@ -19,7 +19,7 @@ using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
-	public static partial class ExchangeSharpConsole
+	public static partial class ExchangeSharpConsoleMain
     {
         public static void RunExample(Dictionary<string, string> dict)
         {

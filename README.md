@@ -47,15 +47,26 @@ ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
 ## Building
-Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.0+ is required. If running on Windows, Windows 8.1 or newer is required.
-<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget: ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.3 ```  
-</a> 
+Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.0+ is required.
+If running on Windows, you should use Windows 8.1 or newer.
+
+If you must use an older Windows, you'll need to use the Websocket4Net nuget package, and override the web socket implementation by calling
+
+```ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());```
+
+See WebSocket4NetClientWebSocket.cs for implementation details.
 ```
 Windows: Open ExchangeSharp.sln in Visual Studio and build/run  
 Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.1
 Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.1 -c Release -r ubuntu.16.10-x64
 ```
+
+You can also publish from Visual Studio (right click project, select publish), which allows easily changing the platform, .NET core version and self-contained binary settings.
+
+## Nuget
+<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.3 ```  
+</a> 
 
 ### Simple Example
 ```

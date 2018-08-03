@@ -16,7 +16,7 @@ using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
-	public static partial class ExchangeSharpConsole
+	public static partial class ExchangeSharpConsoleMain
     {
         public static void RunGetHistoricalTrades(Dictionary<string, string> dict)
         {

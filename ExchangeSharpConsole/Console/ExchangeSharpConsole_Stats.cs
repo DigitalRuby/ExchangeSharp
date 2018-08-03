@@ -18,7 +18,7 @@ using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
-	public static partial class ExchangeSharpConsole
+	public static partial class ExchangeSharpConsoleMain
     {
         public static void RunShowExchangeStats(Dictionary<string, string> dict)
         {

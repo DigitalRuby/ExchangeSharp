@@ -22,7 +22,7 @@ using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
-    public static partial class ExchangeSharpConsole
+    public static partial class ExchangeSharpConsoleMain
     {
         private static void Assert(bool expression)
         {

@@ -24,8 +24,13 @@ using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
-    public static partial class ExchangeSharpConsole
+    public static partial class ExchangeSharpConsoleMain
     {
+        public static int Main(string[] args)
+        {
+            return ExchangeSharpConsoleMain.ConsoleMain(args);
+        }
+
         private static void RequireArgs(Dictionary<string, string> dict, params string[] args)
         {
             bool fail = false;
@@ -65,8 +70,7 @@ namespace ExchangeSharpConsole
             try
             {
                 // swap out to external web socket implementation for older Windows pre 8.1
-                // ClientWebSocket.RegisterWebSocketCreator(() => new WebSocket4NetClientWebSocket());
-
+                // ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());
                 // TestMethod(); // uncomment for ad-hoc code testing
 
                 Dictionary<string, string> argsDictionary = ParseCommandLine(args);
