@@ -358,7 +358,6 @@ namespace ExchangeSharp
                             {
                                 stream.Write(receiveBuffer.Array, 0, result.Count);
                             }
-
                         }
                         while (!result.EndOfMessage);
                         if (stream.Length != 0)

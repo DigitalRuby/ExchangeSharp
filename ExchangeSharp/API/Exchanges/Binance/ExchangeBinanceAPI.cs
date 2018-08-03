@@ -956,8 +956,8 @@ namespace ExchangeSharp
             if (CanMakeAuthenticatedRequest(payload))
             {
                 // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
-                var query = HttpUtility.ParseQueryString(url.Query);
-                string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Count == 0 ? string.Empty : "&" + query.ToString()) +
+                var query = (url.Query ?? string.Empty).Trim('?', '&');
+                string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Length != 0 ? "&" + query : string.Empty) +
                     (payload.Count > 1 ? "&" + CryptoUtility.GetFormForPayload(payload, false) : string.Empty);
                 string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToBytesUTF8(PrivateApiKey));
                 newQuery += "&signature=" + signature;

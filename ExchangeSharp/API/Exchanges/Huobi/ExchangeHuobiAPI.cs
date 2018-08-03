@@ -910,6 +910,7 @@ namespace ExchangeSharp
             var privateSignedData = string.Empty;
 
 #if NET472
+
             // net core not support this
             try
             {
@@ -921,13 +922,14 @@ namespace ExchangeSharp
                     HashAlgorithm = CngAlgorithm.Sha256
                 };
 
-                byte[] signDataBytes = signData.ToBytes();
+                byte[] signDataBytes = signData.ToBytesUTF8();
                 privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
             }
             catch (CryptographicException e)
             {
                 Console.WriteLine("Private signature error because: " + e.Message);
             }
+
 #endif
 
             return privateSignedData;

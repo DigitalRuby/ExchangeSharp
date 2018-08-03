@@ -47,7 +47,7 @@ ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
 ## Building
-Visual Studio 2017 is recommended. .NET 4.7.1+ or .NET core 2.0+ is required. If running on Windows, Windows 8.1 or newer is required.
+Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.0+ is required. If running on Windows, Windows 8.1 or newer is required.
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>Available on Nuget: ![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
 ``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.3 ```  
 </a> 
