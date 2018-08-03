@@ -48,6 +48,7 @@ namespace ExchangeSharp
     {
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
         private readonly Timer cacheTimer;
+        private readonly ReaderWriterLockAsync cacheTimerLock = new ReaderWriterLockAsync();
 
 #if DEBUG
 
@@ -55,55 +56,8 @@ namespace ExchangeSharp
 
 #endif
 
-        private int readers;
-        private int writers;
 
-        private void WaitForReadLock()
-        {
-            Interlocked.Increment(ref readers);
-            while (writers != 0)
-            {
-                // release the read lock
-                Interlocked.Decrement(ref readers);
-
-                // wait for no more writers
-                while (writers != 0)
-                {
-                    // should be rare
-                    Thread.Sleep(1);
-                }
-
-                // re-acquire the read lock
-                Interlocked.Increment(ref readers);
-            }
-        }
-
-        private void WaitForWriteLock()
-        {
-            if (readers == 0)
-            {
-                throw new InvalidOperationException("Must acquire read lock first");
-            }
-
-            // in order to acquire the write lock, there can be no other writers, and only 1 reader (the reader that was acquired right before this right lock)
-            while (Interlocked.Increment(ref writers) != 1 || readers != 1)
-            {
-                Interlocked.Decrement(ref writers);
-
-                // should be rare
-                Thread.Sleep(1);
-            }
-        }
-
-        private void ReleaseReadLock()
-        {
-            Interlocked.Decrement(ref readers);
-        }
-
-        private void ReleaseWriteLock()
-        {
-            Interlocked.Decrement(ref writers);
-        }
+        
 
         private void TimerCallback(object state)
         {
@@ -116,28 +70,15 @@ namespace ExchangeSharp
 #endif
 
             DateTime now = DateTime.UtcNow;
-            WaitForReadLock();
-            try
+            using (var lockerWrite = cacheTimerLock.LockWrite())
             {
-                WaitForWriteLock();
-                try
+                foreach (var item in cache.ToArray())
                 {
-                    foreach (var item in cache.ToArray())
+                    if (item.Value.Key < now)
                     {
-                        if (item.Value.Key < now)
-                        {
-                            cache.Remove(item.Key);
-                        }
+                        cache.Remove(item.Key);
                     }
                 }
-                finally
-                {
-                    ReleaseWriteLock();
-                }
-            }
-            finally
-            {
-                ReleaseReadLock();
             }
 
 #if DEBUG
@@ -196,17 +137,12 @@ namespace ExchangeSharp
         /// <param name="notFound">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
         public async Task<CachedItem<T>> Get<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class
         {
-            WaitForReadLock();
-            try
+            using (var lockRead = cacheTimerLock.LockRead())
             {
                 if (cache.TryGetValue(key, out KeyValuePair<DateTime, object> cacheValue))
                 {
                     return new CachedItem<T>((T)cacheValue.Value, cacheValue.Key);
                 }
-            }
-            finally
-            {
-                ReleaseReadLock();
             }
 
             // most likely the callback needs to make a network request, so don't do it in a lock
@@ -216,22 +152,9 @@ namespace ExchangeSharp
             // don't add null values to the cache
             if (newItem.Value != null)
             {
-                try
+                using (var lockWrite = cacheTimerLock.LockWrite())
                 {
-                    WaitForReadLock();
-                    try
-                    {
-                        WaitForWriteLock();
-                        cache[key] = new KeyValuePair<DateTime, object>(newItem.Expiration, newItem.Value);
-                    }
-                    finally
-                    {
-                        ReleaseWriteLock();
-                    }
-                }
-                finally
-                {
-                    ReleaseReadLock();
+                    cache[key] = new KeyValuePair<DateTime, object>(newItem.Expiration, newItem.Value);
                 }
             }
 
@@ -245,22 +168,9 @@ namespace ExchangeSharp
         /// <returns>True if removed, false if not found</returns>
         public bool Remove(string key)
         {
-            try
+            using (var lockWrite = cacheTimerLock.LockWrite())
             {
-                WaitForReadLock();
-                try
-                {
-                    WaitForWriteLock();
-                    return cache.Remove(key);
-                }
-                finally
-                {
-                    ReleaseWriteLock();
-                }
-            }
-            finally
-            {
-                ReleaseReadLock();
+                return cache.Remove(key);
             }
         }
     }
