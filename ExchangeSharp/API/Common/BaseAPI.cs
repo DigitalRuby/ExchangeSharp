@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Security;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -116,7 +117,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the name of the API
         /// </summary>
-        public abstract string Name { get; }
+        public string Name { get; private set; }
 
         /// <summary>
         /// Public API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
@@ -218,6 +219,15 @@ namespace ExchangeSharp
         public BaseAPI()
         {
             requestMaker = new APIRequestMaker(this);
+
+            // TODO: Add existing pieces to regex if other name formats need to be done
+            string className = GetType().Name;
+            Name = Regex.Replace(className, "^Exchange|API$", string.Empty, RegexOptions.CultureInvariant);
+
+            if (!className.EndsWith("API"))
+            {
+                throw new ArgumentException("Class name should end with API if inheriting from BaseAPI");
+            }
         }
 
         /// <summary>

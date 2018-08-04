@@ -25,7 +25,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeAbucoinsAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Abucoins;
         public override string BaseUrl { get; set; } = "https://api.abucoins.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws.abucoins.com";
 

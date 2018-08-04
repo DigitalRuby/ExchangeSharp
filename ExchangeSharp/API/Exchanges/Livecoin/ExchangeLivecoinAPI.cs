@@ -21,7 +21,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeLivecoinAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Livecoin;
         public override string BaseUrl { get; set; } = "https://api.livecoin.net";
 
         public ExchangeLivecoinAPI()

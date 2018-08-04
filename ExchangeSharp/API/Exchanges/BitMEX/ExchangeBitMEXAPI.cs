@@ -29,11 +29,8 @@ namespace ExchangeSharp
         //public override string BaseUrl { get; set; } = "https://testnet.bitmex.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://www.bitmex.com/realtime";
 
-        public override string Name => ExchangeName.BitMEX;
-
         private SortedDictionary<long, decimal> dict_long_decimal = new SortedDictionary<long, decimal>();
         private SortedDictionary<decimal, long> dict_decimal_long = new SortedDictionary<decimal, long>();
-
 
         public ExchangeBitMEXAPI()
         {

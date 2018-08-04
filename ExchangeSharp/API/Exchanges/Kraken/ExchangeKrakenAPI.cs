@@ -25,7 +25,6 @@ namespace ExchangeSharp
     public sealed partial class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
-        public override string Name => ExchangeName.Kraken;
 
         static ExchangeKrakenAPI()
         {

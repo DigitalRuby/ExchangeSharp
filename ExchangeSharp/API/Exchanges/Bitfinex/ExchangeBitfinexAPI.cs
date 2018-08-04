@@ -27,7 +27,6 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
-        public override string Name => ExchangeName.Bitfinex;
 
         public Dictionary<string, string> DepositMethodLookup { get; }
 

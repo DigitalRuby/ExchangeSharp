@@ -24,7 +24,6 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
-        public override string Name => ExchangeName.Okex;
 
         public ExchangeOkexAPI()
         {

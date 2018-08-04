@@ -23,7 +23,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeYobitAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Yobit;
         public override string BaseUrl { get; set; } = "https://yobit.net/api/3";
         public string PrivateURL { get; set; } = "https://yobit.net/tapi";
 

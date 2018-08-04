@@ -25,7 +25,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeCryptopiaAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Cryptopia;
         public override string BaseUrl { get; set; } = "https://www.cryptopia.co.nz/api";
 
         public ExchangeCryptopiaAPI()

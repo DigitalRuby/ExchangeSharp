@@ -24,7 +24,6 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBitstampAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.bitstamp.net/api/v2";
-        public override string Name => ExchangeName.Bitstamp;
 
         /// <summary>
         /// Bitstamp private API requires a customer id. Internally this is secured in the PassPhrase property.

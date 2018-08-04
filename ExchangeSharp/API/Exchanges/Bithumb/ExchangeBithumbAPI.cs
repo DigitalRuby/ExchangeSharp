@@ -21,7 +21,6 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBithumbAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
-        public override string Name => ExchangeName.Bithumb;
 
         public ExchangeBithumbAPI()
         {

@@ -27,7 +27,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeTuxExchangeAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.TuxExchange;
         public override string BaseUrl { get; set; } = "https://tuxexchange.com";
 
         public ExchangeTuxExchangeAPI()

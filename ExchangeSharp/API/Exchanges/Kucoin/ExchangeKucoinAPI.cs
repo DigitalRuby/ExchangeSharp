@@ -26,7 +26,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeKucoinAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Kucoin;
         public override string BaseUrl { get; set; } = "https://api.kucoin.com/v1";
 
         public ExchangeKucoinAPI()

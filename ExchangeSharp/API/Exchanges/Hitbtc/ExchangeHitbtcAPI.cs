@@ -25,7 +25,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeHitbtcAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Hitbtc;
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.hitbtc.com/api/2/ws";
 

@@ -23,7 +23,6 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBittrexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
-        public override string Name => ExchangeName.Bittrex;
         public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
 
         /// <summary>Coin types that both an address and a tag to make the deposit</summary>

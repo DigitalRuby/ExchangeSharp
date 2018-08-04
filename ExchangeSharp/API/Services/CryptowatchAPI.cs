@@ -31,7 +31,6 @@ namespace ExchangeSharp
     public sealed class CryptowatchAPI : BaseAPI
     {
         public override string BaseUrl { get; set; } = "https://api.cryptowat.ch";
-        public override string Name => "Cryptowatch";
 
         private async Task<JToken> MakeCryptowatchRequestAsync(string subUrl)
         {

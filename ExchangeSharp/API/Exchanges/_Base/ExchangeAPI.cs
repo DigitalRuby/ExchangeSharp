@@ -416,6 +416,17 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Constructor
+        /// </summary>
+        public ExchangeAPI()
+        {
+            if (!ExchangeName.HasName(Name))
+            {
+                throw new ArgumentException("Exchange class name must follow this format: Exchange[A-Za-z0-9]API");
+            }
+        }
+
+        /// <summary>
         /// Finalizer
         /// </summary>
         ~ExchangeAPI()
@@ -1269,23 +1280,30 @@ namespace ExchangeSharp
     /// </summary>
     public static class ExchangeName
     {
-        private static readonly string[] exchangeNames;
+        private static readonly HashSet<string> exchangeNames = new HashSet<string>();
 
         static ExchangeName()
         {
-            List<string> names = new List<string>();
             foreach (FieldInfo field in typeof(ExchangeName).GetFields(BindingFlags.Public | BindingFlags.Static))
             {
-                names.Add(field.GetValue(null).ToString());
+                exchangeNames.Add(field.GetValue(null).ToString());
             }
-            names.Sort();
-            exchangeNames = names.ToArray();
+        }
+
+        /// <summary>
+        /// Check if an exchange name exists
+        /// </summary>
+        /// <param name="name">Name</param>
+        /// <returns>True if name exists, false otherwise</returns>
+        public static bool HasName(string name)
+        {
+            return exchangeNames.Contains(name);
         }
 
         /// <summary>
         /// Get a list of all exchange names
         /// </summary>
-        public static IReadOnlyList<string> ExchangeNames { get { return exchangeNames; } }
+        public static IReadOnlyCollection<string> ExchangeNames { get { return exchangeNames; } }
 
         /// <summary>
         /// Abucoins
@@ -1390,6 +1408,6 @@ namespace ExchangeSharp
         /// <summary>
         /// ZB.com
         /// </summary>
-        public const string ZBcom = "ZB.com";
+        public const string ZBcom = "ZBcom";
     }
 }

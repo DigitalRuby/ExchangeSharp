@@ -23,7 +23,6 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeHuobiAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Huobi;
         public override string BaseUrl { get; set; } = "https://api.huobipro.com";
         public string BaseUrlV1 { get; set; } = "https://api.huobipro.com/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";

@@ -26,7 +26,6 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.pro.coinbase.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws-feed.pro.coinbase.com";
-        public override string Name => ExchangeName.Coinbase;
 
         /// <summary>
         /// The response will also contain a CB-AFTER header which will return the cursor id to use in your next request for the page after this one. The page after is an older page and not one that happened after this one in chronological time.

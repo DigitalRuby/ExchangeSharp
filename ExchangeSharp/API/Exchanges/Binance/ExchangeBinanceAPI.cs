@@ -31,7 +31,6 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
         public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
-        public override string Name => ExchangeName.Binance;
         
         // base address for APIs used by the Binance website and not published in the API docs
         public const string BaseWebUrl = "https://www.binance.com";
