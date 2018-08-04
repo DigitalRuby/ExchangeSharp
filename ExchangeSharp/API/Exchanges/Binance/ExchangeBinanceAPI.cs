@@ -358,7 +358,7 @@ namespace ExchangeSharp
 		    "M": true           // Was the trade the best price match?
             } ] */
 
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
+            ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
             {
                 Callback = callback,
                 EndDate = endDate,
