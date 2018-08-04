@@ -33,7 +33,7 @@ namespace ExchangeSharpTests
         /// <returns></returns>
         public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            return MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
+            return MakeRequestAsync(url, baseUrl, payload, method).Sync();
         }
 
         /// <summary>

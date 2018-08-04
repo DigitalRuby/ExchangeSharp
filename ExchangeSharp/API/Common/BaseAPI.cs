@@ -236,7 +236,7 @@ namespace ExchangeSharp
         /// Generate a nonce
         /// </summary>
         /// <returns></returns>
-        public object GenerateNonce() => GenerateNonceAsync().GetAwaiter().GetResult();
+        public object GenerateNonce() => GenerateNonceAsync().Sync();
 
         /// <summary>
         /// ASYNC - Generate a nonce
@@ -394,7 +394,7 @@ namespace ExchangeSharp
         /// <returns>Raw response</returns>
         public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            return MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
+            return MakeRequestAsync(url, baseUrl, payload, method).Sync();
         }
 
         /// <summary>
@@ -419,7 +419,7 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
-            return MakeJsonRequestAsync<T>(url, baseUrl, payload, requestMethod).GetAwaiter().GetResult();
+            return MakeJsonRequestAsync<T>(url, baseUrl, payload, requestMethod).Sync();
         }
 
         /// <summary>

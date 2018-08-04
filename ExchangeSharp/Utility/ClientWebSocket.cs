@@ -236,11 +236,11 @@ namespace ExchangeSharp
                 {
                     if (CloseCleanly)
                     {
-                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
+                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).Sync();
                     }
                     else
                     {
-                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).GetAwaiter().GetResult();
+                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).Sync();
                     }
                 }
                 catch
@@ -256,7 +256,7 @@ namespace ExchangeSharp
         /// <returns>True if success, false if error</returns>
         public bool SendMessage(string message)
         {
-            return SendMessageAsync(message).ConfigureAwait(false).GetAwaiter().GetResult();
+            return SendMessageAsync(message).Sync();
         }
 
         /// <summary>

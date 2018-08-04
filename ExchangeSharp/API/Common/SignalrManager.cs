@@ -321,7 +321,7 @@ namespace ExchangeSharp
                         listener.Callbacks.Add(callback);
                     }
                 }
-            }).ConfigureAwait(false).GetAwaiter().GetResult();
+            }).Sync();
         }
 
         private void RemoveListener(string functionName, Action<string> callback)
