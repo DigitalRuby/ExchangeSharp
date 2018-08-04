@@ -226,7 +226,7 @@ namespace ExchangeSharp
 
             if (!className.EndsWith("API"))
             {
-                throw new ArgumentException("Class name should end with API if inheriting from BaseAPI");
+                //throw new ArgumentException("Class name should end with API if inheriting from BaseAPI");
             }
         }
 
