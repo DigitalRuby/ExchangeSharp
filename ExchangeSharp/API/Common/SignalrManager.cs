@@ -65,9 +65,20 @@ namespace ExchangeSharp
             {
                 if (callback != null)
                 {
+                    SignalrManager _manager = this.manager;
+                    if (_manager == null)
+                    {
+                        throw new ArgumentNullException("SignalrManager is null");
+                    }
+                    IHubProxy _proxy = _manager.hubProxy;
+                    if (_proxy == null)
+                    {
+                        throw new ArgumentNullException("Hub proxy is null");
+                    }
+
                     param = (param ?? new object[][] { new object[0] });
-                    manager.AddListener(functionName, callback, param);
-                    string functionFullName = manager.GetFunctionFullName(functionName);
+                    _manager.AddListener(functionName, callback, param);
+                    string functionFullName = _manager.GetFunctionFullName(functionName);
                     Exception ex = null;
                     try
                     {
@@ -77,7 +88,7 @@ namespace ExchangeSharp
                             {
                                 await Task.Delay(delayMilliseconds);
                             }
-                            if (!(await manager.hubProxy.Invoke<bool>(functionFullName, param[i])))
+                            if (!(await _proxy.Invoke<bool>(functionFullName, param[i])))
                             {
                                 throw new APIException("Invoke returned success code of false");
                             }
@@ -92,15 +103,15 @@ namespace ExchangeSharp
                     {
                         this.callback = callback;
                         this.functionFullName = functionFullName;
-                        lock (manager.sockets)
+                        lock (_manager.sockets)
                         {
-                            manager.sockets.Add(this);
+                            _manager.sockets.Add(this);
                         }
                         return;
                     }
 
                     // fail, remove listener
-                    manager.RemoveListener(functionName, callback);
+                    _manager.RemoveListener(functionName, callback);
                     throw ex;
                 }
                 throw new ArgumentNullException(nameof(callback));
@@ -444,6 +455,10 @@ namespace ExchangeSharp
 #endif
 
             hubProxy = hubConnection.CreateHubProxy(HubName);
+            if (hubProxy == null)
+            {
+                throw new APIException("CreateHubProxy - proxy is null, this should never happen");
+            }
 
             // assign callbacks for events
             foreach (string key in FunctionNamesToFullNames.Keys)
