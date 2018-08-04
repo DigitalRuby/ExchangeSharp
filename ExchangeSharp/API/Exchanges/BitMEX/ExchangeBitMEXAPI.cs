@@ -35,8 +35,12 @@ namespace ExchangeSharp
         public ExchangeBitMEXAPI()
         {
             RequestWindow = TimeSpan.Zero;
-            NonceStyle = NonceStyle.UnixSeconds;
-            NonceOffset = TimeSpan.FromSeconds(10.0);
+            NonceStyle = NonceStyle.ExpiresUnixSeconds;
+
+            // make the nonce go 10 seconds into the future (the offset is subtracted)
+            // this will give us an api-expires 10 seconds into the future
+            NonceOffset = TimeSpan.FromSeconds(-10.0);
+
             SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
         }
@@ -45,13 +49,14 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
+                // convert nonce to long, trim off milliseconds
                 var nonce = payload["nonce"].ConvertInvariant<long>();
                 payload.Remove("nonce");
                 var msg = CryptoUtility.GetJsonForPayload(payload);
                 var sign = $"{request.Method}{request.RequestUri.AbsolutePath}{request.RequestUri.Query}{nonce}{msg}";
                 string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytesUTF8(PrivateApiKey));
 
-                request.Headers["api-nonce"] = nonce.ToStringInvariant();
+                request.Headers["api-expires"] = nonce.ToStringInvariant();
                 request.Headers["api-key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["api-signature"] = signature;
 

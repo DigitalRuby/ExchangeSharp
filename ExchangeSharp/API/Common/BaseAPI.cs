@@ -81,7 +81,19 @@ namespace ExchangeSharp
         /// <summary>
         /// Persist nonce to counter and file for the API key, once it hits long.MaxValue, it is useless
         /// </summary>
-        Int64File
+        Int64File,
+
+        /// <summary>
+        /// No nonce, use expires instead which passes an expires param to the api using the nonce value - duplicate nonce are allowed
+        /// Specify a negative NonceOffset for when you want the call to expire
+        /// </summary>
+        ExpiresUnixSeconds,
+
+        /// <summary>
+        /// No nonce, use expires instead which passes an expires param to the api using the nonce value - duplicate nonce are allowed
+        /// Specify a negative NonceOffset for when you want the call to expire
+        /// </summary>
+        ExpiresUnixMilliseconds
     }
 
     /// <summary>
@@ -259,8 +271,6 @@ namespace ExchangeSharp
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of offset can help
                     DateTime now = DateTime.UtcNow - NonceOffset;
-                    Task.Delay(1).Wait();
-
                     switch (NonceStyle)
                     {
                         case NonceStyle.Ticks:
@@ -334,17 +344,28 @@ namespace ExchangeSharp
                             break;
                         }
 
+                        case NonceStyle.ExpiresUnixMilliseconds:
+                            nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
+                            break;
+
+                        case NonceStyle.ExpiresUnixSeconds:
+                            nonce = (long)now.UnixTimestampFromDateTimeSeconds();
+                            break;
+                            
                         default:
                             throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
                     }
 
                     // check for duplicate nonce
                     decimal convertedNonce = nonce.ConvertInvariant<decimal>();
-                    if (lastNonce != convertedNonce)
+                    if (lastNonce != convertedNonce || NonceStyle == NonceStyle.ExpiresUnixSeconds || NonceStyle == NonceStyle.ExpiresUnixMilliseconds)
                     {
                         lastNonce = convertedNonce;
                         break;
                     }
+
+                    // wait 1 millisecond for a new nonce
+                    Task.Delay(1).Sync();
                 }
 
                 return nonce;
