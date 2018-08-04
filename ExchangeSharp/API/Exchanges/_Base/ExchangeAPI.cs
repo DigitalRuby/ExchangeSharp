@@ -246,6 +246,8 @@ namespace ExchangeSharp
         /// <returns>Exchange API or null if not found</returns>
         public static IExchangeAPI GetExchangeAPI(string exchangeName)
         {
+            // note: this method will be slightly slow (milliseconds) the first time it is called and misses the cache
+            // subsequent calls with cache hits will be nanoseconds
             lock (apis)
             {
                 if (!apis.TryGetValue(exchangeName, out IExchangeAPI api))
@@ -254,16 +256,21 @@ namespace ExchangeSharp
                 }
                 if (api == null)
                 {
+                    // find an API with the right name
                     foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
                     {
                         api = Activator.CreateInstance(type) as ExchangeAPI;
                         if (api.Name == exchangeName)
                         {
+                            // found one with right name, add it to the API dictionary
                             apis[exchangeName] = api;
+
+                            // break out, we are done
                             break;
                         }
                         else
                         {
+                            // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
                             api.Dispose();
                             api = null;
                         }
