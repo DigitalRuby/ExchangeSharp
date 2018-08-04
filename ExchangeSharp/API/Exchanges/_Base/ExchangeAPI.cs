@@ -210,17 +210,6 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Constructor
-        /// </summary>
-        public ExchangeAPI()
-        {
-            if (!ExchangeName.HasName(Name))
-            {
-                //throw new ArgumentException("Exchange class name must follow this format: Exchange[A-Za-z0-9]API");
-            }
-        }
-
-        /// <summary>
         /// Finalizer
         /// </summary>
         ~ExchangeAPI()
@@ -242,7 +231,7 @@ namespace ExchangeSharp
                 // take out of global api dictionary if disposed
                 lock (apis)
                 {
-                    if (apis[Name] == this)
+                    if (apis.TryGetValue(Name, out var cachedApi) && cachedApi == this)
                     {
                         apis[Name] = null;
                     }

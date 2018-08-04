@@ -13,8 +13,8 @@ Please follow these coding guidelines...
 
 When creating a new Exchange API, please do the following:
 - For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange.
-- Add the new exchange name to the ExchangeName class. Follow this convention for the class name: Exchange[A-Za-z0-9]API.
-- Each exchange API class is in it's own folder. If you are creating model objects or helper classes for an exchange, make internal classes inside a namespace for your exchange and put them in the sub-folder for the exchange. Binance and Bittrex are good examples.
+- Add the new exchange name to the ExchangeName class. Follow this convention for the class name: Exchange[A-Za-z0-9]API, or add an ApiNameAttribute to your class. Make sure the Name property matches the name in ExchangeNames.cs.
+- Put the exchange API class is in it's own folder (/API/Exchanges). If you are creating model objects or helper classes for an exchange, make internal classes inside a namespace for your exchange and put them in the sub-folder for the exchange. Binance and Bittrex are good examples.
 - Override the protected methods of ExchangeAPI that you want to implement. Easiest way is find another exchange and copy the file and customize as needed.
 - Set additional protected and public properties in constructor as needed (SymbolSeparator, SymbolIsReversed, SymbolIsUppercase, etc.).
 - If the exchange uses funny currency names (i.e. BCC instead of BCH), set up a map in the static constructor. See ExchangeYobitAPI.cs for an example.

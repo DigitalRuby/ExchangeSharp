@@ -220,13 +220,15 @@ namespace ExchangeSharp
         {
             requestMaker = new APIRequestMaker(this);
 
-            // TODO: Add existing pieces to regex if other name formats need to be done
             string className = GetType().Name;
-            Name = Regex.Replace(className, "^Exchange|API$", string.Empty, RegexOptions.CultureInvariant);
-
-            if (!className.EndsWith("API"))
+            object[] nameAttributes = GetType().GetCustomAttributes(typeof(ApiNameAttribute), true);
+            if (nameAttributes == null || nameAttributes.Length == 0)
             {
-                //throw new ArgumentException("Class name should end with API if inheriting from BaseAPI");
+                Name = Regex.Replace(className, "^Exchange|API$", string.Empty, RegexOptions.CultureInvariant);
+            }
+            else
+            {
+                Name = (nameAttributes[0] as ApiNameAttribute).Name;
             }
         }
 
@@ -589,5 +591,31 @@ namespace ExchangeSharp
         {
             return ProcessRequestUrl(url, payload, method);
         }
+    }
+
+    /// <summary>
+    /// Normally a BaseAPI class attempts to get the Name from the class name.
+    /// If there is a problem, apply this attribute to a BaseAPI subclass to populate the Name property with the attribute name.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class ApiNameAttribute : Attribute
+    {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="name">Name</param>
+        public ApiNameAttribute(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException($"'{nameof(name)}' must not be null or empty");
+            }
+            Name = name;
+        }
+
+        /// <summary>
+        /// Name
+        /// </summary>
+        public string Name { get; private set; }
     }
 }
