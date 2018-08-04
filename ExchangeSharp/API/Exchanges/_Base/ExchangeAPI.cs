@@ -422,7 +422,7 @@ namespace ExchangeSharp
         {
             if (!ExchangeName.HasName(Name))
             {
-                throw new ArgumentException("Exchange class name must follow this format: Exchange[A-Za-z0-9]API");
+                //throw new ArgumentException("Exchange class name must follow this format: Exchange[A-Za-z0-9]API");
             }
         }
 
