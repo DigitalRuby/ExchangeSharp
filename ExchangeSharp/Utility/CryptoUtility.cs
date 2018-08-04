@@ -1006,5 +1006,24 @@ namespace ExchangeSharp
 
             return (decimal)Math.Pow(10, -1 * precision);
         }
+
+        /// <summary>
+        /// Make a task execute synchronously
+        /// </summary>
+        /// <param name="task">Task</param>
+        public static void Sync(this Task task)
+        {
+            task.ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Make a task execute synchronously
+        /// </summary>
+        /// <param name="task">Task</param>
+        /// <returns>Result</returns>
+        public static T Sync<T>(this Task<T> task)
+        {
+            return task.ConfigureAwait(false).GetAwaiter().GetResult();
+        }
     }
 }
