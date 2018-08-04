@@ -535,17 +535,40 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["symbol"] = symbol;
-            payload["ordType"] = order.OrderType.ToStringInvariant();
-            payload["side"] = order.IsBuy ? "Buy" : "Sell";
-
-            payload["orderQty"] = order.Amount;
-            payload["price"] = order.Price;
-
+            AddOrderToPayload(order, payload);
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "POST");
             return ParseOrder(token);
+        }
+
+        protected override async Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+        {
+            List<ExchangeOrderResult> results = new List<ExchangeOrderResult>();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            List<Dictionary<string, object>> orderRequests = new List<Dictionary<string, object>>();
+            foreach (ExchangeOrderRequest order in orders)
+            {
+                Dictionary<string, object> subPayload = new Dictionary<string, object>();
+                AddOrderToPayload(order, subPayload);
+                orderRequests.Add(subPayload);
+            }
+            payload[CryptoUtility.PayloadKeyArray] = orderRequests;
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/bulk", BaseUrl, payload, "POST");
+            foreach (JToken orderResultToken in token)
+            {
+                results.Add(ParseOrder(orderResultToken));
+            }
+            return results.ToArray();
+        }
+
+        private void AddOrderToPayload(ExchangeOrderRequest order, Dictionary<string, object> payload)
+        {
+            order.Symbol = NormalizeSymbol(order.Symbol);
+            payload["symbol"] = order.Symbol;
+            payload["ordType"] = order.OrderType.ToStringInvariant();
+            payload["side"] = order.IsBuy ? "Buy" : "Sell";
+            payload["orderQty"] = order.Amount;
+            payload["price"] = order.Price;
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)

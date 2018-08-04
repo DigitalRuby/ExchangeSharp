@@ -91,6 +91,7 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetFeesAsync() => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
@@ -746,6 +747,20 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             return await OnPlaceOrderAsync(order);
         }
+
+        /// <summary>
+        /// Place bulk orders
+        /// </summary>
+        /// <param name="orders">Order requests</param>
+        /// <returns>Order results, each result matches up with each order in index</returns>
+        public ExchangeOrderResult[] PlaceOrders(params ExchangeOrderRequest[] orders) => PlaceOrdersAsync().Sync();
+
+        /// <summary>
+        /// ASYNC - Place bulk orders
+        /// </summary>
+        /// <param name="orders">Order requests</param>
+        /// <returns>Order results, each result matches up with each order in index</returns>
+        public Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders) => OnPlaceOrdersAsync(orders);
 
         /// <summary>
         /// Get order details
