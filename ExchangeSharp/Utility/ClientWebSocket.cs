@@ -342,13 +342,21 @@ namespace ExchangeSharp
                     webSocket.KeepAliveInterval = KeepAlive;
                     wasConnected = false;
                     await webSocket.ConnectAsync(Uri, cancellationToken);
+                    while (!disposed && webSocket.State == WebSocketState.Connecting)
+                    {
+                        await Task.Delay(20);
+                    }
+                    if (disposed || webSocket.State != WebSocketState.Open)
+                    {
+                        continue;
+                    }
                     wasConnected = true;
 
                     // on connect may make additional calls that must succeed, such as rest calls
                     // for lists, etc.
                     QueueActionsWithNoExceptions(Connected);
 
-                    while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.Connecting)
+                    while (webSocket.State == WebSocketState.Open)
                     {
                         do
                         {
