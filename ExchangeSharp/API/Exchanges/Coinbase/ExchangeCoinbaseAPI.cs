@@ -370,7 +370,7 @@ namespace ExchangeSharp
             }]
             */
 
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
+            ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
             {
                 Callback = callback,
                 EndDate = endDate,
@@ -388,7 +388,7 @@ namespace ExchangeSharp
                 StartDate = startDate,
                 Symbol = symbol,
                 Url = "/products/[symbol]/trades",
-                UrlFunction = (HistoricalTradeHelperState _state) =>
+                UrlFunction = (ExchangeHistoricalTradeHelper _state) =>
                 {
                     return _state.Url + (string.IsNullOrWhiteSpace(cursorBefore) ? string.Empty : "?before=" + cursorBefore.ToStringInvariant());
                 }
@@ -564,4 +564,6 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
         }
     }
+
+    public partial class ExchangeName { public const string Coinbase = "Coinbase"; }
 }

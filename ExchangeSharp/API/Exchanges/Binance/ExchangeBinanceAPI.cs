@@ -97,7 +97,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get trades for or null for all</param>
         /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
         /// <returns>All trades for the specified symbol, or all if null symbol</returns>
-        public IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null) => GetMyTradesAsync(symbol, afterDate).GetAwaiter().GetResult();
+        public IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null) => GetMyTradesAsync(symbol, afterDate).Sync();
 
         /// <summary>
         /// ASYNC - Get the details of all trades
@@ -358,7 +358,7 @@ namespace ExchangeSharp
 		    "M": true           // Was the trade the best price match?
             } ] */
 
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
+            ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
             {
                 Callback = callback,
                 EndDate = endDate,
@@ -1045,4 +1045,6 @@ namespace ExchangeSharp
             return transactions;
         }
     }
+
+    public partial class ExchangeName { public const string Binance = "Binance"; }
 }

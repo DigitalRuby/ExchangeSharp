@@ -603,4 +603,6 @@ namespace ExchangeSharp
             return depositDetails;
         }
     }
+
+    public partial class ExchangeName { public const string Bittrex = "Bittrex"; }
 }

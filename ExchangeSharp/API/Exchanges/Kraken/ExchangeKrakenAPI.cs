@@ -466,4 +466,6 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
     }
+
+    public partial class ExchangeName { public const string Kraken = "Kraken"; }
 }

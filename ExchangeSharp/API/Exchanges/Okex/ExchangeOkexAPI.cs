@@ -702,6 +702,24 @@ namespace ExchangeSharp
             });
         }
 
+        private IWebSocket ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        {
+            return ConnectWebSocketOkex(async (_socket) =>
+            {
+                await _socket.SendMessageAsync(GetAuthForWebSocket());
+            }, async (_socket, symbol, sArray, token) =>
+            {
+                if (symbol == "login")
+                {
+                    await connected(_socket);
+                }
+                else
+                {
+                    await callback(_socket, symbol, sArray, token);
+                }
+            }, 0);
+        }
+
         private async Task<string[]> AddSymbolsToChannel(IWebSocket socket, string channelFormat, string[] symbols, bool useJustFirstSymbol = false)
         {
             if (symbols == null || symbols.Length == 0)
@@ -716,7 +734,7 @@ namespace ExchangeSharp
                     normalizedSymbol = normalizedSymbol.Substring(0, normalizedSymbol.IndexOf(SymbolSeparator[0]));
                 }
                 string channel = string.Format(channelFormat, normalizedSymbol);
-                string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
+                string msg = $"{{\"event\":\"addChannel\",\"channel\":\"{channel}\"}}";
                 await socket.SendMessageAsync(msg);
             }
             return symbols;
@@ -724,4 +742,6 @@ namespace ExchangeSharp
 
         #endregion
     }
+
+    public partial class ExchangeName { public const string Okex = "Okex"; }
 }

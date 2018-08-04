@@ -157,4 +157,6 @@ namespace ExchangeSharp
             return books;
         }
     }
+
+    public partial class ExchangeName { public const string Bithumb = "Bithumb"; }
 }

@@ -427,7 +427,16 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a payload into json
+        /// Forces GetJsonForPayload to serialize the value of this key and nothing else.
+        /// This is a little hacky, but allows posting arrays instead of dictionary to API for bulk calls.
+        /// Normally a good API design would require a dictionary post with an array key and then
+        /// an array of values, allowing other key/values to be posted with the bulk call,
+        /// but some API (I'm looking at you Bitmex) just accept an array and nothing else.
+        /// </summary>
+        public const string PayloadKeyArray = "__hacky_array_key__";
+
+        /// <summary>
+        /// Convert a payload into json. If payload contains key PayloadKeyArray, that item is used only and serialized by itself
         /// </summary>
         /// <param name="payload">Payload</param>
         /// <returns>Json string</returns>
@@ -435,6 +444,11 @@ namespace ExchangeSharp
         {
             if (payload != null && payload.Count != 0)
             {
+                object singleton = payload[PayloadKeyArray];
+                if (singleton != null)
+                {
+                    return JsonConvert.SerializeObject(singleton, DecimalConverter.Instance);
+                }
                 // the decimal must same as GetFormForPayload
                 return JsonConvert.SerializeObject(payload, DecimalConverter.Instance);
             }
@@ -1005,6 +1019,25 @@ namespace ExchangeSharp
             }
 
             return (decimal)Math.Pow(10, -1 * precision);
+        }
+
+        /// <summary>
+        /// Make a task execute synchronously
+        /// </summary>
+        /// <param name="task">Task</param>
+        public static void Sync(this Task task)
+        {
+            task.ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Make a task execute synchronously
+        /// </summary>
+        /// <param name="task">Task</param>
+        /// <returns>Result</returns>
+        public static T Sync<T>(this Task<T> task)
+        {
+            return task.ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }

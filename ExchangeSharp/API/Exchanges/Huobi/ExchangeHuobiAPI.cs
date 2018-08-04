@@ -946,4 +946,6 @@ namespace ExchangeSharp
             //privateSignedData = Convert.ToBase64String(ecDsa.SignData(signDataBytes, HashAlgorithmName.SHA256));
         }
     }
+
+    public partial class ExchangeName { public const string Huobi = "Huobi"; }
 }

@@ -426,4 +426,6 @@ namespace ExchangeSharp
             };
         }
     }
+
+    public partial class ExchangeName { public const string Bitstamp = "Bitstamp"; }
 }

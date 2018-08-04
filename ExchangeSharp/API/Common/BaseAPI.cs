@@ -81,7 +81,19 @@ namespace ExchangeSharp
         /// <summary>
         /// Persist nonce to counter and file for the API key, once it hits long.MaxValue, it is useless
         /// </summary>
-        Int64File
+        Int64File,
+
+        /// <summary>
+        /// No nonce, use expires instead which passes an expires param to the api using the nonce value - duplicate nonce are allowed
+        /// Specify a negative NonceOffset for when you want the call to expire
+        /// </summary>
+        ExpiresUnixSeconds,
+
+        /// <summary>
+        /// No nonce, use expires instead which passes an expires param to the api using the nonce value - duplicate nonce are allowed
+        /// Specify a negative NonceOffset for when you want the call to expire
+        /// </summary>
+        ExpiresUnixMilliseconds
     }
 
     /// <summary>
@@ -220,13 +232,15 @@ namespace ExchangeSharp
         {
             requestMaker = new APIRequestMaker(this);
 
-            // TODO: Add existing pieces to regex if other name formats need to be done
             string className = GetType().Name;
-            Name = Regex.Replace(className, "^Exchange|API$", string.Empty, RegexOptions.CultureInvariant);
-
-            if (!className.EndsWith("API"))
+            object[] nameAttributes = GetType().GetCustomAttributes(typeof(ApiNameAttribute), true);
+            if (nameAttributes == null || nameAttributes.Length == 0)
             {
-                //throw new ArgumentException("Class name should end with API if inheriting from BaseAPI");
+                Name = Regex.Replace(className, "^Exchange|API$", string.Empty, RegexOptions.CultureInvariant);
+            }
+            else
+            {
+                Name = (nameAttributes[0] as ApiNameAttribute).Name;
             }
         }
 
@@ -234,7 +248,7 @@ namespace ExchangeSharp
         /// Generate a nonce
         /// </summary>
         /// <returns></returns>
-        public object GenerateNonce() => GenerateNonceAsync().GetAwaiter().GetResult();
+        public object GenerateNonce() => GenerateNonceAsync().Sync();
 
         /// <summary>
         /// ASYNC - Generate a nonce
@@ -257,8 +271,6 @@ namespace ExchangeSharp
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of offset can help
                     DateTime now = DateTime.UtcNow - NonceOffset;
-                    Task.Delay(1).Wait();
-
                     switch (NonceStyle)
                     {
                         case NonceStyle.Ticks:
@@ -332,17 +344,28 @@ namespace ExchangeSharp
                             break;
                         }
 
+                        case NonceStyle.ExpiresUnixMilliseconds:
+                            nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
+                            break;
+
+                        case NonceStyle.ExpiresUnixSeconds:
+                            nonce = (long)now.UnixTimestampFromDateTimeSeconds();
+                            break;
+                            
                         default:
                             throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
                     }
 
                     // check for duplicate nonce
                     decimal convertedNonce = nonce.ConvertInvariant<decimal>();
-                    if (lastNonce != convertedNonce)
+                    if (lastNonce != convertedNonce || NonceStyle == NonceStyle.ExpiresUnixSeconds || NonceStyle == NonceStyle.ExpiresUnixMilliseconds)
                     {
                         lastNonce = convertedNonce;
                         break;
                     }
+
+                    // wait 1 millisecond for a new nonce
+                    Task.Delay(1).Sync();
                 }
 
                 return nonce;
@@ -392,7 +415,7 @@ namespace ExchangeSharp
         /// <returns>Raw response</returns>
         public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
-            return MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
+            return MakeRequestAsync(url, baseUrl, payload, method).Sync();
         }
 
         /// <summary>
@@ -417,7 +440,7 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         public T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
         {
-            return MakeJsonRequestAsync<T>(url, baseUrl, payload, requestMethod).GetAwaiter().GetResult();
+            return MakeJsonRequestAsync<T>(url, baseUrl, payload, requestMethod).Sync();
         }
 
         /// <summary>
@@ -589,5 +612,31 @@ namespace ExchangeSharp
         {
             return ProcessRequestUrl(url, payload, method);
         }
+    }
+
+    /// <summary>
+    /// Normally a BaseAPI class attempts to get the Name from the class name.
+    /// If there is a problem, apply this attribute to a BaseAPI subclass to populate the Name property with the attribute name.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
+    public class ApiNameAttribute : Attribute
+    {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="name">Name</param>
+        public ApiNameAttribute(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException($"'{nameof(name)}' must not be null or empty");
+            }
+            Name = name;
+        }
+
+        /// <summary>
+        /// Name
+        /// </summary>
+        public string Name { get; private set; }
     }
 }

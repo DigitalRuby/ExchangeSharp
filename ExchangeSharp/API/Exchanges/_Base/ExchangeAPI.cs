@@ -21,7 +21,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Base class for all exchange API
     /// </summary>
-    public abstract class ExchangeAPI : BaseAPI, IExchangeAPI
+    public abstract partial class ExchangeAPI : BaseAPI, IExchangeAPI
     {
         #region Constants
 
@@ -89,6 +89,7 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetFeesAsync() => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
@@ -208,17 +209,6 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Constructor
-        /// </summary>
-        public ExchangeAPI()
-        {
-            if (!ExchangeName.HasName(Name))
-            {
-                //throw new ArgumentException("Exchange class name must follow this format: Exchange[A-Za-z0-9]API");
-            }
-        }
-
-        /// <summary>
         /// Finalizer
         /// </summary>
         ~ExchangeAPI()
@@ -255,6 +245,8 @@ namespace ExchangeSharp
         /// <returns>Exchange API or null if not found</returns>
         public static IExchangeAPI GetExchangeAPI(string exchangeName)
         {
+            // note: this method will be slightly slow (milliseconds) the first time it is called and misses the cache
+            // subsequent calls with cache hits will be nanoseconds
             lock (apis)
             {
                 if (!apis.TryGetValue(exchangeName, out IExchangeAPI api))
@@ -263,16 +255,21 @@ namespace ExchangeSharp
                 }
                 if (api == null)
                 {
+                    // find an API with the right name
                     foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
                     {
                         api = Activator.CreateInstance(type) as ExchangeAPI;
                         if (api.Name == exchangeName)
                         {
+                            // found one with right name, add it to the API dictionary
                             apis[exchangeName] = api;
+
+                            // break out, we are done
                             break;
                         }
                         else
                         {
+                            // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
                             api.Dispose();
                             api = null;
                         }
@@ -414,7 +411,7 @@ namespace ExchangeSharp
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        public virtual IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies() => GetCurrenciesAsync().GetAwaiter().GetResult();
+        public IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies() => GetCurrenciesAsync().Sync();
 
         /// <summary>
         /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
@@ -430,7 +427,7 @@ namespace ExchangeSharp
         /// Get exchange symbols
         /// </summary>
         /// <returns>Array of symbols</returns>
-        public virtual IEnumerable<string> GetSymbols() => GetSymbolsAsync().GetAwaiter().GetResult();
+        public IEnumerable<string> GetSymbols() => GetSymbolsAsync().Sync();
 
         /// <summary>
         /// ASYNC - Get exchange symbols
@@ -449,7 +446,7 @@ namespace ExchangeSharp
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
         /// <returns>Collection of ExchangeMarkets</returns>
-        public virtual IEnumerable<ExchangeMarket> GetSymbolsMetadata() => GetSymbolsMetadataAsync().GetAwaiter().GetResult();
+        public IEnumerable<ExchangeMarket> GetSymbolsMetadata() => GetSymbolsMetadataAsync().Sync();
 
         /// <summary>
         /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
@@ -470,7 +467,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">The symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
         /// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
-        public virtual ExchangeMarket GetExchangeMarketFromCache(string symbol) => GetExchangeMarketFromCacheAsync(symbol).GetAwaiter().GetResult();
+        public ExchangeMarket GetExchangeMarketFromCache(string symbol) => GetExchangeMarketFromCacheAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
@@ -510,7 +507,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get ticker for</param>
         /// <returns>Ticker</returns>
-        public virtual ExchangeTicker GetTicker(string symbol) => GetTickerAsync(symbol).GetAwaiter().GetResult();
+        public ExchangeTicker GetTicker(string symbol) => GetTickerAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Get exchange ticker
@@ -527,7 +524,7 @@ namespace ExchangeSharp
         /// Get all tickers in one request. If the exchange does not support this, a ticker will be requested for each symbol.
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        public virtual IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers() => GetTickersAsync().GetAwaiter().GetResult();
+        public IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers() => GetTickersAsync().Sync();
 
         /// <summary>
         /// ASYNC - Get all tickers in one request. If the exchange does not support this, a ticker will be requested for each symbol.
@@ -545,7 +542,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get order book for</param>
         /// <param name="maxCount">Max count, not all exchanges will honor this parameter</param>
         /// <returns>Exchange order book or null if failure</returns>
-        public virtual ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100) => GetOrderBookAsync(symbol, maxCount).GetAwaiter().GetResult();
+        public ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100) => GetOrderBookAsync(symbol, maxCount).Sync();
 
         /// <summary>
         /// ASYNC - Get exchange order book
@@ -564,7 +561,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        public virtual IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100) => GetOrderBooksAsync(maxCount).GetAwaiter().GetResult();
+        public IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100) => GetOrderBooksAsync(maxCount).Sync();
 
         /// <summary>
         /// ASYNC - Get all exchange order book symbols in one request. If the exchange does not support this, an order book will be requested for each symbol. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -585,7 +582,7 @@ namespace ExchangeSharp
         /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         public virtual void GetHistoricalTrades(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) =>
-            GetHistoricalTradesAsync(callback, symbol, startDate, endDate).GetAwaiter().GetResult();
+            GetHistoricalTradesAsync(callback, symbol, startDate, endDate).Sync();
 
         /// <summary>
         /// ASYNC - Get historical trades for the exchange
@@ -605,7 +602,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all recent trades</returns>
-        public virtual IEnumerable<ExchangeTrade> GetRecentTrades(string symbol) => GetRecentTradesAsync(symbol).GetAwaiter().GetResult();
+        public IEnumerable<ExchangeTrade> GetRecentTrades(string symbol) => GetRecentTradesAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Get recent trades on the exchange - the default implementation simply calls GetHistoricalTrades with a null sinceDateTime.
@@ -624,7 +621,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">Regenerate the address</param>
         /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-        public virtual ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false) => GetDepositAddressAsync(symbol, forceRegenerate).GetAwaiter().GetResult();
+        public ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false) => GetDepositAddressAsync(symbol, forceRegenerate).Sync();
 
         /// <summary>
         /// ASYNC - Gets the address to deposit to and applicable details.
@@ -643,7 +640,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">The symbol to check. May be null.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        public virtual IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol) => GetDepositHistoryAsync(symbol).GetAwaiter().GetResult();
+        public IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol) => GetDepositHistoryAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Gets the deposit history for a symbol
@@ -664,7 +661,7 @@ namespace ExchangeSharp
         /// <param name="endDate">Optional end date to get candles for</param>
         /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        public virtual IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => GetCandlesAsync(symbol, periodSeconds, startDate, endDate, limit).GetAwaiter().GetResult();
+        public IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => GetCandlesAsync(symbol, periodSeconds, startDate, endDate, limit).Sync();
 
         /// <summary>
         /// ASYNC - Get candles (open, high, low, close)
@@ -685,7 +682,7 @@ namespace ExchangeSharp
         /// Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
-        public virtual Dictionary<string, decimal> GetAmounts() => GetAmountsAsync().GetAwaiter().GetResult();
+        public Dictionary<string, decimal> GetAmounts() => GetAmountsAsync().Sync();
 
         /// <summary>
         /// ASYNC - Get total amounts, symbol / amount dictionary
@@ -702,7 +699,7 @@ namespace ExchangeSharp
         ///  Get fees
         /// </summary>
         /// <returns>The customer trading fees</returns>
-        public virtual Dictionary<string, decimal> GetFees() => GetFeesAync().GetAwaiter().GetResult();
+        public Dictionary<string, decimal> GetFees() => GetFeesAync().Sync();
 
         /// <summary>
         /// ASYNC - Get fees
@@ -719,7 +716,7 @@ namespace ExchangeSharp
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Symbol / amount dictionary</returns>
-        public virtual Dictionary<string, decimal> GetAmountsAvailableToTrade() => GetAmountsAvailableToTradeAsync().GetAwaiter().GetResult();
+        public Dictionary<string, decimal> GetAmountsAvailableToTrade() => GetAmountsAvailableToTradeAsync().Sync();
 
         /// <summary>
         /// ASYNC - Get amounts available to trade, symbol / amount dictionary
@@ -736,7 +733,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="order">The order request</param>
         /// <returns>Result</returns>
-        public virtual ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order) => PlaceOrderAsync(order).GetAwaiter().GetResult();
+        public ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order) => PlaceOrderAsync(order).Sync();
 
         /// <summary>
         /// ASYNC - Place an order
@@ -750,12 +747,26 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Place bulk orders
+        /// </summary>
+        /// <param name="orders">Order requests</param>
+        /// <returns>Order results, each result matches up with each order in index</returns>
+        public ExchangeOrderResult[] PlaceOrders(params ExchangeOrderRequest[] orders) => PlaceOrdersAsync().Sync();
+
+        /// <summary>
+        /// ASYNC - Place bulk orders
+        /// </summary>
+        /// <param name="orders">Order requests</param>
+        /// <returns>Order results, each result matches up with each order in index</returns>
+        public Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders) => OnPlaceOrdersAsync(orders);
+
+        /// <summary>
         /// Get order details
         /// </summary>
         /// <param name="orderId">Order id to get details for</param>
         /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
         /// <returns>Order details</returns>
-        public virtual ExchangeOrderResult GetOrderDetails(string orderId, string symbol = null) => GetOrderDetailsAsync(orderId, symbol).GetAwaiter().GetResult();
+        public ExchangeOrderResult GetOrderDetails(string orderId, string symbol = null) => GetOrderDetailsAsync(orderId, symbol).Sync();
 
         /// <summary>
         /// ASYNC - Get order details
@@ -774,7 +785,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get open orders for or null for all</param>
         /// <returns>All open order details</returns>
-        public virtual IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null) => GetOpenOrderDetailsAsync(symbol).GetAwaiter().GetResult();
+        public IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null) => GetOpenOrderDetailsAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Get the details of all open orders
@@ -793,7 +804,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        public virtual IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null) => GetCompletedOrderDetailsAsync(symbol, afterDate).GetAwaiter().GetResult();
+        public IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null) => GetCompletedOrderDetailsAsync(symbol, afterDate).Sync();
 
         /// <summary>
         /// ASYNC - Get the details of all completed orders
@@ -816,7 +827,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
-        public virtual void CancelOrder(string orderId, string symbol = null) => CancelOrderAsync(orderId, symbol).GetAwaiter().GetResult();
+        public void CancelOrder(string orderId, string symbol = null) => CancelOrderAsync(orderId, symbol).Sync();
 
         /// <summary>
         /// ASYNC - Cancel an order, an exception is thrown if error
@@ -833,7 +844,7 @@ namespace ExchangeSharp
         /// A withdrawal request.
         /// </summary>
         /// <param name="withdrawalRequest">The withdrawal request.</param>
-        public virtual ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest) => WithdrawAsync(withdrawalRequest).GetAwaiter().GetResult();
+        public ExchangeWithdrawalResponse Withdraw(ExchangeWithdrawalRequest withdrawalRequest) => WithdrawAsync(withdrawalRequest).Sync();
 
         /// <summary>
         /// Asynchronous withdraws request.
@@ -861,7 +872,7 @@ namespace ExchangeSharp
         /// <param name="abortIfOrderBookTooSmall">Whether to abort if the order book does not have enough bids or ask amounts to fulfill the order.</param>
         /// <returns>Order result</returns>
         public virtual ExchangeOrderResult PlaceSafeMarketOrder(string symbol, decimal amount, bool isBuy, int orderBookCount = 100, decimal priceThreshold = 0.9m, decimal thresholdToAbort = 0.75m)
-            => PlaceSafeMarketOrderAsync(symbol, amount, isBuy, orderBookCount, priceThreshold, thresholdToAbort).GetAwaiter().GetResult();
+            => PlaceSafeMarketOrderAsync(symbol, amount, isBuy, orderBookCount, priceThreshold, thresholdToAbort).Sync();
 
         /// <summary>
         /// ASYNC - Place a limit order by first querying the order book and then placing the order for a threshold below the bid or above the ask that would fully fulfill the amount.
@@ -974,7 +985,7 @@ namespace ExchangeSharp
         /// Get margin amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Symbol / amount dictionary</returns>
-        public virtual Dictionary<string, decimal> GetMarginAmountsAvailableToTrade() => GetMarginAmountsAvailableToTradeAsync().GetAwaiter().GetResult();
+        public Dictionary<string, decimal> GetMarginAmountsAvailableToTrade() => GetMarginAmountsAvailableToTradeAsync().Sync();
 
         /// <summary>
         /// ASYNC - Get margin amounts available to trade, symbol / amount dictionary
@@ -991,7 +1002,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Open margin position result</returns>
-        public virtual ExchangeMarginPositionResult GetOpenPosition(string symbol) => GetOpenPositionAsync(symbol).GetAwaiter().GetResult();
+        public ExchangeMarginPositionResult GetOpenPosition(string symbol) => GetOpenPositionAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Get open margin position
@@ -1009,7 +1020,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Close margin position result</returns>
-        public virtual ExchangeCloseMarginPositionResult CloseMarginPosition(string symbol) => CloseMarginPositionAsync(symbol).GetAwaiter().GetResult();
+        public ExchangeCloseMarginPositionResult CloseMarginPosition(string symbol) => CloseMarginPositionAsync(symbol).Sync();
 
         /// <summary>
         /// ASYNC - Close a margin position

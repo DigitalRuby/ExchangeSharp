@@ -35,8 +35,12 @@ namespace ExchangeSharp
         public ExchangeBitMEXAPI()
         {
             RequestWindow = TimeSpan.Zero;
-            NonceStyle = NonceStyle.UnixSeconds;
-            NonceOffset = TimeSpan.FromSeconds(10.0);
+            NonceStyle = NonceStyle.ExpiresUnixSeconds;
+
+            // make the nonce go 10 seconds into the future (the offset is subtracted)
+            // this will give us an api-expires 10 seconds into the future
+            NonceOffset = TimeSpan.FromSeconds(-10.0);
+
             SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
         }
@@ -45,13 +49,14 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
+                // convert nonce to long, trim off milliseconds
                 var nonce = payload["nonce"].ConvertInvariant<long>();
                 payload.Remove("nonce");
                 var msg = CryptoUtility.GetJsonForPayload(payload);
                 var sign = $"{request.Method}{request.RequestUri.AbsolutePath}{request.RequestUri.Query}{nonce}{msg}";
                 string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytesUTF8(PrivateApiKey));
 
-                request.Headers["api-nonce"] = nonce.ToStringInvariant();
+                request.Headers["api-expires"] = nonce.ToStringInvariant();
                 request.Headers["api-key"] = PublicApiKey.ToUnsecureString();
                 request.Headers["api-signature"] = signature;
 
@@ -530,17 +535,40 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["symbol"] = symbol;
-            payload["ordType"] = order.OrderType.ToStringInvariant();
-            payload["side"] = order.IsBuy ? "Buy" : "Sell";
-
-            payload["orderQty"] = order.Amount;
-            payload["price"] = order.Price;
-
+            AddOrderToPayload(order, payload);
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "POST");
             return ParseOrder(token);
+        }
+
+        protected override async Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+        {
+            List<ExchangeOrderResult> results = new List<ExchangeOrderResult>();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            List<Dictionary<string, object>> orderRequests = new List<Dictionary<string, object>>();
+            foreach (ExchangeOrderRequest order in orders)
+            {
+                Dictionary<string, object> subPayload = new Dictionary<string, object>();
+                AddOrderToPayload(order, subPayload);
+                orderRequests.Add(subPayload);
+            }
+            payload[CryptoUtility.PayloadKeyArray] = orderRequests;
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/bulk", BaseUrl, payload, "POST");
+            foreach (JToken orderResultToken in token)
+            {
+                results.Add(ParseOrder(orderResultToken));
+            }
+            return results.ToArray();
+        }
+
+        private void AddOrderToPayload(ExchangeOrderRequest order, Dictionary<string, object> payload)
+        {
+            order.Symbol = NormalizeSymbol(order.Symbol);
+            payload["symbol"] = order.Symbol;
+            payload["ordType"] = order.OrderType.ToStringInvariant();
+            payload["side"] = order.IsBuy ? "Buy" : "Sell";
+            payload["orderQty"] = order.Amount;
+            payload["price"] = order.Price;
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)
@@ -645,4 +673,6 @@ namespace ExchangeSharp
         //    return (long)((100000000L * market.Idx) - (price / GetInstrumentTickSize(market)));
         //}
     }
+
+    public partial class ExchangeName { public const string BitMEX = "BitMEX"; }
 }

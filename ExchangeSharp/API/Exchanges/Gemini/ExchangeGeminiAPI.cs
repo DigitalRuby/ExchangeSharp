@@ -117,7 +117,7 @@ namespace ExchangeSharp
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
+            ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
             {
                 Callback = callback,
                 DirectionIsBackwards = false,
@@ -231,4 +231,6 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
         }
     }
+
+    public partial class ExchangeName { public const string Gemini = "Gemini"; }
 }

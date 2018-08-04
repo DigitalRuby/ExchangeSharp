@@ -158,7 +158,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="millisecondsTimeout">Number of milliseconds to wait, or -1 to wait indefinitely.</param>
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
-        public bool WaitToProceed(int millisecondsTimeout) => WaitToProceedAsync(millisecondsTimeout).GetAwaiter().GetResult();
+        public bool WaitToProceed(int millisecondsTimeout) => WaitToProceedAsync(millisecondsTimeout).Sync();
 
         /// <summary>
         /// ASYNC - Blocks the current thread until allowed to proceed or until the
@@ -197,7 +197,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
-        public bool WaitToProceed(TimeSpan timeout) => WaitToProceedAsync(timeout).GetAwaiter().GetResult();
+        public bool WaitToProceed(TimeSpan timeout) => WaitToProceedAsync(timeout).Sync();
 
         /// <summary>
         /// ASYNC - Blocks the current thread until allowed to proceed or until the
@@ -215,7 +215,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Blocks the current thread indefinitely until allowed to proceed.
         /// </summary>
-        public void WaitToProceed() => WaitToProceedAsync().GetAwaiter().GetResult();
+        public void WaitToProceed() => WaitToProceedAsync().Sync();
 
         /// <summary>
         /// ASYNC - Blocks the current thread indefinitely until allowed to proceed.
