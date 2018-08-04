@@ -32,10 +32,10 @@ namespace ExchangeSharp.Binance
         public decimal TransactionFee { get; set; }
 
         [JsonProperty("commissionRate")]
-        public int CommissionRate { get; set; }
+        public decimal CommissionRate { get; set; }
 
         [JsonProperty("freeAuditWithdrawAmt")]
-        public int FreeAuditWithdrawAmt { get; set; }
+        public decimal FreeAuditWithdrawAmt { get; set; }
 
         [JsonProperty("freeUserChargeAmount")]
         public long FreeUserChargeAmount { get; set; }
@@ -74,7 +74,7 @@ namespace ExchangeSharp.Binance
         public string RegExTag { get; set; }
 
         [JsonProperty("gas")]
-        public int Gas { get; set; }
+        public decimal Gas { get; set; }
 
         [JsonProperty("parentCode")]
         public string ParentCode { get; set; }
@@ -83,7 +83,7 @@ namespace ExchangeSharp.Binance
         public bool IsLegalMoney { get; set; }
 
         [JsonProperty("reconciliationAmount")]
-        public int ReconciliationAmount { get; set; }
+        public decimal ReconciliationAmount { get; set; }
 
         [JsonProperty("seqNum")]
         public string SeqNum { get; set; }
