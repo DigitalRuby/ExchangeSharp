@@ -231,4 +231,6 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
         }
     }
+
+    public partial class ExchangeName { public const string Gemini = "Gemini"; }
 }

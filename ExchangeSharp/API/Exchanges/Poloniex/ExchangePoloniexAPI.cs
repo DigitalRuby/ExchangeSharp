@@ -1007,4 +1007,6 @@ namespace ExchangeSharp
             return details;
         }
     }
+
+    public partial class ExchangeName { public const string Poloniex = "Poloniex"; }
 }

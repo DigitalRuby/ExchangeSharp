@@ -1045,4 +1045,6 @@ namespace ExchangeSharp
             return transactions;
         }
     }
+
+    public partial class ExchangeName { public const string Binance = "Binance"; }
 }

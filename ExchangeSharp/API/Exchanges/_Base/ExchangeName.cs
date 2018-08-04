@@ -19,8 +19,10 @@ namespace ExchangeSharp
 {
     /// <summary>
     /// List of exchange names
+    /// Note: When making a new exchange, add a partial class underneath the exchange class with the name, decouples
+    /// the names from a global list here and keeps them with each exchange class.
     /// </summary>
-    public static class ExchangeName
+    public static partial class ExchangeName
     {
         private static readonly HashSet<string> exchangeNames = new HashSet<string>();
 
@@ -46,110 +48,5 @@ namespace ExchangeSharp
         /// Get a list of all exchange names
         /// </summary>
         public static IReadOnlyCollection<string> ExchangeNames { get { return exchangeNames; } }
-
-        /// <summary>
-        /// Abucoins
-        /// </summary>
-        public const string Abucoins = "Abucoins";
-
-        /// <summary>
-        /// Binance
-        /// </summary>
-        public const string Binance = "Binance";
-
-        /// <summary>
-        /// Bitfinex
-        /// </summary>
-        public const string Bitfinex = "Bitfinex";
-
-        /// <summary>
-        /// Bithumb
-        /// </summary>
-        public const string Bithumb = "Bithumb";
-
-        /// <summary>
-        /// BitMEX
-        /// </summary>
-        public const string BitMEX = "BitMEX";
-
-        /// <summary>
-        /// Bitstamp
-        /// </summary>
-        public const string Bitstamp = "Bitstamp";
-
-        /// <summary>
-        /// Bittrex
-        /// </summary>
-        public const string Bittrex = "Bittrex";
-
-        /// <summary>
-        /// Bleutrade
-        /// </summary>
-        public const string Bleutrade = "Bleutrade";
-
-        /// <summary>
-        /// Cryptopia
-        /// </summary>
-        public const string Cryptopia = "Cryptopia";
-
-        /// <summary>
-        /// Coinbase
-        /// </summary>
-        public const string Coinbase = "Coinbase";
-
-        /// <summary>
-        /// Gemini
-        /// </summary>
-        public const string Gemini = "Gemini";
-
-        /// <summary>
-        /// Hitbtc
-        /// </summary>
-        public const string Hitbtc = "Hitbtc";
-
-        /// <summary>
-        /// Huobi
-        /// </summary>
-        public const string Huobi = "Huobi";
-
-        /// <summary>
-        /// Kraken
-        /// </summary>
-        public const string Kraken = "Kraken";
-
-        /// <summary>
-        /// Kucoin
-        /// </summary>
-        public const string Kucoin = "Kucoin";
-
-        /// <summary>
-        /// Livecoin
-        /// </summary>
-        public const string Livecoin = "Livecoin";
-
-        /// <summary>
-        /// Okex
-        /// </summary>
-        public const string Okex = "Okex";
-
-        /// <summary>
-        /// Poloniex
-        /// </summary>
-        public const string Poloniex = "Poloniex";
-
-        /// <summary>
-        /// TuxExchange
-        /// </summary>
-        public const string TuxExchange = "TuxExchange";
-
-        /// <summary>
-        /// Yobit
-        /// </summary>
-        public const string Yobit = "Yobit";
-
-        /// <summary>
-        /// ZB.com
-        /// </summary>
-        public const string ZBcom = "ZBcom";
     }
 }

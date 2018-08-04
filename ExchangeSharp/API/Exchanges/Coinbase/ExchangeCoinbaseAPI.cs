@@ -564,4 +564,6 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
         }
     }
+
+    public partial class ExchangeName { public const string Coinbase = "Coinbase"; }
 }

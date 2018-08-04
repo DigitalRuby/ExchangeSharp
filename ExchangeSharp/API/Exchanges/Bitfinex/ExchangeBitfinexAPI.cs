@@ -853,4 +853,6 @@ namespace ExchangeSharp
             return fees;
         }
     }
+
+    public partial class ExchangeName { public const string Bitfinex = "Bitfinex"; }
 }
