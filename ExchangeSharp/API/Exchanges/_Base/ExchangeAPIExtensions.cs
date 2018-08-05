@@ -78,9 +78,19 @@ namespace ExchangeSharp
                     case ExchangeName.Binance:
                     case ExchangeName.Poloniex:
                     {
-                        // If we don't have an initial order book for this symbol, fetch it
                         if (!foundFullBook)
                         {
+                            // attempt to find the right queue to put the partial order book in to be processed later
+                            lock (freshBooksQueue)
+                            {
+                                if (!freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
+                                {
+                                    // no queue found, make a new one
+                                    freshBooksQueue[freshBook.Symbol] = freshQueue = new Queue<ExchangeOrderBook>();
+                                }
+                                freshQueue.Enqueue(freshBook);
+                            }
+
                             bool makeRequest;
                             lock (fullBookRequestLock)
                             {
@@ -91,34 +101,25 @@ namespace ExchangeSharp
                                 // we are the first to see this symbol, make a full request to API
                                 fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, maxCount);
                                 fullOrderBook.Symbol = freshBook.Symbol;
+                                // now that we have the full order book, we can process it (and any books in the queue)
                             }
                             else
                             {
-                                // attempt to find the right queue to put the partial order book in to be processed later
-                                lock (freshBooksQueue)
-                                {
-                                    if (!freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
-                                    {
-                                        // no queue found, make a new one
-                                        freshBooksQueue[freshBook.Symbol] = freshQueue = new Queue<ExchangeOrderBook>();
-                                    }
-                                    freshQueue.Enqueue(freshBook);
-                                }
+                                // stop processing, other code will take these items out of the queue later
                                 return;
                             }
                         }
-                        else
+
+                        // check if any old books for this symbol, if so process them first
+                        lock (freshBooksQueue)
                         {
-                            // check if any old books for this symbol, if so process them first
-                            lock (freshBooksQueue)
+                            if (freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
                             {
-                                if (freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
                                 while (freshQueue.Count != 0)
                                 {
                                     updateOrderBook(fullOrderBook, freshQueue.Dequeue());
                                 }
                             }
-                            updateOrderBook(fullOrderBook, freshBook);
                         }
                         break;
                     }
