@@ -72,6 +72,8 @@ namespace ExchangeSharp
                 switch (api.Name)
                 {
                     // Fetch an initial book the first time and apply deltas on top
+                    // send these exchanges scathing support tickets that they should send
+                    // the full book for the first web socket callback message
                     case ExchangeName.Bittrex:
                     case ExchangeName.Binance:
                     case ExchangeName.Poloniex:
@@ -122,7 +124,7 @@ namespace ExchangeSharp
                     }
 
                     // First response from exchange will be the full order book.
-                    // Subsequent updates will be deltas
+                    // Subsequent updates will be deltas, at least some exchanges have their heads on straight
                     case ExchangeName.BitMEX:
                     case ExchangeName.Okex:
                     case ExchangeName.Coinbase:
