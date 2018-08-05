@@ -111,21 +111,10 @@ namespace ExchangeSharp
         /// Generate a nonce
         /// </summary>
         /// <returns>Nonce (can be string, long, double, etc., so object is used)</returns>
-        object GenerateNonce();
+        Task<object> GenerateNonceAsync();
 
         /// <summary>
         /// Make a JSON request to an API end point
-        /// </summary>
-        /// <typeparam name="T">Type of object to parse JSON as</typeparam>
-        /// <param name="url">Path and query</param>
-        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// <param name="requestMethod">Request method or null for default</param>
-        /// <returns>Result decoded from JSON response</returns>
-        T MakeJsonRequest<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
-
-        /// <summary>
-        /// ASYNC - Make a JSON request to an API end point
         /// </summary>
         /// <typeparam name="T">Type of object to parse JSON as</typeparam>
         /// <param name="url">Path and query</param>
@@ -143,12 +132,6 @@ namespace ExchangeSharp
         /// Gets currencies and related data such as IsEnabled and TxFee (if available)
         /// </summary>
         /// <returns>Collection of Currencies</returns>
-        IReadOnlyDictionary<string, ExchangeCurrency> GetCurrencies();
-
-        /// <summary>
-        /// ASYNC - Gets currencies and related data such as IsEnabled and TxFee (if available)
-        /// </summary>
-        /// <returns>Collection of Currencies</returns>
         Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
 
         /// <summary>
@@ -157,33 +140,23 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get address for.</param>
         /// <param name="forceRegenerate">True to regenerate the address</param>
         /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-        ExchangeDepositDetails GetDepositAddress(string symbol, bool forceRegenerate = false);
+        Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false);
 
-        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <summary>
+        /// Gets the deposit history for a symbol
+        /// </summary>
         /// <param name="symbol">The symbol to check. May be null.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        IEnumerable<ExchangeTransaction> GetDepositHistory(string symbol);
+        Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol);
 
         /// <summary>
         /// Get symbols for the exchange
-        /// </summary>
-        /// <returns>Symbols</returns>
-        IEnumerable<string> GetSymbols();
-
-        /// <summary>
-        /// ASYNC - Get symbols for the exchange
         /// </summary>
         /// <returns>Symbols</returns>
         Task<IEnumerable<string>> GetSymbolsAsync();
 
         /// <summary>
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
-        /// </summary>
-        /// <returns>Collection of ExchangeMarkets</returns>
-        IEnumerable<ExchangeMarket> GetSymbolsMetadata();
-
-        /// <summary>
-        /// ASYNC - Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
         /// <returns>Collection of ExchangeMarkets</returns>
         Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync();
@@ -193,37 +166,16 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Latest ticker</returns>
-        ExchangeTicker GetTicker(string symbol);
-
-        /// <summary>
-        /// ASYNC - Get latest ticker
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <returns>Latest ticker</returns>
         Task<ExchangeTicker> GetTickerAsync(string symbol);
 
         /// <summary>
         /// Get all tickers, not all exchanges support this
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
-        IEnumerable<KeyValuePair<string, ExchangeTicker>> GetTickers();
-
-        /// <summary>
-        /// ASYNC - Get all tickers, not all exchanges support this
-        /// </summary>
-        /// <returns>Key value pair of symbol and tickers array</returns>
         Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
 
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Orders</returns>
-        ExchangeOrderBook GetOrderBook(string symbol, int maxCount = 100);
-
-        /// <summary>
-        /// ASYNC - Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
@@ -235,26 +187,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Symbol and order books pairs</returns>
-        IEnumerable<KeyValuePair<string, ExchangeOrderBook>> GetOrderBooks(int maxCount = 100);
-
-        /// <summary>
-        /// ASYNC - Get exchange order book for all symbols. Not all exchanges support  Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
-        /// </summary>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Symbol and order books pairs</returns>
         Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100);
 
         /// <summary>
         /// Get historical trades for the exchange
-        /// </summary>
-        /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
-        /// <param name="symbol">Symbol to get historical data for</param>
-        /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        void GetHistoricalTrades(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null);
-
-        /// <summary>
-        /// ASYNC - Get historical trades for the exchange
         /// </summary>
         /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
         /// <param name="symbol">Symbol to get historical data for</param>
@@ -263,14 +199,7 @@ namespace ExchangeSharp
         Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
-        /// Get recent trades on the exchange - this implementation simply calls GetHistoricalTrades with a null sinceDateTime.
-        /// </summary>
-        /// <param name="symbol">Symbol to get recent trades for</param>
-        /// <returns>An enumerator that loops through all recent trades</returns>
-        IEnumerable<ExchangeTrade> GetRecentTrades(string symbol);
-
-        /// <summary>
-        /// ASYNC - Get the latest trades
+        /// Get the latest trades
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Trades</returns>
@@ -285,27 +214,10 @@ namespace ExchangeSharp
         /// <param name="endDate">Optional end date to get candles for</param>
         /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
         /// <returns>Candles</returns>
-        IEnumerable<MarketCandle> GetCandles(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
-
-        /// <summary>
-        /// ASYNC - Get candles (open, high, low, close)
-        /// </summary>
-        /// <param name="symbol">Symbol to get candles for</param>
-        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
-        /// <param name="startDate">Optional start date to get candles for</param>
-        /// <param name="endDate">Optional end date to get candles for</param>
-        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
-        /// <returns>Candles</returns>
         Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
 
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
-        /// </summary>
-        /// <returns>Dictionary of symbols and amounts</returns>
-        Dictionary<string, decimal> GetAmounts();
-
-        /// <summary>
-        /// ASYNC - Get total amounts, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts</returns>
         Task<Dictionary<string, decimal>> GetAmountsAsync();
@@ -314,23 +226,10 @@ namespace ExchangeSharp
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
-        Dictionary<string, decimal> GetAmountsAvailableToTrade();
-
-        /// <summary>
-        /// ASYNC - Get amounts available to trade, symbol / amount dictionary
-        /// </summary>
-        /// <returns>Dictionary of symbols and amounts available to trade</returns>
         Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync();
 
         /// <summary>
         /// Place an order
-        /// </summary>
-        /// <param name="order">Order request</param>
-        /// <returns>Order result and message string if any</returns>
-        ExchangeOrderResult PlaceOrder(ExchangeOrderRequest order);
-
-        /// <summary>
-        /// ASYNC - Place an order
         /// </summary>
         /// <param name="order">Order request</param>
         /// <returns>Order result and message string if any</returns>
@@ -341,13 +240,6 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orders">Order requests</param>
         /// <returns>Order results, each result matches up with each order in index</returns>
-        ExchangeOrderResult[] PlaceOrders(params ExchangeOrderRequest[] orders);
-
-        /// <summary>
-        /// ASYNC - Place bulk orders
-        /// </summary>
-        /// <param name="orders">Order requests</param>
-        /// <returns>Order results, each result matches up with each order in index</returns>
         Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders);
 
         /// <summary>
@@ -355,24 +247,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">order id</param>
         /// <returns>Order details</returns>
-        ExchangeOrderResult GetOrderDetails(string orderId, string symbol = null);
-
-        /// <summary>
-        /// ASYNC - Get details of an order
-        /// </summary>
-        /// <param name="orderId">order id</param>
-        /// <returns>Order details</returns>
         Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string symbol = null);
 
         /// <summary>
         /// Get the details of all open orders
-        /// </summary>
-        /// <param name="symbol">Symbol to get open orders for or null for all</param>
-        /// <returns>All open order details for the specified symbol</returns>
-        IEnumerable<ExchangeOrderResult> GetOpenOrderDetails(string symbol = null);
-
-        /// <summary>
-        /// ASYNC - Get the details of all open orders
         /// </summary>
         /// <param name="symbol">Symbol to get open orders for or null for all</param>
         /// <returns>All open order details for the specified symbol</returns>
@@ -384,25 +262,10 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        IEnumerable<ExchangeOrderResult> GetCompletedOrderDetails(string symbol = null, DateTime? afterDate = null);
-
-        /// <summary>
-        /// ASYNC - Get the details of all completed orders
-        /// </summary>
-        /// <param name="symbol">Symbol to get completed orders for or null for all</param>
-        /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
-        /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
         Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null);
 
         /// <summary>
         /// Cancel an order, an exception is thrown if failure
-        /// </summary>
-        /// <param name="orderId">Order id of the order to cancel</param>
-        /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
-        void CancelOrder(string orderId, string symbol = null);
-
-        /// <summary>
-        /// ASYNC - Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <param name="symbol">Order symbol of the order to cancel (not required for most exchanges)</param>
@@ -412,23 +275,10 @@ namespace ExchangeSharp
         /// Get margin amounts available to trade, symbol / amount dictionary
         /// </summary>
         /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
-        Dictionary<string, decimal> GetMarginAmountsAvailableToTrade();
-
-        /// <summary>
-        /// ASYNC - Get margin amounts available to trade, symbol / amount dictionary
-        /// </summary>
-        /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
         Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync();
 
         /// <summary>
         /// Get open margin position
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <returns>Open margin position result</returns>
-        ExchangeMarginPositionResult GetOpenPosition(string symbol);
-
-        /// <summary>
-        /// ASYNC - Get open margin position
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Open margin position result</returns>
@@ -439,23 +289,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol</param>
         /// <returns>Close margin position result</returns>
-        ExchangeCloseMarginPositionResult CloseMarginPosition(string symbol);
-
-        /// <summary>
-        /// ASYNC - Close a margin position
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <returns>Close margin position result</returns>
         Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string symbol);
          
         /// <summary>
         /// Get fees
-        /// </summary>
-        /// <returns>The customer trading fees</returns>
-        Dictionary<string, decimal> GetFees();
-
-        /// <summary>
-        /// ASYNC - Get fees
         /// </summary>
         /// <returns>The customer trading fees</returns>
         Task<Dictionary<string, decimal>> GetFeesAync();

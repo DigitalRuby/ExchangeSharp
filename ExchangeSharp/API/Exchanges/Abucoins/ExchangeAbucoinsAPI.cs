@@ -409,7 +409,7 @@ namespace ExchangeSharp
         {
             symbol = NormalizeSymbol(symbol);
             var payload = await GetNoncePayloadAsync();
-            JArray array = MakeJsonRequest<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
                 var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
@@ -445,7 +445,7 @@ namespace ExchangeSharp
                 payload["method"] = rc["id"].ToStringInvariant();
                 if (!String.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["tag"] = withdrawalRequest.AddressTag;
                 // "status": 0,  "message": "Your transaction is pending. Please confirm it via email.",  "payoutId": "65",  "balance": []...
-                JToken token = MakeJsonRequest<JToken>("/withdrawals/make", null, payload, "POST");
+                JToken token = await MakeJsonRequestAsync<JToken>("/withdrawals/make", null, payload, "POST");
                 response.Id = token["payoutId"].ToStringInvariant();
                 response.Message = token["message"].ToStringInvariant();
                 response.Success = token["status"].ConvertInvariant<int>().Equals(0);
@@ -465,7 +465,7 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
-            var orders = GetOpenOrderDetails().Select(o => o.OrderId).ToList();
+            var orders = GetOpenOrderDetailsAsync().Sync().Select(o => o.OrderId).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(orders));
 
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
@@ -496,7 +496,7 @@ namespace ExchangeSharp
         {
             if (tickers == null) return null;
 
-            var symbols = GetTickers().Select(t => t.Key).ToList();
+            var symbols = GetTickersAsync().Sync().Select(t => t.Key).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(symbols));
 
             return ConnectWebSocket(string.Empty, (_socket, msg) =>

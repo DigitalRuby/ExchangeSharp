@@ -31,29 +31,29 @@ namespace ExchangeSharpConsole
 
             while (true)
             {
-                ExchangeTicker ticker = apiCoinbase.GetTicker(symbol);
-                ExchangeOrderBook orders = apiCoinbase.GetOrderBook(symbol);
+                ExchangeTicker ticker = apiCoinbase.GetTickerAsync(symbol).Sync();
+                ExchangeOrderBook orders = apiCoinbase.GetOrderBookAsync(symbol).Sync();
                 decimal askAmountSum = orders.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum = orders.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum = orders.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum = orders.Bids.Values.Sum(o => o.Price);
 
-                ExchangeTicker ticker2 = apiGemini.GetTicker(symbol);
-                ExchangeOrderBook orders2 = apiGemini.GetOrderBook(symbol);
+                ExchangeTicker ticker2 = apiGemini.GetTickerAsync(symbol).Sync();
+                ExchangeOrderBook orders2 = apiGemini.GetOrderBookAsync(symbol).Sync();
                 decimal askAmountSum2 = orders2.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum2 = orders2.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum2 = orders2.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum2 = orders2.Bids.Values.Sum(o => o.Price);
 
-                ExchangeTicker ticker3 = apiKraken.GetTicker(symbol2);
-                ExchangeOrderBook orders3 = apiKraken.GetOrderBook(symbol2);
+                ExchangeTicker ticker3 = apiKraken.GetTickerAsync(symbol2).Sync();
+                ExchangeOrderBook orders3 = apiKraken.GetOrderBookAsync(symbol2).Sync();
                 decimal askAmountSum3 = orders3.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum3 = orders3.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum3 = orders3.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum3 = orders3.Bids.Values.Sum(o => o.Price);
 
-                ExchangeTicker ticker4 = apiBitfinex.GetTicker(symbol);
-                ExchangeOrderBook orders4 = apiBitfinex.GetOrderBook(symbol);
+                ExchangeTicker ticker4 = apiBitfinex.GetTickerAsync(symbol).Sync();
+                ExchangeOrderBook orders4 = apiBitfinex.GetOrderBookAsync(symbol).Sync();
                 decimal askAmountSum4 = orders4.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum4 = orders4.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum4 = orders4.Bids.Values.Sum(o => o.Amount);

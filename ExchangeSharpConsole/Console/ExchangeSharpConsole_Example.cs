@@ -24,27 +24,27 @@ namespace ExchangeSharpConsole
         public static void RunExample(Dictionary<string, string> dict)
         {
             ExchangeKrakenAPI api = new ExchangeKrakenAPI();
-            ExchangeTicker ticker = api.GetTicker("XXBTZUSD");
+            ExchangeTicker ticker = api.GetTickerAsync("XXBTZUSD").Sync();
             Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
             // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
             api.LoadAPIKeys("keys.bin");
 
             /// place limit order for 0.01 bitcoin at ticker.Ask USD
-            ExchangeOrderResult result = api.PlaceOrder(new ExchangeOrderRequest
+            ExchangeOrderResult result = api.PlaceOrderAsync(new ExchangeOrderRequest
             {
                 Amount = 0.01m,
                 IsBuy = true,
                 Price = ticker.Ask,
                 Symbol = "XXBTZUSD"
-            });
+            }).Sync();
 
             // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
             //  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.
             // I've also found that Kraken tends to fail if you follow up too quickly with an order details request, so sleep a bit to give them time to get
             //  their house in order.
             System.Threading.Thread.Sleep(500);
-            result = api.GetOrderDetails(result.OrderId);
+            result = api.GetOrderDetailsAsync(result.OrderId).Sync();
 
             Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
@@ -57,7 +57,7 @@ namespace ExchangeSharpConsole
 
         private static void ValidateSymbols(IExchangeAPI api, string[] symbols)
         {
-            string[] apiSymbols = api.GetSymbols().ToArray();
+            string[] apiSymbols = api.GetSymbolsAsync().Sync().ToArray();
             foreach (string symbol in symbols)
             {
                 if (!apiSymbols.Contains(symbol))

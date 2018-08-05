@@ -6,6 +6,7 @@ Please follow these coding guidelines...
 - Always, always search for existing code in the project before coding new functions. CryptoUtility has a lot of useful stuff.
 - Keep the code simple and the project lean. We do NOT want to turn into https://github.com/knowm/XChange.
 - Before adding NuGet packages, consider copying in the bits of the source that matter into the Dependencies folder. The fewer packages that ExchangeSharp depends on, the better.
+- Only implement async methods as a general rule. Synchronous calls can be done by using the Sync extension method in CryptoUtility. Saves a lot of duplicate code.
 - Follow these code style guidelines please (we're not monsters):
   - Tabs for indent.
   - Curly braces on separate lines.

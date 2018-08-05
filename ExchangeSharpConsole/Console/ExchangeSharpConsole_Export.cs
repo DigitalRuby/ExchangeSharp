@@ -36,14 +36,14 @@ namespace ExchangeSharpConsole
             {
                 endDate = DateTime.Parse(dict["endDate"]).ToUniversalTime();
             }
-            api.GetHistoricalTrades((IEnumerable<ExchangeTrade> trades) =>
+            api.GetHistoricalTradesAsync((IEnumerable<ExchangeTrade> trades) =>
             {
                 foreach (ExchangeTrade trade in trades)
                 {
                     Console.WriteLine("Trade at timestamp {0}: {1}/{2}/{3}", trade.Timestamp.ToLocalTime(), trade.Id, trade.Price, trade.Amount);
                 }
                 return true;
-            }, symbol, startDate, endDate);
+            }, symbol, startDate, endDate).Sync();
         }
 
         public static void RunExportData(Dictionary<string, string> dict)

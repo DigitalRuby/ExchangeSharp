@@ -102,7 +102,7 @@ namespace ExchangeSharpTests
             var requestMaker = Substitute.For<IAPIRequestMaker>();
             requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, ExchangeBinanceAPI.BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
             var binance = new ExchangeBinanceAPI { RequestMaker = requestMaker };
-            IReadOnlyDictionary<string, ExchangeCurrency> currencies = binance.GetCurrencies();
+            IReadOnlyDictionary<string, ExchangeCurrency> currencies = binance.GetCurrenciesAsync().Sync();
             currencies.Should().HaveCount(3);
             currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
             bnb.DepositEnabled.Should().BeFalse();

@@ -478,7 +478,7 @@ namespace ExchangeSharp
             payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
             payload["currency"] = Symbol;
             payload["amount"] = Amount;
-            JToken obj = MakeJsonRequest<JToken>("/account/transfer", null, payload);
+            JToken obj = await MakeJsonRequestAsync<JToken>("/account/transfer", null, payload);
             return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
         }
 

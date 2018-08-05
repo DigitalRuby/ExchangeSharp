@@ -255,7 +255,7 @@ namespace ExchangeSharp
             {
                 if (symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
 
                 string combined = string.Join(",", symbols.Select(s => "\"trade:" + this.NormalizeSymbol(s) + "\""));
@@ -274,7 +274,7 @@ namespace ExchangeSharp
 
             if (symbols == null || symbols.Length == 0)
             {
-                symbols = GetSymbols().ToArray();
+                symbols = GetSymbolsAsync().Sync().ToArray();
             }
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
@@ -343,7 +343,7 @@ namespace ExchangeSharp
             {
                 if (symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
 
                 string combined = string.Join(",", symbols.Select(s => "\"orderBookL2:" + this.NormalizeSymbol(s) + "\""));

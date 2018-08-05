@@ -236,11 +236,11 @@ namespace ExchangeSharp
                 {
                     if (CloseCleanly)
                     {
-                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).Sync();
+                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
                     }
                     else
                     {
-                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken).Sync();
+                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
                     }
                 }
                 catch
@@ -250,17 +250,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Send a message to the WebSocket server.
-        /// </summary>
-        /// <param name="message">The message to send</param>
-        /// <returns>True if success, false if error</returns>
-        public bool SendMessage(string message)
-        {
-            return SendMessageAsync(message).Sync();
-        }
-
-        /// <summary>
-        /// ASYNC - send a message to the WebSocket server.
+        /// send a message to the WebSocket server.
         /// </summary>
         /// <param name="message">Message to send</param>
         /// <returns>True if success, false if error</returns>
@@ -462,13 +452,6 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Send a message over the web socket
-        /// </summary>
-        /// <param name="message">Message to send</param>
-        /// <returns>True if success, false if error</returns>
-        bool SendMessage(string message);
-
-        /// <summary>
-        /// ASYNC - Send a message over the web socket
         /// </summary>
         /// <param name="message">Message to send</param>
         /// <returns>True if success, false if error</returns>

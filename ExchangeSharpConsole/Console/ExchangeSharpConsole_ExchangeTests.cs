@@ -88,13 +88,13 @@ namespace ExchangeSharpConsole
                 {
                     string symbol = api.NormalizeSymbol(GetSymbol(api));
 
-                    IReadOnlyCollection<string> symbols = api.GetSymbols().ToArray();
+                    IReadOnlyCollection<string> symbols = api.GetSymbolsAsync().Sync().ToArray();
                     Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
                     Console.WriteLine($"API {api.Name} GetSymbols OK (default: {symbol}; {symbols.Count} symbols)");
 
                     try
                     {
-                        var book = api.GetOrderBook(symbol);
+                        var book = api.GetOrderBookAsync(symbol).Sync();
                         Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks.First().Value.Amount > 0m &&
                             book.Asks.First().Value.Price > 0m && book.Bids.First().Value.Amount > 0m && book.Bids.First().Value.Price > 0m);
                         Console.WriteLine($"API {api.Name} GetOrderBook OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
@@ -106,7 +106,7 @@ namespace ExchangeSharpConsole
 
                     try
                     {
-                        var ticker = api.GetTicker(symbol);
+                        var ticker = api.GetTickerAsync(symbol).Sync();
                         Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
                             ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
                         Console.WriteLine($"API {api.Name} GetTicker OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
@@ -118,8 +118,8 @@ namespace ExchangeSharpConsole
 
                     try
                     {
-                        api.GetHistoricalTrades(histTradeCallback, symbol);
-                        trades = api.GetRecentTrades(symbol).ToArray();
+                        api.GetHistoricalTradesAsync(histTradeCallback, symbol).Sync();
+                        trades = api.GetRecentTradesAsync(symbol).Sync().ToArray();
                         Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                         Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
                         Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
@@ -139,7 +139,7 @@ namespace ExchangeSharpConsole
 
                     try
                     {
-                        var candles = api.GetCandles(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).ToArray();
+                        var candles = api.GetCandlesAsync(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
                         Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
                             candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
                             !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseVolume > 0.0 &&
