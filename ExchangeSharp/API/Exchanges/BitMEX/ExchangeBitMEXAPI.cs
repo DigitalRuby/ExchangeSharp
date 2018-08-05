@@ -38,11 +38,13 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.ExpiresUnixSeconds;
 
             // make the nonce go 10 seconds into the future (the offset is subtracted)
-            // this will give us an api-expires 10 seconds into the future
-            NonceOffset = TimeSpan.FromSeconds(-10.0);
+            // this will give us an api-expires 60 seconds into the future
+            NonceOffset = TimeSpan.FromSeconds(-60.0);
 
             SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
+
+            RateLimit = new RateGate(1, TimeSpan.FromSeconds(2.0));
         }
 
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)

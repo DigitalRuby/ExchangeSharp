@@ -444,12 +444,11 @@ namespace ExchangeSharp
         {
             if (payload != null && payload.Count != 0)
             {
-                object singleton = payload[PayloadKeyArray];
-                if (singleton != null)
+                object array = payload[PayloadKeyArray];
+                if (array != null)
                 {
-                    return JsonConvert.SerializeObject(singleton, DecimalConverter.Instance);
+                    return JsonConvert.SerializeObject(array, DecimalConverter.Instance);
                 }
-                // the decimal must same as GetFormForPayload
                 return JsonConvert.SerializeObject(payload, DecimalConverter.Instance);
             }
             return string.Empty;
