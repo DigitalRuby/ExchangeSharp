@@ -34,6 +34,8 @@ namespace ExchangeSharp
             // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
             var fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
+            var freshBooksQueue = new ConcurrentDictionary<string, ConcurrentQueue<ExchangeOrderBook>>();
+            var fullBookRequestLock = new HashSet<string>();
 
             void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
             {
@@ -77,11 +79,39 @@ namespace ExchangeSharp
                         // If we don't have an initial order book for this symbol, fetch it
                         if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, maxCount);
-                            fullOrderBook.Symbol = freshBook.Symbol;
+                            bool makeRequest;
+                            lock (fullBookRequestLock)
+                            {
+                                makeRequest = fullBookRequestLock.Add(freshBook.Symbol);
+                            }
+                            if (makeRequest)
+                            {
+                                fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, maxCount);
+                                fullOrderBook.Symbol = freshBook.Symbol;
+                            }
+                            else
+                            {
+                                if (!freshBooksQueue.TryGetValue(freshBook.Symbol, out ConcurrentQueue<ExchangeOrderBook> freshQueue))
+                                {
+                                    freshQueue = new ConcurrentQueue<ExchangeOrderBook>();
+                                    freshBooksQueue.TryAdd(freshBook.Symbol, freshQueue);
+                                }
+                                if (freshBooksQueue.TryGetValue(freshBook.Symbol, out freshQueue))
+                                {
+                                    freshQueue.Enqueue(freshBook);
+                                }
+                                return;
+                            }
                         }
                         else
                         {
+                            if (freshBooksQueue.TryGetValue(freshBook.Symbol, out ConcurrentQueue<ExchangeOrderBook> freshQueue))
+                            {
+                                while (freshQueue.TryDequeue(out ExchangeOrderBook freshBookOld))
+                                {
+                                    updateOrderBook(fullOrderBook, freshBookOld);
+                                }
+                            }
                             updateOrderBook(fullOrderBook, freshBook);
                         }
                         break;
@@ -126,6 +156,11 @@ namespace ExchangeSharp
                 // when we re-connect, we must invalidate the order books, who knows how long we were disconnected
                 //  and how out of date the order books are
                 fullBooks.Clear();
+                freshBooksQueue.Clear();
+                lock (fullBookRequestLock)
+                {
+                    fullBookRequestLock.Clear();
+                }
                 return Task.CompletedTask;
             };
             return socket;
