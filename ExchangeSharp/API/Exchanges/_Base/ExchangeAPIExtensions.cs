@@ -34,7 +34,7 @@ namespace ExchangeSharp
             // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
             var fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
-            var freshBooksQueue = new ConcurrentDictionary<string, ConcurrentQueue<ExchangeOrderBook>>();
+            var freshBooksQueue = new Dictionary<string, Queue<ExchangeOrderBook>>();
             var fullBookRequestLock = new HashSet<string>();
 
             void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
@@ -86,18 +86,20 @@ namespace ExchangeSharp
                             }
                             if (makeRequest)
                             {
+                                // we are the first to see this symbol, make a full request to API
                                 fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, maxCount);
                                 fullOrderBook.Symbol = freshBook.Symbol;
                             }
                             else
                             {
-                                if (!freshBooksQueue.TryGetValue(freshBook.Symbol, out ConcurrentQueue<ExchangeOrderBook> freshQueue))
+                                // attempt to find the right queue to put the partial order book in to be processed later
+                                lock (freshBooksQueue)
                                 {
-                                    freshQueue = new ConcurrentQueue<ExchangeOrderBook>();
-                                    freshBooksQueue.TryAdd(freshBook.Symbol, freshQueue);
-                                }
-                                if (freshBooksQueue.TryGetValue(freshBook.Symbol, out freshQueue))
-                                {
+                                    if (!freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
+                                    {
+                                        // no queue found, make a new one
+                                        freshBooksQueue[freshBook.Symbol] = freshQueue = new Queue<ExchangeOrderBook>();
+                                    }
                                     freshQueue.Enqueue(freshBook);
                                 }
                                 return;
@@ -105,11 +107,13 @@ namespace ExchangeSharp
                         }
                         else
                         {
-                            if (freshBooksQueue.TryGetValue(freshBook.Symbol, out ConcurrentQueue<ExchangeOrderBook> freshQueue))
+                            // check if any old books for this symbol, if so process them first
+                            lock (freshBooksQueue)
                             {
-                                while (freshQueue.TryDequeue(out ExchangeOrderBook freshBookOld))
+                                if (freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
+                                while (freshQueue.Count != 0)
                                 {
-                                    updateOrderBook(fullOrderBook, freshBookOld);
+                                    updateOrderBook(fullOrderBook, freshQueue.Dequeue());
                                 }
                             }
                             updateOrderBook(fullOrderBook, freshBook);
@@ -150,13 +154,25 @@ namespace ExchangeSharp
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetOrderBookDeltasWebSocket(async (b) => await innerCallback(b), maxCount, symbols);
+            IWebSocket socket = api.GetOrderBookDeltasWebSocket(async (b) =>
+            {
+                try
+                {
+                    await innerCallback(b);
+                }
+                catch
+                {
+                }
+            }, maxCount, symbols);
             socket.Connected += (s) =>
             {
                 // when we re-connect, we must invalidate the order books, who knows how long we were disconnected
                 //  and how out of date the order books are
                 fullBooks.Clear();
-                freshBooksQueue.Clear();
+                lock (freshBooksQueue)
+                {
+                    freshBooksQueue.Clear();
+                }
                 lock (fullBookRequestLock)
                 {
                     fullBookRequestLock.Clear();
