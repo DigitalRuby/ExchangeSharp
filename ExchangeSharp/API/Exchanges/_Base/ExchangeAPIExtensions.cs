@@ -34,8 +34,7 @@ namespace ExchangeSharp
             // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
             var fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
-            var freshBooksQueue = new Dictionary<string, Queue<ExchangeOrderBook>>();
-            var fullBookRequestLock = new HashSet<string>();
+            var partialOrderBookQueues = new Dictionary<string, Queue<ExchangeOrderBook>>();
 
             void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
             {
@@ -66,9 +65,13 @@ namespace ExchangeSharp
                 }
             }
 
-            async Task innerCallback(ExchangeOrderBook freshBook)
+            async Task innerCallback(ExchangeOrderBook newOrderBook)
             {
-                bool foundFullBook = fullBooks.TryGetValue(freshBook.Symbol, out ExchangeOrderBook fullOrderBook);
+                // depending on the exchange, newOrderBook may be a complete or partial order book
+                // ideally all exchanges would send the full order book on first message, followed by delta order books
+                // but this is not the case
+
+                bool foundFullBook = fullBooks.TryGetValue(newOrderBook.Symbol, out ExchangeOrderBook fullOrderBook);
                 switch (api.Name)
                 {
                     // Fetch an initial book the first time and apply deltas on top
@@ -78,29 +81,29 @@ namespace ExchangeSharp
                     case ExchangeName.Binance:
                     case ExchangeName.Poloniex:
                     {
+                        Queue<ExchangeOrderBook> partialOrderBookQueue;
+
                         if (!foundFullBook)
                         {
+                            bool makeRequest = false;
+
                             // attempt to find the right queue to put the partial order book in to be processed later
-                            lock (freshBooksQueue)
+                            lock (partialOrderBookQueues)
                             {
-                                if (!freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
+                                if (!partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue))
                                 {
                                     // no queue found, make a new one
-                                    freshBooksQueue[freshBook.Symbol] = freshQueue = new Queue<ExchangeOrderBook>();
+                                    partialOrderBookQueues[newOrderBook.Symbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
+                                    makeRequest = true;
                                 }
-                                freshQueue.Enqueue(freshBook);
+                                partialOrderBookQueue.Enqueue(newOrderBook);
                             }
 
-                            bool makeRequest;
-                            lock (fullBookRequestLock)
-                            {
-                                makeRequest = fullBookRequestLock.Add(freshBook.Symbol);
-                            }
                             if (makeRequest)
                             {
                                 // we are the first to see this symbol, make a full request to API
-                                fullBooks[freshBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(freshBook.Symbol, maxCount);
-                                fullOrderBook.Symbol = freshBook.Symbol;
+                                fullBooks[newOrderBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(newOrderBook.Symbol, maxCount);
+                                fullOrderBook.Symbol = newOrderBook.Symbol;
                                 // now that we have the full order book, we can process it (and any books in the queue)
                             }
                             else
@@ -111,13 +114,20 @@ namespace ExchangeSharp
                         }
 
                         // check if any old books for this symbol, if so process them first
-                        lock (freshBooksQueue)
+                        // lock dictionary of queues for lookup only
+                        lock (partialOrderBookQueues)
                         {
-                            if (freshBooksQueue.TryGetValue(freshBook.Symbol, out Queue<ExchangeOrderBook> freshQueue))
+                            partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue);
+                        }
+
+                        if (partialOrderBookQueue != null)
+                        {
+                            // lock the individual queue for processing
+                            lock (partialOrderBookQueue)
                             {
-                                while (freshQueue.Count != 0)
+                                while (partialOrderBookQueue.Count != 0)
                                 {
-                                    updateOrderBook(fullOrderBook, freshQueue.Dequeue());
+                                    updateOrderBook(fullOrderBook, partialOrderBookQueue.Dequeue());
                                 }
                             }
                         }
@@ -132,20 +142,19 @@ namespace ExchangeSharp
                     {
                         if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
+                            fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
                         }
                         else
                         {
-                            updateOrderBook(fullOrderBook, freshBook);
+                            updateOrderBook(fullOrderBook, newOrderBook);
                         }
-
                         break;
                     }
 
-                    // Websocket always returns full order book
+                    // Websocket always returns full order book, WTF...?
                     case ExchangeName.Huobi:
                     {
-                        fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
+                        fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
                         break;
                     }
 
@@ -172,13 +181,9 @@ namespace ExchangeSharp
                 // when we re-connect, we must invalidate the order books, who knows how long we were disconnected
                 //  and how out of date the order books are
                 fullBooks.Clear();
-                lock (freshBooksQueue)
+                lock (partialOrderBookQueues)
                 {
-                    freshBooksQueue.Clear();
-                }
-                lock (fullBookRequestLock)
-                {
-                    fullBookRequestLock.Clear();
+                    partialOrderBookQueues.Clear();
                 }
                 return Task.CompletedTask;
             };
