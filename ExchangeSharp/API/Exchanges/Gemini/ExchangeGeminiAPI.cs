@@ -181,9 +181,10 @@ namespace ExchangeSharp
             }
 
             string symbol = NormalizeSymbol(order.Symbol);
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
-                { "nonce", GenerateNonce() },
+                { "nonce", nonce },
                 { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", symbol },
                 { "amount", order.RoundAmount().ToStringInvariant() },
@@ -203,15 +204,17 @@ namespace ExchangeSharp
                 return null;
             }
 
-            JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", GenerateNonce() }, { "order_id", orderId } });
+            object nonce = await GenerateNonceAsync();
+            JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", nonce }, { "order_id", orderId } });
             return ParseOrder(result);
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            object nonce = await GenerateNonceAsync();
             symbol = NormalizeSymbol(symbol);
-            JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", GenerateNonce() } });
+            JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", nonce } });
             if (result is JArray array)
             {
                 foreach (JToken token in array)
@@ -228,7 +231,8 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
+            object nonce = await GenerateNonceAsync();
+            await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", nonce }, { "order_id", orderId } });
         }
     }
 

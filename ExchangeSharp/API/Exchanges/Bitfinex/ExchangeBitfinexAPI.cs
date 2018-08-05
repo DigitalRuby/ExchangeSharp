@@ -439,7 +439,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                object nonce = GenerateNonce();
+                object nonce = await GenerateNonceAsync();
                 string authPayload = "AUTH" + nonce;
                 string signature = CryptoUtility.SHA384Sign(authPayload, PrivateApiKey.ToUnsecureString());
                 Dictionary<string, object> payload = new Dictionary<string, object>

@@ -62,7 +62,7 @@ namespace ExchangeSharp
                     }
                     return true;
                 }
-                api.GetHistoricalTrades(innerCallback, symbol, sinceDateTime);
+                api.GetHistoricalTradesAsync(innerCallback, symbol, sinceDateTime).Sync();
                 writer.Close();
                 callback?.Invoke(count);
             }

@@ -48,7 +48,7 @@ namespace ExchangeSharp
         {
             if (symbols == null || symbols.Length == 0)
             {
-                symbols = GetSymbols().ToArray();
+                symbols = GetSymbolsAsync().Sync().ToArray();
             }
 
             StringBuilder streams = new StringBuilder("/stream?streams=");
@@ -93,14 +93,6 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Get the details of all trades
-        /// </summary>
-        /// <param name="symbol">Symbol to get trades for or null for all</param>
-        /// <param name="afterDate">Only returns trades on or after the specified date/time</param>
-        /// <returns>All trades for the specified symbol, or all if null symbol</returns>
-        public IEnumerable<ExchangeOrderResult> GetMyTrades(string symbol = null, DateTime? afterDate = null) => GetMyTradesAsync(symbol, afterDate).Sync();
-
-        /// <summary>
-        /// ASYNC - Get the details of all trades
         /// </summary>
         /// <param name="symbol">Symbol to get trades for or null for all</param>
         /// <returns>All trades for the specified symbol, or all if null symbol</returns>
@@ -285,7 +277,7 @@ namespace ExchangeSharp
 
             if (symbols == null || symbols.Length == 0)
             {
-                symbols = GetSymbols().ToArray();
+                symbols = GetSymbolsAsync().Sync().ToArray();
             }
             string url = GetWebSocketStreamUrlForSymbols("@trade", symbols);
             return ConnectWebSocket(url, (_socket, msg) =>
@@ -314,7 +306,7 @@ namespace ExchangeSharp
         {
             if (symbols == null || symbols.Length == 0)
             {
-                symbols = GetSymbols().ToArray();
+                symbols = GetSymbolsAsync().Sync().ToArray();
             }
             string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
             return ConnectWebSocket($"/stream?streams={combined}", (_socket, msg) =>

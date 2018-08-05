@@ -503,9 +503,10 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
-                { "nonce",GenerateNonce() },
+                { "nonce", nonce },
                 { "type", order.OrderType.ToStringLowerInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
                 { "product_id", symbol },

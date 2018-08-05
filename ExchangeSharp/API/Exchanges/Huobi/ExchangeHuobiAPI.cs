@@ -287,7 +287,7 @@ namespace ExchangeSharp
             {
                 if (symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
 
                 foreach (string symbol in symbols)
@@ -372,7 +372,7 @@ namespace ExchangeSharp
             {
                 if (symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
 
                 // request all symbols, this does not work sadly, only the first is pulled

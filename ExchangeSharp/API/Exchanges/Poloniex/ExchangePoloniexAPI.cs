@@ -868,7 +868,7 @@ namespace ExchangeSharp
                 forceRegenerate = true;
             }
 
-            IReadOnlyDictionary<string, ExchangeCurrency> currencies = GetCurrencies();
+            IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
             var depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
             if (!forceRegenerate && !(await TryFetchExistingAddresses(symbol, currencies, depositAddresses)))
             {

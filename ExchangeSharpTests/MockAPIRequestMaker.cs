@@ -31,19 +31,6 @@ namespace ExchangeSharpTests
         /// <param name="payload"></param>
         /// <param name="method"></param>
         /// <returns></returns>
-        public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
-        {
-            return MakeRequestAsync(url, baseUrl, payload, method).Sync();
-        }
-
-        /// <summary>
-        /// ASYNC - Make a mock request
-        /// </summary>
-        /// <param name="url"></param>
-        /// <param name="baseUrl"></param>
-        /// <param name="payload"></param>
-        /// <param name="method"></param>
-        /// <returns></returns>
         public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
         {
             await new SynchronizationContextRemover();

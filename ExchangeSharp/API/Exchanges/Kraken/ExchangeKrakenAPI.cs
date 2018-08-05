@@ -392,13 +392,14 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "pair", symbol },
                 { "type", (order.IsBuy ? "buy" : "sell") },
                 { "ordertype", order.OrderType.ToString().ToLowerInvariant() },
                 { "volume", order.RoundAmount().ToStringInvariant() },
-                { "nonce", GenerateNonce() }
+                { "nonce", nonce }
             };
             if (order.OrderType != OrderType.Market)
             {
@@ -425,10 +426,11 @@ namespace ExchangeSharp
                 return null;
             }
 
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
-                { "nonce", GenerateNonce() }
+                { "nonce", nonce }
             };
             JToken result = await MakeJsonRequestAsync<JToken>("/0/private/QueryOrders", null, payload);
             ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
@@ -458,10 +460,11 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
-                { "nonce", GenerateNonce() }
+                { "nonce", nonce }
             };
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
