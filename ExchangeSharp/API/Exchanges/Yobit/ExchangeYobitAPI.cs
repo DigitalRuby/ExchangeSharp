@@ -48,7 +48,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected internal override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
@@ -70,12 +70,12 @@ namespace ExchangeSharp
 
         #region Public APIs
 
-        protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        protected internal override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             throw new NotSupportedException("Yobit does not provide data about its currencies via the API");
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected internal override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             JToken token = await MakeJsonRequestAsync<JToken>("/info", BaseUrl, null);
@@ -83,7 +83,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // "pairs":{"ltc_btc":{"decimal_places":8,"min_price":0.00000001,"max_price":10000,"min_amount":0.0001,"hidden":0,"fee":0.2} ... }
@@ -105,7 +105,7 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected internal override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/ticker/" + NormalizeSymbol(symbol), null, null, "POST");
             if (token != null && token.HasValues) return ParseTicker(token.First as JProperty);
@@ -117,21 +117,21 @@ namespace ExchangeSharp
         /// Consider using GetTicker with symbol as a workable alternative.
         /// </summary>
         /// <returns></returns>
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected internal override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             // we could return all tickers with a single call by retrieving all trading pairs and passing them as a url parameter...
             // On Yobit, however, this is over 7500 pairs, and we would have to break up the call (the url would be too long). So we'll use the base call and get them one at a time.
             return await base.OnGetTickersAsync();
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected internal override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/depth/" + symbol + "?limit=" + maxCount, BaseUrl, null);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token[symbol]);
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        protected internal override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -140,7 +140,7 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected internal override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -166,7 +166,7 @@ namespace ExchangeSharp
         /// <param name="endDate"></param>
         /// <param name="limit"></param>
         /// <returns></returns>
-        protected override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected internal override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             throw new NotImplementedException();
         }
@@ -175,7 +175,7 @@ namespace ExchangeSharp
 
         #region Private APIs
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await GetNoncePayloadAsync();
@@ -193,7 +193,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await GetNoncePayloadAsync();
@@ -211,7 +211,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected internal override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getInfo");
@@ -227,7 +227,7 @@ namespace ExchangeSharp
         /// <param name="symbol"></param>
         /// <param name="afterDate"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
 
@@ -242,7 +242,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             if (symbol == null) { throw new APIException("symbol cannot be null"); } // Seriously, they want you to loop through over 7500 symbol pairs to find your trades! Geez...
 
@@ -256,7 +256,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        protected internal override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "Trade");
@@ -283,7 +283,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected internal override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "CancelOrder");
@@ -291,12 +291,12 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
         }
 
-        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected internal override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             throw new NotImplementedException("Yobit does not provide a deposit history via the API");  // I don't wonder why
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected internal override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("need_new", forceRegenerate ? 1 : 0);
@@ -319,7 +319,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="withdrawalRequest"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        protected internal override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
             var payload = await GetNoncePayloadAsync();

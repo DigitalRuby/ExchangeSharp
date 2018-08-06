@@ -57,7 +57,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected internal override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -72,7 +72,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+        protected internal override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -127,13 +127,13 @@ namespace ExchangeSharp
 
         #region Public APIs
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected internal override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             var m = await GetSymbolsMetadataAsync();
             return m.Select(x => x.MarketName);
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             /*
              {
@@ -185,7 +185,7 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected internal override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             /*
              {{
@@ -222,12 +222,12 @@ namespace ExchangeSharp
         }
 
 
-        protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected internal override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             throw new NotImplementedException("Too many pairs and this exchange does not support a single call to get all the tickers");
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        protected internal override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
@@ -301,7 +301,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected internal override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
@@ -388,7 +388,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected internal override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             /*
              {
@@ -434,7 +434,7 @@ namespace ExchangeSharp
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
         }
 
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected internal override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /*
             {
@@ -534,14 +534,14 @@ namespace ExchangeSharp
             return accounts;
         }
 
-        protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
+        protected internal override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
         {
             var result = await base.GetNoncePayloadAsync();
             result["method"] = "GET";
             return result;
         }
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             /*
              
@@ -598,7 +598,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             var account_id = await GetAccountID();
 
@@ -629,7 +629,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected internal override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             /*
              {{
@@ -657,7 +657,7 @@ namespace ExchangeSharp
             return ParseOrder(data);
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
@@ -677,7 +677,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
@@ -693,7 +693,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        protected internal override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
 
@@ -729,19 +729,19 @@ namespace ExchangeSharp
             return ParsePlaceOrder(obj, order);
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected internal override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = await GetNoncePayloadAsync();
             payload["method"] = "POST";
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
-        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected internal override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
         }
 
-        protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected internal override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
 
@@ -761,7 +761,7 @@ namespace ExchangeSharp
             */
         }
 
-        protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        protected internal override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             throw new NotImplementedException("Huobi does not provide a withdraw API");
         }
@@ -771,7 +771,7 @@ namespace ExchangeSharp
 
 #region Private Functions
 
-        protected override JToken CheckJsonResponse(JToken result)
+        protected internal override JToken CheckJsonResponse(JToken result)
         {
             if (result == null || (result["status"] != null && result["status"].ToStringInvariant() != "ok"))
             {
