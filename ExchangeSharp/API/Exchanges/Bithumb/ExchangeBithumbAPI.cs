@@ -64,7 +64,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override JToken CheckJsonResponse(JToken result)
+        protected internal override JToken CheckJsonResponse(JToken result)
         {
             if (result != null && !(result is JArray) && result["status"] != null && result["status"].ToStringInvariant() != "0000")
             {
@@ -98,7 +98,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected internal override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             string symbol = "all";
@@ -113,13 +113,13 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected internal override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1, null);
         }
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected internal override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -135,13 +135,13 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected internal override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(data.Item1, amount: "quantity", sequence: "timestamp", maxCount: maxCount);
         }
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
+        protected internal override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
         {
             string symbol = "all";
             List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
