@@ -82,36 +82,36 @@ namespace ExchangeSharp
                     case ExchangeName.Poloniex:
                     {
                         Queue<ExchangeOrderBook> partialOrderBookQueue;
+                        bool requestFullOrderBook = false;
 
-                        if (!foundFullBook)
+                        // attempt to find the right queue to put the partial order book in to be processed later
+                        lock (partialOrderBookQueues)
                         {
-                            bool makeRequest = false;
-
-                            // attempt to find the right queue to put the partial order book in to be processed later
-                            lock (partialOrderBookQueues)
+                            if (!partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue))
                             {
-                                if (!partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue))
-                                {
-                                    // no queue found, make a new one
-                                    partialOrderBookQueues[newOrderBook.Symbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
-                                    makeRequest = true;
-                                }
-                                partialOrderBookQueue.Enqueue(newOrderBook);
+                                // no queue found, make a new one
+                                partialOrderBookQueues[newOrderBook.Symbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
+                                requestFullOrderBook = !foundFullBook;
                             }
 
-                            if (makeRequest)
-                            {
-                                // we are the first to see this symbol, make a full request to API
-                                fullBooks[newOrderBook.Symbol] = fullOrderBook = await api.GetOrderBookAsync(newOrderBook.Symbol, maxCount);
-                                fullOrderBook.Symbol = newOrderBook.Symbol;
-                                // now that we have the full order book, we can process it (and any books in the queue)
-                            }
-                            else
-                            {
-                                // stop processing, other code will take these items out of the queue later
-                                return;
-                            }
+                            // always enqueue the partial order book, they get dequeued down below
+                            partialOrderBookQueue.Enqueue(newOrderBook);
                         }
+
+                        // request the entire order book if we need it
+                        if (requestFullOrderBook)
+                        {
+                            fullOrderBook = await api.GetOrderBookAsync(newOrderBook.Symbol, maxCount);
+                            fullOrderBook.Symbol = newOrderBook.Symbol;
+                            fullBooks[newOrderBook.Symbol] = fullOrderBook;
+                        }
+                        else if (!foundFullBook)
+                        {
+                            // we got a partial book while the full order book was being requested
+                            // return out, the full order book loop will process this item in the queue
+                            return;
+                        }
+                        // else new partial book with full order book available, will get dequeued below
 
                         // check if any old books for this symbol, if so process them first
                         // lock dictionary of queues for lookup only
@@ -122,7 +122,7 @@ namespace ExchangeSharp
 
                         if (partialOrderBookQueue != null)
                         {
-                            // lock the individual queue for processing
+                            // lock the individual queue for processing, fifo queue
                             lock (partialOrderBookQueue)
                             {
                                 while (partialOrderBookQueue.Count != 0)
