@@ -182,7 +182,6 @@ namespace ExchangeSharp
             result = result["open"];
             if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
             {
-                //symbol = ExchangeSymbolToGlobalSymbol(symbol);
                 foreach (JProperty order in result)
                 {
                     if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpperInvariant())
