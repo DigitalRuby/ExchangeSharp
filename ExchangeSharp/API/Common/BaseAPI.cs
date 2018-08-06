@@ -194,6 +194,8 @@ namespace ExchangeSharp
 
         private decimal lastNonce;
 
+        private readonly string[] resultKeys = new string[] { "result", "data", "return", "Result", "Data", "Return" };
+
         /// <summary>
         /// Static constructor
         /// </summary>
@@ -510,7 +512,7 @@ namespace ExchangeSharp
         /// - API passes a 'success' element of 'false' if the call fails
         /// This call also looks for 'result', 'data', 'return' child elements and returns those if
         /// found, otherwise the result parameter is returned.
-        /// For all other cases, override CheckJsonResponse for the exchange.
+        /// For all other cases, override CheckJsonResponse for the exchange or add more logic here.
         /// </summary>
         /// <param name="result">Result</param>
         protected virtual JToken CheckJsonResponse(JToken result)
@@ -528,15 +530,24 @@ namespace ExchangeSharp
                     (!string.IsNullOrWhiteSpace(result["error_code"].ToStringInvariant())) ||
                     (result["status"].ToStringInvariant() == "error") ||
                     (result["Status"].ToStringInvariant() == "error") ||
-                    (result["success"] != null && result["success"].ConvertInvariant<bool>() != true) ||
-                    (result["Success"] != null && result["Success"].ConvertInvariant<bool>() != true) ||
+                    (result["success"] != null && !result["success"].ConvertInvariant<bool>()) ||
+                    (result["Success"] != null && !result["Success"].ConvertInvariant<bool>()) ||
                     (!string.IsNullOrWhiteSpace(result["ok"].ToStringInvariant()) && result["ok"].ToStringInvariant().ToLowerInvariant() != "ok")
                 )
                 {
                     throw new APIException(result.ToStringInvariant());
                 }
-                result = (result["result"] ?? result["data"] ?? result["return"] ??
-                    result["Result"] ?? result["Data"] ?? result["Return"] ?? result);
+
+                // find result object from result keywords
+                foreach (string key in resultKeys)
+                {
+                    JToken possibleResult = result[key];
+                    if (possibleResult != null && (possibleResult.Type == JTokenType.Object || possibleResult.Type == JTokenType.Array))
+                    {
+                        result = possibleResult;
+                        break;
+                    }
+                }
             }
             return result;
         }
@@ -562,7 +573,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Derived classes can override to get a nonce offset from the API itself
         /// </summary>
-        protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }        
+        protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }
 
         async Task IAPIRequestHandler.ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {

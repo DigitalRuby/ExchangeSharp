@@ -173,10 +173,12 @@ namespace ExchangeSharp
             long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
 
             // All TuxExchange Market Symbols begin with "BTC_" as a base-currency. They only support getting Trades for the Market Currency Symbol, so we split it for the call
-            string cur = symbol.Split('_')[1];
+            string cur = symbol.Split(SymbolSeparator[0])[1];
 
             // [{"tradeid":"3375","date":"2016-08-26 18:53:38","type":"buy","rate":"0.00000041","amount":"420.00000000","total":"0.00017220"}, ... ]
-            JToken token = await MakeJsonRequestAsync<JToken>("/api?method=gettradehistory&coin=" + cur + "&start=" + start + "&end=" + end);
+            // https://tuxexchange.com/api?method=gettradehistory&coin=DOGE&start=1472237476&end=1472237618
+            // TODO: Something is messed up here, most coins never return results...
+            JToken token = await MakeJsonRequestAsync<JToken>($"/api?method=gettradehistory&coin={cur}&start={start}&end={end}");
             foreach (JToken trade in token)
             {
                 trades.Add(new ExchangeTrade()

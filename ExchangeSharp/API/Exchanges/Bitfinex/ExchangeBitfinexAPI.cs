@@ -481,24 +481,10 @@ namespace ExchangeSharp
             payload["renew"] = forceRegenerate ? 1 : 0;
 
             JToken result = await MakeJsonRequestAsync<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
-            if (result.ToStringInvariant() == "success")
-            {
-                /*
-                MJRA automatically digs down to any node labeled "result", however in our case the response looks like this:
-                {
-                    "result":"success",
-                    "method":"bitcoin",
-                    "currency":"BTC",
-                    "address":"1A2wyHKJ4KWEoahDHVxwQy3kdd6g1qiSYV"
-                }*/
-                result = result.Root;
-            }
-
             var details = new ExchangeDepositDetails
             {
                 Symbol = result["currency"].ToStringInvariant(),
             };
-
             if (result["address_pool"] != null)
             {
                 details.Address = result["address_pool"].ToStringInvariant();
