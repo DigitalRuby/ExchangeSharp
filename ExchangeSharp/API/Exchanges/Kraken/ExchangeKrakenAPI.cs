@@ -520,20 +520,21 @@ namespace ExchangeSharp
             return balances;
         }
 
-        //protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
-        //{
-        //    JToken result = await MakeJsonRequestAsync<JToken>("/0/private/TradeBalance", null, await GetNoncePayloadAsync());
-        //    Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
-        //    foreach (JProperty prop in result)
-        //    {
-        //        decimal amount = prop.Value.ConvertInvariant<decimal>();
-        //        if (amount > 0m)
-        //        {
-        //            balances[prop.Name] = amount;
-        //        }
-        //    }
-        //    return balances;
-        //}
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        {
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/TradeBalance", null, await GetNoncePayloadAsync());
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (JProperty prop in result)
+            {
+                decimal amount = prop.Value.ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    balances[prop.Name] = amount;
+                }
+            }
+            return balances;
+        }
+        
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
