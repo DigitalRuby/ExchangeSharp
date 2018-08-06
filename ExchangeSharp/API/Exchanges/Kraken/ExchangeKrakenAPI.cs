@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -128,6 +128,8 @@ namespace ExchangeSharp
             { "XXBTZUSD.d", "btcusd" },
             { "XXDGXXBT", "dogebtc" },
             { "XXLMXXBT", "xlmbtc" },
+            { "XXLMZUSD", "xlmusd" },
+            { "XXLMZEUR", "xlmeur" },
             { "XXMRXXBT", "xmrbtc" },
             { "XXMRZEUR", "xmreur" },
             { "XXMRZUSD", "xmrusd" },
@@ -178,14 +180,18 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["open"];
-            symbol = NormalizeSymbol(symbol);
-            foreach (JProperty order in result)
+            if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
             {
-                if (symbol == null || order.Value["descr"]["pair"].ToStringInvariant() == symbol)
+                //symbol = ExchangeSymbolToGlobalSymbol(symbol);
+                foreach (JProperty order in result)
                 {
-                    orders.Add(ParseOrder(order.Name, order.Value));
+                    if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpper())
+                    {
+                        orders.Add(ParseOrder(order.Name, order.Value));
+                    }
                 }
             }
+           
 
             return orders;
         }
@@ -228,6 +234,131 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
             return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
         }
+
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        {
+            //  {
+            //  "BCHEUR": {
+            //  "altname": "BCHEUR",
+            //  "aclass_base": "currency",
+            //  "base": "BCH",
+            //  "aclass_quote": "currency",
+            //  "quote": "ZEUR",
+            //  "lot": "unit",
+            //  "pair_decimals": 1,
+            //  "lot_decimals": 8,
+            //  "lot_multiplier": 1,
+            //  "leverage_buy": [],
+            //  "leverage_sell": [],
+            //  "fees": [
+            //    [
+            //      0,
+            //      0.26
+            //    ],
+            //    [
+            //      50000,
+            //      0.24
+            //    ],
+            //    [
+            //      100000,
+            //      0.22
+            //    ],
+            //    [
+            //      250000,
+            //      0.2
+            //    ],
+            //    [
+            //      500000,
+            //      0.18
+            //    ],
+            //    [
+            //      1000000,
+            //      0.16
+            //    ],
+            //    [
+            //      2500000,
+            //      0.14
+            //    ],
+            //    [
+            //      5000000,
+            //      0.12
+            //    ],
+            //    [
+            //      10000000,
+            //      0.1
+            //    ]
+            //  ],
+            //  "fees_maker": [
+            //    [
+            //      0,
+            //      0.16
+            //    ],
+            //    [
+            //      50000,
+            //      0.14
+            //    ],
+            //    [
+            //      100000,
+            //      0.12
+            //    ],
+            //    [
+            //      250000,
+            //      0.1
+            //    ],
+            //    [
+            //      500000,
+            //      0.08
+            //    ],
+            //    [
+            //      1000000,
+            //      0.06
+            //    ],
+            //    [
+            //      2500000,
+            //      0.04
+            //    ],
+            //    [
+            //      5000000,
+            //      0.02
+            //    ],
+            //    [
+            //      10000000,
+            //      0
+            //    ]
+            //  ],
+            //  "fee_volume_currency": "ZUSD",
+            //  "margin_call": 80,
+            //  "margin_stop": 40
+            //}
+            //}
+            var markets = new List<ExchangeMarket>();
+            JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
+            var res = (from prop in allPairs.Children<JProperty>() select prop.Value).ToArray();
+
+            foreach (JToken pair in res)
+            {
+                
+                var market = new ExchangeMarket
+                {
+                    IsActive = true,
+                    MarketName = NormalizeSymbol(pair["altname"].ToStringInvariant()),
+                    MinTradeSize = pair["lot_decimals"].ConvertInvariant<decimal>()
+
+                };
+                market.MarketCurrency = pair["quote"].ToStringInvariant();
+                market.BaseCurrency = pair["base"].ToStringInvariant();
+                int quantityPrecision = pair["lot_decimals"].ConvertInvariant<int>();
+                market.QuantityStepSize = (decimal)Math.Pow(0.1, quantityPrecision);
+                int pricePrecision = pair["pair_decimals"].ConvertInvariant<int>();
+                market.PriceStepSize = (decimal)Math.Pow(0.1, pricePrecision);
+                markets.Add(market);
+            }
+
+
+
+            return markets;
+        }
+
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
@@ -389,6 +520,20 @@ namespace ExchangeSharp
             return balances;
         }
 
+        //protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        //{
+        //    JToken result = await MakeJsonRequestAsync<JToken>("/0/private/TradeBalance", null, await GetNoncePayloadAsync());
+        //    Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+        //    foreach (JProperty prop in result)
+        //    {
+        //        decimal amount = prop.Value.ConvertInvariant<decimal>();
+        //        if (amount > 0m)
+        //        {
+        //            balances[prop.Name] = amount;
+        //        }
+        //    }
+        //    return balances;
+        //}
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
