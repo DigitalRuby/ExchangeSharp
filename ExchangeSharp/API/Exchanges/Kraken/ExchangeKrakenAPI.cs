@@ -185,7 +185,7 @@ namespace ExchangeSharp
                 //symbol = ExchangeSymbolToGlobalSymbol(symbol);
                 foreach (JProperty order in result)
                 {
-                    if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpper())
+                    if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpperInvariant())
                     {
                         orders.Add(ParseOrder(order.Name, order.Value));
                     }
