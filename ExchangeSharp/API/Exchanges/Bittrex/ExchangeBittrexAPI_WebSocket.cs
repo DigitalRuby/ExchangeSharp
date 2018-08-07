@@ -76,7 +76,7 @@ namespace ExchangeSharp
 
         private BittrexWebSocketManager webSocket;
 
-        protected internal override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             void innerCallback(string json)
             {
@@ -140,7 +140,7 @@ namespace ExchangeSharp
             return client.SubscribeToSummaryDeltas(innerCallback);
         }
 
-        protected internal override IWebSocket OnGetOrderBookDeltasWebSocket
+        protected override IWebSocket OnGetOrderBookDeltasWebSocket
         (
             Action<ExchangeOrderBook> callback,
             int maxCount = 20,
@@ -234,7 +234,7 @@ namespace ExchangeSharp
 
 #endif
 
-        protected internal override void OnDispose()
+        protected override void OnDispose()
         {
 
 #if HAS_SIGNALR

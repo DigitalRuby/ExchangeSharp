@@ -83,7 +83,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected internal override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             var data = await MakeRequestZBcomAsync(string.Empty, "/markets");
             List<string> symbols = new List<string>();
@@ -94,13 +94,13 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected internal override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestZBcomAsync(symbol, "/ticker?market=$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1, null);
         }
 
-        protected internal override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             //{ "hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"},"tvqc":{ "vol":"2125511.1",
 

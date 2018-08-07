@@ -467,7 +467,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="payload">Payload to potentially send</param>
         /// <returns>True if an authenticated request can be made with the payload, false otherwise</returns>
-        protected internal virtual bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+        protected virtual bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
         {
             return (PrivateApiKey != null && PublicApiKey != null && payload != null && payload.ContainsKey("nonce"));
         }
@@ -478,7 +478,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        protected internal virtual Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected virtual Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             return Task.CompletedTask;
         }
@@ -487,7 +487,7 @@ namespace ExchangeSharp
         /// Additional handling for response
         /// </summary>
         /// <param name="response">Response</param>
-        protected internal virtual void ProcessResponse(HttpWebResponse response)
+        protected virtual void ProcessResponse(HttpWebResponse response)
         {
 
         }
@@ -499,7 +499,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload</param>
         /// <param name="method">Method</param>
         /// <returns>Updated url</returns>
-        protected internal virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             return url.Uri;
         }
@@ -515,7 +515,7 @@ namespace ExchangeSharp
         /// For all other cases, override CheckJsonResponse for the exchange or add more logic here.
         /// </summary>
         /// <param name="result">Result</param>
-        protected internal virtual JToken CheckJsonResponse(JToken result)
+        protected virtual JToken CheckJsonResponse(JToken result)
         {
             if (result == null)
             {
@@ -557,7 +557,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="key">Key</param>
         /// <returns>Dictionary with nonce</returns>
-        protected internal virtual async Task<Dictionary<string, object>> GetNoncePayloadAsync()
+        protected virtual async Task<Dictionary<string, object>> GetNoncePayloadAsync()
         {
             Dictionary<string, object> noncePayload = new Dictionary<string, object>
             {
@@ -573,7 +573,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Derived classes can override to get a nonce offset from the API itself
         /// </summary>
-        protected internal virtual Task OnGetNonceOffset() { return Task.CompletedTask; }
+        protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }
 
         async Task IAPIRequestHandler.ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {

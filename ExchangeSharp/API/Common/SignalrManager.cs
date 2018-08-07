@@ -70,14 +70,15 @@ namespace ExchangeSharp
                     {
                         throw new ArgumentNullException("SignalrManager is null");
                     }
+                    param = (param ?? new object[][] { new object[0] });
+                    _manager.AddListener(functionName, callback, param);
+
+                    // ask for proxy after adding the listener, as the listener will force a connection if needed
                     IHubProxy _proxy = _manager.hubProxy;
                     if (_proxy == null)
                     {
                         throw new ArgumentNullException("Hub proxy is null");
                     }
-
-                    param = (param ?? new object[][] { new object[0] });
-                    _manager.AddListener(functionName, callback, param);
                     string functionFullName = _manager.GetFunctionFullName(functionName);
                     Exception ex = null;
                     try
@@ -524,7 +525,7 @@ namespace ExchangeSharp
             // re-call the end point to enable messages
             foreach (var listener in listeners)
             {
-                foreach (string[] p in listener.Param)
+                foreach (object[] p in listener.Param)
                 {
                     await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
                 }

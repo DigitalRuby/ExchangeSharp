@@ -95,12 +95,12 @@ namespace ExchangeSharp
             return order;
         }
 
-        protected internal override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+        protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
         {
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
         }
 
-        protected internal override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -121,7 +121,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected internal override void ProcessResponse(HttpWebResponse response)
+        protected override void ProcessResponse(HttpWebResponse response)
         {
             base.ProcessResponse(response);
             cursorAfter = response.Headers["CB-AFTER"];
@@ -134,7 +134,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixSeconds;
         }
 
-        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
             JToken products = await MakeJsonRequestAsync<JToken>("/products");
@@ -155,12 +155,12 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected internal override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             return (await GetSymbolsMetadataAsync()).Select(market => market.MarketName);
         }
 
-        protected internal override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             var currencies = new Dictionary<string, ExchangeCurrency>();
             JToken products = await MakeJsonRequestAsync<JToken>("/currencies");
@@ -180,7 +180,7 @@ namespace ExchangeSharp
             return currencies;
         }
 
-        protected internal override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             Dictionary<string, string> ticker = await MakeJsonRequestAsync<Dictionary<string, string>>("/products/" + symbol + "/ticker");
             decimal volume = Convert.ToDecimal(ticker["volume"], System.Globalization.CultureInfo.InvariantCulture);
@@ -195,7 +195,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected internal override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             System.Threading.ManualResetEvent evt = new System.Threading.ManualResetEvent(false);
@@ -229,7 +229,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected internal override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (callback == null || symbols == null || symbols.Length == 0)
             {
@@ -299,7 +299,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected internal override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
         {
             return ConnectWebSocket("/", (_socket, msg) =>
             {
@@ -352,7 +352,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected internal override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             /*
             [{
@@ -396,7 +396,7 @@ namespace ExchangeSharp
             await state.ProcessHistoricalTrades();
         }
 
-        protected internal override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
             string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/trades";
             Dictionary<string, object>[] trades = await MakeJsonRequestAsync<Dictionary<string, object>[]>(baseUrl);
@@ -415,14 +415,14 @@ namespace ExchangeSharp
             return tradeList;
         }
 
-        protected internal override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 50)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 50)
         {
             string url = "/products/" + symbol.ToUpperInvariant() + "/book?level=2";
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
 
-        protected internal override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             if (limit != null)
             {
@@ -470,7 +470,7 @@ namespace ExchangeSharp
             return candles;
         }
 
-        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync());
@@ -485,7 +485,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync());
@@ -500,7 +500,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected internal override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbol(order.Symbol);
             object nonce = await GenerateNonceAsync();
@@ -524,13 +524,13 @@ namespace ExchangeSharp
             return ParseOrder(result);
         }
 
-        protected internal override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync());
             return ParseOrder(obj);
         }
 
-        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
@@ -543,7 +543,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
@@ -560,7 +560,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected internal override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
         }

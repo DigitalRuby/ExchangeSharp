@@ -31,7 +31,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected internal override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -46,7 +46,7 @@ namespace ExchangeSharp
 
         #region Public APIs
 
-        protected internal override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             Dictionary<string, ExchangeCurrency> currencies = new Dictionary<string, ExchangeCurrency>();
             // "info": [ {"name": "Bitcoin", "symbol": "BTC", "walletStatus": "down","withdrawFee": 0.0004,"minDepositAmount": 0, "minWithdrawAmount": 0.002 }, ... ]
@@ -70,7 +70,7 @@ namespace ExchangeSharp
             return currencies;
         }
 
-        protected internal override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             // {"success": true,"minBtcVolume": 0.0005,"restrictions": [{"currencyPair": "BTC/USD","priceScale": 5}, ... ]}
@@ -79,7 +79,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // {"success": true,"minBtcVolume": 0.0005,"restrictions": [{"currencyPair": "BTC/USD","priceScale": 5}, ... ]}
@@ -102,14 +102,14 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected internal override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker?currencyPair=" + symbol);
             return ParseTicker(token);
         }
 
-        protected internal override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker");
@@ -117,7 +117,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected internal override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order_book?currencyPair=" + symbol + "&depth=" + maxCount.ToStringInvariant());
@@ -129,7 +129,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns></returns>
-        protected internal override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -146,7 +146,7 @@ namespace ExchangeSharp
         /// <param name="symbol"></param>
         /// <param name="startDate"></param>
         /// <returns></returns>
-        protected internal override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -171,7 +171,7 @@ namespace ExchangeSharp
         /// <param name="endDate"></param>
         /// <param name="limit"></param>
         /// <returns></returns>
-        protected internal override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             throw new NotImplementedException();
         }
@@ -183,7 +183,7 @@ namespace ExchangeSharp
         // The two calls seem redundant, but orders seem to include more data. 
         // The following uses the client oders call
 
-        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [{"type": "total","currency": "USD","value": 20},{"type": "available","currency": "USD","value": 10},{"type": "trade","currency": "USD","value": 10},{"type": "available_withdrawal","currency": "USD","value": 10}, ... ]
@@ -199,7 +199,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected internal override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             // [{"type": "total","currency": "USD","value": 20},{"type": "available","currency": "USD","value": 10},{"type": "trade","currency": "USD","value": 10},{"type": "available_withdrawal","currency": "USD","value": 10}, ... ]
@@ -216,13 +216,13 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected internal override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order?orderId=" + orderId, null, await GetNoncePayloadAsync());
             return ParseOrder(token);
         }
 
-        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             symbol = NormalizeSymbol(symbol);
             // We can increase the number of orders returned by including a limit parameter if desired
@@ -245,7 +245,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol"></param>
         /// <returns></returns>
-        protected internal override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
@@ -261,7 +261,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected internal override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             var payload = await GetNoncePayloadAsync();
             string orderType = "/exchange/";
@@ -283,7 +283,7 @@ namespace ExchangeSharp
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
         }
 
-        protected internal override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             // can only cancel limit orders, which kinda makes sense, but we also need the currency pair, which requires a lookup
             var order = await OnGetOrderDetailsAsync(orderId);
@@ -295,7 +295,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected internal override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
@@ -312,7 +312,7 @@ namespace ExchangeSharp
             return deposits;
         }
 
-        protected internal override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol, BaseUrl, await GetNoncePayloadAsync());
@@ -332,7 +332,7 @@ namespace ExchangeSharp
             return null;
         }
 
-        protected internal override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
             if (!String.IsNullOrEmpty(withdrawalRequest.AddressTag)) withdrawalRequest.AddressTag = "::" + withdrawalRequest.AddressTag;
