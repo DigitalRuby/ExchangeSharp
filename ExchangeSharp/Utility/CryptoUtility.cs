@@ -444,7 +444,8 @@ namespace ExchangeSharp
         {
             if (payload != null && payload.Count != 0)
             {
-                object array = payload[PayloadKeyArray];
+                object array = null;
+                payload.TryGetValue(PayloadKeyArray, out array);
                 if (array != null)
                 {
                     return JsonConvert.SerializeObject(array, DecimalConverter.Instance);
