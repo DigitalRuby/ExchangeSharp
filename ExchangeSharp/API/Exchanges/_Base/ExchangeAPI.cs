@@ -144,7 +144,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol</param>
         /// <param name="outputPrice">Price</param>
         /// <returns>Clamped price</returns>
-        protected virtual async Task<decimal> ClampOrderPrice(string symbol, decimal outputPrice)
+        protected async Task<decimal> ClampOrderPrice(string symbol, decimal outputPrice)
         {
             ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
             return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
@@ -156,7 +156,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol</param>
         /// <param name="outputQuantity">Quantity</param>
         /// <returns>Clamped quantity</returns>
-        protected virtual async Task<decimal> ClampOrderQuantity(string symbol, decimal outputQuantity)
+        protected async Task<decimal> ClampOrderQuantity(string symbol, decimal outputQuantity)
         {
             ExchangeMarket market = await GetExchangeMarketFromCacheAsync(symbol);
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
@@ -166,12 +166,13 @@ namespace ExchangeSharp
         /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
         /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
         /// Global symbols list the base currency first (i.e. BTC) and conversion currency
-        /// second (i.e. USD). Example BTC-USD, read as x BTC is worth y USD.
+        /// second (i.e. ETH). Example BTC-ETH, read as x BTC is worth y ETH.
+        /// BTC is always first, then ETH, etc. Fiat pair is always first in global symbol too.
         /// </summary>
         /// <param name="symbol">Exchange symbol</param>
         /// <param name="separator">Separator</param>
         /// <returns>Global symbol</returns>
-        protected virtual string ExchangeSymbolToGlobalSymbolWithSeparator(string symbol, char separator = GlobalSymbolSeparator)
+        protected string ExchangeSymbolToGlobalSymbolWithSeparator(string symbol, char separator = GlobalSymbolSeparator)
         {
             if (string.IsNullOrEmpty(symbol))
             {
@@ -310,7 +311,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="currency">Exchange currency</param>
         /// <returns>Global currency</returns>
-        public virtual string ExchangeCurrencyToGlobalCurrency(string currency)
+        public string ExchangeCurrencyToGlobalCurrency(string currency)
         {
             currency = (currency ?? string.Empty);
             foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
@@ -328,7 +329,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="currency">Global currency</param>
         /// <returns>Exchange currency</returns>
-        public virtual string GlobalCurrencyToExchangeCurrency(string currency)
+        public string GlobalCurrencyToExchangeCurrency(string currency)
         {
             currency = (currency ?? string.Empty);
             foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
@@ -363,7 +364,8 @@ namespace ExchangeSharp
         /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
         /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
         /// Global symbols list the base currency first (i.e. BTC) and conversion currency
-        /// second (i.e. USD). Example BTC-USD, read as x BTC is worth y USD.
+        /// second (i.e. ETH). Example BTC-ETH, read as x BTC is worth y ETH.
+        /// BTC is always first, then ETH, etc. Fiat pair is always first in global symbol too.
         /// </summary>
         /// <param name="symbol">Exchange symbol</param>
         /// <returns>Global symbol</returns>

@@ -55,10 +55,11 @@ namespace ExchangeSharp
         /// Convert an object to string using invariant culture
         /// </summary>
         /// <param name="obj">Object</param>
+        /// <param name="defaultValue">Default value if null</param>
         /// <returns>String</returns>
-        public static string ToStringInvariant(this object obj)
+        public static string ToStringInvariant(this object obj, string defaultValue = "")
         {
-            return Convert.ToString(obj, CultureInfo.InvariantCulture) ?? string.Empty;
+            return Convert.ToString(obj, CultureInfo.InvariantCulture) ?? defaultValue;
         }
 
         /// <summary>

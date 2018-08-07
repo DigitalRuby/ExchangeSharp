@@ -45,7 +45,7 @@ namespace ExchangeSharp
             decimal price = result["price"].ConvertInvariant<decimal>();
             decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
             decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
-            string symbol = result["id"].ToStringInvariant();
+            string symbol = result["id"].ToStringInvariant(result["product_id"].ToStringInvariant());
 
             ExchangeOrderResult order = new ExchangeOrderResult
             {
@@ -132,6 +132,7 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
+            SymbolIsReversed = true;
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
