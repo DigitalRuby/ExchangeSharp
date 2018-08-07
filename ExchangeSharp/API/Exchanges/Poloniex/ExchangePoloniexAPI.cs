@@ -40,8 +40,7 @@ namespace ExchangeSharp
                     string[] split = line.Split(',');
                     if (split.Length == 2)
                     {
-                        int.TryParse(split[1], out int count);
-                        fieldCount[split[0]] = count;
+                        fieldCount[split[0]] = split[1].ConvertInvariant<int>();
                     }
                 }
             }
@@ -824,7 +823,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakePrivateAPIRequestAsync("cancelOrder", new object[] { "orderNumber", long.Parse(orderId) });
+            await MakePrivateAPIRequestAsync("cancelOrder", new object[] { "orderNumber", orderId.ConvertInvariant<long>() });
         }
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)

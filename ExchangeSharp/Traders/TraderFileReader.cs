@@ -90,8 +90,8 @@ namespace ExchangeSharp
                     m = Regex.Match(fileName, "[0-9][0-9][0-9][0-9]-[0-9][0-9]$");
                     if (m.Success)
                     {
-                        year = int.Parse(m.Value.Substring(0, 4));
-                        month = int.Parse(m.Value.Substring(5, 2));
+                        year = m.Value.Substring(0, 4).ConvertInvariant<int>();
+                        month = m.Value.Substring(5, 2).ConvertInvariant<int>();
                         dt = new DateTime(year, month, startDate.Day, startDate.Hour, startDate.Minute, startDate.Second, startDate.Millisecond, DateTimeKind.Utc);
                         if (dt >= startDate && dt <= endDate)
                         {

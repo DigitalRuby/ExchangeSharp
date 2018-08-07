@@ -340,7 +340,7 @@ namespace ExchangeSharp
         {
             var payload = await GetNoncePayloadAsync();
             payload["Type"] = "Trade";          // Cancel All by Market is supported. Here we're canceling by single Id
-            payload["OrderId"] = int.Parse(orderId);
+            payload["OrderId"] = orderId.ConvertInvariant<int>();
             // { "Success":true, "Error":null, "Data": [44310,44311]  }
             await MakeJsonRequestAsync<JToken>("/CancelTrade", null, payload, "POST");
         }

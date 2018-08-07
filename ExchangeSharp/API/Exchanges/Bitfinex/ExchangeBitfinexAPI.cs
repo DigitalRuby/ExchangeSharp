@@ -399,7 +399,7 @@ namespace ExchangeSharp
             }
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["order_id"] = long.Parse(orderId);
+            payload["order_id"] = orderId.ConvertInvariant<long>();
             JToken result = await MakeJsonRequestAsync<JToken>("/order/status", BaseUrlV1, payload);
             return ParseOrder(result);
         }
@@ -457,7 +457,7 @@ namespace ExchangeSharp
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["order_id"] = long.Parse(orderId);
+            payload["order_id"] = orderId.ConvertInvariant<long>();
             await MakeJsonRequestAsync<JToken>("/order/cancel", BaseUrlV1, payload);
         }
 

@@ -327,7 +327,7 @@ namespace ExchangeSharp
                             }
                             unchecked
                             {
-                                long longNonce = long.Parse(File.ReadAllText(tempFile), CultureInfo.InvariantCulture) + 1;
+                                long longNonce = File.ReadAllText(tempFile).ConvertInvariant<long>() + 1;
                                 long maxValue = (NonceStyle == NonceStyle.Int32File ? int.MaxValue : long.MaxValue);
                                 if (longNonce < 1 || longNonce > maxValue)
                                 {

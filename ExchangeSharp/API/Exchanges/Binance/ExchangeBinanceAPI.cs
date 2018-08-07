@@ -107,12 +107,7 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/allPrices");
             foreach (JToken token in obj)
             {
-                // bug I think in the API returns numbers as symbol names... WTF.
-                string symbol = token["symbol"].ToStringInvariant();
-                if (!long.TryParse(symbol, out long tmp))
-                {
-                    symbols.Add(symbol);
-                }
+                symbols.Add(token["symbol"].ToStringInvariant());
             }
             return symbols;
         }
