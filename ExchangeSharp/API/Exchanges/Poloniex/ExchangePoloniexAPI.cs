@@ -434,11 +434,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
@@ -512,6 +507,10 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
+                if (symbols == null || symbols.Length == 0)
+                {
+                    symbols = (await GetSymbolsAsync()).ToArray();
+                }
                 // subscribe to order book and trades channel for each symbol
                 foreach (var sym in symbols)
                 {

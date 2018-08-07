@@ -231,11 +231,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 string message = msg.ToStringFromUTF8();
@@ -293,6 +288,10 @@ namespace ExchangeSharp
             }, async (_socket) =>
             {
                 // subscribe to order book channel for each symbol
+                if (symbols == null || symbols.Length == 0)
+                {
+                    symbols = (await GetSymbolsAsync()).ToArray();
+                }
                 var chan = new Channel { Name = ChannelType.Level2, ProductIds = symbols.ToList() };
                 var channelAction = new ChannelAction { Type = ActionType.Subscribe, Channels = new List<Channel> { chan } };
                 await _socket.SendMessageAsync(JsonConvert.SerializeObject(channelAction));

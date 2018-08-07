@@ -229,11 +229,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 /*
@@ -285,11 +280,10 @@ namespace ExchangeSharp
                 }
             }, async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (symbols == null || symbols.Length == 0)
                 {
                     symbols = (await GetSymbolsAsync()).ToArray();
                 }
-
                 foreach (string symbol in symbols)
                 {
                     string normalizedSymbol = NormalizeSymbol(symbol);
@@ -303,11 +297,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 /*
@@ -370,11 +359,10 @@ namespace ExchangeSharp
                 callback(book);
             }, async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (symbols == null || symbols.Length == 0)
                 {
                     symbols = (await GetSymbolsAsync()).ToArray();
                 }
-
                 // request all symbols, this does not work sadly, only the first is pulled
                 foreach (string symbol in symbols)
                 {

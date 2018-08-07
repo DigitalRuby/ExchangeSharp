@@ -51,7 +51,11 @@ namespace ExchangeSharp
             public IWebSocket SubscribeToSummaryDeltas(Action<string> callback)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
-                Task.Run(() => conn.OpenAsync("uS", callback));
+                Task.Run(async () => await conn.OpenAsync("uS", (s) =>
+                {
+                    callback(s);
+                    return Task.CompletedTask;
+                }));
                 return conn;
             }
 
@@ -69,7 +73,11 @@ namespace ExchangeSharp
                 {
                     paramList.Add(new object[] { symbol });
                 }
-                Task.Run(() => conn.OpenAsync("uE", callback, 0, paramList.ToArray()));
+                Task.Run(async () => await conn.OpenAsync("uE", (s) =>
+                {
+                    callback(s);
+                    return Task.CompletedTask;
+                }, 0, paramList.ToArray()));
                 return conn;
             }
         }
@@ -147,11 +155,10 @@ namespace ExchangeSharp
             params string[] symbols
         )
         {
-            if (callback == null || symbols == null || !symbols.Any())
+            if (symbols == null || symbols.Length == 0)
             {
-                return null;
+                symbols = GetSymbolsAsync().Sync().ToArray();
             }
-
             void innerCallback(string json)
             {
                 #region sample json

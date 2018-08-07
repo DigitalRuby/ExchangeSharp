@@ -223,10 +223,6 @@ namespace ExchangeSharp
 "filter":{"symbol":"XBTUSD"},
 "data":[{"timestamp":"2018-07-06T08:31:53.333Z","symbol":"XBTUSD","side":"Buy","size":10000,"price":6520,"tickDirection":"PlusTick","trdMatchID":"a296312f-c9a4-e066-2f9e-7f4cf2751f0a","grossValue":153370000,"homeNotional":1.5337,"foreignNotional":10000}]}
              */
-            if (callback == null || symbols == null || !symbols.Any())
-            {
-                return null;
-            }
 
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
@@ -256,11 +252,10 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (symbols == null || symbols.Length == 0)
                 {
                     symbols = (await GetSymbolsAsync()).ToArray();
                 }
-
                 string combined = string.Join(",", symbols.Select(s => "\"trade:" + this.NormalizeSymbol(s) + "\""));
                 string msg = $"{{\"op\":\"subscribe\",\"args\":[{combined}]}}";
                 await _socket.SendMessageAsync(msg);

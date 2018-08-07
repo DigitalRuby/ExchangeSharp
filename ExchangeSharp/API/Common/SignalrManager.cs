@@ -31,7 +31,7 @@ namespace ExchangeSharp
         public sealed class SignalrSocketConnection : IWebSocket
         {
             private readonly SignalrManager manager;
-            private Action<string> callback;
+            private Func<string, Task> callback;
             private string functionFullName;
 
             /// <summary>
@@ -61,7 +61,7 @@ namespace ExchangeSharp
             /// <param name="delayMilliseconds">Delay after invoking each object[] in param, used if the server will disconnect you for too many invoke too fast</param>
             /// <param name="param">End point parameters, each array of strings is a separate call to the end point function. For no parameters, pass null.</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(string functionName, Action<string> callback, int delayMilliseconds = 0, object[][] param = null)
+            public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
             {
                 if (callback != null)
                 {
@@ -71,7 +71,7 @@ namespace ExchangeSharp
                         throw new ArgumentNullException("SignalrManager is null");
                     }
                     param = (param ?? new object[][] { new object[0] });
-                    _manager.AddListener(functionName, callback, param);
+                    await _manager.AddListener(functionName, callback, param);
 
                     // ask for proxy after adding the listener, as the listener will force a connection if needed
                     IHubProxy _proxy = _manager.hubProxy;
@@ -276,7 +276,7 @@ namespace ExchangeSharp
 
         private class HubListener
         {
-            public List<Action<string>> Callbacks { get; } = new List<Action<string>>();
+            public List<Func<string, Task>> Callbacks { get; } = new List<Func<string, Task>>();
             public string FunctionName { get; set; }
             public string FunctionFullName { get; set; }
             public object[][] Param { get; set; }
@@ -315,12 +315,12 @@ namespace ExchangeSharp
             return fullFunctionName;
         }
 
-        private void AddListener(string functionName, Action<string> callback, object[][] param)
+        private async Task AddListener(string functionName, Func<string, Task> callback, object[][] param)
         {
             string functionFullName = GetFunctionFullName(functionName);
 
             // ensure connected before adding the listener
-            ReconnectLoop().ContinueWith((t) =>
+            await ReconnectLoop().ContinueWith((t) =>
             {
                 lock (listeners)
                 {
@@ -333,10 +333,10 @@ namespace ExchangeSharp
                         listener.Callbacks.Add(callback);
                     }
                 }
-            }).Sync();
+            });
         }
 
-        private void RemoveListener(string functionName, Action<string> callback)
+        private void RemoveListener(string functionName, Func<string, Task> callback)
         {
             lock (listeners)
             {
@@ -356,11 +356,11 @@ namespace ExchangeSharp
             }
         }
 
-        private void HandleResponse(string functionName, string data)
+        private async Task HandleResponse(string functionName, string data)
         {
             string functionFullName = GetFunctionFullName(functionName);
             data = Decode(data);
-            Action<string>[] actions = null;
+            Func<string, Task>[] actions = null;
 
             lock (listeners)
             {
@@ -372,16 +372,16 @@ namespace ExchangeSharp
 
             if (actions != null)
             {
-                Parallel.ForEach(actions, (callback) =>
+                foreach (Func<string, Task> func in actions)
                 {
                     try
                     {
-                        callback(data);
+                        await func(data);
                     }
                     catch
                     {
                     }
-                });
+                }
             }
         }
 
@@ -413,7 +413,10 @@ namespace ExchangeSharp
                     catch
                     {
                         // wait 5 seconds before attempting reconnect
-                        await Task.Delay(5000);
+                        for (int i = 0; i < 50 && !disposed; i++)
+                        {
+                            await Task.Delay(100);
+                        }
                     }
                 }
             }
@@ -464,7 +467,7 @@ namespace ExchangeSharp
             // assign callbacks for events
             foreach (string key in FunctionNamesToFullNames.Keys)
             {
-                hubProxy.On(key, (string data) => HandleResponse(key, data));
+                hubProxy.On(key, async (string data) => await HandleResponse(key, data));
             }
 
             // create a custom transport, the default transport is really buggy
@@ -537,7 +540,7 @@ namespace ExchangeSharp
         /// </summary>
         public void Stop()
         {
-            hubConnection.Stop(TimeSpan.FromSeconds(1.0));
+            hubConnection.Stop(TimeSpan.FromSeconds(0.1));
         }
 
         /// <summary>
