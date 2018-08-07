@@ -314,7 +314,14 @@ namespace ExchangeSharp
         /// <returns>Form encoded string</returns>
         public static string FormEncode(this string s)
         {
-            return (s ?? string.Empty).Replace("%", "%25").Replace("+", "%2B").Replace(' ', '+').Replace("&", "%26").Replace("=", "%3D");
+            return (s ?? string.Empty)
+                .Replace("%", "%25")
+                .Replace("+", "%2B")
+                .Replace(' ', '+')
+                .Replace("&", "%26")
+                .Replace("=", "%3D")
+                .Replace("\r", "%0D")
+                .Replace("\n", "%0A");
         }
 
         /// <summary>
