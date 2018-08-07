@@ -33,7 +33,6 @@ namespace ExchangeSharp
             RequestContentType = "x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = "-";
-            SymbolIsReversed = true;
         }
 
         #region ProcessRequest 

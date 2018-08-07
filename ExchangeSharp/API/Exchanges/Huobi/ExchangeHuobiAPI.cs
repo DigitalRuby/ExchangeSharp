@@ -39,7 +39,6 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixSecondsString;   // not used, see below
             SymbolSeparator = string.Empty;
             SymbolIsUppercase = false;
-            SymbolIsReversed = true;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)

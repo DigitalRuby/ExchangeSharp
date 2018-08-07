@@ -117,6 +117,8 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Whether the exchange symbol is reversed from most other exchanges, derived classes can change to true in constructor.
+        /// Most exchanges prefer fiat pair last and BTC pair last (SymbolsIsReversed == false)
+        /// But Bittrex and Poloniex are examples of exchanges that do the opposite (SymbolIsReversed == true)
         /// Default is false.
         /// </summary>
         protected bool SymbolIsReversed { get; set; }
@@ -181,9 +183,9 @@ namespace ExchangeSharp
             string[] pieces = symbol.Split(separator);
             if (SymbolIsReversed)
             {
-                return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();
+                return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
             }
-            return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
+            return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();
         }
 
         #endregion Protected methods
@@ -396,11 +398,11 @@ namespace ExchangeSharp
             int pos = symbol.IndexOf(GlobalSymbolSeparator);
             if (SymbolIsReversed)
             {
-                symbol = GlobalCurrencyToExchangeCurrency(symbol.Substring(pos + 1)) + SymbolSeparator + GlobalCurrencyToExchangeCurrency(symbol.Substring(0, pos));
+                symbol = GlobalCurrencyToExchangeCurrency(symbol.Substring(0, pos)) + SymbolSeparator + GlobalCurrencyToExchangeCurrency(symbol.Substring(pos + 1));
             }
             else
             {
-                symbol = GlobalCurrencyToExchangeCurrency(symbol.Substring(0, pos)) + SymbolSeparator + GlobalCurrencyToExchangeCurrency(symbol.Substring(pos + 1));
+                symbol = GlobalCurrencyToExchangeCurrency(symbol.Substring(pos + 1)) + SymbolSeparator + GlobalCurrencyToExchangeCurrency(symbol.Substring(0, pos));
             }
             return (SymbolIsUppercase ? symbol.ToUpperInvariant() : symbol.ToLowerInvariant());
         }

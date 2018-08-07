@@ -64,6 +64,8 @@ namespace ExchangeSharp
                 "WAVES",
                 "WAVES_ASSET",
             };
+
+            SymbolIsReversed = true;
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)

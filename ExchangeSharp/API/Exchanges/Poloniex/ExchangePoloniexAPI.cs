@@ -57,6 +57,7 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
+            SymbolIsReversed = true;
         }
 
         /// <summary>

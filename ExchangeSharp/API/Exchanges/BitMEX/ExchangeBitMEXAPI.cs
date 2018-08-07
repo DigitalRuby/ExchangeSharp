@@ -48,6 +48,16 @@ namespace ExchangeSharp
             RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
 
+        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string GlobalSymbolToExchangeSymbol(string symbol)
+        {
+            throw new NotImplementedException();
+        }
+
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))

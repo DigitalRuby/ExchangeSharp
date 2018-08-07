@@ -71,7 +71,6 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
             SymbolSeparator = string.Empty;
-            SymbolIsReversed = true;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)

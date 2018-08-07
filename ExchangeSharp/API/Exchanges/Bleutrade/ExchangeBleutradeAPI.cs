@@ -37,7 +37,6 @@ namespace ExchangeSharp
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = "_";
-            SymbolIsReversed = true;
         }
 
         #region ProcessRequest 

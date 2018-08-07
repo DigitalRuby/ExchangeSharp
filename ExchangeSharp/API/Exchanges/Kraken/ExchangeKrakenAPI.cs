@@ -43,7 +43,6 @@ namespace ExchangeSharp
             RequestMethod = "POST";
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = string.Empty;
-            SymbolIsReversed = true;
             NonceStyle = NonceStyle.UnixMilliseconds;
         }
 

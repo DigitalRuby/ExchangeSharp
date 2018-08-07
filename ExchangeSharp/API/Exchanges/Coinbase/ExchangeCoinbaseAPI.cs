@@ -132,7 +132,6 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
-            SymbolIsReversed = true;
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()

@@ -40,12 +40,12 @@ namespace ExchangeSharp
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
-            return symbol + GlobalSymbolSeparator + "KRW";
+            return "KRW" + GlobalSymbolSeparator + symbol;
         }
 
         public override string GlobalSymbolToExchangeSymbol(string symbol)
         {
-            return symbol.Substring(0, symbol.IndexOf(GlobalSymbolSeparator));
+            return symbol.Substring(symbol.IndexOf(GlobalSymbolSeparator) + 1);
         }
 
         private string StatusToError(string status)
