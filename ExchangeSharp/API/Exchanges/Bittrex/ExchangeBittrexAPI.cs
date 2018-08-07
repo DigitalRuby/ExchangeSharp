@@ -473,7 +473,7 @@ namespace ExchangeSharp
                 orderAmount.ToStringInvariant() + "&rate=" + orderPrice.ToStringInvariant();
             foreach (var kv in order.ExtraParameters)
             {
-                url += "&" + WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value.ToStringInvariant());
+                url += "&" + kv.Key.UrlEncode() + "=" + kv.Value.ToStringInvariant().UrlEncode();
             }
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
             string orderId = result["uuid"].ToStringInvariant();

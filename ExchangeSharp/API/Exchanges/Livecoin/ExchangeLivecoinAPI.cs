@@ -291,7 +291,7 @@ namespace ExchangeSharp
             {
                 // { "success": true,"cancelled": true,"message": null,"quantity": 0.0005,"tradeQuantity": 0}
                 await MakeJsonRequestAsync<JToken>("/exchange/cancel_limit?currencyPair=" +
-                    WebUtility.UrlEncode(NormalizeSymbol(order.Symbol)) + "&orderId=" + orderId, null, await GetNoncePayloadAsync());
+                    NormalizeSymbol(order.Symbol).UrlEncode() + "&orderId=" + orderId, null, await GetNoncePayloadAsync());
             }
         }
 

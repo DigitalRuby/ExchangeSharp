@@ -108,13 +108,13 @@ namespace ExchangeSharp
                     .Append(msg);
 
                 var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytesUTF8());
-                var signUrl = Uri.EscapeDataString(sign);
+                var signUrl = sign.UrlEncode();
                 msg += $"&Signature={signUrl}";
 
                 // https://github.com/huobiapi/API_Docs_en/wiki/Signing_API_Requests
                 // API Authentication Change
                 var privateSign = GetPrivateSignatureStr(Passphrase.ToUnsecureString(), sign);
-                var privateSignUrl = Uri.EscapeDataString(privateSign);
+                var privateSignUrl = privateSign.UrlEncode();
                 msg += $"&PrivateSignature={privateSignUrl}";
 
                 url.Query = msg;

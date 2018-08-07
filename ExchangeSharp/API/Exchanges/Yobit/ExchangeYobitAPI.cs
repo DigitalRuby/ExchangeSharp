@@ -56,7 +56,7 @@ namespace ExchangeSharp
                 var msg = CryptoUtility.GetFormForPayload(payload);
                 var sig = CryptoUtility.SHA512Sign(msg, PrivateApiKey.ToUnsecureString());
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
-                request.Headers.Add("Sign", sig.ToLower());
+                request.Headers.Add("Sign", sig.ToLowerInvariant());
 
                 using (Stream stream = await request.GetRequestStreamAsync())
                 {
@@ -90,7 +90,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/info", BaseUrl, null);
             foreach (JProperty prop in token["pairs"])
             {
-                var split = prop.Name.ToUpper().Split('_');
+                var split = prop.Name.ToUpperInvariant().Split('_');
                 markets.Add(new ExchangeMarket()
                 {
                     MarketName = prop.Name.ToStringInvariant(),
@@ -339,7 +339,7 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(JProperty prop)
         {
-            var split = prop.Name.ToUpper().Split('_');
+            var split = prop.Name.ToUpperInvariant().Split('_');
             if (split.Length != 2)
             {
                 split = new string[2];

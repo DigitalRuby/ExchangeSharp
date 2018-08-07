@@ -45,7 +45,7 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                request.Headers["apisign"] = CryptoUtility.SHA512Sign(request.RequestUri.ToString(), PrivateApiKey.ToUnsecureString()).ToLower();
+                request.Headers["apisign"] = CryptoUtility.SHA512Sign(request.RequestUri.ToString(), PrivateApiKey.ToUnsecureString()).ToLowerInvariant();
             }
             return base.ProcessRequestAsync(request, payload);
         }

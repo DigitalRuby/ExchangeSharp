@@ -109,7 +109,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
                 string form = CryptoUtility.GetJsonForPayload(payload);
                 byte[] secret = CryptoUtility.ToBytesBase64Decode(PrivateApiKey);
-                string toHash = timestamp + request.Method.ToUpper() + request.RequestUri.PathAndQuery + form;
+                string toHash = timestamp + request.Method.ToUpperInvariant() + request.RequestUri.PathAndQuery + form;
                 string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
                 secret = null;
                 toHash = null;

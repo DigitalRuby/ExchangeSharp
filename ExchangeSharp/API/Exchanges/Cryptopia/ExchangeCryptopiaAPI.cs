@@ -60,7 +60,7 @@ namespace ExchangeSharp
                 }
                 else request.ContentLength = 0;
 
-                string baseSig = string.Concat(PublicApiKey.ToUnsecureString(), request.Method, Uri.EscapeDataString(request.RequestUri.AbsoluteUri).ToLower(), nonce, requestContentBase64String);
+                string baseSig = string.Concat(PublicApiKey.ToUnsecureString(), request.Method, WebUtility.UrlEncode(request.RequestUri.AbsoluteUri).ToLowerInvariant(), nonce, requestContentBase64String);
                 string signature = CryptoUtility.SHA256SignBase64(baseSig, Convert.FromBase64String(PrivateApiKey.ToUnsecureString()));
                 request.Headers.Add(HttpRequestHeader.Authorization, string.Format("amx {0}:{1}:{2}", PublicApiKey.ToUnsecureString(), signature, nonce));
 

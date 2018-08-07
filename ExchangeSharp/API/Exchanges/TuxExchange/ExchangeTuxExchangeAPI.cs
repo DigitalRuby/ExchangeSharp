@@ -48,7 +48,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
 
                 var msg = CryptoUtility.GetFormForPayload(payload) + "&nonce=" + nonce;
-                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytesUTF8(PrivateApiKey)).ToLower();
+                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytesUTF8(PrivateApiKey)).ToLowerInvariant();
                 request.Headers.Add("Sign", sig);
                 request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
 

@@ -298,6 +298,26 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Url encode extension - use this for ALL url encoding / escaping
+        /// </summary>
+        /// <param name="s">String to url encode</param>
+        /// <returns>Url encoded string</returns>
+        public static string UrlEncode(this string s)
+        {
+            return WebUtility.UrlEncode((s ?? string.Empty));
+        }
+
+        /// <summary>
+        /// Form encode extension - use this for ALL form encoding / escaping
+        /// </summary>
+        /// <param name="s">String to form encode</param>
+        /// <returns>Form encoded string</returns>
+        public static string FormEncode(this string s)
+        {
+            return (s ?? string.Empty).Replace("%", "%25").Replace("+", "%2B").Replace(' ', '+').Replace("&", "%26").Replace("=", "%3D");
+        }
+
+        /// <summary>
         /// Clamp a decimal to a min and max value
         /// </summary>
         /// <param name="minValue">Min value</param>
@@ -441,7 +461,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="payload">Payload</param>
         /// <returns>Json string</returns>
-        public static string GetJsonForPayload(Dictionary<string, object> payload)
+        public static string GetJsonForPayload(this Dictionary<string, object> payload)
         {
             if (payload != null && payload.Count != 0)
             {
@@ -505,7 +525,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload</param>
         /// <param name="includeNonce">Whether to add the nonce</param>
         /// <returns>Form string</returns>
-        public static string GetFormForPayload(Dictionary<string, object> payload, bool includeNonce = true)
+        public static string GetFormForPayload(this Dictionary<string, object> payload, bool includeNonce = true)
         {
             if (payload != null && payload.Count != 0)
             {
@@ -514,7 +534,7 @@ namespace ExchangeSharp
                 {
                     if (!string.IsNullOrWhiteSpace(keyValue.Key) && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
                     {
-                        form.AppendFormat("{0}={1}&", Uri.EscapeDataString(keyValue.Key), Uri.EscapeDataString(keyValue.Value.ToStringInvariant()));
+                        form.Append($"{keyValue.Key.FormEncode()}={keyValue.Value.ToStringInvariant().FormEncode()}&");
                     }
                 }
                 if (form.Length != 0)
@@ -539,10 +559,7 @@ namespace ExchangeSharp
             }
             foreach (var kv in payload)
             {
-                uri.Query += WebUtility.UrlEncode(kv.Key);
-                uri.Query += "=";
-                uri.Query += kv.Value.ToStringInvariant();
-                uri.Query += "&";
+                uri.Query += $"{kv.Key.UrlEncode()}={kv.Value.ToStringInvariant().UrlEncode()}&";
             }
             uri.Query = uri.Query.Trim('&');
         }
