@@ -26,8 +26,9 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBitMEXAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.bitmex.com/api/v1";
-        //public override string BaseUrl { get; set; } = "https://testnet.bitmex.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://www.bitmex.com/realtime";
+        //public override string BaseUrl { get; set; } = "https://testnet.bitmex.com/api/v1";
+        //public override string BaseUrlWebSocket { get; set; } = "wss://testnet.bitmex.com/realtime";
 
         private SortedDictionary<long, decimal> dict_long_decimal = new SortedDictionary<long, decimal>();
         private SortedDictionary<decimal, long> dict_decimal_long = new SortedDictionary<decimal, long>();
@@ -44,7 +45,7 @@ namespace ExchangeSharp
             SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
 
-            RateLimit = new RateGate(1, TimeSpan.FromSeconds(2.0));
+            RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
 
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
@@ -631,7 +632,7 @@ namespace ExchangeSharp
                 case "New":
                     result.Result = ExchangeAPIOrderResult.Pending;
                     break;
-                case "Partially filled":
+                case "PartiallyFilled":
                     result.Result = ExchangeAPIOrderResult.FilledPartially;
                     break;
                 case "Filled":
