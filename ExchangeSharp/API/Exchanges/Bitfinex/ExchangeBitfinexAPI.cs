@@ -26,7 +26,7 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBitfinexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
-        public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
+        public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws/2";
 
         public Dictionary<string, string> DepositMethodLookup { get; }
 
@@ -221,6 +221,69 @@ namespace ExchangeSharp
                     await _socket.SendMessageAsync("{\"event\":\"subscribe\",\"channel\":\"ticker\",\"pair\":\"" + symbol + "\"}");
                 }
             });
+        }
+
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+            Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
+            return ConnectWebSocket(string.Empty, (_socket , msg) =>
+            {
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token is JArray array)
+                {
+                    if (token.Last.Last.HasValues == false)
+                    {
+                        //[29654, "tu", [270343572, 1532012917722, -0.003, 7465.636738]] "te"=temp/intention to execute "tu"=confirmed and ID is definitive
+                        //chan id, -- , [ID       , timestamp    , amount, price      ]]
+                        if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
+                        {
+                            if (token[1].ConvertInvariant<string>() == "tu")
+                            {
+                                ExchangeTrade trade = ParseTradeWebSocket(symbol, token.Last);
+                                if (trade != null)
+                                {
+                                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //parse snapshot here if needed
+                    }
+                }
+                else if (token["event"].ToStringInvariant() == "subscribed" && token["channel"].ToStringInvariant() == "trades")
+                {
+                    //{"event": "subscribed","channel": "trades","chanId": 29654,"symbol": "tBTCUSD","pair": "BTCUSD"}
+                    int channelId = token["chanId"].ConvertInvariant<int>();
+                    channelIdToSymbol[channelId] = token["pair"].ToStringInvariant();
+                }
+                return Task.CompletedTask;
+            }, async (_socket) =>
+            {
+                foreach (var symbol in symbols)
+                {
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    await _socket.SendMessageAsync("{\"event\":\"subscribe\",\"channel\":\"trades\",\"symbol\":\"" + normalizedSymbol + "\"}");
+                }
+            });
+        }
+
+        private ExchangeTrade ParseTradeWebSocket(string symbol, JToken token)
+        {
+            decimal amount = token[2].ConvertInvariant<decimal>();
+            return new ExchangeTrade
+            {
+                Id = token[0].ConvertInvariant<int>(),
+                Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token[1].ConvertInvariant<long>()),
+                Amount = Math.Abs(amount),
+                IsBuy = amount > 0 ? true : false,
+                Price = token[3].ConvertInvariant<decimal>()
+            };
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
