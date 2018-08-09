@@ -368,7 +368,9 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync(), "POST");
+            var payload = await OnGetNoncePayloadAsync();
+            payload["limit"] = 1000;
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
 
             List<BitstampTransaction> transactions = new List<BitstampTransaction>();
 
@@ -413,7 +415,9 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await OnGetNoncePayloadAsync(), "POST");
+            var payload = await OnGetNoncePayloadAsync();
+            payload["limit"] = 1000;
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             foreach (var transaction in result as JArray)
             {
