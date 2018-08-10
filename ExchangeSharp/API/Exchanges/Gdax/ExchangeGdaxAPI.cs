@@ -36,6 +36,31 @@ namespace ExchangeSharp
         /// The response will contain a CB-BEFORE header which will return the cursor id to use in your next request for the page before the current one. The page before is a newer page and not one that happened before in chronological time.
         /// </summary>
         private string cursorBefore;
+         
+        private ExchangeOrderResult ParseFill(JToken result)
+        {
+            decimal amount = result["size"].ConvertInvariant<decimal>();
+            decimal price = result["price"].ConvertInvariant<decimal>();
+            string symbol = result["product_id"].ToStringInvariant();
+
+            decimal fees = result["fee"].ConvertInvariant<decimal>();
+
+            ExchangeOrderResult order = new ExchangeOrderResult
+            {
+                Amount = amount, 
+                AmountFilled = amount, 
+                Price = price,
+                Fees = fees,
+                AveragePrice = price,
+                IsBuy = (result["side"].ToStringInvariant() == "buy"),
+                OrderDate = ConvertDateTimeInvariant(result["created_at"]),
+                Symbol = symbol,
+                OrderId = result["id"].ToStringInvariant(), 
+            };
+             
+            return order;
+        }
+
 
         private ExchangeOrderResult ParseOrder(JToken result)
         {
@@ -489,10 +514,32 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
-            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await OnGetNoncePayloadAsync());
+            var productId = (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol);
+            JArray array = await MakeJsonRequestAsync<JArray>($"orders?status=done{productId}", null, await OnGetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 ExchangeOrderResult result = ParseOrder(token);
+                if (afterDate == null || result.OrderDate >= afterDate)
+                {
+                    orders.Add(result);
+                }
+            }
+
+            return orders;
+        }
+
+        public async Task<IEnumerable<ExchangeOrderResult>> GetFillsAsync(string symbol = null, int? afterCursor = null, DateTime? afterDate = null)
+        {
+            await new SynchronizationContextRemover();
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            symbol = NormalizeSymbol(symbol);
+            var productId = (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol);
+            var after = afterCursor == null ? string.Empty : $"before={afterCursor}&";
+            var interrogation = after != "" || productId != "" ? "?" : string.Empty;
+            JArray array = await MakeJsonRequestAsync<JArray>($"fills{interrogation}{after}{productId}", null, await OnGetNoncePayloadAsync());
+            foreach (JToken token in array)
+            {
+                ExchangeOrderResult result = ParseFill(token);
                 if (afterDate == null || result.OrderDate >= afterDate)
                 {
                     orders.Add(result);
