@@ -298,7 +298,7 @@ namespace ExchangeSharp
                 {
                     foreach (var action in actions.Where(a => a != null))
                     {
-                        while (true)
+                        while (!disposed)
                         {
                             try
                             {
