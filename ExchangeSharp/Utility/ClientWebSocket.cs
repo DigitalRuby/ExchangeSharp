@@ -248,12 +248,16 @@ namespace ExchangeSharp
                             }
                         }
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // dont care
+                    }
                     catch (Exception ex)
                     {
                         Logger.Info(ex.ToString());
                     }
-                }
-);            }
+                });
+            }
         }
 
         /// <summary>
@@ -401,6 +405,10 @@ namespace ExchangeSharp
                         }
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    // dont care
+                }
                 catch (Exception ex)
                 {
                     // eat exceptions, most likely a result of a disconnect, either way we will re-create the web socket
@@ -446,6 +454,10 @@ namespace ExchangeSharp
                         {
                             await OnMessage?.Invoke(this, messageBytes);
                         }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // dont care
                     }
                     catch (Exception ex)
                     {
