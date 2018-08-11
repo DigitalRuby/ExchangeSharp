@@ -288,7 +288,7 @@ namespace ExchangeSharp
         private HubConnection hubConnection;
         private IHubProxy hubProxy;
         private WebsocketCustomTransport customTransport;
-        private bool reconnecting;
+        private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
         private bool disposed;
 
         /// <summary>
@@ -387,7 +387,7 @@ namespace ExchangeSharp
 
         private void SocketClosed()
         {
-            if (listeners.Count == 0 || reconnecting)
+            if (listeners.Count == 0)
             {
                 return;
             }
@@ -396,11 +396,10 @@ namespace ExchangeSharp
 
         private async Task ReconnectLoop()
         {
-            if (reconnecting)
+            if (!(await reconnectLock.WaitAsync(100)))
             {
                 return;
             }
-            reconnecting = true;
             try
             {
                 // if hubConnection is null, exception will throw out
@@ -422,10 +421,14 @@ namespace ExchangeSharp
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.Info(ex.ToString());
             }
-            reconnecting = false;
+            finally
+            {
+                reconnectLock.Release();
+            }
         }
 
         /// <summary>
