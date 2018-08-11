@@ -528,15 +528,28 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public async Task<IEnumerable<ExchangeOrderResult>> GetFillsAsync(string symbol = null, int? afterCursor = null, DateTime? afterDate = null)
+        public async Task<IEnumerable<ExchangeOrderResult>> GetFillsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            await new SynchronizationContextRemover();
+           
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             symbol = NormalizeSymbol(symbol);
-            var productId = (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol);
-            var after = afterCursor == null ? string.Empty : $"before={afterCursor}&";
+            var productId = (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "product_id=" + symbol);
+
+            do
+            {
+                var after = cursorAfter == null ? string.Empty : $"after={cursorAfter}&";
+                await new SynchronizationContextRemover();
+                await MakeFillRequest(afterDate, productId, orders, after);
+            } while (cursorAfter != null);
+
+            return orders;
+        }
+
+        private async Task MakeFillRequest(DateTime? afterDate, string productId, List<ExchangeOrderResult> orders, string after)
+        {
             var interrogation = after != "" || productId != "" ? "?" : string.Empty;
             JArray array = await MakeJsonRequestAsync<JArray>($"fills{interrogation}{after}{productId}", null, await OnGetNoncePayloadAsync());
+
             foreach (JToken token in array)
             {
                 ExchangeOrderResult result = ParseFill(token);
@@ -544,9 +557,13 @@ namespace ExchangeSharp
                 {
                     orders.Add(result);
                 }
-            }
 
-            return orders;
+                if (afterDate != null && result.OrderDate < afterDate)
+                {
+                    cursorAfter = null;
+                    break;
+                }
+            }
         }
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
