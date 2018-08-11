@@ -71,12 +71,12 @@ namespace ExchangeSharpConsole
         {
             socket.Connected += (s) =>
             {
-                Console.WriteLine("Web socket connected");
+                Logger.Info("Web socket connected");
                 return Task.CompletedTask;
             };
             socket.Disconnected += (s) =>
             {
-                Console.WriteLine("Web socket disconnected");
+                Logger.Info("Web socket disconnected");
                 return Task.CompletedTask;
             };
         }
@@ -101,7 +101,7 @@ namespace ExchangeSharpConsole
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Web socket error: " + ex);
+                    Logger.Error(ex);
                 }
             }
         }

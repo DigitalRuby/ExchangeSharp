@@ -911,9 +911,9 @@ namespace ExchangeSharp
                 byte[] signDataBytes = signData.ToBytesUTF8();
                 privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
             }
-            catch (CryptographicException e)
+            catch (CryptographicException ex)
             {
-                Console.WriteLine("Private signature error because: " + e.Message);
+                Logger.Error(ex, "Private signature error because: " + ex.Message);
             }
 
 #endif

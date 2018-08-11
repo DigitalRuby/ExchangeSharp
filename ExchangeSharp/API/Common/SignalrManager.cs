@@ -98,7 +98,7 @@ namespace ExchangeSharp
                     catch (Exception _ex)
                     {
                         ex = _ex;
-                        Console.WriteLine("Error invoking hub proxy {0}: {1}", functionFullName, ex);
+                        Logger.Error(ex, "Error invoking hub proxy {0}: {1}", functionFullName, ex);
                     }
                     if (ex == null)
                     {
@@ -453,8 +453,8 @@ namespace ExchangeSharp
 
 #if DEBUG
 
-            hubConnection.TraceLevel = TraceLevels.All;
-            hubConnection.TraceWriter = Console.Out;
+            //hubConnection.TraceLevel = TraceLevels.All;
+            //hubConnection.TraceWriter = Console.Out;
 
 #endif
 

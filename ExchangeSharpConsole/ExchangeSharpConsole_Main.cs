@@ -38,7 +38,7 @@ namespace ExchangeSharpConsole
             {
                 if (!dict.ContainsKey(arg))
                 {
-                    Console.WriteLine("Argument {0} is required.", arg);
+                    Logger.Error("Argument {0} is required.", arg);
                     fail = true;
                 }
             }
@@ -69,6 +69,8 @@ namespace ExchangeSharpConsole
         {
             try
             {
+                Logger.Info("ExchangeSharp console started.");
+
                 // swap out to external web socket implementation for older Windows pre 8.1
                 // ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());
                 // TestMethod(); // uncomment for ad-hoc code testing
@@ -124,15 +126,19 @@ namespace ExchangeSharpConsole
                 }
                 else
                 {
-                    Console.WriteLine("Unrecognized command line arguments.");
+                    Logger.Error("Unrecognized command line arguments.");
                     return -1;
                 }
                 return 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Fatal error: {0}", ex);
+                Logger.Error(ex);
                 return -99;
+            }
+            finally
+            {
+                Logger.Info("ExchangeSharp console finished.");
             }
         }
     }

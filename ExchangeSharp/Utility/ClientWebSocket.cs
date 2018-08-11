@@ -243,33 +243,30 @@ namespace ExchangeSharp
                         webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Info(ex.ToString());
                 }
             }
         }
 
         /// <summary>
-        /// send a message to the WebSocket server.
+        /// Queue a message to the WebSocket server, it will be sent as soon as possible.
         /// </summary>
         /// <param name="message">Message to send</param>
         /// <returns>True if success, false if error</returns>
-        public async Task<bool> SendMessageAsync(string message)
+        public Task<bool> SendMessageAsync(string message)
         {
-            try
+            if (webSocket.State == WebSocketState.Open)
             {
-                if (webSocket.State == WebSocketState.Open)
+                QueueActions(async (socket) =>
                 {
                     ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(message.ToBytesUTF8());
                     await webSocket.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, cancellationToken);
-                    return true;
-                }
+                });
+                return Task.FromResult<bool>(true);
             }
-            catch
-            {
-                // don't care if this fails, maybe the socket is in process of dispose, who knows...
-            }
-            return false;
+            return Task.FromResult<bool>(false);
         }
 
         private void QueueActions(params Func<IWebSocket, Task>[] actions)
@@ -284,8 +281,9 @@ namespace ExchangeSharp
                         {
                             await action.Invoke(this);
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            Logger.Info(ex.ToString());
                         }
                     }
                 }));
@@ -307,8 +305,9 @@ namespace ExchangeSharp
                                 await action.Invoke(this);
                                 break;
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                Logger.Info(ex.ToString());
                             }
                         }
                     }
@@ -376,9 +375,10 @@ namespace ExchangeSharp
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     // eat exceptions, most likely a result of a disconnect, either way we will re-create the web socket
+                    Logger.Info(ex.ToString());
                 }
 
                 if (wasConnected)
@@ -389,8 +389,9 @@ namespace ExchangeSharp
                 {
                     webSocket.Dispose();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Info(ex.ToString());
                 }
                 if (!disposed)
                 {
@@ -420,8 +421,9 @@ namespace ExchangeSharp
                             await OnMessage?.Invoke(this, messageBytes);
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Info(ex.ToString());
                     }
                 }
                 if (ConnectInterval.Ticks > 0 && (DateTime.UtcNow - lastCheck) >= ConnectInterval)

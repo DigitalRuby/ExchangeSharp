@@ -31,7 +31,7 @@ namespace ExchangeSharp
         {
             // load withdrawal field counts
             var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            using (var sr = new StringReader(Resources.ExchangeSharpResources.PoloniexWithdrawalFields))
+            using (var sr = new StringReader(ExchangeSharpResources.PoloniexWithdrawalFields))
             {
                 sr.ReadLine(); // eat the header
                 string line;

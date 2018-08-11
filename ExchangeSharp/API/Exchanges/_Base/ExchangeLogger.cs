@@ -214,7 +214,6 @@ namespace ExchangeSharp
             {
                 loggers.Add(new ExchangeLogger(ExchangeAPI.GetExchangeAPI(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path, compress));
             };
-            StreamWriter errorLog = File.CreateText(Path.Combine(path, "errors.txt"));
             foreach (ExchangeLogger logger in loggers)
             {
                 logger.Start();
@@ -229,8 +228,7 @@ namespace ExchangeSharp
                         }
                         errors[log] = ++errorCount;
                     }
-                    Console.WriteLine("Errors for {0}: {1}", log.API.Name, errorCount);
-                    errorLog.WriteLine("Errors for {0}: {1}", log.API.Name, errorCount);
+                    Logger.Info("Errors for {0}: {1}", log.API.Name, errorCount);
                 };
             }
             terminator = () =>
@@ -244,7 +242,6 @@ namespace ExchangeSharp
                         logger.Dispose();
                     }
                     loggers.Clear();
-                    errorLog.Close();
                 }
             };
             terminateAction = terminator;
@@ -258,9 +255,7 @@ namespace ExchangeSharp
             {
                 terminator();
             };
-
-            Console.WriteLine("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
-            errorLog.WriteLine("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
+            Logger.Info("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
         }
 
         /// <summary>

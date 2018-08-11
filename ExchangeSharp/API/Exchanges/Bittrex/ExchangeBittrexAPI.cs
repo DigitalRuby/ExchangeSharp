@@ -583,7 +583,7 @@ namespace ExchangeSharp
 
             if (!updatedCurrencies.TryGetValue(depositDetails.Symbol, out ExchangeCurrency coin))
             {
-                Console.WriteLine($"Unable to find {depositDetails.Symbol} in existing list of coins.");
+                Logger.Warn($"Unable to find {depositDetails.Symbol} in existing list of coins.");
                 return null;
             }
 
@@ -598,7 +598,7 @@ namespace ExchangeSharp
             }
             else
             {
-                Console.WriteLine($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
+                Logger.Warn($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
                 return null;
             }
 
