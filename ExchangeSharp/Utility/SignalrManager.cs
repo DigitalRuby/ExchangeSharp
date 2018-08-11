@@ -410,8 +410,10 @@ namespace ExchangeSharp
                     {
                         await StartAsync();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Debug(ex.ToString());
+
                         // wait 5 seconds before attempting reconnect
                         for (int i = 0; i < 50 && !disposed; i++)
                         {
@@ -493,16 +495,22 @@ namespace ExchangeSharp
             // setup disconnect event
             customTransport.WebSocket.Disconnected += async (ws) =>
             {
-                IWebSocket[] socketsCopy;
-                lock (sockets)
+                try
                 {
-                    socketsCopy = sockets.ToArray();
+                    IWebSocket[] socketsCopy;
+                    lock (sockets)
+                    {
+                        socketsCopy = sockets.ToArray();
+                    }
+                    foreach (IWebSocket socket in socketsCopy)
+                    {
+                        await (socket as SignalrSocketConnection).InvokeDisconnected();
+                    }
                 }
-                foreach (IWebSocket socket in socketsCopy)
+                catch (Exception ex)
                 {
-                    await (socket as SignalrSocketConnection).InvokeDisconnected();
+                    Logger.Info(ex.ToString());
                 }
-
                 // start a task to tear down the hub connection
                 await Task.Run(() =>
                 {
@@ -511,8 +519,9 @@ namespace ExchangeSharp
                         // tear down the hub connection, we must re-create it whenever a web socket disconnects
                         hubConnection?.Dispose();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Info(ex.ToString());
                     }
                 });
             };
