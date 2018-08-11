@@ -44,45 +44,45 @@ namespace ExchangeSharp
             /// <summary>
             /// Close cleanly
             /// </summary>
-            /// <param name="closeStatus"></param>
-            /// <param name="statusDescription"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="closeStatus">Status</param>
+            /// <param name="statusDescription">Description</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
 
             /// <summary>
             /// Close output immediately
             /// </summary>
-            /// <param name="closeStatus"></param>
-            /// <param name="statusDescription"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="closeStatus">Status</param>
+            /// <param name="statusDescription">Description</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
 
             /// <summary>
             /// Connect
             /// </summary>
-            /// <param name="uri"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="uri">Uri</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task ConnectAsync(Uri uri, CancellationToken cancellationToken);
 
             /// <summary>
             /// Receive
             /// </summary>
-            /// <param name="buffer"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="buffer">Buffer</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Result</returns>
             Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken);
 
             /// <summary>
             /// Send
             /// </summary>
-            /// <param name="buffer"></param>
-            /// <param name="messageType"></param>
-            /// <param name="endOfMessage"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="buffer">Buffer</param>
+            /// <param name="messageType">Message type</param>
+            /// <param name="endOfMessage">True if end of message, false otherwise</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken);
         }
 
@@ -232,22 +232,28 @@ namespace ExchangeSharp
             {
                 disposed = true;
                 cancellationTokenSource.Cancel();
-                try
+                Task.Run(async () =>
                 {
-                    if (CloseCleanly)
+                    try
                     {
-                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                        if (webSocket.State == WebSocketState.Open)
+                        {
+                            if (CloseCleanly)
+                            {
+                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                            }
+                            else
+                            {
+                                await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                            }
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                        Logger.Info(ex.ToString());
                     }
                 }
-                catch (Exception ex)
-                {
-                    Logger.Info(ex.ToString());
-                }
-            }
+);            }
         }
 
         /// <summary>
