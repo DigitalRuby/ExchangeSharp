@@ -173,12 +173,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Allows additional listeners for connect event
         /// </summary>
-        public event Func<IWebSocket, Task> Connected;
+        public event WebSocketConnectionDelegate Connected;
 
         /// <summary>
         /// Allows additional listeners for disconnect event
         /// </summary>
-        public event Func<IWebSocket, Task> Disconnected;
+        public event WebSocketConnectionDelegate Disconnected;
 
         /// <summary>
         /// Whether to close the connection gracefully, this can cause the close to take longer.
@@ -315,6 +315,24 @@ namespace ExchangeSharp
             }
         }
 
+        private async Task InvokeConnected(IWebSocket socket)
+        {
+            var connected = Connected;
+            if (connected != null)
+            {
+                await connected.Invoke(socket);
+            }
+        }
+
+        private async Task InvokeDisconnected(IWebSocket socket)
+        {
+            var disconnected = Disconnected;
+            if (disconnected != null)
+            {
+                await disconnected.Invoke(this);
+            }
+        }
+
         private async Task ReadTask()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
@@ -343,7 +361,7 @@ namespace ExchangeSharp
 
                     // on connect may make additional calls that must succeed, such as rest calls
                     // for lists, etc.
-                    QueueActionsWithNoExceptions(Connected);
+                    QueueActionsWithNoExceptions(InvokeConnected);
 
                     while (webSocket.State == WebSocketState.Open)
                     {
@@ -355,7 +373,7 @@ namespace ExchangeSharp
                                 if (result.MessageType == WebSocketMessageType.Close)
                                 {
                                     await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
-                                    QueueActions(Disconnected);
+                                    QueueActions(InvokeDisconnected);
                                 }
                                 else
                                 {
@@ -383,7 +401,7 @@ namespace ExchangeSharp
 
                 if (wasConnected)
                 {
-                    QueueActions(Disconnected);
+                    QueueActions(InvokeDisconnected);
                 }
                 try
                 {
@@ -431,11 +449,18 @@ namespace ExchangeSharp
                     lastCheck = DateTime.UtcNow;
 
                     // this must succeed, the callback may be requests lists or other resources that must not fail
-                    QueueActionsWithNoExceptions(Connected);
+                    QueueActionsWithNoExceptions(InvokeConnected);
                 }
             }
         }
     }
+
+    /// <summary>
+    /// Delegate for web socket connect / disconnect events
+    /// </summary>
+    /// <param name="socket">Web socket</param>
+    /// <returns>Task</returns>
+    public delegate Task WebSocketConnectionDelegate(IWebSocket socket);
 
     /// <summary>
     /// Web socket interface
@@ -445,12 +470,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Connected event
         /// </summary>
-        event Func<IWebSocket, Task> Connected;
+        event WebSocketConnectionDelegate Connected;
 
         /// <summary>
         /// Disconnected event
         /// </summary>
-        event Func<IWebSocket, Task> Disconnected;
+        event WebSocketConnectionDelegate Disconnected;
 
         /// <summary>
         /// Send a message over the web socket

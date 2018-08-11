@@ -444,8 +444,8 @@ namespace ExchangeSharp
         (
             string url,
             Func<IWebSocket, byte[], Task> messageCallback,
-            Func<IWebSocket, Task> connectCallback = null,
-            Func<IWebSocket, Task> disconnectCallback = null
+            WebSocketConnectionDelegate connectCallback = null,
+            WebSocketConnectionDelegate disconnectCallback = null
         )
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);

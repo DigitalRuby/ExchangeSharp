@@ -37,12 +37,12 @@ namespace ExchangeSharp
             /// <summary>
             /// Connected event
             /// </summary>
-            public event Func<IWebSocket, Task> Connected;
+            public event WebSocketConnectionDelegate Connected;
 
             /// <summary>
             /// Disconnected event
             /// </summary>
-            public event Func<IWebSocket, Task> Disconnected;
+            public event WebSocketConnectionDelegate Disconnected;
 
             /// <summary>
             /// Constructor
@@ -120,22 +120,20 @@ namespace ExchangeSharp
 
             internal async Task InvokeConnected()
             {
-                await Connected?.Invoke(this);
+                var connected = Connected;
+                if (connected != null)
+                {
+                    await connected.Invoke(this);
+                }
             }
 
             internal async Task InvokeDisconnected()
             {
-                await Disconnected?.Invoke(this);
-            }
-
-            private void WebSocket_Connected(IWebSocket obj)
-            {
-                Connected?.Invoke(this);
-            }
-
-            private void WebSocket_Disconnected(IWebSocket obj)
-            {
-                Disconnected?.Invoke(this);
+                var disconnected = Disconnected;
+                if (disconnected != null)
+                {
+                    await disconnected.Invoke(this);
+                }
             }
 
             /// <summary>
@@ -150,7 +148,7 @@ namespace ExchangeSharp
                         manager.sockets.Remove(this);
                     }
                     manager.RemoveListener(functionFullName, callback);
-                    Disconnected?.Invoke(this);
+                    InvokeDisconnected().Sync();
                 }
                 catch
                 {
@@ -283,7 +281,7 @@ namespace ExchangeSharp
         }
 
         private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
-        private readonly List<IWebSocket> sockets = new List<IWebSocket>();
+        private readonly List<SignalrSocketConnection> sockets = new List<SignalrSocketConnection>();
         private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
 
         private HubConnection hubConnection;
@@ -483,14 +481,14 @@ namespace ExchangeSharp
             // setup connect event
             customTransport.WebSocket.Connected += async (ws) =>
             {
-                IWebSocket[] socketsCopy;
+                SignalrSocketConnection[] socketsCopy;
                 lock (sockets)
                 {
                     socketsCopy = sockets.ToArray();
                 }
-                foreach (IWebSocket socket in socketsCopy)
+                foreach (SignalrSocketConnection socket in socketsCopy)
                 {
-                    await (socket as SignalrSocketConnection).InvokeConnected();
+                    await socket.InvokeConnected();
                 }
             };
 
@@ -499,14 +497,14 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    IWebSocket[] socketsCopy;
+                    SignalrSocketConnection[] socketsCopy;
                     lock (sockets)
                     {
                         socketsCopy = sockets.ToArray();
                     }
-                    foreach (IWebSocket socket in socketsCopy)
+                    foreach (SignalrSocketConnection socket in socketsCopy)
                     {
-                        await (socket as SignalrSocketConnection).InvokeDisconnected();
+                        await socket.InvokeDisconnected();
                     }
                 }
                 catch (Exception ex)
