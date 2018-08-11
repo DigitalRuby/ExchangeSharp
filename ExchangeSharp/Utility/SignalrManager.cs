@@ -284,11 +284,10 @@ namespace ExchangeSharp
 
         private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
         private readonly List<IWebSocket> sockets = new List<IWebSocket>();
+        private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
 
         private HubConnection hubConnection;
         private IHubProxy hubProxy;
-        private WebsocketCustomTransport customTransport;
-        private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
         private bool disposed;
 
         /// <summary>
@@ -396,7 +395,7 @@ namespace ExchangeSharp
 
         private async Task ReconnectLoop()
         {
-            if (!(await reconnectLock.WaitAsync(100)))
+            if (!(await reconnectLock.WaitAsync(0)))
             {
                 return;
             }
@@ -477,7 +476,7 @@ namespace ExchangeSharp
 
             // create a custom transport, the default transport is really buggy
             DefaultHttpClient client = new DefaultHttpClient();
-            customTransport = new WebsocketCustomTransport(client);
+            WebsocketCustomTransport customTransport = new WebsocketCustomTransport(client);
             var autoTransport = new AutoTransport(client, new IClientTransport[] { customTransport });
             hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
 
@@ -568,25 +567,21 @@ namespace ExchangeSharp
         /// </summary>
         public void Dispose()
         {
-            disposed = true;
-            if (hubConnection == null)
+            if (disposed)
             {
                 return;
             }
-            listeners.Clear();
-
-            // null out hub so we don't try to reconnect
-            var tmp = hubConnection;
-            hubConnection = null;
+            disposed = true;
             try
             {
-                tmp.Transport.Dispose();
-                tmp.Dispose();
+                hubConnection.Transport.Dispose();
+                hubConnection.Dispose();
             }
             catch
             {
                 // eat exceptions here, we don't care if it fails
             }
+            hubConnection = null;
         }
 
         /// <summary>
