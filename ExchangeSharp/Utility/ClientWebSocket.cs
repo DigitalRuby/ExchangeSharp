@@ -273,9 +273,10 @@ namespace ExchangeSharp
         {
             if (actions != null && actions.Length != 0)
             {
+                Func<IWebSocket, Task>[] actionsCopy = actions;
                 messageQueue.Add((Func<Task>)(async () =>
                 {
-                    foreach (var action in actions.Where(a => a != null))
+                    foreach (var action in actionsCopy.Where(a => a != null))
                     {
                         try
                         {
@@ -294,9 +295,10 @@ namespace ExchangeSharp
         {
             if (actions != null && actions.Length != 0)
             {
+                Func<IWebSocket, Task>[] actionsCopy = actions;
                 messageQueue.Add((Func<Task>)(async () =>
                 {
-                    foreach (var action in actions.Where(a => a != null))
+                    foreach (var action in actionsCopy.Where(a => a != null))
                     {
                         while (!disposed)
                         {
