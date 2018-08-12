@@ -52,12 +52,20 @@ namespace ExchangeSharpConsole
         private static string[] GetSymbols(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "symbols");
+            if (dict["symbols"] == "*")
+            {
+                return null;
+            }
             return dict["symbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static void ValidateSymbols(IExchangeAPI api, string[] symbols)
+        private static string[] ValidateSymbols(IExchangeAPI api, string[] symbols)
         {
             string[] apiSymbols = api.GetSymbolsAsync().Sync().ToArray();
+            if (symbols == null || symbols.Length == 0)
+            {
+                symbols = apiSymbols;
+            }
             foreach (string symbol in symbols)
             {
                 if (!apiSymbols.Contains(symbol))
@@ -65,6 +73,7 @@ namespace ExchangeSharpConsole
                     throw new ArgumentException(string.Format("Symbol {0} does not exist in API {1}, valid symbols: {2}", symbol, api.Name, string.Join(",", apiSymbols.OrderBy(s => s))));
                 }
             }
+            return symbols;
         }
 
         private static void SetWebSocketEvents(IWebSocket socket)
@@ -122,7 +131,7 @@ namespace ExchangeSharpConsole
             string[] symbols = GetSymbols(dict);
             RunWebSocket(dict, (api) =>
             {
-                ValidateSymbols(api, symbols);
+                symbols = ValidateSymbols(api, symbols);
                 return api.GetTradesWebSocket(message =>
                 {
                     Console.WriteLine($"{message.Key}: {message.Value}");
@@ -135,7 +144,7 @@ namespace ExchangeSharpConsole
             string[] symbols = GetSymbols(dict);
             RunWebSocket(dict, (api) =>
             {
-                ValidateSymbols(api, symbols);
+                symbols = ValidateSymbols(api, symbols);
                 return api.GetOrderBookWebSocket(message =>
                 {
                     //print the top bid and ask with amount
