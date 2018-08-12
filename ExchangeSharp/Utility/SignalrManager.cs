@@ -89,7 +89,8 @@ namespace ExchangeSharp
                             {
                                 await Task.Delay(delayMilliseconds);
                             }
-                            if (!(await _proxy.Invoke<bool>(functionFullName, param[i])))
+                            bool result = await _proxy.Invoke<bool>(functionFullName, param[i]).ConfigureAwait(false);
+                            if (!result)
                             {
                                 throw new APIException("Invoke returned success code of false");
                             }
@@ -375,8 +376,9 @@ namespace ExchangeSharp
                     {
                         await func(data);
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Info(ex.ToString());
                     }
                 }
             }
