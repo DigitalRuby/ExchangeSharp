@@ -405,7 +405,7 @@ namespace ExchangeSharp
 
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "withdraw");
-            payload.Add("coin", withdrawalRequest.Symbol);
+            payload.Add("coin", withdrawalRequest.Currency);
             payload.Add("amount", withdrawalRequest.Amount);
             payload.Add("address", withdrawalRequest.Address);
             // ( [success] => 1 [error] => Array ([0] => Withdraw requested. ))

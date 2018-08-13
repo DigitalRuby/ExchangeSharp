@@ -432,7 +432,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
-            string symbol = NormalizeSymbol(withdrawalRequest.Symbol);
+            string symbol = NormalizeSymbol(withdrawalRequest.Currency);
             var payload = await GetNoncePayloadAsync();
             JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)

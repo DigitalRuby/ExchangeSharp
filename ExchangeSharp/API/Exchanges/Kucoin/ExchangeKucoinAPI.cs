@@ -428,7 +428,7 @@ namespace ExchangeSharp
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
 
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/" + withdrawalRequest.Symbol + "/withdraw/apply", null, payload, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/account/" + withdrawalRequest.Currency + "/withdraw/apply", null, payload, "POST");
             // no data is returned. Check error will throw exception on failure
             return response;
         }

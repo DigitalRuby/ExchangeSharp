@@ -413,7 +413,7 @@ namespace ExchangeSharp
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
 
             var payload = await GetNoncePayloadAsync();
-            payload.Add("Currency", withdrawalRequest.Symbol);
+            payload.Add("Currency", withdrawalRequest.Currency);
             payload.Add("Address", withdrawalRequest.Address);
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload.Add("PaymentId", withdrawalRequest.AddressTag);
             payload.Add("Amount", withdrawalRequest.Amount);

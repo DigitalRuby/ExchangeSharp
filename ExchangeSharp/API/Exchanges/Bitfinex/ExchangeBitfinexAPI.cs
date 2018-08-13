@@ -561,7 +561,7 @@ namespace ExchangeSharp
         /// <returns>The withdrawal response</returns>
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            string symbol = NormalizeSymbol(withdrawalRequest.Symbol);
+            string symbol = NormalizeSymbol(withdrawalRequest.Currency);
 
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
             if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))

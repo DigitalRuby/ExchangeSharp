@@ -324,7 +324,7 @@ namespace ExchangeSharp
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "WithdrawCoinsToAddress");
-            payload.Add("coinName", withdrawalRequest.Symbol);
+            payload.Add("coinName", withdrawalRequest.Currency);
             payload.Add("amount", withdrawalRequest.Amount);
             payload.Add("address", withdrawalRequest.Address);
             await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
