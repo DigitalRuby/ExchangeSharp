@@ -717,6 +717,19 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="message">Message to sign</param>
         /// <returns>Signature in hex</returns>
+        public static string MD5Sign(string message, byte[] key)
+        {
+            var hmac = new HMACMD5(key);
+            var messagebyte = message.ToBytesUTF8();
+            var hashmessage = hmac.ComputeHash(messagebyte);
+            return BitConverter.ToString(hashmessage).Replace("-", "");
+        }
+
+        /// <summary>
+        /// Sign a message with MD5 hash
+        /// </summary>
+        /// <param name="message">Message to sign</param>
+        /// <returns>Signature in hex</returns>
         public static string MD5Sign(string message)
         {
             var md5 = new MD5CryptoServiceProvider();
