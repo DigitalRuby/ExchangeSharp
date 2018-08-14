@@ -302,7 +302,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="input">Input string</param>
         /// <returns>Encoded string</returns>
-        public static string JWTEncode(string input)
+        public static string JWTEncode(this string input)
         {
             return Convert.ToBase64String(input.ToBytesUTF8())
                 .Trim('=')
@@ -315,7 +315,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="input">Input</param>
         /// <returns>Decoded string</returns>
-        public static string JWTDecode(string input)
+        public static string JWTDecode(this string input)
         {
             string output = input.Replace('-', '+').Replace('_', '/');
             switch (output.Length % 4) // Pad with trailing '='s
