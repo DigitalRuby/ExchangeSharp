@@ -298,6 +298,37 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// JWT encode - converts to base64 string first then replaces + with - and / with _
+        /// </summary>
+        /// <param name="input">Input string</param>
+        /// <returns>Encoded string</returns>
+        public static string JWTEncode(string input)
+        {
+            return Convert.ToBase64String(input.ToBytesUTF8())
+                .Trim('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
+
+        /// <summary>
+        /// JWT decode from JWTEncode
+        /// </summary>
+        /// <param name="input">Input</param>
+        /// <returns>Decoded string</returns>
+        public static string JWTDecode(string input)
+        {
+            string output = input.Replace('-', '+').Replace('_', '/');
+            switch (output.Length % 4) // Pad with trailing '='s
+            {
+                case 0: break; // No pad chars in this case
+                case 2: output += "=="; break; // Two pad chars
+                case 3: output += "="; break; // One pad char
+                default: throw new ArgumentException("Bad JWT string: " + input);
+            }
+            return Convert.FromBase64String(output).ToStringFromUTF8();
+        }
+
+        /// <summary>
         /// Url encode extension - use this for ALL url encoding / escaping
         /// </summary>
         /// <param name="s">String to url encode</param>
