@@ -302,6 +302,19 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="input">Input string</param>
         /// <returns>Encoded string</returns>
+        public static string JWTEncode(this byte[] input)
+        {
+            return Convert.ToBase64String(input)
+                .Trim('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
+
+        /// <summary>
+        /// JWT encode - converts to base64 string first then replaces + with - and / with _
+        /// </summary>
+        /// <param name="input">Input string</param>
+        /// <returns>Encoded string</returns>
         public static string JWTEncode(this string input)
         {
             return Convert.ToBase64String(input.ToBytesUTF8())
@@ -315,7 +328,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="input">Input</param>
         /// <returns>Decoded string</returns>
-        public static string JWTDecode(this string input)
+        public static string JWTDecodedString(this string input)
         {
             string output = input.Replace('-', '+').Replace('_', '/');
             switch (output.Length % 4) // Pad with trailing '='s
@@ -326,6 +339,24 @@ namespace ExchangeSharp
                 default: throw new ArgumentException("Bad JWT string: " + input);
             }
             return Convert.FromBase64String(output).ToStringFromUTF8();
+        }
+
+        /// <summary>
+        /// JWT decode from JWTEncode
+        /// </summary>
+        /// <param name="input">Input</param>
+        /// <returns>Decoded bytes</returns>
+        public static byte[] JWTDecodedBytes(this string input)
+        {
+            string output = input.Replace('-', '+').Replace('_', '/');
+            switch (output.Length % 4) // Pad with trailing '='s
+            {
+                case 0: break; // No pad chars in this case
+                case 2: output += "=="; break; // Two pad chars
+                case 3: output += "="; break; // One pad char
+                default: throw new ArgumentException("Bad JWT string: " + input);
+            }
+            return Convert.FromBase64String(output);
         }
 
         /// <summary>
