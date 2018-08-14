@@ -33,6 +33,7 @@ namespace ExchangeSharp
             private readonly SignalrManager manager;
             private Func<string, Task> callback;
             private string functionFullName;
+            private bool disposed;
 
             /// <summary>
             /// Connected event
@@ -63,26 +64,36 @@ namespace ExchangeSharp
             /// <returns>Connection</returns>
             public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
             {
-                if (callback != null)
+                if (callback == null)
                 {
-                    SignalrManager _manager = this.manager;
-                    if (_manager == null)
-                    {
-                        throw new ArgumentNullException("SignalrManager is null");
-                    }
-                    param = (param ?? new object[][] { new object[0] });
+                    throw new ArgumentNullException(nameof(callback));
+                }
+
+                SignalrManager _manager = this.manager;
+                if (_manager == null)
+                {
+                    throw new ArgumentNullException("SignalrManager is null");
+                }
+
+                Exception ex = null;
+                param = (param ?? new object[][] { new object[0] });
+                string functionFullName = _manager.GetFunctionFullName(functionName);
+                this.functionFullName = functionFullName;
+
+                while (true)
+                {
                     await _manager.AddListener(functionName, callback, param);
 
-                    // ask for proxy after adding the listener, as the listener will force a connection if needed
-                    IHubProxy _proxy = _manager.hubProxy;
-                    if (_proxy == null)
-                    {
-                        throw new ArgumentNullException("Hub proxy is null");
-                    }
-                    string functionFullName = _manager.GetFunctionFullName(functionName);
-                    Exception ex = null;
                     try
                     {
+                        // ask for proxy after adding the listener, as the listener will force a connection if needed
+                        IHubProxy _proxy = _manager.hubProxy;
+                        if (_proxy == null)
+                        {
+                            throw new ArgumentNullException("Hub proxy is null");
+                        }
+
+                        // all parameters must succeed or we will give up and try the loop all over again
                         for (int i = 0; i < param.Length; i++)
                         {
                             if (i != 0)
@@ -95,28 +106,36 @@ namespace ExchangeSharp
                                 throw new APIException("Invoke returned success code of false");
                             }
                         }
+                        break;
                     }
                     catch (Exception _ex)
                     {
+                        // fail, remove listener
+                        _manager.RemoveListener(functionName, callback);
                         ex = _ex;
-                        Logger.Error(ex, "Error invoking hub proxy {0}: {1}", functionFullName, ex);
-                    }
-                    if (ex == null)
-                    {
-                        this.callback = callback;
-                        this.functionFullName = functionFullName;
-                        lock (_manager.sockets)
+                        Logger.Info("Error invoking hub proxy {0}: {1}", functionFullName, ex);
+                        if (disposed || manager.disposed)
                         {
-                            _manager.sockets.Add(this);
+                            // give up, if we or the manager is disposed we are done
+                            break;
                         }
-                        return;
+                        else
+                        {
+                            // try again in a bit...
+                            await Task.Delay(500);
+                        }
                     }
-
-                    // fail, remove listener
-                    _manager.RemoveListener(functionName, callback);
-                    throw ex;
                 }
-                throw new ArgumentNullException(nameof(callback));
+
+                if (ex == null)
+                {
+                    this.callback = callback;
+                    lock (_manager.sockets)
+                    {
+                        _manager.sockets.Add(this);
+                    }
+                    return;
+                }
             }
 
             internal async Task InvokeConnected()
@@ -142,6 +161,12 @@ namespace ExchangeSharp
             /// </summary>
             public void Dispose()
             {
+                if (disposed)
+                {
+                    return;
+                }
+                disposed = true;
+
                 try
                 {
                     lock (manager.sockets)
@@ -318,7 +343,7 @@ namespace ExchangeSharp
             string functionFullName = GetFunctionFullName(functionName);
 
             // ensure connected before adding the listener
-            await ReconnectLoop().ContinueWith((t) =>
+            await EnsureConnected(() =>
             {
                 lock (listeners)
                 {
@@ -390,10 +415,10 @@ namespace ExchangeSharp
             {
                 return;
             }
-            Task.Run(ReconnectLoop);
+            Task.Run(() => EnsureConnected(null));
         }
 
-        private async Task ReconnectLoop()
+        private async Task EnsureConnected(Action connectCallback)
         {
             if (!(await reconnectLock.WaitAsync(0)))
             {
@@ -407,6 +432,7 @@ namespace ExchangeSharp
                     try
                     {
                         await StartAsync();
+                        connectCallback?.Invoke();
                     }
                     catch (Exception ex)
                     {
