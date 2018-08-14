@@ -111,11 +111,14 @@ namespace ExchangeSharp
                 var signUrl = sign.UrlEncode();
                 msg += $"&Signature={signUrl}";
 
+                /*
+                // Huobi rolled this back, it is no longer needed. Leaving it here in case they change their minds again.
                 // https://github.com/huobiapi/API_Docs_en/wiki/Signing_API_Requests
                 // API Authentication Change
                 var privateSign = GetPrivateSignatureStr(Passphrase.ToUnsecureString(), sign);
                 var privateSignUrl = privateSign.UrlEncode();
                 msg += $"&PrivateSignature={privateSignUrl}";
+                */
 
                 url.Query = msg;
             }
