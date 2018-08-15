@@ -20,15 +20,15 @@ The following cryptocurrency exchanges are supported:
 | ---------------- | --------- | ----------- | --------- |
 | Abucoins         | x         | x           | TO        |
 | Binance          | x         | x           | TRB       |
-| Bitfinex         | x         | x           | TO        |
+| Bitfinex         | x         | x           | TRO       |
 | Bithumb          | x         |             |           |
 | Bitmex           | x         | x           |           |
 | Bitstamp         | x         | x           |           |
 | Bittrex          | x         | x           | T         |
 | Bleutrade        | x         | x           |           |
+| Coinbase         | x         | x           | TR        |
 | Cryptopia        | x         | x           |           |
 | Gemini           | x         | x           |           |
-| GDAX             | x         | x           | T         |
 | Hitbtc           | x         | x           |           |
 | Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
@@ -38,6 +38,7 @@ The following cryptocurrency exchanges are supported:
 | Poloniex         | x         | x           | TB        |
 | TuxExchange      | x         | x           |           |
 | Yobit            | x         | x           |           |
+| ZB.com           | wip       |             | R         |
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
