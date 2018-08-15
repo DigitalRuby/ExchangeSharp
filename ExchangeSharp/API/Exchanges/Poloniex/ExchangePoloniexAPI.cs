@@ -31,7 +31,7 @@ namespace ExchangeSharp
         {
             // load withdrawal field counts
             var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            using (var sr = new StringReader(Resources.ExchangeSharpResources.PoloniexWithdrawalFields))
+            using (var sr = new StringReader(ExchangeSharpResources.PoloniexWithdrawalFields))
             {
                 sr.ReadLine(); // eat the header
                 string line;
@@ -831,13 +831,13 @@ namespace ExchangeSharp
             // If we have an address tag, verify that Polo lets you specify it as part of the withdrawal
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
-                if (!WithdrawalFieldCount.TryGetValue(withdrawalRequest.Symbol, out int fieldCount) || fieldCount == 0)
+                if (!WithdrawalFieldCount.TryGetValue(withdrawalRequest.Currency, out int fieldCount) || fieldCount == 0)
                 {
-                    throw new APIException($"Coin {withdrawalRequest.Symbol} has unknown withdrawal field count. Please manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and add it to PoloniexWithdrawalFields.csv before calling Withdraw");
+                    throw new APIException($"Coin {withdrawalRequest.Currency} has unknown withdrawal field count. Please manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and add it to PoloniexWithdrawalFields.csv before calling Withdraw");
                 }
                 else if (fieldCount == 1)
                 {
-                    throw new APIException($"Coin {withdrawalRequest.Symbol} only allows an address to be specified and address tag {withdrawalRequest.AddressTag} was provided.");
+                    throw new APIException($"Coin {withdrawalRequest.Currency} only allows an address to be specified and address tag {withdrawalRequest.AddressTag} was provided.");
                 }
                 else if (fieldCount > 2)
                 {
@@ -845,7 +845,7 @@ namespace ExchangeSharp
                 }
             }
 
-            var paramsList = new List<object> { "currency", NormalizeSymbol(withdrawalRequest.Symbol), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.Address };
+            var paramsList = new List<object> { "currency", NormalizeSymbol(withdrawalRequest.Currency), "amount", withdrawalRequest.Amount, "address", withdrawalRequest.Address };
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
                 paramsList.Add("paymentId");

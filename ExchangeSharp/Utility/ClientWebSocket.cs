@@ -44,45 +44,45 @@ namespace ExchangeSharp
             /// <summary>
             /// Close cleanly
             /// </summary>
-            /// <param name="closeStatus"></param>
-            /// <param name="statusDescription"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="closeStatus">Status</param>
+            /// <param name="statusDescription">Description</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
 
             /// <summary>
             /// Close output immediately
             /// </summary>
-            /// <param name="closeStatus"></param>
-            /// <param name="statusDescription"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="closeStatus">Status</param>
+            /// <param name="statusDescription">Description</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
 
             /// <summary>
             /// Connect
             /// </summary>
-            /// <param name="uri"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="uri">Uri</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task ConnectAsync(Uri uri, CancellationToken cancellationToken);
 
             /// <summary>
             /// Receive
             /// </summary>
-            /// <param name="buffer"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="buffer">Buffer</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Result</returns>
             Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken);
 
             /// <summary>
             /// Send
             /// </summary>
-            /// <param name="buffer"></param>
-            /// <param name="messageType"></param>
-            /// <param name="endOfMessage"></param>
-            /// <param name="cancellationToken"></param>
-            /// <returns></returns>
+            /// <param name="buffer">Buffer</param>
+            /// <param name="messageType">Message type</param>
+            /// <param name="endOfMessage">True if end of message, false otherwise</param>
+            /// <param name="cancellationToken">Cancel token</param>
+            /// <returns>Task</returns>
             Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken);
         }
 
@@ -173,12 +173,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Allows additional listeners for connect event
         /// </summary>
-        public event Func<IWebSocket, Task> Connected;
+        public event WebSocketConnectionDelegate Connected;
 
         /// <summary>
         /// Allows additional listeners for disconnect event
         /// </summary>
-        public event Func<IWebSocket, Task> Disconnected;
+        public event WebSocketConnectionDelegate Disconnected;
 
         /// <summary>
         /// Whether to close the connection gracefully, this can cause the close to take longer.
@@ -232,60 +232,69 @@ namespace ExchangeSharp
             {
                 disposed = true;
                 cancellationTokenSource.Cancel();
-                try
+                Task.Run(async () =>
                 {
-                    if (CloseCleanly)
+                    try
                     {
-                        webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                        if (webSocket.State == WebSocketState.Open)
+                        {
+                            if (CloseCleanly)
+                            {
+                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                            }
+                            else
+                            {
+                                await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                            }
+                        }
                     }
-                    else
+                    catch (OperationCanceledException)
                     {
-                        webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
+                        // dont care
                     }
-                }
-                catch
-                {
-                }
+                    catch (Exception ex)
+                    {
+                        Logger.Info(ex.ToString());
+                    }
+                });
             }
         }
 
         /// <summary>
-        /// send a message to the WebSocket server.
+        /// Queue a message to the WebSocket server, it will be sent as soon as possible.
         /// </summary>
         /// <param name="message">Message to send</param>
         /// <returns>True if success, false if error</returns>
-        public async Task<bool> SendMessageAsync(string message)
+        public Task<bool> SendMessageAsync(string message)
         {
-            try
+            if (webSocket.State == WebSocketState.Open)
             {
-                if (webSocket.State == WebSocketState.Open)
+                QueueActions(async (socket) =>
                 {
                     ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(message.ToBytesUTF8());
                     await webSocket.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, cancellationToken);
-                    return true;
-                }
+                });
+                return Task.FromResult<bool>(true);
             }
-            catch
-            {
-                // don't care if this fails, maybe the socket is in process of dispose, who knows...
-            }
-            return false;
+            return Task.FromResult<bool>(false);
         }
 
         private void QueueActions(params Func<IWebSocket, Task>[] actions)
         {
             if (actions != null && actions.Length != 0)
             {
+                Func<IWebSocket, Task>[] actionsCopy = actions;
                 messageQueue.Add((Func<Task>)(async () =>
                 {
-                    foreach (var action in actions.Where(a => a != null))
+                    foreach (var action in actionsCopy.Where(a => a != null))
                     {
                         try
                         {
                             await action.Invoke(this);
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            Logger.Info(ex.ToString());
                         }
                     }
                 }));
@@ -296,23 +305,43 @@ namespace ExchangeSharp
         {
             if (actions != null && actions.Length != 0)
             {
+                Func<IWebSocket, Task>[] actionsCopy = actions;
                 messageQueue.Add((Func<Task>)(async () =>
                 {
-                    foreach (var action in actions.Where(a => a != null))
+                    foreach (var action in actionsCopy.Where(a => a != null))
                     {
-                        while (true)
+                        while (!disposed)
                         {
                             try
                             {
                                 await action.Invoke(this);
                                 break;
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                Logger.Info(ex.ToString());
                             }
                         }
                     }
                 }));
+            }
+        }
+
+        private async Task InvokeConnected(IWebSocket socket)
+        {
+            var connected = Connected;
+            if (connected != null)
+            {
+                await connected.Invoke(socket);
+            }
+        }
+
+        private async Task InvokeDisconnected(IWebSocket socket)
+        {
+            var disconnected = Disconnected;
+            if (disconnected != null)
+            {
+                await disconnected.Invoke(this);
             }
         }
 
@@ -344,7 +373,7 @@ namespace ExchangeSharp
 
                     // on connect may make additional calls that must succeed, such as rest calls
                     // for lists, etc.
-                    QueueActionsWithNoExceptions(Connected);
+                    QueueActionsWithNoExceptions(InvokeConnected);
 
                     while (webSocket.State == WebSocketState.Open)
                     {
@@ -356,7 +385,7 @@ namespace ExchangeSharp
                                 if (result.MessageType == WebSocketMessageType.Close)
                                 {
                                     await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
-                                    QueueActions(Disconnected);
+                                    QueueActions(InvokeDisconnected);
                                 }
                                 else
                                 {
@@ -376,21 +405,27 @@ namespace ExchangeSharp
                         }
                     }
                 }
-                catch
+                catch (OperationCanceledException)
+                {
+                    // dont care
+                }
+                catch (Exception ex)
                 {
                     // eat exceptions, most likely a result of a disconnect, either way we will re-create the web socket
+                    Logger.Info(ex.ToString());
                 }
 
                 if (wasConnected)
                 {
-                    QueueActions(Disconnected);
+                    QueueActions(InvokeDisconnected);
                 }
                 try
                 {
                     webSocket.Dispose();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Info(ex.ToString());
                 }
                 if (!disposed)
                 {
@@ -420,8 +455,13 @@ namespace ExchangeSharp
                             await OnMessage?.Invoke(this, messageBytes);
                         }
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        // dont care
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Info(ex.ToString());
                     }
                 }
                 if (ConnectInterval.Ticks > 0 && (DateTime.UtcNow - lastCheck) >= ConnectInterval)
@@ -429,11 +469,18 @@ namespace ExchangeSharp
                     lastCheck = DateTime.UtcNow;
 
                     // this must succeed, the callback may be requests lists or other resources that must not fail
-                    QueueActionsWithNoExceptions(Connected);
+                    QueueActionsWithNoExceptions(InvokeConnected);
                 }
             }
         }
     }
+
+    /// <summary>
+    /// Delegate for web socket connect / disconnect events
+    /// </summary>
+    /// <param name="socket">Web socket</param>
+    /// <returns>Task</returns>
+    public delegate Task WebSocketConnectionDelegate(IWebSocket socket);
 
     /// <summary>
     /// Web socket interface
@@ -443,12 +490,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Connected event
         /// </summary>
-        event Func<IWebSocket, Task> Connected;
+        event WebSocketConnectionDelegate Connected;
 
         /// <summary>
         /// Disconnected event
         /// </summary>
-        event Func<IWebSocket, Task> Disconnected;
+        event WebSocketConnectionDelegate Disconnected;
 
         /// <summary>
         /// Send a message over the web socket

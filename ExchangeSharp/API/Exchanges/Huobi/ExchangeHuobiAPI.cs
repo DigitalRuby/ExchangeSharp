@@ -111,11 +111,14 @@ namespace ExchangeSharp
                 var signUrl = sign.UrlEncode();
                 msg += $"&Signature={signUrl}";
 
+                /*
+                // Huobi rolled this back, it is no longer needed. Leaving it here in case they change their minds again.
                 // https://github.com/huobiapi/API_Docs_en/wiki/Signing_API_Requests
                 // API Authentication Change
                 var privateSign = GetPrivateSignatureStr(Passphrase.ToUnsecureString(), sign);
                 var privateSignUrl = privateSign.UrlEncode();
                 msg += $"&PrivateSignature={privateSignUrl}";
+                */
 
                 url.Query = msg;
             }
@@ -913,9 +916,9 @@ namespace ExchangeSharp
                 byte[] signDataBytes = signData.ToBytesUTF8();
                 privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
             }
-            catch (CryptographicException e)
+            catch (CryptographicException ex)
             {
-                Console.WriteLine("Private signature error because: " + e.Message);
+                Logger.Error(ex, "Private signature error because: " + ex.Message);
             }
 
 #endif

@@ -129,7 +129,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the name of the API
         /// </summary>
-        public string Name { get; private set; }
+        public virtual string Name { get; private set; }
 
         /// <summary>
         /// Public API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
@@ -406,7 +406,7 @@ namespace ExchangeSharp
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
         /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// The encoding of payload is API dependant but is typically json.</param>
+        /// The encoding of payload is API dependant but is typically json.
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
         public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
@@ -444,8 +444,8 @@ namespace ExchangeSharp
         (
             string url,
             Func<IWebSocket, byte[], Task> messageCallback,
-            Func<IWebSocket, Task> connectCallback = null,
-            Func<IWebSocket, Task> disconnectCallback = null
+            WebSocketConnectionDelegate connectCallback = null,
+            WebSocketConnectionDelegate disconnectCallback = null
         )
         {
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);

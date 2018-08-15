@@ -537,7 +537,7 @@ namespace ExchangeSharp
         {
             // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
 
-            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Symbol)}&quantity={withdrawalRequest.Amount.ToStringInvariant()}&address={withdrawalRequest.Address}";
+            string url = $"/account/withdraw?currency={NormalizeSymbol(withdrawalRequest.Currency)}&quantity={withdrawalRequest.Amount.ToStringInvariant()}&address={withdrawalRequest.Address}";
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
             {
                 url += $"&paymentid={withdrawalRequest.AddressTag}";
@@ -583,7 +583,7 @@ namespace ExchangeSharp
 
             if (!updatedCurrencies.TryGetValue(depositDetails.Symbol, out ExchangeCurrency coin))
             {
-                Console.WriteLine($"Unable to find {depositDetails.Symbol} in existing list of coins.");
+                Logger.Warn($"Unable to find {depositDetails.Symbol} in existing list of coins.");
                 return null;
             }
 
@@ -598,7 +598,7 @@ namespace ExchangeSharp
             }
             else
             {
-                Console.WriteLine($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
+                Logger.Warn($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
                 return null;
             }
 

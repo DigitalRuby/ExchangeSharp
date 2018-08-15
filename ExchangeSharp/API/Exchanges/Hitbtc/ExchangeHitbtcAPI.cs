@@ -431,7 +431,7 @@ namespace ExchangeSharp
             ExchangeWithdrawalResponse withdraw = new ExchangeWithdrawalResponse() { Success = false };
             var payload = await GetNoncePayloadAsync();
             payload["amount"] = withdrawalRequest.Amount;
-            payload["currency_code"] = withdrawalRequest.Symbol;
+            payload["currency_code"] = withdrawalRequest.Currency;
             payload["address"] = withdrawalRequest.Address;
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["paymentId"] = withdrawalRequest.AddressTag;
             //{ "id": "d2ce578f-647d-4fa0-b1aa-4a27e5ee597b"}   that's all folks!

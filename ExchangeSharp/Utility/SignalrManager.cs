@@ -1,4 +1,16 @@
-﻿#define HAS_SIGNALR
+﻿/*
+MIT LICENSE
+
+Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#define HAS_SIGNALR
 
 #if HAS_SIGNALR
 
@@ -33,16 +45,17 @@ namespace ExchangeSharp
             private readonly SignalrManager manager;
             private Func<string, Task> callback;
             private string functionFullName;
+            private bool disposed;
 
             /// <summary>
             /// Connected event
             /// </summary>
-            public event Func<IWebSocket, Task> Connected;
+            public event WebSocketConnectionDelegate Connected;
 
             /// <summary>
             /// Disconnected event
             /// </summary>
-            public event Func<IWebSocket, Task> Disconnected;
+            public event WebSocketConnectionDelegate Disconnected;
 
             /// <summary>
             /// Constructor
@@ -63,79 +76,96 @@ namespace ExchangeSharp
             /// <returns>Connection</returns>
             public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
             {
-                if (callback != null)
+                if (callback == null)
                 {
-                    SignalrManager _manager = this.manager;
-                    if (_manager == null)
-                    {
-                        throw new ArgumentNullException("SignalrManager is null");
-                    }
-                    param = (param ?? new object[][] { new object[0] });
+                    throw new ArgumentNullException(nameof(callback));
+                }
+
+                SignalrManager _manager = this.manager;
+                if (_manager == null)
+                {
+                    throw new ArgumentNullException("SignalrManager is null");
+                }
+
+                Exception ex = null;
+                param = (param ?? new object[][] { new object[0] });
+                string functionFullName = _manager.GetFunctionFullName(functionName);
+                this.functionFullName = functionFullName;
+
+                while (true)
+                {
                     await _manager.AddListener(functionName, callback, param);
 
-                    // ask for proxy after adding the listener, as the listener will force a connection if needed
-                    IHubProxy _proxy = _manager.hubProxy;
-                    if (_proxy == null)
-                    {
-                        throw new ArgumentNullException("Hub proxy is null");
-                    }
-                    string functionFullName = _manager.GetFunctionFullName(functionName);
-                    Exception ex = null;
                     try
                     {
+                        // ask for proxy after adding the listener, as the listener will force a connection if needed
+                        IHubProxy _proxy = _manager.hubProxy;
+                        if (_proxy == null)
+                        {
+                            throw new ArgumentNullException("Hub proxy is null");
+                        }
+
+                        // all parameters must succeed or we will give up and try the loop all over again
                         for (int i = 0; i < param.Length; i++)
                         {
                             if (i != 0)
                             {
                                 await Task.Delay(delayMilliseconds);
                             }
-                            if (!(await _proxy.Invoke<bool>(functionFullName, param[i])))
+                            bool result = await _proxy.Invoke<bool>(functionFullName, param[i]).ConfigureAwait(false);
+                            if (!result)
                             {
                                 throw new APIException("Invoke returned success code of false");
                             }
                         }
+                        break;
                     }
                     catch (Exception _ex)
                     {
+                        // fail, remove listener
+                        _manager.RemoveListener(functionName, callback);
                         ex = _ex;
-                        Console.WriteLine("Error invoking hub proxy {0}: {1}", functionFullName, ex);
-                    }
-                    if (ex == null)
-                    {
-                        this.callback = callback;
-                        this.functionFullName = functionFullName;
-                        lock (_manager.sockets)
+                        Logger.Info("Error invoking hub proxy {0}: {1}", functionFullName, ex);
+                        if (disposed || manager.disposed)
                         {
-                            _manager.sockets.Add(this);
+                            // give up, if we or the manager is disposed we are done
+                            break;
                         }
-                        return;
+                        else
+                        {
+                            // try again in a bit...
+                            await Task.Delay(500);
+                        }
                     }
-
-                    // fail, remove listener
-                    _manager.RemoveListener(functionName, callback);
-                    throw ex;
                 }
-                throw new ArgumentNullException(nameof(callback));
+
+                if (ex == null)
+                {
+                    this.callback = callback;
+                    lock (_manager.sockets)
+                    {
+                        _manager.sockets.Add(this);
+                    }
+                    return;
+                }
             }
 
             internal async Task InvokeConnected()
             {
-                await Connected?.Invoke(this);
+                var connected = Connected;
+                if (connected != null)
+                {
+                    await connected.Invoke(this);
+                }
             }
 
             internal async Task InvokeDisconnected()
             {
-                await Disconnected?.Invoke(this);
-            }
-
-            private void WebSocket_Connected(IWebSocket obj)
-            {
-                Connected?.Invoke(this);
-            }
-
-            private void WebSocket_Disconnected(IWebSocket obj)
-            {
-                Disconnected?.Invoke(this);
+                var disconnected = Disconnected;
+                if (disconnected != null)
+                {
+                    await disconnected.Invoke(this);
+                }
             }
 
             /// <summary>
@@ -143,6 +173,12 @@ namespace ExchangeSharp
             /// </summary>
             public void Dispose()
             {
+                if (disposed)
+                {
+                    return;
+                }
+                disposed = true;
+
                 try
                 {
                     lock (manager.sockets)
@@ -150,7 +186,7 @@ namespace ExchangeSharp
                         manager.sockets.Remove(this);
                     }
                     manager.RemoveListener(functionFullName, callback);
-                    Disconnected?.Invoke(this);
+                    InvokeDisconnected().Sync();
                 }
                 catch
                 {
@@ -283,12 +319,11 @@ namespace ExchangeSharp
         }
 
         private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
-        private readonly List<IWebSocket> sockets = new List<IWebSocket>();
+        private readonly List<SignalrSocketConnection> sockets = new List<SignalrSocketConnection>();
+        private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
 
         private HubConnection hubConnection;
         private IHubProxy hubProxy;
-        private WebsocketCustomTransport customTransport;
-        private bool reconnecting;
         private bool disposed;
 
         /// <summary>
@@ -320,7 +355,7 @@ namespace ExchangeSharp
             string functionFullName = GetFunctionFullName(functionName);
 
             // ensure connected before adding the listener
-            await ReconnectLoop().ContinueWith((t) =>
+            await EnsureConnected(() =>
             {
                 lock (listeners)
                 {
@@ -378,8 +413,9 @@ namespace ExchangeSharp
                     {
                         await func(data);
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Info(ex.ToString());
                     }
                 }
             }
@@ -387,20 +423,19 @@ namespace ExchangeSharp
 
         private void SocketClosed()
         {
-            if (listeners.Count == 0 || reconnecting)
+            if (listeners.Count == 0)
             {
                 return;
             }
-            Task.Run(ReconnectLoop);
+            Task.Run(() => EnsureConnected(null));
         }
 
-        private async Task ReconnectLoop()
+        private async Task EnsureConnected(Action connectCallback)
         {
-            if (reconnecting)
+            if (!(await reconnectLock.WaitAsync(0)))
             {
                 return;
             }
-            reconnecting = true;
             try
             {
                 // if hubConnection is null, exception will throw out
@@ -409,9 +444,12 @@ namespace ExchangeSharp
                     try
                     {
                         await StartAsync();
+                        connectCallback?.Invoke();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Debug(ex.ToString());
+
                         // wait 5 seconds before attempting reconnect
                         for (int i = 0; i < 50 && !disposed; i++)
                         {
@@ -420,10 +458,14 @@ namespace ExchangeSharp
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.Info(ex.ToString());
             }
-            reconnecting = false;
+            finally
+            {
+                reconnectLock.Release();
+            }
         }
 
         /// <summary>
@@ -453,8 +495,8 @@ namespace ExchangeSharp
 
 #if DEBUG
 
-            hubConnection.TraceLevel = TraceLevels.All;
-            hubConnection.TraceWriter = Console.Out;
+            //hubConnection.TraceLevel = TraceLevels.All;
+            //hubConnection.TraceWriter = Console.Out;
 
 #endif
 
@@ -472,37 +514,43 @@ namespace ExchangeSharp
 
             // create a custom transport, the default transport is really buggy
             DefaultHttpClient client = new DefaultHttpClient();
-            customTransport = new WebsocketCustomTransport(client);
+            WebsocketCustomTransport customTransport = new WebsocketCustomTransport(client);
             var autoTransport = new AutoTransport(client, new IClientTransport[] { customTransport });
             hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
 
             // setup connect event
             customTransport.WebSocket.Connected += async (ws) =>
             {
-                IWebSocket[] socketsCopy;
+                SignalrSocketConnection[] socketsCopy;
                 lock (sockets)
                 {
                     socketsCopy = sockets.ToArray();
                 }
-                foreach (IWebSocket socket in socketsCopy)
+                foreach (SignalrSocketConnection socket in socketsCopy)
                 {
-                    await (socket as SignalrSocketConnection).InvokeConnected();
+                    await socket.InvokeConnected();
                 }
             };
 
             // setup disconnect event
             customTransport.WebSocket.Disconnected += async (ws) =>
             {
-                IWebSocket[] socketsCopy;
-                lock (sockets)
+                try
                 {
-                    socketsCopy = sockets.ToArray();
+                    SignalrSocketConnection[] socketsCopy;
+                    lock (sockets)
+                    {
+                        socketsCopy = sockets.ToArray();
+                    }
+                    foreach (SignalrSocketConnection socket in socketsCopy)
+                    {
+                        await socket.InvokeDisconnected();
+                    }
                 }
-                foreach (IWebSocket socket in socketsCopy)
+                catch (Exception ex)
                 {
-                    await (socket as SignalrSocketConnection).InvokeDisconnected();
+                    Logger.Info(ex.ToString());
                 }
-
                 // start a task to tear down the hub connection
                 await Task.Run(() =>
                 {
@@ -511,8 +559,9 @@ namespace ExchangeSharp
                         // tear down the hub connection, we must re-create it whenever a web socket disconnects
                         hubConnection?.Dispose();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Info(ex.ToString());
                     }
                 });
             };
@@ -556,25 +605,21 @@ namespace ExchangeSharp
         /// </summary>
         public void Dispose()
         {
-            disposed = true;
-            if (hubConnection == null)
+            if (disposed)
             {
                 return;
             }
-            listeners.Clear();
-
-            // null out hub so we don't try to reconnect
-            var tmp = hubConnection;
-            hubConnection = null;
+            disposed = true;
             try
             {
-                tmp.Transport.Dispose();
-                tmp.Dispose();
+                hubConnection.Transport.Dispose();
+                hubConnection.Dispose();
             }
             catch
             {
                 // eat exceptions here, we don't care if it fails
             }
+            hubConnection = null;
         }
 
         /// <summary>

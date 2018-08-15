@@ -363,7 +363,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             var payload = await GetNoncePayloadAsync();
-            payload["currency"] = NormalizeSymbol(withdrawalRequest.Symbol);
+            payload["currency"] = NormalizeSymbol(withdrawalRequest.Currency);
             payload["quantity"] = withdrawalRequest.Amount;
             payload["address"] = withdrawalRequest.Address;
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["comments"] = withdrawalRequest.AddressTag;

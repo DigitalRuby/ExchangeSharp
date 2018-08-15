@@ -398,7 +398,7 @@ namespace ExchangeSharp
         {
             string baseurl = null;
             string url;
-            switch (withdrawalRequest.Symbol)
+            switch (withdrawalRequest.Currency)
             {
                 case "BTC":
                     // use old API for Bitcoin withdraw
@@ -407,7 +407,7 @@ namespace ExchangeSharp
                     break;
                 default:
                     // this will work for some currencies and fail for others, caller must be aware of the supported currencies
-                    url = "/" + withdrawalRequest.Symbol.ToLowerInvariant() + "_withdrawal/";
+                    url = "/" + withdrawalRequest.Currency.ToLowerInvariant() + "_withdrawal/";
                     break;
             }
 

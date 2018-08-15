@@ -681,7 +681,7 @@ namespace ExchangeSharp
         /// <returns>Withdrawal response from Binance</returns>
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            if (string.IsNullOrWhiteSpace(withdrawalRequest.Symbol))
+            if (string.IsNullOrWhiteSpace(withdrawalRequest.Currency))
             {
                 throw new ArgumentException("Symbol must be provided for Withdraw");
             }
@@ -695,7 +695,7 @@ namespace ExchangeSharp
             }
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["asset"] = withdrawalRequest.Symbol;
+            payload["asset"] = withdrawalRequest.Currency;
             payload["address"] = withdrawalRequest.Address;
             payload["amount"] = withdrawalRequest.Amount;
             payload["name"] = withdrawalRequest.Description ?? "apiwithdrawal"; // Contrary to what the API docs say, name is required

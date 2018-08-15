@@ -114,6 +114,12 @@ public static void Main(string[] args)
     }
 }
 ```
+
+### Logging
+ExchangeSharp uses NLog internally currently. To log, use ExchangeSharp.Logger. Do not use Console.WriteLine to log messages.
+
+Provide your own nlog.config or app.config nlog configuration if you want to change logging settings or turn logging off.
+
 ### How to contribute
 Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
 

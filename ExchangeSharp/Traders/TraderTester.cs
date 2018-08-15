@@ -73,7 +73,7 @@ namespace ExchangeSharp
                         "BuyReverseThresholdPercent", "BuyFalseReverseThresholdPercent", "SellReverseThresholdPercent",
                         "Spend", "Profit", "SpendProfitDiff", "ItemCount", "Buys", "Sells", "CashFlow");
                     csv.Sort((k1, k2) => k2.Key.CompareTo(k1.Key));
-                    Console.WriteLine("Max: {0}", csv[0].Value);
+                    Logger.Info("Max: {0}", csv[0].Value);
                     foreach (var kv in csv)
                     {
                         csvWriter.WriteLine(kv.Value);
@@ -82,7 +82,7 @@ namespace ExchangeSharp
             }
 
             w.Stop();
-            Console.WriteLine("Total time: {0}", w.Elapsed);
+            Logger.Info("Total time: {0}", w.Elapsed);
             return 0;
         }
     }
