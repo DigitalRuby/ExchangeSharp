@@ -26,7 +26,7 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBitfinexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bitfinex.com/v2";
-        public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws/2";
+        public override string BaseUrlWebSocket { get; set; } = "wss://api.bitfinex.com/ws";
 
         public Dictionary<string, string> DepositMethodLookup { get; }
 
@@ -230,7 +230,7 @@ namespace ExchangeSharp
                 return null;
             }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket(string.Empty, (_socket , msg) =>
+            return ConnectWebSocket("/2", (_socket , msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
