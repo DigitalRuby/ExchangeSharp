@@ -36,6 +36,7 @@ namespace ExchangeSharp
             {
                 this.uri = fullUri;
                 request = HttpWebRequest.Create(fullUri) as HttpWebRequest;
+                request.KeepAlive = false;
             }
 
             public void AddHeader(string header, string value)
