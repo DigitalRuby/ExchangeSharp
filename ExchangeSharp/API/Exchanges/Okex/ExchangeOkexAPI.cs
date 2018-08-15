@@ -659,7 +659,7 @@ namespace ExchangeSharp
                 var timeOffset = TimeSpan.FromHours(-8); //China time to utc, no DST correction needed
                 var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + timeOffset;
                 if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
-                var dt = DateTime.Today.Add(ts);
+                var dt = DateTime.UtcNow.Date.Add(ts);
                 var trade = new ExchangeTrade()
                 {
                     Id = t[0].ConvertInvariant<long>(),
