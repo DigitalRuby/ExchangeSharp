@@ -58,7 +58,7 @@ namespace ExchangeSharp
             throw new NotImplementedException();
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -69,9 +69,9 @@ namespace ExchangeSharp
                 var sign = $"{request.Method}{request.RequestUri.AbsolutePath}{request.RequestUri.Query}{nonce}{msg}";
                 string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytesUTF8(PrivateApiKey));
 
-                request.Headers["api-expires"] = nonce.ToStringInvariant();
-                request.Headers["api-key"] = PublicApiKey.ToUnsecureString();
-                request.Headers["api-signature"] = signature;
+                request.AddHeader("api-expires", nonce.ToStringInvariant());
+                request.AddHeader("api-key", PublicApiKey.ToUnsecureString());
+                request.AddHeader("api-signature", signature);
 
                 await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
             }

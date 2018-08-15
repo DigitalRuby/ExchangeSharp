@@ -48,21 +48,17 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
             {
                 var msg = CryptoUtility.GetFormForPayload(payload);
                 var sig = CryptoUtility.SHA512Sign(msg, PrivateApiKey.ToUnsecureString());
-                request.Headers.Add("Key", PublicApiKey.ToUnsecureString());
-                request.Headers.Add("Sign", sig.ToLowerInvariant());
-
-                using (Stream stream = await request.GetRequestStreamAsync())
-                {
-                    byte[] content = msg.ToBytesUTF8();
-                    stream.Write(content, 0, content.Length);
-                }
+                request.AddHeader("Key", PublicApiKey.ToUnsecureString());
+                request.AddHeader("Sign", sig.ToLowerInvariant());
+                byte[] content = msg.ToBytesUTF8();
+                await request.WriteAllAsync(content, 0, content.Length);
             }
         }
 

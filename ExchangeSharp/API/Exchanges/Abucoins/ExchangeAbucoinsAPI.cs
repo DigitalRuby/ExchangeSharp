@@ -35,7 +35,7 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -45,10 +45,10 @@ namespace ExchangeSharp
                 string msg = timestamp + request.Method + request.RequestUri.PathAndQuery + (request.Method.Equals("POST") ? body : string.Empty);
                 string sign = CryptoUtility.SHA256SignBase64(msg, CryptoUtility.ToBytesBase64Decode(PrivateApiKey));
 
-                request.Headers["AC-ACCESS-KEY"] = CryptoUtility.ToUnsecureString(PublicApiKey);
-                request.Headers["AC-ACCESS-SIGN"] = sign;
-                request.Headers["AC-ACCESS-TIMESTAMP"] = timestamp;
-                request.Headers["AC-ACCESS-PASSPHRASE"] = CryptoUtility.ToUnsecureString(Passphrase);
+                request.AddHeader("AC-ACCESS-KEY", CryptoUtility.ToUnsecureString(PublicApiKey));
+                request.AddHeader("AC-ACCESS-SIGN", sign);
+                request.AddHeader("AC-ACCESS-TIMESTAMP",  timestamp);
+                request.AddHeader("AC-ACCESS-PASSPHRASE", CryptoUtility.ToUnsecureString(Passphrase));
 
                 if (request.Method == "POST")
                 {

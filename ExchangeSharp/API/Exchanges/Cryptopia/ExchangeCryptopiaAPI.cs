@@ -41,7 +41,7 @@ namespace ExchangeSharp
             return NormalizeSymbol(symbol).Replace(SymbolSeparator, "_");
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             // Only Private APIs are POST and need Authorization
             if (CanMakeAuthenticatedRequest(payload) && request.Method == "POST")
@@ -51,25 +51,21 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
 
                 string jsonContent = CryptoUtility.GetJsonForPayload(payload);
-                if (!String.IsNullOrEmpty(jsonContent))
+                if (!string.IsNullOrEmpty(jsonContent))
                 {
                     using (MD5 md5 = MD5.Create())
                     {
                         requestContentBase64String = Convert.ToBase64String(md5.ComputeHash(jsonContent.ToBytesUTF8()));
                     }
                 }
-                else request.ContentLength = 0;
 
                 string baseSig = string.Concat(PublicApiKey.ToUnsecureString(), request.Method, WebUtility.UrlEncode(request.RequestUri.AbsoluteUri).ToLowerInvariant(), nonce, requestContentBase64String);
                 string signature = CryptoUtility.SHA256SignBase64(baseSig, Convert.FromBase64String(PrivateApiKey.ToUnsecureString()));
-                request.Headers.Add(HttpRequestHeader.Authorization, string.Format("amx {0}:{1}:{2}", PublicApiKey.ToUnsecureString(), signature, nonce));
+                request.AddHeader("authorization", string.Format("amx {0}:{1}:{2}", PublicApiKey.ToUnsecureString(), signature, nonce));
 
                 // Cryptopia is very picky on how the payload is passed. There might be a better way to do this, but this works...
-                using (Stream stream = await request.GetRequestStreamAsync())
-                {
-                    byte[] content = jsonContent.ToBytesUTF8();
-                    stream.Write(content, 0, content.Length);
-                }
+                byte[] content = jsonContent.ToBytesUTF8();
+                await request.WriteAllAsync(content, 0, content.Length);
             }
         }
 

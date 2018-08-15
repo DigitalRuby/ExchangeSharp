@@ -37,27 +37,24 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                request.Headers.Add("KC-API-KEY", PublicApiKey.ToUnsecureString());
-                request.Headers.Add("KC-API-NONCE", payload["nonce"].ToStringInvariant());
+                request.AddHeader("KC-API-KEY", PublicApiKey.ToUnsecureString());
+                request.AddHeader("KC-API-NONCE", payload["nonce"].ToStringInvariant());
 
                 var endpoint = request.RequestUri.AbsolutePath;
                 var message = string.Format("{0}/{1}/{2}", endpoint, payload["nonce"], CryptoUtility.GetFormForPayload(payload, false));
                 var sig = CryptoUtility.SHA256Sign(Convert.ToBase64String(message.ToBytesUTF8()), PrivateApiKey.ToUnsecureString());
 
-                request.Headers.Add("KC-API-SIGNATURE", sig);
+                request.AddHeader("KC-API-SIGNATURE", sig);
 
                 if (request.Method == "POST")
                 {
                     string msg = CryptoUtility.GetFormForPayload(payload, false);
-                    using (Stream stream = await request.GetRequestStreamAsync())
-                    {
-                        byte[] content = msg.ToBytesUTF8();
-                        stream.Write(content, 0, content.Length);
-                    }
+                    byte[] content = msg.ToBytesUTF8();
+                    await request.WriteAllAsync(content, 0, content.Length);
                 }
             }
         }

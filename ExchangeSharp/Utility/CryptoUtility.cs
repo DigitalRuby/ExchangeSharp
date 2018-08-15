@@ -273,14 +273,17 @@ namespace ExchangeSharp
         /// Convert utf-8 bytes to a string
         /// </summary>
         /// <param name="bytes"></param>
+        /// <param name="index">Offset</param>
+        /// <param name="length">Length</param>
         /// <returns>UTF-8 string or null if bytes is null</returns>
-        public static string ToStringFromUTF8(this byte[] bytes)
+        public static string ToStringFromUTF8(this byte[] bytes, int index = 0, int length = 0)
         {
             if (bytes == null)
             {
                 return null;
             }
-            return utf8EncodingNoPrefix.GetString(bytes);
+            length = (length <= 0 ? bytes.Length : length);
+            return utf8EncodingNoPrefix.GetString(bytes, index, length);
         }
 
         /// <summary>
@@ -548,17 +551,17 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="form">Form to write</param>
-        public static async Task WriteToRequestAsync(this HttpWebRequest request, string form)
+        public static async Task WriteToRequestAsync(this IHttpWebRequest request, string form)
         {
-            if (!string.IsNullOrEmpty(form))
+            if (string.IsNullOrEmpty(form) && request.Method != "GET")
+            {
+                request.AddHeader("content-length", "0");
+            }
+            else
             {
                 byte[] bytes = form.ToBytesUTF8();
-                request.ContentLength = bytes.Length;
-                using (Stream stream = await request.GetRequestStreamAsync())
-                {
-                    stream.Write(bytes, 0, bytes.Length);
-                    await stream.FlushAsync();
-                }
+                request.AddHeader("content-length", bytes.Length.ToStringInvariant());
+                await request.WriteAllAsync(bytes, 0, bytes.Length);
             }
         }
 
@@ -568,7 +571,7 @@ namespace ExchangeSharp
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
         /// <returns>The form string that was written</returns>
-        public static async Task<string> WritePayloadFormToRequestAsync(this HttpWebRequest request, Dictionary<string, object> payload)
+        public static async Task<string> WritePayloadFormToRequestAsync(this IHttpWebRequest request, Dictionary<string, object> payload)
         {
             string form = GetFormForPayload(payload);
             await WriteToRequestAsync(request, form);
@@ -581,7 +584,7 @@ namespace ExchangeSharp
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
         /// <returns>The json string that was written</returns>
-        public static async Task<string> WritePayloadJsonToRequestAsync(this HttpWebRequest request, Dictionary<string, object> payload)
+        public static async Task<string> WritePayloadJsonToRequestAsync(this IHttpWebRequest request, Dictionary<string, object> payload)
         {
             string json = GetJsonForPayload(payload);
             await WriteToRequestAsync(request, json);

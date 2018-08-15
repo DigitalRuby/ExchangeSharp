@@ -31,13 +31,13 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 string payloadForm = CryptoUtility.GetFormForPayload(payload, false);
-                request.Headers["API-Key"] = PublicApiKey.ToUnsecureString();
-                request.Headers["Sign"] = CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytesUTF8()).ToUpperInvariant();
+                request.AddHeader("API-Key", PublicApiKey.ToUnsecureString());
+                request.AddHeader("Sign", CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytesUTF8()).ToUpperInvariant());
                 await request.WriteToRequestAsync(payloadForm);
             }
         }

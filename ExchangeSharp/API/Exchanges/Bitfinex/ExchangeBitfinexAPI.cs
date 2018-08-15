@@ -608,13 +608,13 @@ namespace ExchangeSharp
             return resp;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Method = "POST";
-                request.ContentType = request.Accept = "application/json";
-
+                request.AddHeader("content-type", "application/json");
+                request.AddHeader("accept", "application/json");
                 if (request.RequestUri.AbsolutePath.StartsWith("/v2"))
                 {
                     string nonce = payload["nonce"].ToStringInvariant();
@@ -622,9 +622,9 @@ namespace ExchangeSharp
                     string json = JsonConvert.SerializeObject(payload);
                     string toSign = "/api" + request.RequestUri.PathAndQuery + nonce + json;
                     string hexSha384 = CryptoUtility.SHA384Sign(toSign, PrivateApiKey.ToUnsecureString());
-                    request.Headers["bfx-nonce"] = nonce;
-                    request.Headers["bfx-apikey"] = PublicApiKey.ToUnsecureString();
-                    request.Headers["bfx-signature"] = hexSha384;
+                    request.AddHeader("bfx-nonce", nonce);
+                    request.AddHeader("bfx-apikey", PublicApiKey.ToUnsecureString());
+                    request.AddHeader("bfx-signature", hexSha384);
                     await CryptoUtility.WriteToRequestAsync(request, json);
                 }
                 else
@@ -634,9 +634,9 @@ namespace ExchangeSharp
                     string json = JsonConvert.SerializeObject(payload);
                     string json64 = System.Convert.ToBase64String(json.ToBytesUTF8());
                     string hexSha384 = CryptoUtility.SHA384Sign(json64, PrivateApiKey.ToUnsecureString());
-                    request.Headers["X-BFX-PAYLOAD"] = json64;
-                    request.Headers["X-BFX-SIGNATURE"] = hexSha384;
-                    request.Headers["X-BFX-APIKEY"] = PublicApiKey.ToUnsecureString();
+                    request.AddHeader("X-BFX-PAYLOAD", json64);
+                    request.AddHeader("X-BFX-SIGNATURE", hexSha384);
+                    request.AddHeader("X-BFX-APIKEY", PublicApiKey.ToUnsecureString());
                 }
             }
         }

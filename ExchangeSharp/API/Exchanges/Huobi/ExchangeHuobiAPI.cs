@@ -56,14 +56,13 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 if (request.Method == "POST")
                 {
-                    request.ContentType = "application/json";
-
+                    request.AddHeader("content-type", "application/json");
                     payload.Remove("nonce");
                     var msg = CryptoUtility.GetJsonForPayload(payload);
                     await CryptoUtility.WriteToRequestAsync(request, msg);

@@ -478,7 +478,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        protected virtual Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected virtual Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             return Task.CompletedTask;
         }
@@ -487,7 +487,7 @@ namespace ExchangeSharp
         /// Additional handling for response
         /// </summary>
         /// <param name="response">Response</param>
-        protected virtual void ProcessResponse(HttpWebResponse response)
+        protected virtual void ProcessResponse(IHttpWebResponse response)
         {
 
         }
@@ -575,12 +575,12 @@ namespace ExchangeSharp
         /// </summary>
         protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }
 
-        async Task IAPIRequestHandler.ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        async Task IAPIRequestHandler.ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             await ProcessRequestAsync(request, payload);
         }
 
-        void IAPIRequestHandler.ProcessResponse(HttpWebResponse response)
+        void IAPIRequestHandler.ProcessResponse(IHttpWebResponse response)
         {
             ProcessResponse(response);
         }

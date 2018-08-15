@@ -927,11 +927,11 @@ namespace ExchangeSharp
             result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
         }
 
-        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                request.Headers["X-MBX-APIKEY"] = PublicApiKey.ToUnsecureString();
+                request.AddHeader("X-MBX-APIKEY", PublicApiKey.ToUnsecureString());
             }
             return base.ProcessRequestAsync(request, payload);
         }

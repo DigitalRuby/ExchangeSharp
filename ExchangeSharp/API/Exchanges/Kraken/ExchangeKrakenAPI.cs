@@ -194,7 +194,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
@@ -219,10 +219,10 @@ namespace ExchangeSharp
                     using (System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
                     {
                         string sign = System.Convert.ToBase64String(hmac.ComputeHash(sigBytes));
-                        request.Headers.Add("API-Sign", sign);
+                        request.AddHeader("API-Sign", sign);
                     }
                 }
-                request.Headers.Add("API-Key", CryptoUtility.ToUnsecureString(PublicApiKey));
+                request.AddHeader("API-Key", CryptoUtility.ToUnsecureString(PublicApiKey));
                 await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }

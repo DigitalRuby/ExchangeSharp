@@ -130,13 +130,13 @@ namespace ExchangeSharp
             return url.Uri;
         }
 
-        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 string url = request.RequestUri.ToString();
                 string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey.ToUnsecureString());
-                request.Headers["apisign"] = sign;
+                request.AddHeader("apisign", sign);
             }
             return base.ProcessRequestAsync(request, payload);
         }

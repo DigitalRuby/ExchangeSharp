@@ -61,6 +61,59 @@ namespace ExchangeSharp
     }
 
     /// <summary>
+    /// Http web request
+    /// </summary>
+    public interface IHttpWebRequest
+    {
+        /// <summary>
+        /// Request uri
+        /// </summary>
+        Uri RequestUri { get; }
+
+        /// <summary>
+        /// Request method (GET, POST, PUT, DELETE, etc.)
+        /// </summary>
+        string Method { get; set; }
+
+        /// <summary>
+        /// Response timeout
+        /// </summary>
+        int Timeout { get; set; }
+
+        /// <summary>
+        /// Read/write timeout
+        /// </summary>
+        int ReadWriteTimeout { get; set; }
+
+        /// <summary>
+        /// Add a header
+        /// </summary>
+        /// <param name="header">Header</param>
+        /// <param name="value">Value</param>
+        void AddHeader(string header, string value);
+
+        /// <summary>
+        /// Write data to the request and then flush, get ready for reading response
+        /// </summary>
+        /// <param name="data">Data</param>
+        /// <param name="index">Offset</param>
+        /// <param name="length">Length</param>
+        /// <returns></returns>
+        Task WriteAllAsync(byte[] data, int index, int length);
+    }
+
+    /// <summary>
+    /// Http web response
+    /// </summary>
+    public interface IHttpWebResponse
+    {
+        /// <summary>
+        /// Headers
+        /// </summary>
+        Dictionary<string, IReadOnlyList<string>> Headers { get; }
+    }
+
+    /// <summary>
     /// Interface for setting up and handling API request and response
     /// </summary>
     public interface IAPIRequestHandler
@@ -70,13 +123,13 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload);
+        Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload);
 
         /// <summary>
         /// Additional handling for response
         /// </summary>
         /// <param name="response">Response</param>
-        void ProcessResponse(HttpWebResponse response);
+        void ProcessResponse(IHttpWebResponse response);
 
         /// <summary>
         /// Process a request url

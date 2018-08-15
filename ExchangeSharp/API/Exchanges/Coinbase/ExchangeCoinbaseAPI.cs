@@ -100,7 +100,7 @@ namespace ExchangeSharp
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -113,19 +113,19 @@ namespace ExchangeSharp
                 string signatureBase64String = CryptoUtility.SHA256SignBase64(toHash, secret);
                 secret = null;
                 toHash = null;
-                request.Headers["CB-ACCESS-KEY"] = PublicApiKey.ToUnsecureString();
-                request.Headers["CB-ACCESS-SIGN"] = signatureBase64String;
-                request.Headers["CB-ACCESS-TIMESTAMP"] = timestamp;
-                request.Headers["CB-ACCESS-PASSPHRASE"] = CryptoUtility.ToUnsecureString(Passphrase);
+                request.AddHeader("CB-ACCESS-KEY", PublicApiKey.ToUnsecureString());
+                request.AddHeader("CB-ACCESS-SIGN", signatureBase64String);
+                request.AddHeader("CB-ACCESS-TIMESTAMP", timestamp);
+                request.AddHeader("CB-ACCESS-PASSPHRASE", CryptoUtility.ToUnsecureString(Passphrase));
                 await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
 
-        protected override void ProcessResponse(HttpWebResponse response)
+        protected override void ProcessResponse(IHttpWebResponse response)
         {
             base.ProcessResponse(response);
-            cursorAfter = response.Headers["CB-AFTER"];
-            cursorBefore = response.Headers["CB-BEFORE"];
+            cursorAfter = response.Headers["CB-AFTER"]?.FirstOrDefault();
+            cursorBefore = response.Headers["CB-BEFORE"]?.FirstOrDefault();
         }
 
         public ExchangeCoinbaseAPI()

@@ -44,12 +44,12 @@ namespace ExchangeSharp
             return url.Uri;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             // only authenticated requests write json, everything uses GET and url params
             if (CanMakeAuthenticatedRequest(payload))
             {
-                request.Headers["Authorization"] = CryptoUtility.BasicAuthenticationString(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString());
+                request.AddHeader("Authorization", CryptoUtility.BasicAuthenticationString(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString()));
                 if (request.Method == "POST")
                 {
                     await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
