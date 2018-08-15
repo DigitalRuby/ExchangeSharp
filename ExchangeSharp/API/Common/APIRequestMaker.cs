@@ -70,7 +70,6 @@ namespace ExchangeSharp
             public Uri RequestUri
             {
                 get { return request.RequestUri; }
-                set { request.RequestUri = value; }
             }
 
             public string Method
