@@ -29,12 +29,10 @@ namespace ExchangeSharp
 
         private class InternalHttpWebRequest : IHttpWebRequest
         {
-            private readonly Uri uri;
             internal readonly HttpWebRequest request;
 
             public InternalHttpWebRequest(Uri fullUri)
             {
-                this.uri = fullUri;
                 request = HttpWebRequest.Create(fullUri) as HttpWebRequest;
                 request.KeepAlive = false;
             }
@@ -71,7 +69,8 @@ namespace ExchangeSharp
 
             public Uri RequestUri
             {
-                get { return uri; }
+                get { return request.RequestUri; }
+                set { request.RequestUri = value; }
             }
 
             public string Method
