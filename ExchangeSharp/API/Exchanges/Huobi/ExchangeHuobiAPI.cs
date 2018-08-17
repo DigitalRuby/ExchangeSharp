@@ -273,7 +273,9 @@ namespace ExchangeSharp
 
                 var tick = token["tick"];
                 var id = tick["id"].ConvertInvariant<long>();
-                var trades = ParseTradesWebSocket(tick);
+
+                var data = tick["data"];
+                var trades = ParseTradesWebSocket(data);
                 foreach (var trade in trades)
                 {
                     trade.Id = id;

@@ -351,6 +351,55 @@ namespace ExchangeSharp
             };
         }
 
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        {
+            if (callback == null)
+            {
+                return null;
+            }
+
+            return ConnectWebSocket("/", (_socket, msg) =>
+            {
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token["type"].ToStringInvariant() != "ticker") return Task.CompletedTask; //the ticker channel provides the trade information as well
+                if (token["time"] == null) return Task.CompletedTask;
+                ExchangeTrade trade = ParseTradeWebSocket(token);
+                string symbol = token["product_id"].ToStringInvariant();
+                callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                return Task.CompletedTask;
+            }, async (_socket) =>
+            {
+                var subscribeRequest = new
+                {
+                    type = "subscribe",
+                    product_ids = symbols,
+                    channels = new object[]
+                    {
+                        new {
+                            name = "ticker",
+                            product_ids = symbols
+                        }
+                    }
+                };
+                string message = Newtonsoft.Json.JsonConvert.SerializeObject(subscribeRequest);
+                await _socket.SendMessageAsync(message);
+            });
+        }
+
+        private ExchangeTrade ParseTradeWebSocket(JToken token)
+        {
+            var dateObj = token["time"];
+            DateTime date = dateObj.ToObject<DateTime>();
+            return new ExchangeTrade
+            {
+                Amount = token["last_size"].ConvertInvariant<decimal>(),
+                Id = token["sequence"].ConvertInvariant<long>(),
+                IsBuy = token["side"].ToStringInvariant() == "buy" ? true : false,
+                Price = token["price"].ConvertInvariant<decimal>(),
+                Timestamp = date
+            };
+        }
+
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             /*
