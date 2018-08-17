@@ -281,7 +281,7 @@ namespace ExchangeSharp
                 Id = token[0].ConvertInvariant<int>(),
                 Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token[1].ConvertInvariant<long>()),
                 Amount = Math.Abs(amount),
-                IsBuy = amount > 0 ? true : false,
+                IsBuy = amount > 0,
                 Price = token[3].ConvertInvariant<decimal>()
             };
         }

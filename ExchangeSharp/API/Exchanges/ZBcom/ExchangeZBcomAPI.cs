@@ -31,6 +31,8 @@ namespace ExchangeSharp
 
         private string NormalizeSymbolWebsocket(string symbol)
         {
+            if (symbol == null) return symbol;
+
             return (symbol ?? string.Empty).ToLowerInvariant().Replace("-", string.Empty);
         }
 
@@ -169,7 +171,7 @@ namespace ExchangeSharp
                     Price = t["price"].ConvertInvariant<decimal>(),
                     Id = t["tid"].ConvertInvariant<long>(),
                     Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(t["date"].ConvertInvariant<long>()),
-                    IsBuy = t["type"].ToStringInvariant() == "buy" ? true : false
+                    IsBuy = t["type"].ToStringInvariant() == "buy"
                 };
                 trades.Add(trade);
             }
