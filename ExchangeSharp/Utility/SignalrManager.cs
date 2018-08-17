@@ -198,17 +198,7 @@ namespace ExchangeSharp
             /// </summary>
             /// <param name="message">Not supported</param>
             /// <returns>Not supported</returns>
-            public bool SendMessage(string message)
-            {
-                throw new NotSupportedException();
-            }
-
-            /// <summary>
-            /// Not supported
-            /// </summary>
-            /// <param name="message">Not supported</param>
-            /// <returns>Not supported</returns>
-            public Task<bool> SendMessageAsync(string message)
+            public Task<bool> SendMessageAsync(object message)
             {
                 throw new NotSupportedException();
             }

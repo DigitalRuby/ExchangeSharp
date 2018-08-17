@@ -427,8 +427,8 @@ namespace ExchangeSharp
                 {
                     idsToSymbols[ticker.Value.Id] = ticker.Key;
                 }
-                // subscribe to ticker channel
-                await _socket.SendMessageAsync("{\"command\":\"subscribe\",\"channel\":1002}");
+                // subscribe to ticker channel (1002)
+                await _socket.SendMessageAsync(new { command = "subscribe", channel = 1002 });
             });
         }
 
@@ -514,7 +514,7 @@ namespace ExchangeSharp
                 // subscribe to order book and trades channel for each symbol
                 foreach (var sym in symbols)
                 {
-                    await _socket.SendMessageAsync(JsonConvert.SerializeObject(new { command = "subscribe", channel = NormalizeSymbol(sym) }));
+                    await _socket.SendMessageAsync(new { command = "subscribe", channel = NormalizeSymbol(sym) });
                 }
             });
         }

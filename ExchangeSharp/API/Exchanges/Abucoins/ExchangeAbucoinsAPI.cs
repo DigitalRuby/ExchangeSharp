@@ -488,7 +488,7 @@ namespace ExchangeSharp
             }, async (_socket) =>
             {
                 // subscribe to done channel
-                await _socket.SendMessageAsync("{\"type\":\"subscribe\",\"channels\":[{ \"name\":\"done\",\"product_ids\":" + ids + "}]}");
+                await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "done", products_ids = ids } } });
             });
         }
 
@@ -497,8 +497,6 @@ namespace ExchangeSharp
             if (tickers == null) return null;
 
             var symbols = GetTickersAsync().Sync().Select(t => t.Key).ToList();
-            string ids = JsonConvert.SerializeObject(JArray.FromObject(symbols));
-
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
@@ -526,8 +524,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                // subscribe to ticker channel
-                await _socket.SendMessageAsync("{\"type\": \"subscribe\", \"channels\": [{ \"name\": \"ticker\", \"product_ids\": " + ids + " }] }");
+                await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "ticker", product_ids = symbols } } });
             });
         }
 

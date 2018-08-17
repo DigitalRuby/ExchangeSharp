@@ -266,9 +266,7 @@ namespace ExchangeSharp
                 {
                     symbols = (await GetSymbolsAsync()).ToArray();
                 }
-                string combined = string.Join(",", symbols.Select(s => "\"trade:" + this.NormalizeSymbol(s) + "\""));
-                string msg = $"{{\"op\":\"subscribe\",\"args\":[{combined}]}}";
-                await _socket.SendMessageAsync(msg);
+                await _socket.SendMessageAsync(new { op = "subscribe", args = symbols.Select(s => "\"trade:" + this.NormalizeSymbol(s) + "\"").ToArray() });
             });
         }
 
@@ -353,10 +351,7 @@ namespace ExchangeSharp
                 {
                     symbols = (await GetSymbolsAsync()).ToArray();
                 }
-
-                string combined = string.Join(",", symbols.Select(s => "\"orderBookL2:" + this.NormalizeSymbol(s) + "\""));
-                string msg = $"{{\"op\":\"subscribe\",\"args\":[{combined}]}}";
-                await _socket.SendMessageAsync(msg);
+                await _socket.SendMessageAsync(new { op = "subscribe", args = symbols.Select(s => "\"orderBookL2:" + this.NormalizeSymbol(s) + "\"").ToArray() });
             });
         }
 

@@ -292,8 +292,7 @@ namespace ExchangeSharp
                     string normalizedSymbol = NormalizeSymbol(symbol);
                     long id = System.Threading.Interlocked.Increment(ref webSocketId);
                     string channel = $"market.{normalizedSymbol}.trade.detail";
-                    string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
-                    await _socket.SendMessageAsync(msg);
+                    await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
         }
@@ -366,15 +365,12 @@ namespace ExchangeSharp
                 {
                     symbols = (await GetSymbolsAsync()).ToArray();
                 }
-                // request all symbols, this does not work sadly, only the first is pulled
                 foreach (string symbol in symbols)
                 {
                     long id = System.Threading.Interlocked.Increment(ref webSocketId);
-                    var normalizedSymbol = NormalizeSymbol(symbols[0]);
-                    // subscribe to order book and trades channel for given symbol
+                    var normalizedSymbol = NormalizeSymbol(symbol);
                     string channel = $"market.{normalizedSymbol}.depth.step0";
-                    string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
-                    await _socket.SendMessageAsync(msg);
+                    await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
         }

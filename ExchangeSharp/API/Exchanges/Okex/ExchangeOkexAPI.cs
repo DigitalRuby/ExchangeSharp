@@ -736,8 +736,7 @@ namespace ExchangeSharp
                     normalizedSymbol = normalizedSymbol.Substring(0, normalizedSymbol.IndexOf(SymbolSeparator[0]));
                 }
                 string channel = string.Format(channelFormat, normalizedSymbol);
-                string msg = $"{{\"event\":\"addChannel\",\"channel\":\"{channel}\"}}";
-                await socket.SendMessageAsync(msg);
+                await socket.SendMessageAsync(new { @event = "addChannel", channel });
             }
             return symbols;
         }

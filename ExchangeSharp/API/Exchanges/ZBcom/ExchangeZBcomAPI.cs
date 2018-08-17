@@ -153,8 +153,7 @@ namespace ExchangeSharp
                 foreach (var symbol in symbols)
                 {
                     string normalizedSymbol = NormalizeSymbolWebsocket(symbol);
-                    string message = "{'event':'addChannel','channel':'" + normalizedSymbol + "_trades',}";
-                    await _socket.SendMessageAsync(message);
+                    await _socket.SendMessageAsync(new { @event = "addChannel", channel = normalizedSymbol + "_trades" });
                 }
             });
         }

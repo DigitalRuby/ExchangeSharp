@@ -10,6 +10,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -263,15 +264,28 @@ namespace ExchangeSharp
         /// <summary>
         /// Queue a message to the WebSocket server, it will be sent as soon as possible.
         /// </summary>
-        /// <param name="message">Message to send</param>
+        /// <param name="message">Message to send, can be string, byte[] or object (which get json serialized)</param>
         /// <returns>True if success, false if error</returns>
-        public Task<bool> SendMessageAsync(string message)
+        public Task<bool> SendMessageAsync(object message)
         {
             if (webSocket.State == WebSocketState.Open)
             {
                 QueueActions(async (socket) =>
                 {
-                    ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(message.ToBytesUTF8());
+                    byte[] bytes;
+                    if (message is string s)
+                    {
+                        bytes = s.ToBytesUTF8();
+                    }
+                    else if (message is byte[] b)
+                    {
+                        bytes = b;
+                    }
+                    else
+                    {
+                        bytes = JsonConvert.SerializeObject(message).ToBytesUTF8();
+                    }
+                    ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(bytes);
                     await webSocket.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, cancellationToken);
                 });
                 return Task.FromResult<bool>(true);
@@ -500,8 +514,8 @@ namespace ExchangeSharp
         /// <summary>
         /// Send a message over the web socket
         /// </summary>
-        /// <param name="message">Message to send</param>
+        /// <param name="message">Message to send, can be string, byte[] or object (which get serialized to json)</param>
         /// <returns>True if success, false if error</returns>
-        Task<bool> SendMessageAsync(string message);
+        Task<bool> SendMessageAsync(object message);
     }
 }

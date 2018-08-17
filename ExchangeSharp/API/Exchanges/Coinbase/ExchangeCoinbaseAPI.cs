@@ -294,7 +294,7 @@ namespace ExchangeSharp
                 }
                 var chan = new Channel { Name = ChannelType.Level2, ProductIds = symbols.ToList() };
                 var channelAction = new ChannelAction { Type = ActionType.Subscribe, Channels = new List<Channel> { chan } };
-                await _socket.SendMessageAsync(JsonConvert.SerializeObject(channelAction));
+                await _socket.SendMessageAsync(channelAction);
             });
         }
 
@@ -325,7 +325,7 @@ namespace ExchangeSharp
                         }
                     }
                 };
-                await _socket.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(subscribeRequest));
+                await _socket.SendMessageAsync(subscribeRequest);
             });
         }
 
@@ -375,14 +375,14 @@ namespace ExchangeSharp
                     product_ids = symbols,
                     channels = new object[]
                     {
-                        new {
+                        new
+                        {
                             name = "ticker",
                             product_ids = symbols
                         }
                     }
                 };
-                string message = Newtonsoft.Json.JsonConvert.SerializeObject(subscribeRequest);
-                await _socket.SendMessageAsync(message);
+                await _socket.SendMessageAsync(subscribeRequest);
             });
         }
 

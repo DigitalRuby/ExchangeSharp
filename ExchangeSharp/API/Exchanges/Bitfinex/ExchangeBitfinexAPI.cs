@@ -218,7 +218,8 @@ namespace ExchangeSharp
                 var symbols = await GetSymbolsAsync();
                 foreach (var symbol in symbols)
                 {
-                    await _socket.SendMessageAsync("{\"event\":\"subscribe\",\"channel\":\"ticker\",\"pair\":\"" + symbol + "\"}");
+                    string normalizedSymbol = NormalizeSymbol(symbol);
+                    await _socket.SendMessageAsync(new { @event = "subscribe", channel = "ticker", pair = normalizedSymbol });
                 }
             });
         }
@@ -268,7 +269,7 @@ namespace ExchangeSharp
                 foreach (var symbol in symbols)
                 {
                     string normalizedSymbol = NormalizeSymbol(symbol);
-                    await _socket.SendMessageAsync("{\"event\":\"subscribe\",\"channel\":\"trades\",\"symbol\":\"" + normalizedSymbol + "\"}");
+                    await _socket.SendMessageAsync(new { @event = "subscribe", channel = "trades", symbol = normalizedSymbol });
                 }
             });
         }
