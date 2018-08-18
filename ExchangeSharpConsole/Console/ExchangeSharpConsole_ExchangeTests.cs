@@ -145,14 +145,7 @@ namespace ExchangeSharpConsole
                         }
                         catch (NotImplementedException)
                         {
-                            if (api is ExchangeHuobiAPI || api is ExchangeBithumbAPI || api is ExchangeBitMEXAPI)
-                            {
-                                Console.WriteLine($"Not implemented");
-                            }
-                            else
-                            {
-                                Console.WriteLine($"Data invalid or empty");
-                            }
+                            Console.WriteLine($"Not implemented");
                         }
                     }
 
