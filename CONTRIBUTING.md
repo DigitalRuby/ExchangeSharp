@@ -13,12 +13,9 @@ Please follow these coding guidelines...
   - Wrap all if statements with curly braces, makes debug and set breakpoints much easier, along with adding new code to the if statement block.
 
 When creating a new Exchange API, please do the following:
-- For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange.
-- Add the new exchange name to the ExchangeName class, but put it in a partial class in the exchange class file. See the bottom of any existing exchange class for an example. Follow this convention for the class name: Exchange[A-Za-z0-9]API, or add an ApiNameAttribute to your class. Make sure the Name property matches the const string from the partial ExchangeName class.
+- For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange. USe node.js in Visual Studio to debug through the code.
+- See ExchangeAPIDefinitions.cs for all possible methods that can be overriden to make an exchange, along with adding the name to the ExchangeName class. Great starting point to copy/paste as your new Exchange...API.cs file.
 - Put the exchange API class is in it's own folder (/API/Exchanges). If you are creating model objects or helper classes for an exchange, make internal classes inside a namespace for your exchange and put them in the sub-folder for the exchange. Binance and Bittrex are good examples.
-- Override the protected methods of ExchangeAPI that you want to implement. Easiest way is find another exchange and copy the file and customize as needed.
-- Set additional protected and public properties in constructor as needed (SymbolSeparator, SymbolIsReversed, SymbolIsUppercase, etc.).
-- If the exchange uses funny currency names (i.e. BCC instead of BCH), set up a map in the static constructor. See ExchangeYobitAPI.cs for an example.
 - Ensure that the unit tests and integrations tests (ExchangeSharpConsole.exe test exchangeName=[name]) pass before submitting a pull request.
  
 

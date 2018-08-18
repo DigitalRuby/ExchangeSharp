@@ -23,14 +23,10 @@ namespace ExchangeSharp
     /// </summary>
     public abstract partial class ExchangeAPI : BaseAPI, IExchangeAPI
     {
-        #region Constants
-
         /// <summary>
         /// Separator for global symbols
         /// </summary>
         public const char GlobalSymbolSeparator = '-';
-
-        #endregion Constants
 
         #region Private methods
 
@@ -111,37 +107,6 @@ namespace ExchangeSharp
         #region Protected methods
 
         /// <summary>
-        /// Separator for exchange symbol, derived classes can change in constructor. This should be a single char string or empty string.
-        /// Default is hyphen '-'.
-        /// </summary>
-        public string SymbolSeparator { get; protected set; } = "-";
-
-        /// <summary>
-        /// Whether the exchange symbol is reversed from most other exchanges, derived classes can change to true in constructor.
-        /// Most exchanges prefer fiat pair last and BTC pair last (SymbolsIsReversed == false)
-        /// But Bittrex and Poloniex are examples of exchanges that do the opposite (SymbolIsReversed == true)
-        /// Default is false.
-        /// </summary>
-        public bool SymbolIsReversed { get; protected set; }
-
-        /// <summary>
-        /// Whether the exchange symbol is uppercase.
-        /// Default is true.
-        /// </summary>
-        public bool SymbolIsUppercase { get; protected set; } = true;
-
-        /// <summary>
-        /// List of exchange to global currency conversions. Exchange currency is key, global currency is value.
-        /// Exchange classes can add entries for their type in their static constructor.
-        /// </summary>
-        protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
-
-        /// <summary>
-        /// Override to dispose of resources when the exchange is disposed
-        /// </summary>
-        protected virtual void OnDispose() { }
-
-        /// <summary>
         /// Clamp price using market info. If necessary, a network request will be made to retrieve symbol metadata.
         /// </summary>
         /// <param name="symbol">Symbol</param>
@@ -188,6 +153,11 @@ namespace ExchangeSharp
             }
             return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();
         }
+
+        /// <summary>
+        /// Override to dispose of resources when the exchange is disposed
+        /// </summary>
+        protected virtual void OnDispose() { }
 
         #endregion Protected methods
 
@@ -413,10 +383,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="seconds">Seconds</param>
         /// <returns>Period string</returns>
-        public virtual string PeriodSecondsToString(int seconds)
-        {
-            return CryptoUtility.SecondsToPeriodString(seconds);
-        }
+        public virtual string PeriodSecondsToString(int seconds) => CryptoUtility.SecondsToPeriodString(seconds);
 
         #endregion Other
 
@@ -536,7 +503,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get historical trades for the exchange
+        /// Get historical trades for the exchange. TODO: Change to async enumerator when available.
         /// </summary>
         /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
         /// <param name="symbol">Symbol to get historical data for</param>
