@@ -459,27 +459,14 @@ namespace ExchangeSharp
             // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)
             startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
             endDate = endDate ?? DateTime.UtcNow;
-            JToken json = await MakeJsonRequestAsync<JToken>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
+            JToken json = await MakeJsonRequestAsync<JToken>("/0/public/OHLC?pair=" + symbol + "&interval=" + (periodSeconds / 60).ToStringInvariant() + "&since=" + startDate);
             List<MarketCandle> candles = new List<MarketCandle>();
             if (json.Children().Count() != 0)
             {
                 JProperty prop = json.Children().First() as JProperty;
-                foreach (JArray jsonCandle in prop.Value)
+                foreach (JToken jsonCandle in prop.Value)
                 {
-                    MarketCandle candle = new MarketCandle
-                    {
-                        ClosePrice = jsonCandle[4].ConvertInvariant<decimal>(),
-                        ExchangeName = Name,
-                        HighPrice = jsonCandle[2].ConvertInvariant<decimal>(),
-                        LowPrice = jsonCandle[3].ConvertInvariant<decimal>(),
-                        Name = symbol,
-                        OpenPrice = jsonCandle[1].ConvertInvariant<decimal>(),
-                        PeriodSeconds = periodSeconds,
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(jsonCandle[0].ConvertInvariant<long>()),
-                        BaseVolume = jsonCandle[6].ConvertInvariant<double>(),
-                        ConvertedVolume = jsonCandle[6].ConvertInvariant<double>() * jsonCandle[4].ConvertInvariant<double>(),
-                        WeightedAverage = jsonCandle[5].ConvertInvariant<decimal>()
-                    };
+                    MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 6, null, 5);
                     if (candle.Timestamp >= startDate.Value && candle.Timestamp <= endDate.Value)
                     {
                         candles.Add(candle);

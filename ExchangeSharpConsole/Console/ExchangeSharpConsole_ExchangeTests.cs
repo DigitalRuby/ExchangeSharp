@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 using ExchangeSharp;
 
@@ -32,7 +33,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        private static void TestExchanges(string nameRegex = null)
+        private static void TestExchanges(string nameRegex = null, string functionRegex = null)
         {
             string GetSymbol(IExchangeAPI api)
             {
@@ -78,7 +79,7 @@ namespace ExchangeSharpConsole
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIs();
             foreach (IExchangeAPI api in apis)
             {
-                if (nameRegex != null && !System.Text.RegularExpressions.Regex.IsMatch(api.Name, nameRegex, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
                 {
                     continue;
                 }
@@ -88,75 +89,97 @@ namespace ExchangeSharpConsole
                 {
                     string symbol = api.NormalizeSymbol(GetSymbol(api));
 
-                    IReadOnlyCollection<string> symbols = api.GetSymbolsAsync().Sync().ToArray();
-                    Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
-                    Console.WriteLine($"API {api.Name} GetSymbols OK (default: {symbol}; {symbols.Count} symbols)");
-
-                    try
+                    if (functionRegex == null || Regex.IsMatch("symbol", functionRegex, RegexOptions.IgnoreCase))
                     {
-                        var book = api.GetOrderBookAsync(symbol).Sync();
-                        Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks.First().Value.Amount > 0m &&
-                            book.Asks.First().Value.Price > 0m && book.Bids.First().Value.Amount > 0m && book.Bids.First().Value.Price > 0m);
-                        Console.WriteLine($"API {api.Name} GetOrderBook OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
-                    }
-                    catch (NotImplementedException)
-                    {
-                        Console.WriteLine($"API {api.Name} GetOrderBook not implemented");
+                        Console.Write("Test {0} GetSymbolsAsync... ", api.Name);
+                        IReadOnlyCollection<string> symbols = api.GetSymbolsAsync().Sync().ToArray();
+                        Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
+                        Console.WriteLine($"OK (default: {symbol}; {symbols.Count} symbols)");
                     }
 
-                    try
+                    if (functionRegex == null || Regex.IsMatch("orderbook", functionRegex, RegexOptions.IgnoreCase))
                     {
-                        var ticker = api.GetTickerAsync(symbol).Sync();
-                        Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-                            ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
-                        Console.WriteLine($"API {api.Name} GetTicker OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
-                    }
-                    catch
-                    {
-                        Console.WriteLine($"API {api.Name} GetTicker data invalid or empty");
-                    }
-
-                    try
-                    {
-                        api.GetHistoricalTradesAsync(histTradeCallback, symbol).Sync();
-                        trades = api.GetRecentTradesAsync(symbol).Sync().ToArray();
-                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
-                        Console.WriteLine($"API {api.Name} GetHistoricalTrades OK ({trades.Length})");
-                        Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
-                        Console.WriteLine($"API {api.Name} GetRecentTrades OK ({trades.Length} trades)");
-                    }
-                    catch (NotImplementedException)
-                    {
-                        if (api is ExchangeHuobiAPI || api is ExchangeBithumbAPI || api is ExchangeBitMEXAPI)
+                        try
                         {
-                            Console.WriteLine($"API {api.Name} GetHistoricalTrades/GetRecentTrades not implemented");
+                            Console.Write("Test {0} GetOrderBookAsync... ", api.Name);
+                            var book = api.GetOrderBookAsync(symbol).Sync();
+                            Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks.First().Value.Amount > 0m &&
+                                book.Asks.First().Value.Price > 0m && book.Bids.First().Value.Amount > 0m && book.Bids.First().Value.Price > 0m);
+                            Console.WriteLine($"OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
                         }
-                        else
+                        catch (NotImplementedException)
                         {
-                            Console.WriteLine($"API {api.Name} GetHistoricalTrades/GetRecentTrades data invalid or empty");
+                            Console.WriteLine($"Not implemented");
                         }
                     }
 
-                    try
+                    if (functionRegex == null || Regex.IsMatch("ticker", functionRegex, RegexOptions.IgnoreCase))
                     {
-                        var candles = api.GetCandlesAsync(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
-                        Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
-                            candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
-                            !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseVolume > 0.0 &&
-                            candles[0].ConvertedVolume > 0.0 && candles[0].WeightedAverage >= 0m);
-
-                        Console.WriteLine($"API {api.Name} GetCandles OK ({candles.Length})");
-                    }
-                    catch (NotImplementedException)
-                    {
-                        Console.WriteLine($"API {api.Name} GetCandles not implemented");
-                    }
-                    catch
-                    {
-                        // These API require private access to get candles end points
-                        if (!(api is ExchangeKucoinAPI))
+                        try
                         {
-                            throw;
+                            Console.Write("Test {0} GetTickerAsync... ", api.Name);
+                            var ticker = api.GetTickerAsync(symbol).Sync();
+                            Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
+                                ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
+                            Console.WriteLine($"OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
+                        }
+                        catch
+                        {
+                            Console.WriteLine($"Data invalid or empty");
+                        }
+                    }
+
+                    if (functionRegex == null || Regex.IsMatch("trade", functionRegex, RegexOptions.IgnoreCase))
+                    {
+                        try
+                        {
+                            Console.Write("Test {0} GetHistoricalTradesAsync... ", api.Name);
+                            api.GetHistoricalTradesAsync(histTradeCallback, symbol).Sync();
+                            Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                            Console.WriteLine($"OK ({trades.Length})");
+
+                            Console.Write("Test {0} GetRecentTradesAsync... ", api.Name);
+                            trades = api.GetRecentTradesAsync(symbol).Sync().ToArray();
+                            Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
+                            Console.WriteLine($"OK ({trades.Length} trades)");
+                        }
+                        catch (NotImplementedException)
+                        {
+                            if (api is ExchangeHuobiAPI || api is ExchangeBithumbAPI || api is ExchangeBitMEXAPI)
+                            {
+                                Console.WriteLine($"Not implemented");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Data invalid or empty");
+                            }
+                        }
+                    }
+
+                    if (functionRegex == null || Regex.IsMatch("candle", functionRegex, RegexOptions.IgnoreCase))
+                    {
+                        try
+                        {
+                            Console.Write("Test {0} GetCandlesAsync... ", api.Name);
+                            var candles = api.GetCandlesAsync(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
+                            Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
+                                candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
+                                !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseVolume > 0.0 &&
+                                candles[0].ConvertedVolume > 0.0 && candles[0].WeightedAverage >= 0m);
+
+                            Console.WriteLine($"OK ({candles.Length})");
+                        }
+                        catch (NotImplementedException)
+                        {
+                            Console.WriteLine($"Not implemented");
+                        }
+                        catch
+                        {
+                            // These API require private access to get candles end points
+                            if (!(api is ExchangeKucoinAPI))
+                            {
+                                throw;
+                            }
                         }
                     }
                 }
@@ -170,7 +193,8 @@ namespace ExchangeSharpConsole
         public static void RunPerformTests(Dictionary<string, string> dict)
         {
             dict.TryGetValue("exchangeName", out string exchangeNameRegex);
-            TestExchanges(exchangeNameRegex);
+            dict.TryGetValue("function", out string functionRegex);
+            TestExchanges(exchangeNameRegex, functionRegex);
         }
     }
 }

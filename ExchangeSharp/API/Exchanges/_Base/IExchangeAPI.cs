@@ -124,6 +124,13 @@ namespace ExchangeSharp
         /// <returns>Result decoded from JSON response</returns>
         Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
 
+        /// <summary>
+        /// Convert seconds to a period string, or throw exception if seconds invalid. Example: 60 seconds becomes 1m.
+        /// </summary>
+        /// <param name="seconds">Seconds</param>
+        /// <returns>Period string</returns>
+        string PeriodSecondsToString(int seconds);
+
         #endregion Utility Methods
 
         #region REST

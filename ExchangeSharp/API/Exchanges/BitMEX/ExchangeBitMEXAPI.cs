@@ -356,7 +356,7 @@ namespace ExchangeSharp
              */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
+            string periodString = PeriodSecondsToString(periodSeconds);
             string url = $"/trade/bucketed?binSize={periodString}&partial=false&symbol={symbol}&reverse=true" + symbol;
             if (startDate != null)
             {
@@ -374,20 +374,7 @@ namespace ExchangeSharp
             var obj = await MakeJsonRequestAsync<JToken>(url);
             foreach (var t in obj)
             {
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = t["close"].ConvertInvariant<decimal>(),
-                    ExchangeName = Name,
-                    HighPrice = t["high"].ConvertInvariant<decimal>(),
-                    LowPrice = t["low"].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    OpenPrice = t["open"].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = t["timestamp"].ConvertInvariant<DateTime>(),
-                    BaseVolume = t["volume"].ConvertInvariant<double>(),
-                    ConvertedVolume = t["turnover"].ConvertInvariant<double>(),
-                    WeightedAverage = t["vwap"].ConvertInvariant<decimal>(),
-                });
+                candles.Add(this.ParseCandle(t, symbol, periodSeconds, "open", "high", "low", "close", "timestamp", TimestampType.Iso8601, "volume", "turnover", "vwap"));
             }
             candles.Reverse();
 

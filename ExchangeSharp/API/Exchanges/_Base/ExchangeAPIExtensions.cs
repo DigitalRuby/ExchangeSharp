@@ -10,14 +10,15 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+using Newtonsoft.Json.Linq;
+
 namespace ExchangeSharp
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using Newtonsoft.Json.Linq;
-
     /// <summary>Contains useful extension methods and parsing for the ExchangeAPI classes</summary>
     public static class ExchangeAPIExtensions
     {
@@ -411,32 +412,7 @@ namespace ExchangeSharp
             decimal last = token[lastKey].ConvertInvariant<decimal>();
 
             // parse out volumes, handle cases where one or both do not exist
-            decimal baseVolume;
-            decimal convertVolume;
-            if (baseVolumeKey == null)
-            {
-                if (convertVolumeKey == null)
-                {
-                    baseVolume = convertVolume = 0m;
-                }
-                else
-                {
-                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
-                    baseVolume = (last <= 0m ? 0m : convertVolume / last);
-                }
-            }
-            else
-            {
-                baseVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
-                if (convertVolumeKey == null)
-                {
-                    convertVolume = baseVolume * last;
-                }
-                else
-                {
-                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
-                }
-            }
+            token.ParseVolumes(baseVolumeKey, convertVolumeKey, last, out decimal baseVolume, out decimal convertVolume);
 
             // pull out timestamp
             DateTime timestamp = (timestampKey == null ? DateTime.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
@@ -487,6 +463,18 @@ namespace ExchangeSharp
             return ticker;
         }
 
+        /// <summary>
+        /// Parse a trade
+        /// </summary>
+        /// <param name="token">Token</param>
+        /// <param name="amountKey">Amount key</param>
+        /// <param name="priceKey">Price key</param>
+        /// <param name="typeKey">Type key</param>
+        /// <param name="timestampKey">Timestamp key</param>
+        /// <param name="timestampType">Timestamp type</param>
+        /// <param name="idKey">Id key</param>
+        /// <param name="typeKeyIsBuyValue">Type key buy value</param>
+        /// <returns>Trade</returns>
         internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
             object timestampKey, TimestampType timestampType, object idKey = null, string typeKeyIsBuyValue = "buy")
         {

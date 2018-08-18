@@ -552,28 +552,14 @@ namespace ExchangeSharp
             {
                 url += "&start=" + (long)startDate.Value.UnixTimestampFromDateTimeSeconds();
             }
-            url += "&end=" + (endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
-            url += "&period=" + periodSeconds;
+            url += "&end=" + (endDate == null ? long.MaxValue.ToStringInvariant() : ((long)endDate.Value.UnixTimestampFromDateTimeSeconds()).ToStringInvariant());
+            url += "&period=" + periodSeconds.ToStringInvariant();
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             List<MarketCandle> candles = new List<MarketCandle>();
             foreach (JToken candle in token)
             {
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = candle["close"].ConvertInvariant<decimal>(),
-                    ExchangeName = Name,
-                    HighPrice = candle["high"].ConvertInvariant<decimal>(),
-                    LowPrice = candle["low"].ConvertInvariant<decimal>(),
-                    OpenPrice = candle["open"].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(candle["date"].ConvertInvariant<long>()),
-                    BaseVolume = candle["volume"].ConvertInvariant<double>(),
-                    ConvertedVolume = candle["quoteVolume"].ConvertInvariant<double>(),
-                    WeightedAverage = candle["weightedAverage"].ConvertInvariant<decimal>()
-                });
+                candles.Add(this.ParseCandle(candle, symbol, periodSeconds, "open", "high", "low", "close", "date", TimestampType.UnixSeconds, "volume", "quoteVolume", "weightedAverage"));
             }
-
             return candles;
         }
 

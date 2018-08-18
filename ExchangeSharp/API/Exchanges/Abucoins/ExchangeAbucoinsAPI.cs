@@ -190,24 +190,12 @@ namespace ExchangeSharp
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
             //[time, low, high, open, close, volume], ["1505984400","14209.92500000","14209.92500000","14209.92500000","14209.92500000","0.001"]
-            JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/candles?granularity=" + periodSeconds + "&start=" + ((DateTime)startDate).ToString("o") + "&end=" + ((DateTime)endDate).ToString("o"));
+            JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/candles?granularity=" + periodSeconds.ToStringInvariant() + "&start=" + ((DateTime)startDate).ToString("o") + "&end=" + ((DateTime)endDate).ToString("o"));
             if (obj.HasValues)
             {
-                foreach (JArray array in obj)
+                foreach (JToken token in obj)
                 {
-                    candles.Add(new MarketCandle()
-                    {
-                        ExchangeName = this.Name,
-                        Name = symbol,
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[0].ConvertInvariant<long>()),
-                        PeriodSeconds = periodSeconds,
-                        LowPrice = array[1].ConvertInvariant<decimal>(),
-                        HighPrice = array[2].ConvertInvariant<decimal>(),
-                        OpenPrice = array[3].ConvertInvariant<decimal>(),
-                        ClosePrice = array[4].ConvertInvariant<decimal>(),
-                        ConvertedVolume = array[5].ConvertInvariant<double>(),
-                        BaseVolume = array[4].ConvertInvariant<double>()
-                    });
+                    candles.Add(this.ParseCandle(token, symbol, periodSeconds, 3, 2, 1, 4, 0, TimestampType.UnixSeconds, 5));
                 }
             }
             return candles;

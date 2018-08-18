@@ -35,6 +35,24 @@ namespace ExchangeSharp
             SymbolSeparator = string.Empty;
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            switch (seconds)
+            {
+                case 60: return "M1";
+                case 180: return "M3";
+                case 300: return "M5";
+                case 900: return "M15";
+                case 1800: return "M30";
+                case 3600: return "H1";
+                case 14400: return "H4";
+                case 86400: return "D1";
+                case 604800: return "D7";
+                case 4233600: return "1M";
+                default: throw new ArgumentException($"{nameof(seconds)} must be 60, 180, 300, 900, 1800, 3600, 14400, 86400, 604800, 4233600");
+            }
+        }
+
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (method != "PUT" && method != "POST" && payload != null && payload.Count != 0)
@@ -130,43 +148,17 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
-            List<MarketCandle> candles = new List<MarketCandle>();
-
-            string periodString;
-            if (periodSeconds <= 60) { periodString = "M1"; periodSeconds = 60; }
-            else if (periodSeconds <= 180) { periodString = "M3"; periodSeconds = 180; }
-            else if (periodSeconds <= 300) { periodString = "M5"; periodSeconds = 300; }
-            else if (periodSeconds <= 900) { periodString = "M15"; periodSeconds = 900; }
-            else if (periodSeconds <= 1800) { periodString = "M30"; periodSeconds = 1800; }
-            else if (periodSeconds <= 3600) { periodString = "H1"; periodSeconds = 3600; }
-            else if (periodSeconds <= 14400) { periodString = "H4"; periodSeconds = 14400; }
-            else if (periodSeconds <= 86400) { periodString = "D1"; periodSeconds = 86400; }
-            else if (periodSeconds <= 604800) { periodString = "D7"; periodSeconds = 604800; }
-            else { periodString = "1M"; periodSeconds = 4233600; }
-
-            limit = limit ?? 100;
-
             // [ {"timestamp": "2017-10-20T20:00:00.000Z","open": "0.050459","close": "0.050087","min": "0.050000","max": "0.050511","volume": "1326.628", "volumeQuote": "66.555987736"}, ... ]
+            List<MarketCandle> candles = new List<MarketCandle>();
+            string periodString = PeriodSecondsToString(periodSeconds);
+            limit = limit ?? 100;
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/candles/" + symbol + "?period=" + periodString + "&limit=" + limit);
             foreach (JToken token in obj)
             {
-                candles.Add(new MarketCandle()
-                {
-                    ExchangeName = this.Name,
-                    Name = symbol,
-                    Timestamp = token["timestamp"].ToDateTimeInvariant(),
-                    OpenPrice = token["open"].ConvertInvariant<decimal>(),
-                    ClosePrice = token["close"].ConvertInvariant<decimal>(),
-                    LowPrice = token["min"].ConvertInvariant<decimal>(),
-                    HighPrice = token["max"].ConvertInvariant<decimal>(),
-                    ConvertedVolume = token["volume"].ConvertInvariant<double>(),
-                    BaseVolume = token["volumeQuote"].ConvertInvariant<double>(),
-                    PeriodSeconds = periodSeconds
-                });
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, "open", "max", "min", "close", "timestamp", TimestampType.Iso8601, "volumeQuote", "volume"));
             }
             return candles;
         }
-
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {

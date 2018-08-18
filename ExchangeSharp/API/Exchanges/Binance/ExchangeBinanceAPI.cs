@@ -376,25 +376,11 @@ namespace ExchangeSharp
             {
                 url += "&limit=" + (limit.Value.ToStringInvariant());
             }
-            string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
-            url += "&interval=" + periodString;
+            url += "&interval=" + PeriodSecondsToString(periodSeconds);
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
-            foreach (JArray array in obj)
+            foreach (JToken token in obj)
             {
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = array[4].ConvertInvariant<decimal>(),
-                    ExchangeName = Name,
-                    HighPrice = array[2].ConvertInvariant<decimal>(),
-                    LowPrice = array[3].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    OpenPrice = array[1].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(array[0].ConvertInvariant<long>()),
-                    BaseVolume = array[5].ConvertInvariant<double>(),
-                    ConvertedVolume = array[7].ConvertInvariant<double>(),
-                    WeightedAverage = 0m
-                });
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 7));
             }
 
             return candles;

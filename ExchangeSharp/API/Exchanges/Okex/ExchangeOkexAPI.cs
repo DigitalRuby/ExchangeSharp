@@ -32,6 +32,11 @@ namespace ExchangeSharp
             SymbolIsUppercase = false;
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            return CryptoUtility.SecondsToPeriodStringLong(seconds);
+        }
+
         private string GetPayloadForm(Dictionary<string, object> payload)
         {
             payload["api_key"] = PublicApiKey.ToUnsecureString();
@@ -324,30 +329,16 @@ namespace ExchangeSharp
             {
                 url += "&size=" + (limit.Value.ToStringInvariant());
             }
-            string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
+            string periodString = PeriodSecondsToString(periodSeconds);
             url += "&type=" + periodString;
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
-            foreach (JArray array in obj)
+            foreach (JArray token in obj)
             {
-                decimal closePrice = array[4].ConvertInvariant<decimal>();
-                double baseVolume = array[5].ConvertInvariant<double>();
-                candles.Add(new MarketCandle
-                {
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(array[0].ConvertInvariant<long>()),
-                    OpenPrice = array[1].ConvertInvariant<decimal>(),
-                    HighPrice = array[2].ConvertInvariant<decimal>(),
-                    LowPrice = array[3].ConvertInvariant<decimal>(),
-                    ClosePrice = closePrice,
-                    BaseVolume = baseVolume,
-                    ConvertedVolume = ((double)closePrice * baseVolume),
-                    ExchangeName = Name,
-                    Name = symbol,
-                    PeriodSeconds = periodSeconds,
-                });
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5));
             }
-
             return candles;
         }
+
         #endregion
 
         #region Private APIs

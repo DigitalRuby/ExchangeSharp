@@ -35,6 +35,21 @@ namespace ExchangeSharp
             SymbolSeparator = "-";
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            switch (seconds)
+            {
+                case 60: return "1";
+                case 300: return "5";
+                case 900: return "15";
+                case 1800: return "30";
+                case 3600: return "60";
+                case 86400: return "D";
+                case 604800: return "W";
+                default: throw new ArgumentException($"{nameof(seconds)} must be 60, 300, 900, 1800, 3600, 86400, 604800");
+            }
+        }
+
         #region ProcessRequest 
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -184,15 +199,7 @@ namespace ExchangeSharp
         {
             List<MarketCandle> candles = new List<MarketCandle>();
 
-            string periodString;
-            if (periodSeconds <= 60) { periodString = "1"; periodSeconds = 60; }
-            else if (periodSeconds <= 300) { periodString = "5"; periodSeconds = 300; }
-            else if (periodSeconds <= 900) { periodString = "15"; periodSeconds = 900; }
-            else if (periodSeconds <= 1800) { periodString = "30"; periodSeconds = 1800; }
-            else if (periodSeconds <= 3600) { periodString = "60"; periodSeconds = 3600; }
-            else if (periodSeconds <= 86400) { periodString = "D"; periodSeconds = 86400; }
-            else { periodString = "W"; periodSeconds = 604800; }
-
+            string periodString = PeriodSecondsToString(periodSeconds);
             endDate = endDate ?? DateTime.UtcNow;
             startDate = startDate ?? DateTime.UtcNow.AddDays(-1);
 

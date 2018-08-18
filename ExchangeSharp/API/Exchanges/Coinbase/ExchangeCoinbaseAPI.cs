@@ -437,23 +437,9 @@ namespace ExchangeSharp
 
             // time, low, high, open, close, volume
             JToken token = await MakeJsonRequestAsync<JToken>(url);
-            foreach (JArray candle in token)
+            foreach (JToken candle in token)
             {
-                double volume = candle[5].ConvertInvariant<double>();
-                decimal close = candle[4].ConvertInvariant<decimal>();
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = close,
-                    ExchangeName = Name,
-                    HighPrice = candle[2].ConvertInvariant<decimal>(),
-                    LowPrice = candle[1].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    OpenPrice = candle[3].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(candle[0].ConvertInvariant<long>()),
-                    BaseVolume = volume,
-                    ConvertedVolume = (volume * (double)close)
-                });
+                candles.Add(this.ParseCandle(candle, symbol, periodSeconds, 3, 2, 1, 4, 0, TimestampType.UnixSeconds, 5));
             }
             // re-sort in ascending order
             candles.Sort((c1, c2) => c1.Timestamp.CompareTo(c2.Timestamp));

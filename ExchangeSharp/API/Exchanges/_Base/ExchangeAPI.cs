@@ -408,6 +408,16 @@ namespace ExchangeSharp
             return (SymbolIsUppercase ? symbol.ToUpperInvariant() : symbol.ToLowerInvariant());
         }
 
+        /// <summary>
+        /// Convert seconds to a period string, or throw exception if seconds invalid. Example: 60 seconds becomes 1m.
+        /// </summary>
+        /// <param name="seconds">Seconds</param>
+        /// <returns>Period string</returns>
+        public virtual string PeriodSecondsToString(int seconds)
+        {
+            return CryptoUtility.SecondsToPeriodString(seconds);
+        }
+
         #endregion Other
 
         #region REST API

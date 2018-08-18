@@ -94,6 +94,11 @@ namespace ExchangeSharp
             return ParseOrderV2(trades);
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            return base.PeriodSecondsToString(seconds).Replace("d", "D"); // WTF Bitfinex, capital D???
+        }
+
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             var m = await GetSymbolsMetadataAsync();
@@ -347,7 +352,7 @@ namespace ExchangeSharp
         {
             // https://api.bitfinex.com/v2/candles/trade:1d:btcusd/hist?start=ms_start&end=ms_end
             List<MarketCandle> candles = new List<MarketCandle>();
-            string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds).Replace("d", "D"); // WTF Bitfinex, capital D???
+            string periodString = PeriodSecondsToString(periodSeconds);
             string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1";
             if (startDate != null || endDate != null)
             {
@@ -363,21 +368,9 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>(url);
 
             /* MTS, OPEN, CLOSE, HIGH, LOW, VOL */
-            foreach (JArray candle in token)
+            foreach (JToken candle in token)
             {
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = candle[2].ConvertInvariant<decimal>(),
-                    ExchangeName = Name,
-                    HighPrice = candle[3].ConvertInvariant<decimal>(),
-                    LowPrice = candle[4].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    OpenPrice = candle[1].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(candle[0].ConvertInvariant<long>()),
-                    BaseVolume = candle[5].ConvertInvariant<double>(),
-                    ConvertedVolume = candle[5].ConvertInvariant<double>() * candle[2].ConvertInvariant<double>()
-                });
+                candles.Add(this.ParseCandle(candle, symbol, periodSeconds, 1, 3, 4, 2, 0, TimestampType.UnixMilliseconds, 5));
             }
 
             return candles;

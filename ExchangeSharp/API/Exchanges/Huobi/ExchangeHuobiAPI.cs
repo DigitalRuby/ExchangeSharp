@@ -54,6 +54,11 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(3) + GlobalSymbolSeparator + symbol.Substring(0, 3), GlobalSymbolSeparator);
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            return CryptoUtility.SecondsToPeriodStringLong(seconds);
+        }
+
         #region ProcessRequest 
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -441,30 +446,15 @@ namespace ExchangeSharp
                 // default is 150, max: 2000
                 url += "&size=" + (limit.Value.ToStringInvariant());
             }
-            string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
+            string periodString = PeriodSecondsToString(periodSeconds);
             url += "&period=" + periodString;
             JToken allCandles = await MakeJsonRequestAsync<JToken>(url, BaseUrl, null);
-            var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(allCandles.Parent.Parent["ts"].ConvertInvariant<long>());
-            foreach (var array in allCandles)
+            foreach (var token in allCandles)
             {
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = array["close"].ConvertInvariant<decimal>(),
-                    ExchangeName = Name,
-                    HighPrice = array["high"].ConvertInvariant<decimal>(),
-                    LowPrice = array["low"].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    OpenPrice = array["open"].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array["id"].ConvertInvariant<long>()),
-                    BaseVolume = array["vol"].ConvertInvariant<double>() / array["close"].ConvertInvariant<double>(),
-                    ConvertedVolume = array["vol"].ConvertInvariant<double>(),
-                    WeightedAverage = 0m
-                });
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, "open", "high", "low", "close", "id", TimestampType.UnixSeconds, null, "vol"));
             }
 
             candles.Reverse();
-
             return candles;
         }
 

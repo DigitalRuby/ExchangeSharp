@@ -68,6 +68,32 @@ namespace ExchangeSharp
             SymbolIsReversed = true;
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            string periodString;
+            switch (seconds)
+            {
+                case 60: periodString = "oneMin"; break;
+                case 300: periodString = "fiveMin"; break;
+                case 1800: periodString = "thirtyMin"; break;
+                case 3600: periodString = "hour"; break;
+                case 86400: periodString = "day"; break;
+                case 259200: periodString = "threeDay"; break;
+                case 604800: periodString = "week"; break;
+                default:
+                    if (seconds > 604800)
+                    {
+                        periodString = "month";
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"{nameof(seconds)} must be one of 60 (min), 300 (fiveMin), 1800 (thirtyMin), 3600 (hour), 86400 (day), 259200 (threeDay), 604800 (week), 2419200 (month)");
+                    }
+                    break;
+            }
+            return periodString;
+        }
+
         private ExchangeOrderResult ParseOrder(JToken token)
         {
             ExchangeOrderResult order = new ExchangeOrderResult();
@@ -328,27 +354,7 @@ namespace ExchangeSharp
 
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
             // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
-            string periodString;
-            switch (periodSeconds)
-            {
-                case 60: periodString = "oneMin"; break;
-                case 300: periodString = "fiveMin"; break;
-                case 1800: periodString = "thirtyMin"; break;
-                case 3600: periodString = "hour"; break;
-                case 86400: periodString = "day"; break;
-                case 259200: periodString = "threeDay"; break;
-                case 604800: periodString = "week"; break;
-                default:
-                    if (periodSeconds > 604800)
-                    {
-                        periodString = "month";
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Period seconds must be one of 60 (min), 300 (fiveMin), 1800 (thirtyMin), 3600 (hour), 86400 (day), 259200 (threeDay), 604800 (week), 2419200 (month)");
-                    }
-                    break;
-            }
+            string periodString = PeriodSecondsToString(periodSeconds);
             List<MarketCandle> candles = new List<MarketCandle>();
             endDate = endDate ?? DateTime.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
@@ -357,19 +363,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken jsonCandle in array)
                 {
-                    MarketCandle candle = new MarketCandle
-                    {
-                        ClosePrice = jsonCandle["C"].ConvertInvariant<decimal>(),
-                        ExchangeName = Name,
-                        HighPrice = jsonCandle["H"].ConvertInvariant<decimal>(),
-                        LowPrice = jsonCandle["L"].ConvertInvariant<decimal>(),
-                        Name = symbol,
-                        OpenPrice = jsonCandle["O"].ConvertInvariant<decimal>(),
-                        PeriodSeconds = periodSeconds,
-                        Timestamp = jsonCandle["T"].ToDateTimeInvariant(),
-                        BaseVolume = jsonCandle["BV"].ConvertInvariant<double>(),
-                        ConvertedVolume = jsonCandle["V"].ConvertInvariant<double>()
-                    };
+                    MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, "O", "H", "L", "C", "T", TimestampType.Iso8601, "BV", "V");
                     if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                     {
                         candles.Add(candle);

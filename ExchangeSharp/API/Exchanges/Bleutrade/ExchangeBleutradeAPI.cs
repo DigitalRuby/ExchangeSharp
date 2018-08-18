@@ -138,20 +138,9 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             List<MarketCandle> candles = new List<MarketCandle>();
-            string periodString;
-            if (periodSeconds <= 900) { periodString = "15m"; periodSeconds = 900; }
-            else if (periodSeconds <= 1200) { periodString = "20m"; periodSeconds = 1200; }
-            else if (periodSeconds <= 1800) { periodString = "30m"; periodSeconds = 1800; }
-            else if (periodSeconds <= 3600) { periodString = "1h"; periodSeconds = 3600; }
-            else if (periodSeconds <= 7200) { periodString = "2h"; periodSeconds = 7200; }
-            else if (periodSeconds <= 10800) { periodString = "3h"; periodSeconds = 10800; }
-            else if (periodSeconds <= 14400) { periodString = "4h"; periodSeconds = 14400; }
-            else if (periodSeconds <= 21600) { periodString = "6h"; periodSeconds = 21600; }
-            else if (periodSeconds <= 43200) { periodString = "12h"; periodSeconds = 43200; }
-            else { periodString = "1d"; periodSeconds = 86400; }
-
+            string periodString = PeriodSecondsToString(periodSeconds);
             limit = limit ?? (limit > 2160 ? 2160 : limit);
-            endDate = endDate ?? DateTime.UtcNow;
+            endDate = endDate ?? DateTime.UtcNow.AddMinutes(1.0);
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
             //market period(15m, 20m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 1d) count(default: 1000, max: 999999) lasthours(default: 24, max: 2160) 
@@ -159,20 +148,11 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getcandles?market=" + symbol + "&period=" + periodString + (limit == null ? string.Empty : "&lasthours=" + limit));
             foreach (JToken jsonCandle in result)
             {
-                MarketCandle candle = new MarketCandle
+                MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, "Open", "High", "Low", "Close", "Timestamp", TimestampType.Iso8601, "BaseVolume", "Volume");
+                if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                 {
-                    ExchangeName = this.Name,
-                    Name = symbol,
-                    Timestamp = jsonCandle["TimeStamp"].ToDateTimeInvariant(),
-                    OpenPrice = jsonCandle["Open"].ConvertInvariant<decimal>(),
-                    HighPrice = jsonCandle["High"].ConvertInvariant<decimal>(),
-                    LowPrice = jsonCandle["Low"].ConvertInvariant<decimal>(),
-                    ClosePrice = jsonCandle["Close"].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    BaseVolume = jsonCandle["BaseVolume"].ConvertInvariant<double>(),
-                    ConvertedVolume = jsonCandle["Volume"].ConvertInvariant<double>()
-                };
-                if (candle.Timestamp >= startDate && candle.Timestamp <= endDate) candles.Add(candle);
+                    candles.Add(candle);
+                }
             }
             return candles;
         }
