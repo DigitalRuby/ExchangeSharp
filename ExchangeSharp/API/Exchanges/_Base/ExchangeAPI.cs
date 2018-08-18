@@ -573,7 +573,6 @@ namespace ExchangeSharp
             return await OnGetAmountsAsync();
         }
 
-
         /// <summary>
         /// Get fees
         /// </summary>
