@@ -352,14 +352,7 @@ namespace ExchangeSharp
         private ExchangeTrade ParseTrade(JToken token)
         {
             // [ {"time": 1409935047,"id": 99451,"price": 350,"quantity": 2.85714285, "type": "BUY" }, ... ]
-            return new ExchangeTrade()
-            {
-                Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["time"].ConvertInvariant<long>()),
-                Id = token["id"].ConvertInvariant<long>(),
-                Price = token["price"].ConvertInvariant<decimal>(),
-                Amount = token["quantity"].ConvertInvariant<decimal>(),
-                IsBuy = token["type"].ToStringInvariant().Equals("BUY")
-            };
+            return token.ParseTrade("quantity", "price", "type", "time", TimestampType.UnixSeconds, "id");
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)

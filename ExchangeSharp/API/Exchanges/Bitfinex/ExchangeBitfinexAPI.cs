@@ -242,7 +242,7 @@ namespace ExchangeSharp
                         {
                             if (token[1].ConvertInvariant<string>() == "tu")
                             {
-                                ExchangeTrade trade = ParseTradeWebSocket(symbol, token.Last);
+                                ExchangeTrade trade = ParseTradeWebSocket(token.Last);
                                 if (trade != null)
                                 {
                                     callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
@@ -271,7 +271,7 @@ namespace ExchangeSharp
             });
         }
 
-        private ExchangeTrade ParseTradeWebSocket(string symbol, JToken token)
+        private ExchangeTrade ParseTradeWebSocket(JToken token)
         {
             decimal amount = token[2].ConvertInvariant<decimal>();
             return new ExchangeTrade

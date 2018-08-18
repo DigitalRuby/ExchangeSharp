@@ -282,15 +282,7 @@ namespace ExchangeSharp
 
                 // buy=0 -> m = true (The buyer is maker, while the seller is taker).
                 // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                ExchangeTrade trade = new ExchangeTrade
-                {
-                    Amount = token["q"].ConvertInvariant<decimal>(),
-                    Id = token["t"].ConvertInvariant<long>(),
-                    IsBuy = !token["m"].ConvertInvariant<bool>(),
-                    Price = token["p"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
-                };
-                callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                callback(new KeyValuePair<string, ExchangeTrade>(symbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "t", "false")));
                 return Task.CompletedTask;
             });
         }
@@ -346,18 +338,7 @@ namespace ExchangeSharp
             {
                 Callback = callback,
                 EndDate = endDate,
-                ParseFunction = (JToken token) =>
-                {
-                    DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["T"].ConvertInvariant<long>());
-                    return new ExchangeTrade
-                    {
-                        Amount = token["q"].ConvertInvariant<decimal>(),
-                        Price = token["p"].ConvertInvariant<decimal>(),
-                        Timestamp = timestamp,
-                        Id = token["a"].ConvertInvariant<long>(),
-                        IsBuy = token["m"].ConvertInvariant<bool>()
-                    };
-                },
+                ParseFunction = (JToken token) => token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false"),
                 StartDate = startDate,
                 Symbol = symbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),

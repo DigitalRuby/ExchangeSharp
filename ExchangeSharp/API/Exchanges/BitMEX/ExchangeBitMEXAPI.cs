@@ -249,15 +249,7 @@ namespace ExchangeSharp
                 foreach (var t in data)
                 {
                     var symbol = t["symbol"].ToStringInvariant();
-                    var trade = new ExchangeTrade()
-                    {
-                        Amount = t["size"].ConvertInvariant<decimal>(),
-                        //Id = t["trdMatchID"].ToStringInvariant(),
-                        IsBuy = t["side"].ToStringLowerInvariant().EqualsWithOption("buy"),
-                        Price = t["price"].ConvertInvariant<decimal>(),
-                        Timestamp = t["timestamp"].ConvertInvariant<DateTime>(),
-                    };
-                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, t.ParseTrade("size", "price", "size", "timestamp", TimestampType.Iso8601, "trdMatchID")));
                 }
                 return Task.CompletedTask;
             }, async (_socket) =>

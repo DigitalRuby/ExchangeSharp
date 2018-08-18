@@ -334,20 +334,13 @@ namespace ExchangeSharp
         {
             // "ltc_btc":{ "high":105.41,"low":104.67,"avg":105.04,"vol":43398.22251455,"vol_cur":4546.26962359,"last":105.11,"buy":104.2,"sell":105.11,"updated":1418654531 }
             string symbol = prop.Name.ToUpperInvariant();
-            return this.ParseTicker(prop.First, symbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSecondsLong);
+            return this.ParseTicker(prop.First, symbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSeconds);
         }
 
         private ExchangeTrade ParseTrade(JToken prop)
         {
             // "ltc_btc":[{"type":"ask","price":104.2,"amount":0.101,"tid":41234426,"timestamp":1418654531}, ... ]
-            return new ExchangeTrade()
-            {
-                Amount = prop["amount"].ConvertInvariant<decimal>(),
-                Id = prop["tid"].ConvertInvariant<long>(),
-                Price = prop["price"].ConvertInvariant<decimal>(),
-                IsBuy = prop["type"].ToStringInvariant().Equals("ask"),
-                Timestamp = DateTimeOffset.FromUnixTimeSeconds(prop["timestamp"].ConvertInvariant<long>()).DateTime
-            };
+            return prop.ParseTrade("amount", "price", "type", "timestamp", TimestampType.UnixSeconds, "tid", "ask");
         }
 
         private ExchangeOrderResult ParseOrder(JProperty prop)

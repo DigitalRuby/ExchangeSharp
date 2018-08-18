@@ -304,7 +304,7 @@ namespace ExchangeSharp
         /// <param name="bids">Bids key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenArrays
+        internal static ExchangeOrderBook ParseOrderBookFromJTokenArrays
         (
             this JToken token,
             string asks = "asks",
@@ -347,7 +347,7 @@ namespace ExchangeSharp
         /// <param name="sequence">Sequence key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries
+        internal static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries
         (
             this JToken token,
             string asks = "asks",
@@ -399,7 +399,7 @@ namespace ExchangeSharp
         /// <param name="convertCurrencyKey">Convert currency key</param>
         /// <param name="idKey">Id key</param>
         /// <returns>ExchangeTicker</returns>
-        public static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
+        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
             object convertVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
             object baseCurrencyKey = null, object convertCurrencyKey = null, object idKey = null)
@@ -485,6 +485,34 @@ namespace ExchangeSharp
                 }
             };
             return ticker;
+        }
+
+        internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
+            object timestampKey, TimestampType timestampType, object idKey = null, string typeKeyIsBuyValue = "buy")
+        {
+            ExchangeTrade trade = new ExchangeTrade
+            {
+                Amount = token[amountKey].ConvertInvariant<decimal>(),
+                Price = token[priceKey].ConvertInvariant<decimal>(),
+                IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue))
+            };
+            trade.Timestamp = (timestampKey == null ? DateTime.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+            if (idKey == null)
+            {
+                trade.Id = trade.Timestamp.Ticks;
+            }
+            else
+            {
+                try
+                {
+                    trade.Id = (long)token[idKey].ConvertInvariant<ulong>();
+                }
+                catch
+                {
+                    // dont care
+                }
+            }
+            return trade;
         }
     }
 }

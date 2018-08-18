@@ -529,17 +529,7 @@ namespace ExchangeSharp
                 Callback = callback,
                 EndDate = endDate,
                 MillisecondGranularity = false,
-                ParseFunction = (JToken token) =>
-                {
-                    return new ExchangeTrade
-                    {
-                        Amount = token["amount"].ConvertInvariant<decimal>(),
-                        Price = token["rate"].ConvertInvariant<decimal>(),
-                        Timestamp = token["date"].ToDateTimeInvariant(),
-                        Id = token["globalTradeID"].ConvertInvariant<long>(),
-                        IsBuy = token["type"].ToStringInvariant() == "buy"
-                    };
-                },
+                ParseFunction = (JToken token) => token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "globalTradeID"),
                 StartDate = startDate,
                 Symbol = symbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(dt)).ToStringInvariant(),

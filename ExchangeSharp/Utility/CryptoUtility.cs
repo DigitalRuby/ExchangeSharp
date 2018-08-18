@@ -545,7 +545,7 @@ namespace ExchangeSharp
                 case TimestampType.UnixSecondsDouble:
                     return UnixTimeStampToDateTimeSeconds(value.ConvertInvariant<double>());
 
-                case TimestampType.UnixSecondsLong:
+                case TimestampType.UnixSeconds:
                     return UnixTimeStampToDateTimeSeconds(value.ConvertInvariant<long>());
 
                 default:
@@ -1215,7 +1215,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Unix seconds (long)
         /// </summary>
-        UnixSecondsLong,
+        UnixSeconds,
 
         /// <summary>
         /// ISO 8601

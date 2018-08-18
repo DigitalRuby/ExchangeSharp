@@ -494,14 +494,7 @@ namespace ExchangeSharp
         private ExchangeTrade ParseExchangeTrade(JToken token)
         {
             // [ { "id": 9533117, "price": "0.046001", "quantity": "0.220", "side": "sell", "timestamp": "2017-04-14T12:18:40.426Z" }, ... ]
-            return new ExchangeTrade()
-            {
-                Id = token["id"].ConvertInvariant<long>(),
-                Timestamp = token["timestamp"].ToDateTimeInvariant(),
-                Price = token["price"].ConvertInvariant<decimal>(),
-                Amount = token["quantity"].ConvertInvariant<decimal>(),
-                IsBuy = token["side"].ToStringInvariant().Equals("buy")
-            };
+            return token.ParseTrade("quantity", "price", "side", "timestamp", TimestampType.Iso8601, "id");
         }
 
         private ExchangeOrderResult ParseCompletedOrder(JToken token)

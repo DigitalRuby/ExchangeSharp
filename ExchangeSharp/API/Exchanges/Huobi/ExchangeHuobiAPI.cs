@@ -827,16 +827,7 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                var trade = new ExchangeTrade()
-                {
-                    Amount = t["amount"].ConvertInvariant<decimal>(),
-                    // System.OverflowException: Value was either too large or too small for an Int64.
-                    //Id = t["id"].ConvertInvariant<long>(),
-                    IsBuy = t["direction"].ToStringLowerInvariant().EqualsWithOption("buy"),
-                    Price = t["price"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(t["ts"].ConvertInvariant<long>())
-                };
-                trades.Add(trade);
+                trades.Add(t.ParseTrade("amount", "price", "direction", "ts", TimestampType.UnixMilliseconds, "id"));
             }
 
             return trades;

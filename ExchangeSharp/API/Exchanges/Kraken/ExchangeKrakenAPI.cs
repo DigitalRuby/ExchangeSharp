@@ -408,7 +408,6 @@ namespace ExchangeSharp
         {
             string baseUrl = "/0/public/Trades?pair=" + symbol;
             string url;
-            DateTime timestamp;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             while (true)
             {
@@ -430,17 +429,9 @@ namespace ExchangeSharp
                 {
                     startDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["last"].ConvertInvariant<double>() / 1000000.0d);
                 }
-                foreach (JArray array in outerArray.Children<JArray>())
+                foreach (JToken trade in outerArray.Children())
                 {
-                    timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[2].ConvertInvariant<double>());
-                    trades.Add(new ExchangeTrade
-                    {
-                        Amount = array[1].ConvertInvariant<decimal>(),
-                        Price = array[0].ConvertInvariant<decimal>(),
-                        Timestamp = timestamp,
-                        Id = timestamp.Ticks,
-                        IsBuy = array[3].ConvertInvariant<char>() == 'b'
-                    });
+                    trades.Add(trade.ParseTrade(1, 0, 3, 2, TimestampType.UnixSecondsDouble, null, "b"));
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
                 if (!callback(trades))

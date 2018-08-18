@@ -520,14 +520,7 @@ namespace ExchangeSharp
 
         private ExchangeTrade ParseExchangeTrade(JToken token)
         {
-            return new ExchangeTrade()
-            {
-                Id = token["trade_id"].ConvertInvariant<long>(),
-                Timestamp = token["time"].ToDateTimeInvariant(),
-                Amount = token["size"].ConvertInvariant<decimal>(),
-                Price = token["price"].ConvertInvariant<decimal>(),
-                IsBuy = token["buy"].ToStringLowerInvariant().Equals("buy")
-            };
+            return token.ParseTrade("size", "price", "buy", "time", TimestampType.Iso8601, "trade_id");
         }
 
         private ExchangeTicker ParseTicker(JToken token, string symbol)

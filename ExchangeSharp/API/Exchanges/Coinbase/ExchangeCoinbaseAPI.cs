@@ -357,16 +357,7 @@ namespace ExchangeSharp
 
         private ExchangeTrade ParseTradeWebSocket(JToken token)
         {
-            var dateObj = token["time"];
-            DateTime date = dateObj.ToObject<DateTime>();
-            return new ExchangeTrade
-            {
-                Amount = token["last_size"].ConvertInvariant<decimal>(),
-                Id = token["sequence"].ConvertInvariant<long>(),
-                IsBuy = token["side"].ToStringInvariant() == "buy" ? true : false,
-                Price = token["price"].ConvertInvariant<decimal>(),
-                Timestamp = date
-            };
+            return token.ParseTrade("last_size", "price", "side", "time", TimestampType.Iso8601, "sequence");
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
@@ -391,17 +382,7 @@ namespace ExchangeSharp
             {
                 Callback = callback,
                 EndDate = endDate,
-                ParseFunction = (JToken token) =>
-                {
-                    return new ExchangeTrade
-                    {
-                        Amount = token["size"].ConvertInvariant<decimal>(),
-                        Id = token["trade_id"].ConvertInvariant<long>(),
-                        IsBuy = token["side"].ToStringInvariant() == "buy",
-                        Price = token["price"].ConvertInvariant<decimal>(),
-                        Timestamp = token["time"].ToDateTimeInvariant()
-                    };
-                },
+                ParseFunction = (JToken token) => token.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "trade_id"),
                 StartDate = startDate,
                 Symbol = symbol,
                 Url = "/products/[symbol]/trades",
@@ -416,18 +397,11 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
             string baseUrl = "/products/" + symbol.ToUpperInvariant() + "/trades";
-            Dictionary<string, object>[] trades = await MakeJsonRequestAsync<Dictionary<string, object>[]>(baseUrl);
+            JToken trades = await MakeJsonRequestAsync<JToken>(baseUrl);
             List<ExchangeTrade> tradeList = new List<ExchangeTrade>();
-            foreach (Dictionary<string, object> trade in trades)
+            foreach (JToken trade in trades)
             {
-                tradeList.Add(new ExchangeTrade
-                {
-                    Amount = trade["size"].ConvertInvariant<decimal>(),
-                    IsBuy = trade["side"].ToStringInvariant() == "buy",
-                    Price = trade["price"].ConvertInvariant<decimal>(),
-                    Timestamp = (DateTime)trade["time"],
-                    Id = trade["trade_id"].ConvertInvariant<long>()
-                });
+                tradeList.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "trade_id"));
             }
             return tradeList;
         }

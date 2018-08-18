@@ -128,15 +128,7 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                var trade = new ExchangeTrade()
-                {
-                    Amount = t["amount"].ConvertInvariant<decimal>(),
-                    Price = t["price"].ConvertInvariant<decimal>(),
-                    Id = t["tid"].ConvertInvariant<long>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(t["date"].ConvertInvariant<long>()),
-                    IsBuy = t["type"].ToStringInvariant() == "buy"
-                };
-                trades.Add(trade);
+                trades.Add(t.ParseTrade("amount", "price", "type", "date", TimestampType.UnixSeconds, "tid"));
             }
             return trades;
         }

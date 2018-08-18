@@ -314,16 +314,8 @@ namespace ExchangeSharp
             JToken array = await MakeJsonRequestAsync<JToken>(baseUrl);
             foreach (JToken token in array)
             {
-                trades.Add(new ExchangeTrade
-                {
-                    Amount = token["Quantity"].ConvertInvariant<decimal>(),
-                    IsBuy = token["OrderType"].ToStringUpperInvariant() == "BUY",
-                    Price = token["Price"].ConvertInvariant<decimal>(),
-                    Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
-                    Id = token["Id"].ConvertInvariant<long>()
-                });
+                trades.Add(token.ParseTrade("Quantity", "Price", "OrderType", "TimeStamp", TimestampType.Iso8601, "Id"));
             }
-
             return trades;
         }
 

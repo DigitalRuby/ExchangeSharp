@@ -153,15 +153,9 @@ namespace ExchangeSharp
             // [0]-Timestamp [1]-OrderType [2]-Price [3]-Amount [4]-Volume
             // [[1506037604000,"SELL",5210,48600633397,2532093],... ]
             JToken token = await MakeJsonRequestAsync<JToken>("/open/deal-orders?symbol=" + symbol);
-            foreach (JArray trade in token)
+            foreach (JToken trade in token)
             {
-                trades.Add(new ExchangeTrade()
-                {
-                    Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(trade[0].ConvertInvariant<long>()).DateTime,
-                    IsBuy = trade[1].ToStringInvariant().Equals("BUY"),
-                    Amount = trade[3].ConvertInvariant<decimal>(),
-                    Price = trade[2].ConvertInvariant<decimal>()
-                });
+                trades.Add(trade.ParseTrade(3, 2, 1, 0, TimestampType.UnixMilliseconds));
             }
             return trades;
         }
@@ -172,13 +166,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/open/deal-orders?symbol=" + symbol + (startDate == null ? string.Empty : "&since=" + startDate.Value.UnixTimestampFromDateTimeMilliseconds()));
             foreach (JArray trade in token)
             {
-                trades.Add(new ExchangeTrade()
-                {
-                    Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(trade[0].ConvertInvariant<long>()).DateTime,
-                    IsBuy = trade[1].ToStringInvariant().Equals("BUY"),
-                    Amount = trade[3].ConvertInvariant<decimal>(),
-                    Price = trade[2].ConvertInvariant<decimal>()
-                });
+                trades.Add(trade.ParseTrade(3, 2, 1, 0, TimestampType.UnixMilliseconds));
             }
             var rc = callback?.Invoke(trades);
         }

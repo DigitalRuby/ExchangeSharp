@@ -99,7 +99,7 @@ namespace ExchangeSharp
         {
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
             JToken token = await MakeBitstampRequestAsync("/ticker/" + symbol);
-            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSecondsLong);
+            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSeconds);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
@@ -115,14 +115,7 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             foreach (JToken trade in token)
             {
-                trades.Add(new ExchangeTrade
-                {
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
-                    Id = trade["tid"].ConvertInvariant<long>(),
-                    IsBuy = trade["type"].ToStringInvariant() == "0",
-                    Price = trade["price"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(trade["date"].ConvertInvariant<long>())
-                });
+                trades.Add(trade.ParseTrade("amount", "price", "type", "date", TimestampType.UnixSeconds, "tid", "0"));
             }
             callback(trades);
         }

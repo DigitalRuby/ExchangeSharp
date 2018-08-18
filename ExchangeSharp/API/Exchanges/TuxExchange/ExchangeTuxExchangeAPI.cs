@@ -164,14 +164,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>($"/api?method=gettradehistory&coin={cur}&start={start}&end={end}");
             foreach (JToken trade in token)
             {
-                trades.Add(new ExchangeTrade()
-                {
-                    Timestamp = trade["date"].ToDateTimeInvariant(),
-                    Id = trade["tradeid"].ConvertInvariant<long>(),
-                    IsBuy = trade["type"].ToStringInvariant().Equals("buy"),
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
-                    Price = trade["rate"].ConvertInvariant<decimal>()
-                });
+                trades.Add(token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "tradeid"));
             }
             if (trades.Count > 0) return trades.OrderByDescending(t => t.Timestamp).Take(10);
             else return trades;
@@ -187,14 +180,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             foreach (JToken trade in token)
             {
-                trades.Add(new ExchangeTrade()
-                {
-                    Timestamp = trade["date"].ToDateTimeInvariant(),
-                    Id = trade["tradeid"].ConvertInvariant<long>(),
-                    IsBuy = trade["type"].ToStringInvariant().Equals("buy"),
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
-                    Price = trade["rate"].ConvertInvariant<decimal>()
-                });
+                trades.Add(trade.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "tradeid"));
             }
             callback?.Invoke(trades);
         }

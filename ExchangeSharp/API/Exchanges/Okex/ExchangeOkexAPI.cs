@@ -296,14 +296,7 @@ namespace ExchangeSharp
             foreach (JToken trade in trades.Item1)
             {
                 // [ { "date": "1367130137", "date_ms": "1367130137000", "price": 787.71, "amount": 0.003, "tid": "230433", "type": "sell" } ]
-                allTrades.Add(new ExchangeTrade
-                {
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
-                    Price = trade["price"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(trade["date_ms"].ConvertInvariant<long>()),
-                    Id = trade["tid"].ConvertInvariant<long>(),
-                    IsBuy = trade["type"].ToStringInvariant() == "buy"
-                });
+                allTrades.Add(trade.ParseTrade("amount", "price", "type", "date_ms", TimestampType.UnixMilliseconds, "tid"));
             }
             callback(allTrades);
         }
@@ -511,7 +504,7 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             //{"date":"1518043621","ticker":{"high":"0.01878000","vol":"1911074.97335534","last":"0.01817627","low":"0.01813515","buy":"0.01817626","sell":"0.01823447"}}
-            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSecondsLong);
+            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSeconds);
         }
 
         private ExchangeTicker ParseTickerV2(string symbol, JToken ticker)
