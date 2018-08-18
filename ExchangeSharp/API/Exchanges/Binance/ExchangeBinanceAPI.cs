@@ -213,7 +213,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + symbol);
             return ParseTicker(symbol, obj);
         }
@@ -326,7 +325,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + symbol + "&limit=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "lastUpdateId", maxCount: maxCount);
         }
@@ -387,7 +385,6 @@ namespace ExchangeSharp
 		    ]] */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string url = "/klines?symbol=" + symbol;
             if (startDate != null)
             {
@@ -454,15 +451,14 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["symbol"] = symbol;
+            payload["symbol"] = order.Symbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
             payload["type"] = order.OrderType.ToStringUpperInvariant();
 
             // Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
-            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
 
             // Binance does not accept quantities with more than 20 decimal places.
             payload["quantity"] = Math.Round(outputQuantity, 20);
@@ -486,7 +482,6 @@ namespace ExchangeSharp
             {
                 throw new InvalidOperationException("Binance single order details request requires symbol");
             }
-            symbol = NormalizeSymbol(symbol);
             payload["symbol"] = symbol;
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
@@ -526,9 +521,9 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (!string.IsNullOrWhiteSpace(symbol))
+            if (symbol.Length != 0)
             {
-                payload["symbol"] = NormalizeSymbol(symbol);
+                payload["symbol"] = symbol;
             }
             JToken token = await MakeJsonRequestAsync<JToken>("/openOrders", BaseUrlPrivate, payload);
             foreach (JToken order in token)
@@ -580,14 +575,14 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            if (string.IsNullOrWhiteSpace(symbol))
+            if (symbol.Length == 0)
             {
                 orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
             }
             else
             {
                 Dictionary<string, object> payload = await GetNoncePayloadAsync();
-                payload["symbol"] = NormalizeSymbol(symbol);
+                payload["symbol"] = symbol;
                 if (afterDate != null)
                 {
                     // TODO: timestamp param is causing duplicate request errors which is a bug in the Binance API
@@ -643,14 +638,14 @@ namespace ExchangeSharp
         private async Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
-            if (string.IsNullOrWhiteSpace(symbol))
+            if (symbol.Length == 0)
             {
                 trades.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
             }
             else
             {
                 Dictionary<string, object> payload = await GetNoncePayloadAsync();
-                payload["symbol"] = NormalizeSymbol(symbol);
+                payload["symbol"] = symbol;
                 if (afterDate != null)
                 {
                     payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
@@ -667,11 +662,11 @@ namespace ExchangeSharp
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (string.IsNullOrEmpty(symbol))
+            if (symbol.Length == 0)
             {
                 throw new InvalidOperationException("Binance cancel order request requires symbol");
             }
-            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["symbol"] = symbol;
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
         }
@@ -944,7 +939,7 @@ namespace ExchangeSharp
             */
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["asset"] = NormalizeSymbol(symbol);
+            payload["asset"] = symbol;
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
@@ -964,9 +959,9 @@ namespace ExchangeSharp
         {
             // TODO: API supports searching on status, startTime, endTime
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (!string.IsNullOrWhiteSpace(symbol))
+            if (symbol.Length != 0)
             {
-                payload["asset"] = NormalizeSymbol(symbol);
+                payload["asset"] = symbol;
             }
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);

@@ -364,7 +364,6 @@ namespace ExchangeSharp
              */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds);
             string url = $"/trade/bucketed?binSize={periodString}&partial=false&symbol={symbol}&reverse=true" + symbol;
             if (startDate != null)
@@ -566,7 +565,6 @@ namespace ExchangeSharp
 
         private void AddOrderToPayload(ExchangeOrderRequest order, Dictionary<string, object> payload)
         {
-            order.Symbol = NormalizeSymbol(order.Symbol);
             payload["symbol"] = order.Symbol;
             payload["ordType"] = order.OrderType.ToStringInvariant();
             payload["side"] = order.IsBuy ? "Buy" : "Sell";

@@ -118,7 +118,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + symbol);
             return this.ParseTicker(result, symbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
         }
@@ -152,7 +151,6 @@ namespace ExchangeSharp
             else { periodString = "1d"; periodSeconds = 86400; }
 
             limit = limit ?? (limit > 2160 ? 2160 : limit);
-            symbol = NormalizeSymbol(symbol);
             endDate = endDate ?? DateTime.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
@@ -337,7 +335,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             var payload = await GetNoncePayloadAsync();
-            payload["currency"] = NormalizeSymbol(withdrawalRequest.Currency);
+            payload["currency"] = withdrawalRequest.Currency;
             payload["quantity"] = withdrawalRequest.Amount;
             payload["address"] = withdrawalRequest.Address;
             if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["comments"] = withdrawalRequest.AddressTag;

@@ -40,7 +40,6 @@ namespace ExchangeSharp
 
         private async Task<Tuple<JToken, string>> MakeRequestZBcomAsync(string symbol, string subUrl, string baseUrl = null)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty), baseUrl);
             return new Tuple<JToken, string>(obj, symbol);
         }

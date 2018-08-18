@@ -92,7 +92,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/pubticker/" + symbol);
             if (obj == null || obj.Count() == 0)
             {
@@ -110,7 +109,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(obj, maxCount: maxCount);
         }
@@ -180,13 +178,12 @@ namespace ExchangeSharp
                 throw new NotSupportedException("Order type " + order.OrderType + " not supported");
             }
 
-            string symbol = NormalizeSymbol(order.Symbol);
             object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce", nonce },
                 { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
-                { "symbol", symbol },
+                { "symbol", order.Symbol },
                 { "amount", order.RoundAmount().ToStringInvariant() },
                 { "price", order.Price.ToStringInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
@@ -213,7 +210,6 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             object nonce = await GenerateNonceAsync();
-            symbol = NormalizeSymbol(symbol);
             JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", nonce } });
             if (result is JArray array)
             {

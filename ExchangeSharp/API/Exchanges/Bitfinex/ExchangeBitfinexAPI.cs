@@ -143,7 +143,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken ticker = await MakeJsonRequestAsync<JToken>("/ticker/t" + symbol);
             return this.ParseTicker(ticker, symbol, 2, 0, 6, 7);
         }
@@ -218,8 +217,7 @@ namespace ExchangeSharp
                 var symbols = await GetSymbolsAsync();
                 foreach (var symbol in symbols)
                 {
-                    string normalizedSymbol = NormalizeSymbol(symbol);
-                    await _socket.SendMessageAsync(new { @event = "subscribe", channel = "ticker", pair = normalizedSymbol });
+                    await _socket.SendMessageAsync(new { @event = "subscribe", channel = "ticker", pair = symbol });
                 }
             });
         }
@@ -268,8 +266,7 @@ namespace ExchangeSharp
             {
                 foreach (var symbol in symbols)
                 {
-                    string normalizedSymbol = NormalizeSymbol(symbol);
-                    await _socket.SendMessageAsync(new { @event = "subscribe", channel = "trades", symbol = normalizedSymbol });
+                    await _socket.SendMessageAsync(new { @event = "subscribe", channel = "trades", symbol });
                 }
             });
         }
@@ -289,7 +286,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             decimal[][] books = await MakeJsonRequestAsync<decimal[][]>("/book/t" + symbol + "/P0?len=" + maxCount);
             foreach (decimal[] book in books)
@@ -309,7 +305,6 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             const int maxCount = 100;
-            symbol = NormalizeSymbol(symbol);
             string baseUrl = "/trades/t" + symbol + "/hist?sort=" + (startDate == null ? "-1" : "1") + "&limit=" + maxCount;
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -352,7 +347,6 @@ namespace ExchangeSharp
         {
             // https://api.bitfinex.com/v2/candles/trade:1d:btcusd/hist?start=ms_start&end=ms_end
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string periodString = CryptoUtility.SecondsToPeriodString(periodSeconds).Replace("d", "D"); // WTF Bitfinex, capital D???
             string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1";
             if (startDate != null || endDate != null)
@@ -484,7 +478,6 @@ namespace ExchangeSharp
             }
 
             // retrieve orders for the one symbol
-            symbol = NormalizeSymbol(symbol);
             return await GetOrderDetailsInternalV1(new string[] { symbol }, afterDate);
         }
 
@@ -527,6 +520,11 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
+            if (symbol.Length == 0)
+            {
+                throw new ArgumentNullException(nameof(symbol));
+            }
+
             // IOTA addresses should never be used more than once
             if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
             {
@@ -567,13 +565,13 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeCoinTransfers</returns>
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
-            if (string.IsNullOrWhiteSpace(symbol))
+            if (symbol.Length == 0)
             {
                 throw new ArgumentNullException(nameof(symbol));
             }
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["currency"] = NormalizeSymbol(symbol);
+            payload["currency"] = symbol;
 
             JToken result = await MakeJsonRequestAsync<JToken>("/history/movements", BaseUrlV1, payload, "POST");
             var transactions = new List<ExchangeTransaction>();
@@ -625,19 +623,17 @@ namespace ExchangeSharp
         /// <returns>The withdrawal response</returns>
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            string symbol = NormalizeSymbol(withdrawalRequest.Currency);
-
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
-            if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            if (!DepositMethodLookup.TryGetValue(withdrawalRequest.Currency, out string fullName))
             {
-                fullName = symbol.ToLowerInvariant();
+                fullName = withdrawalRequest.Currency.ToLowerInvariant();
             }
 
             // Bitfinex adds the fee on top of what you request to withdrawal
             if (withdrawalRequest.TakeFeeFromAmount)
             {
                 Dictionary<string, decimal> fees = await GetWithdrawalFeesAsync();
-                if (fees.TryGetValue(symbol, out decimal feeAmt))
+                if (fees.TryGetValue(withdrawalRequest.Currency, out decimal feeAmt))
                 {
                     withdrawalRequest.Amount -= feeAmt;
                 }

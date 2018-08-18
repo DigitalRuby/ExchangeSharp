@@ -112,7 +112,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/ticker/" + symbol);
             return ParseTicker(obj, symbol);
         }
@@ -301,7 +300,7 @@ namespace ExchangeSharp
             var payload = await GetNoncePayloadAsync();
             //payload["clientOrderId"] = "neuMedia" + payload["nonce"];     Currently letting hitbtc assign this, but may not be unique for more than 24 hours
             payload["quantity"] = order.Amount;
-            payload["symbol"] = NormalizeSymbol(order.Symbol);
+            payload["symbol"] = order.Symbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
             payload["type"] = order.OrderType == OrderType.Limit ? "limit" : "market";
             if (order.OrderType == OrderType.Limit)

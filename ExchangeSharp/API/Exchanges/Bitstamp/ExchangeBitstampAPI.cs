@@ -98,14 +98,12 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/ticker/" + symbol);
             return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSecondsLong);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/order_book/" + symbol);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
@@ -113,7 +111,6 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // [{"date": "1513387997", "tid": "33734815", "price": "0.01724547", "type": "1", "amount": "5.56481714"}]
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/transactions/" + symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             foreach (JToken trade in token)
@@ -177,11 +174,9 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
-
             string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
-            string url = $"/{action}{market}/{symbol}/";
+            string url = $"/{action}{market}/{order.Symbol}/";
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
 
             if (order.OrderType != OrderType.Market)
@@ -286,7 +281,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            symbol = NormalizeSymbol(symbol);
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
@@ -314,7 +308,6 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            symbol = NormalizeSymbol(symbol);
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";

@@ -214,10 +214,8 @@ namespace ExchangeSharp
               }
             }}
              */
-            symbol = NormalizeSymbol(symbol);
-            JToken obj = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + symbol);
-            var token = obj["tick"];
-            return this.ParseTicker(token, symbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
+            JToken ticker = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + symbol);
+            return this.ParseTicker(ticker["tick"], symbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
         }
 
         protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -286,9 +284,8 @@ namespace ExchangeSharp
                 }
                 foreach (string symbol in symbols)
                 {
-                    string normalizedSymbol = NormalizeSymbol(symbol);
                     long id = System.Threading.Interlocked.Increment(ref webSocketId);
-                    string channel = $"market.{normalizedSymbol}.trade.detail";
+                    string channel = $"market.{symbol}.trade.detail";
                     await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
@@ -412,7 +409,6 @@ namespace ExchangeSharp
       [7990, 1.9970],
       [7995, 0.88],
              */
-            symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
@@ -439,7 +435,6 @@ namespace ExchangeSharp
              */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string url = "/market/history/kline?symbol=" + symbol;
             if (limit != null)
             {
@@ -679,19 +674,17 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
-
             var account_id = await GetAccountID(order.IsMargin, order.Symbol);
 
             var payload = await GetNoncePayloadAsync();
             payload.Add("account-id", account_id);
-            payload.Add("symbol", symbol);
+            payload.Add("symbol", order.Symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("source", order.IsMargin ? "margin-api" : "api");
             payload["method"] = "POST";
 
-            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
 
             payload["amount"] = outputQuantity.ToStringInvariant();
 

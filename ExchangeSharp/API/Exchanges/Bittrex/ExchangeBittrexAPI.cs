@@ -205,7 +205,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken ticker = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + symbol);
             return this.ParseTicker(ticker[0], symbol, "Ask", "Bid", "Last", "BaseVolume", "Volume", "Timestamp", TimestampType.Iso8601);
         }
@@ -226,7 +225,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + symbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
         }
@@ -237,8 +235,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             var transactions = new List<ExchangeTransaction>();
-            symbol = NormalizeSymbol(symbol);
-
             string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
             foreach (JToken token in result)
@@ -266,7 +262,6 @@ namespace ExchangeSharp
         {
             // TODO: sinceDateTime is ignored
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=oneMin&_=1499127220008
-            symbol = NormalizeSymbol(symbol);
             string baseUrl = "/pub/market/GetTicks?marketName=" + symbol + "&tickInterval=oneMin";
             string url;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -315,7 +310,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            symbol = NormalizeSymbol(symbol);
             string baseUrl = "/public/getmarkethistory?market=" + symbol;
             JToken array = await MakeJsonRequestAsync<JToken>(baseUrl);
             foreach (JToken token in array)
@@ -364,7 +358,6 @@ namespace ExchangeSharp
                     break;
             }
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             endDate = endDate ?? DateTime.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = await MakeJsonRequestAsync<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
@@ -434,12 +427,9 @@ namespace ExchangeSharp
                 throw new NotSupportedException("Order type " + order.OrderType + " not supported");
             }
 
-            string symbol = NormalizeSymbol(order.Symbol);
-
-            decimal orderAmount = await ClampOrderQuantity(symbol, order.Amount);
-            decimal orderPrice = await ClampOrderPrice(symbol, order.Price);
-
-            string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + symbol + "&quantity=" +
+            decimal orderAmount = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal orderPrice = await ClampOrderPrice(order.Symbol, order.Price);
+            string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + order.Symbol + "&quantity=" +
                 orderAmount.ToStringInvariant() + "&rate=" + orderPrice.ToStringInvariant();
             foreach (var kv in order.ExtraParameters)
             {
@@ -454,7 +444,7 @@ namespace ExchangeSharp
                 OrderDate = DateTime.UtcNow,
                 OrderId = orderId,
                 Result = ExchangeAPIOrderResult.Pending,
-                Symbol = symbol,
+                Symbol = order.Symbol,
                 Price = order.Price
             };
         }

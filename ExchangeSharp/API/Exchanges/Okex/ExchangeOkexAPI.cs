@@ -322,7 +322,6 @@ namespace ExchangeSharp
             */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string url = "/kline.do?symbol=" + symbol;
             if (startDate != null)
             {
@@ -416,14 +415,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["symbol"] = symbol;
+            payload["symbol"] = order.Symbol;
             payload["type"] = (order.IsBuy ? "buy" : "sell");
 
             // Okex has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
-            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
 
             if (order.OrderType == OrderType.Market)
             {
@@ -461,11 +459,11 @@ namespace ExchangeSharp
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (string.IsNullOrEmpty(symbol))
+            if (symbol.Length == 0)
             {
                 throw new InvalidOperationException("Okex cancel order request requires symbol");
             }
-            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["symbol"] = symbol;
             payload["order_id"] = orderId;
             await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
         }
@@ -474,11 +472,11 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (string.IsNullOrEmpty(symbol))
+            if (symbol.Length == 0)
             {
                 throw new InvalidOperationException("Okex single order details request requires symbol");
             }
-            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["symbol"] = symbol;
             payload["order_id"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
             foreach (JToken order in token["orders"])

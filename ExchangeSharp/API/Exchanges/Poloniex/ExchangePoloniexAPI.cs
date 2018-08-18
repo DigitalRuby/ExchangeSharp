@@ -349,7 +349,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             IEnumerable<KeyValuePair<string, ExchangeTicker>> tickers = await GetTickersAsync();
             foreach (var kv in tickers)
             {
@@ -496,7 +495,6 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
             // {"asks":[["0.01021997",22.83117932],["0.01022000",82.3204],["0.01022480",140],["0.01023054",241.06436945],["0.01023057",140]],"bids":[["0.01020233",164.195],["0.01020232",66.22565096],["0.01020200",5],["0.01020010",66.79296968],["0.01020000",490.19563761]],"isFrozen":"0","seq":147171861}
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=" + symbol + "&depth=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
@@ -559,7 +557,6 @@ namespace ExchangeSharp
 
             // https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400
             // [{"date":1405699200,"high":0.0045388,"low":0.00403001,"open":0.00404545,"close":0.00435873,"volume":44.34555992,"quoteVolume":10311.88079097,"weightedAverage":0.00430043}]
-            symbol = NormalizeSymbol(symbol);
             string url = "/public?command=returnChartData&currencyPair=" + symbol;
             if (startDate != null)
             {
@@ -639,8 +636,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
-
             List<object> orderParams = new List<object>
             {
                 "currencyPair", symbol
@@ -663,8 +658,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
-
             List<object> orderParams = new List<object>
             {
                 "currencyPair", symbol
@@ -699,14 +692,12 @@ namespace ExchangeSharp
                 throw new NotSupportedException("Order type " + order.OrderType + " not supported");
             }
 
-            string symbol = NormalizeSymbol(order.Symbol);
-
-            decimal orderAmount = await ClampOrderQuantity(symbol, order.Amount);
-            decimal orderPrice = await ClampOrderPrice(symbol, order.Price);
+            decimal orderAmount = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal orderPrice = await ClampOrderPrice(order.Symbol, order.Price);
 
             List<object> orderParams = new List<object>
             {
-                "currencyPair", symbol,
+                "currencyPair", order.Symbol,
                 "rate", orderPrice.ToStringInvariant(),
                 "amount", orderAmount.ToStringInvariant()
             };
@@ -718,15 +709,14 @@ namespace ExchangeSharp
 
             JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (order.IsMargin ? "marginBuy" : "buy") : (order.IsMargin ? "marginSell" : "sell"), orderParams);
             ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result);
-            exchangeOrderResult.Symbol = symbol;
-            exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, symbol);
+            exchangeOrderResult.Symbol = order.Symbol;
+            exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, order.Symbol);
             return exchangeOrderResult;
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
-            symbol = NormalizeSymbol(symbol);
-            if (string.IsNullOrWhiteSpace(symbol))
+            if (symbol.Length == 0)
             {
                 symbol = "all";
             }
@@ -833,8 +823,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            symbol = NormalizeSymbol(symbol);
-
             // Never reuse IOTA addresses
             if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
             {

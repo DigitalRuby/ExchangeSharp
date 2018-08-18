@@ -407,14 +407,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            symbol = NormalizeSymbol(symbol);
             var payload = await GetNoncePayloadAsync();
             JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
                 var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
                 payload = await GetNoncePayloadAsync();
-                payload["currency"] = NormalizeSymbol(symbol);
+                payload["currency"] = symbol;
                 payload["method"] = rc["id"].ToStringInvariant();
 
                 JToken token = await MakeJsonRequestAsync<JToken>("/deposits/make", null, payload, "POST");
@@ -432,16 +431,15 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
-            string symbol = NormalizeSymbol(withdrawalRequest.Currency);
             var payload = await GetNoncePayloadAsync();
             JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
-                var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
+                var rc = array.Where(t => t["currency"].ToStringInvariant() == withdrawalRequest.Currency).FirstOrDefault();
 
                 payload = await GetNoncePayloadAsync();
                 payload["amount"] = withdrawalRequest.Amount;
-                payload["currency"] = symbol;
+                payload["currency"] = withdrawalRequest.Currency;
                 payload["method"] = rc["id"].ToStringInvariant();
                 if (!String.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["tag"] = withdrawalRequest.AddressTag;
                 // "status": 0,  "message": "Your transaction is pending. Please confirm it via email.",  "payoutId": "65",  "balance": []...

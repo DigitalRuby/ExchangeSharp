@@ -67,6 +67,7 @@ namespace ExchangeSharp
 
         protected virtual async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
+            symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             await GetHistoricalTradesAsync((e) =>
             {
@@ -488,7 +489,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeTicker> GetTickerAsync(string symbol)
         {
             await new SynchronizationContextRemover();
-            return await OnGetTickerAsync(symbol);
+            return await OnGetTickerAsync(NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -510,7 +511,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
         {
             await new SynchronizationContextRemover();
-            return await OnGetOrderBookAsync(symbol, maxCount);
+            return await OnGetOrderBookAsync(NormalizeSymbol(symbol), maxCount);
         }
 
         /// <summary>
@@ -534,7 +535,7 @@ namespace ExchangeSharp
         public virtual async Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             await new SynchronizationContextRemover();
-            await OnGetHistoricalTradesAsync(callback, symbol, startDate, endDate);
+            await OnGetHistoricalTradesAsync(callback, NormalizeSymbol(symbol), startDate, endDate);
         }
 
         /// <summary>
@@ -545,7 +546,7 @@ namespace ExchangeSharp
         public virtual async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
         {
             await new SynchronizationContextRemover();
-            return await OnGetRecentTradesAsync(symbol);
+            return await OnGetRecentTradesAsync(NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -557,7 +558,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             await new SynchronizationContextRemover();
-            return await OnGetDepositAddressAsync(symbol, forceRegenerate);
+            return await OnGetDepositAddressAsync(NormalizeSymbol(symbol), forceRegenerate);
         }
 
         /// <summary>
@@ -567,7 +568,7 @@ namespace ExchangeSharp
         public virtual async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol)
         {
             await new SynchronizationContextRemover();
-            return await OnGetDepositHistoryAsync(symbol);
+            return await OnGetDepositHistoryAsync(NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -582,7 +583,7 @@ namespace ExchangeSharp
         public virtual async Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetCandlesAsync(symbol, periodSeconds, startDate, endDate, limit);
+            return await OnGetCandlesAsync(NormalizeSymbol(symbol), periodSeconds, startDate, endDate, limit);
         }
 
         /// <summary>
@@ -624,6 +625,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
         {
             await new SynchronizationContextRemover();
+            order.Symbol = NormalizeSymbol(order.Symbol);
             return await OnPlaceOrderAsync(order);
         }
 
@@ -632,7 +634,15 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orders">Order requests</param>
         /// <returns>Order results, each result matches up with each order in index</returns>
-        public virtual Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders) => OnPlaceOrdersAsync(orders);
+        public virtual async Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+        {
+            await new SynchronizationContextRemover();
+            foreach (ExchangeOrderRequest request in orders)
+            {
+                request.Symbol = NormalizeSymbol(request.Symbol);
+            }
+            return await OnPlaceOrdersAsync(orders);
+        }
 
         /// <summary>
         /// Get order details
@@ -643,7 +653,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string symbol = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetOrderDetailsAsync(orderId, symbol);
+            return await OnGetOrderDetailsAsync(orderId, NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -654,7 +664,7 @@ namespace ExchangeSharp
         public virtual async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetOpenOrderDetailsAsync(symbol);
+            return await OnGetOpenOrderDetailsAsync(NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -666,7 +676,8 @@ namespace ExchangeSharp
         public virtual async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             await new SynchronizationContextRemover();
-            string cacheKey = "GetCompletedOrderDetails_" + (symbol ?? string.Empty) + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
+            symbol = NormalizeSymbol(symbol);
+            string cacheKey = "GetCompletedOrderDetails_" + symbol + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
             return (await Cache.Get<ExchangeOrderResult[]>(cacheKey, async () =>
             {
                 return new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), DateTime.UtcNow.AddMinutes(2.0));
@@ -681,7 +692,7 @@ namespace ExchangeSharp
         public virtual async Task CancelOrderAsync(string orderId, string symbol = null)
         {
             await new SynchronizationContextRemover();
-            await OnCancelOrderAsync(orderId, symbol);
+            await OnCancelOrderAsync(orderId, NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -691,114 +702,8 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             await new SynchronizationContextRemover();
+            withdrawalRequest.Currency = NormalizeSymbol(withdrawalRequest.Currency);
             return await OnWithdrawAsync(withdrawalRequest);
-        }
-
-        /// <summary>
-        /// Place a limit order by first querying the order book and then placing the order for a threshold below the bid or above the ask that would fully fulfill the amount.
-        /// The order book is scanned until an amount of bids or asks that will fulfill the order is found and then the order is placed at the lowest bid or highest ask price multiplied
-        /// by priceThreshold.
-        /// </summary>
-        /// <param name="symbol">Symbol to sell</param>
-        /// <param name="amount">Amount to sell</param>
-        /// <param name="isBuy">True for buy, false for sell</param>
-        /// <param name="orderBookCount">Amount of bids/asks to request in the order book</param>
-        /// <param name="priceThreshold">Threshold below the lowest bid or above the highest ask to set the limit order price at. For buys, this is converted to 1 / priceThreshold.
-        /// This can be set to 0 if you want to set the price like a market order.</param>
-        /// <param name="thresholdToAbort">If the lowest bid/highest ask price divided by the highest bid/lowest ask price is below this threshold, throw an exception.
-        /// This ensures that your order does not buy or sell at an extreme margin.</param>
-        /// <param name="abortIfOrderBookTooSmall">Whether to abort if the order book does not have enough bids or ask amounts to fulfill the order.</param>
-        /// <returns>Order result</returns>
-        public virtual async Task<ExchangeOrderResult> PlaceSafeMarketOrderAsync(string symbol, decimal amount, bool isBuy, int orderBookCount = 100, decimal priceThreshold = 0.9m,
-            decimal thresholdToAbort = 0.75m, bool abortIfOrderBookTooSmall = false)
-        {
-            if (priceThreshold > 0.9m)
-            {
-                throw new APIException("You cannot specify a price threshold above 0.9m, otherwise there is a chance your order will never be fulfilled. For buys, this is " +
-                    "converted to 1.0m / priceThreshold, so always specify the value below 0.9m");
-            }
-            else if (priceThreshold <= 0m)
-            {
-                priceThreshold = 1m;
-            }
-            else if (isBuy && priceThreshold > 0m)
-            {
-                priceThreshold = 1.0m / priceThreshold;
-            }
-            ExchangeOrderBook book = await GetOrderBookAsync(symbol, orderBookCount);
-            if (book == null || (isBuy && book.Asks.Count == 0) || (!isBuy && book.Bids.Count == 0))
-            {
-                throw new APIException($"Error getting order book for {symbol}");
-            }
-            decimal counter = 0m;
-            decimal highPrice = decimal.MinValue;
-            decimal lowPrice = decimal.MaxValue;
-            if (isBuy)
-            {
-                foreach (ExchangeOrderPrice ask in book.Asks.Values)
-                {
-                    counter += ask.Amount;
-                    highPrice = Math.Max(highPrice, ask.Price);
-                    lowPrice = Math.Min(lowPrice, ask.Price);
-                    if (counter >= amount)
-                    {
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                foreach (ExchangeOrderPrice bid in book.Bids.Values)
-                {
-                    counter += bid.Amount;
-                    highPrice = Math.Max(highPrice, bid.Price);
-                    lowPrice = Math.Min(lowPrice, bid.Price);
-                    if (counter >= amount)
-                    {
-                        break;
-                    }
-                }
-            }
-            if (abortIfOrderBookTooSmall && counter < amount)
-            {
-                throw new APIException($"{(isBuy ? "Buy" : "Sell") } order for {symbol} and amount {amount} cannot be fulfilled because the order book is too thin.");
-            }
-            else if (lowPrice / highPrice < thresholdToAbort)
-            {
-                throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {symbol} and amount {amount} would place for a price below threshold of {thresholdToAbort}, aborting.");
-            }
-            ExchangeOrderRequest request = new ExchangeOrderRequest
-            {
-                Amount = amount,
-                OrderType = OrderType.Limit,
-                Price = CryptoUtility.RoundAmount((isBuy ? highPrice : lowPrice) * priceThreshold),
-                ShouldRoundAmount = true,
-                Symbol = symbol
-            };
-            ExchangeOrderResult result = await PlaceOrderAsync(request);
-
-            // wait about 10 seconds until the order is fulfilled
-            int i = 0;
-            const int maxTries = 20; // 500 ms for each try
-            for (; i < maxTries; i++)
-            {
-                await System.Threading.Tasks.Task.Delay(500);
-                result = await GetOrderDetailsAsync(result.OrderId, symbol);
-                switch (result.Result)
-                {
-                    case ExchangeAPIOrderResult.Filled:
-                    case ExchangeAPIOrderResult.Canceled:
-                    case ExchangeAPIOrderResult.Error:
-                        break;
-                }
-            }
-
-            if (i == maxTries)
-            {
-                throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {symbol} and amount {amount} timed out and may not have been fulfilled");
-            }
-
-            return result;
         }
 
         /// <summary>
@@ -819,7 +724,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol)
         {
             await new SynchronizationContextRemover();
-            return await OnGetOpenPositionAsync(symbol);
+            return await OnGetOpenPositionAsync(NormalizeSymbol(symbol));
         }
 
         /// <summary>
@@ -830,7 +735,7 @@ namespace ExchangeSharp
         public virtual async Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string symbol)
         {
             await new SynchronizationContextRemover();
-            return await OnCloseMarginPositionAsync(symbol);
+            return await OnCloseMarginPositionAsync(NormalizeSymbol(symbol));
         }
 
         #endregion REST API

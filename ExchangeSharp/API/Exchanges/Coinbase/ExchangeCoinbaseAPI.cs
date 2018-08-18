@@ -182,7 +182,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken ticker = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/ticker");
             return this.ParseTicker(ticker, symbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
         }
@@ -450,7 +449,6 @@ namespace ExchangeSharp
             // /products/<product-id>/candles
             // https://api.pro.coinbase.com/products/LTC-BTC/candles?granularity=86400&start=2017-12-04T18:15:33&end=2017-12-11T18:15:33
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string url = "/products/" + symbol + "/candles?granularity=" + periodSeconds;
             if (startDate == null)
             {
@@ -520,14 +518,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
             object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce", nonce },
                 { "type", order.OrderType.ToStringLowerInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
-                { "product_id", symbol },
+                { "product_id", order.Symbol },
                 { "size", order.RoundAmount().ToStringInvariant() }
             };
 
@@ -551,7 +548,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            symbol = NormalizeSymbol(symbol);
             JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await GetNoncePayloadAsync());
             foreach (JToken token in array)
             {
@@ -564,7 +560,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            symbol = NormalizeSymbol(symbol);
             JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await GetNoncePayloadAsync());
             foreach (JToken token in array)
             {

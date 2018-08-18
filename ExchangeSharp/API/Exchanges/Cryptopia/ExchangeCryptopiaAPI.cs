@@ -236,9 +236,9 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
             var payload = await GetNoncePayloadAsync();
-            if (!string.IsNullOrEmpty(symbol))
+            if (symbol.Length != 0)
             {
-                payload["Market"] = NormalizeSymbol(symbol);
+                payload["Market"] = symbol;
             }
             else
             {
@@ -315,7 +315,7 @@ namespace ExchangeSharp
             ExchangeOrderResult newOrder = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
 
             var payload = await GetNoncePayloadAsync();
-            payload["Market"] = NormalizeSymbol(order.Symbol);
+            payload["Market"] = order.Symbol;
             payload["Type"] = order.IsBuy ? "Buy" : "Sell";
             payload["Rate"] = order.Price;
             payload["Amount"] = order.Amount;
@@ -351,7 +351,6 @@ namespace ExchangeSharp
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
             var payload = await GetNoncePayloadAsync();
-            symbol = NormalizeSymbol(symbol);
 
             // Uncomment as desired
             //payload["Type"] = "Deposit";
@@ -390,9 +389,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-
             var payload = await GetNoncePayloadAsync();
-            symbol = NormalizeSymbol(symbol);
             payload["Currency"] = symbol;
             JToken token = await MakeJsonRequestAsync<JToken>("/GetDepositAddress", null, payload, "POST");
             if (token["Address"] == null) return null;

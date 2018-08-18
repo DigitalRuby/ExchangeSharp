@@ -104,8 +104,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker?currencyPair=" + symbol);
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker?currencyPair=" + symbol.UrlEncode());
             return ParseTicker(token);
         }
 
@@ -119,8 +118,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order_book?currencyPair=" + symbol + "&depth=" + maxCount.ToStringInvariant());
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/order_book?currencyPair=" + symbol.UrlEncode() + "&depth=" + maxCount.ToStringInvariant());
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
 
@@ -131,11 +129,12 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + symbol);
-            foreach (JToken trade in token) trades.Add(ParseTrade(trade));
-
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + symbol.UrlEncode());
+            foreach (JToken trade in token)
+            {
+                trades.Add(ParseTrade(trade));
+            }
             return trades;
         }
 
@@ -148,10 +147,9 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            symbol = NormalizeSymbol(symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Not directly supported so we'll return what they have and filter if necessary
-            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + symbol + "&minutesOrHour=false");
+            JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + symbol.UrlEncode() + "&minutesOrHour=false");
             foreach (JToken trade in token)
             {
                 ExchangeTrade rc = ParseTrade(trade);
@@ -224,7 +222,6 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            symbol = NormalizeSymbol(symbol);
             // We can increase the number of orders returned by including a limit parameter if desired
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             var payload = await GetNoncePayloadAsync();
@@ -247,7 +244,6 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
-            symbol = NormalizeSymbol(symbol);
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             var payload = await GetNoncePayloadAsync();
             payload.Add("openClosed", "OPEM"); 
@@ -274,7 +270,7 @@ namespace ExchangeSharp
                 orderType += order.IsBuy ? "buylimit" : "selllimit";
                 payload["price"] = order.Price;
             }
-            payload["currencyPair"] = NormalizeSymbol(order.Symbol);
+            payload["currencyPair"] = order.Symbol;
             payload["quantity"] = order.Amount;
             order.ExtraParameters.CopyTo(payload);
 
@@ -297,7 +293,6 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
 
             var payload = await GetNoncePayloadAsync();
@@ -314,8 +309,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            symbol = NormalizeSymbol(symbol);
-            JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol, BaseUrl, await GetNoncePayloadAsync());
+            JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol.UrlEncode(), BaseUrl, await GetNoncePayloadAsync());
             if (token != null && token.HasValues && token["currency"].ToStringInvariant() == symbol && token["wallet"].ToStringInvariant().Length != 0)
             {
                 ExchangeDepositDetails address = new ExchangeDepositDetails() {Symbol = symbol };

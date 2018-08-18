@@ -93,7 +93,6 @@ namespace ExchangeSharp
             return (from prop in token.Children<JProperty>() select prop.Name).ToList();
         }
 
-
         /// <summary>
         /// Uses TuxExchange getticker method to get as much Market info as provided
         /// </summary>
@@ -124,7 +123,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getticker");
             foreach (JProperty prop in token)
             {
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(prop.Name, this.ParseTicker(prop, prop.Name, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(prop.Name, this.ParseTicker(prop.First, prop.Name, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
             }
             return tickers;
         }
@@ -181,7 +180,6 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            symbol = NormalizeSymbol(symbol);
             long start = startDate == null ? (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
             long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
             string coin = symbol.Split(SymbolSeparator[0])[1];
