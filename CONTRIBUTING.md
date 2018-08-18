@@ -13,7 +13,7 @@ Please follow these coding guidelines...
   - Wrap all if statements with curly braces, makes debug and set breakpoints much easier, along with adding new code to the if statement block.
 
 When creating a new Exchange API, please do the following:
-- For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange. USe node.js in Visual Studio to debug through the code.
+- For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange. Use node.js in Visual Studio to debug through the code.
 - See ExchangeAPIDefinitions.cs for all possible methods that can be overriden to make an exchange, along with adding the name to the ExchangeName class. Great starting point to copy/paste as your new Exchange...API.cs file.
 - Put the exchange API class is in it's own folder (/API/Exchanges). If you are creating model objects or helper classes for an exchange, make internal classes inside a namespace for your exchange and put them in the sub-folder for the exchange. Binance and Bittrex are good examples.
 - Ensure that the unit tests and integrations tests (ExchangeSharpConsole.exe test exchangeName=[name]) pass before submitting a pull request.
