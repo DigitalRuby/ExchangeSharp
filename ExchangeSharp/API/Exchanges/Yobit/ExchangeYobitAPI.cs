@@ -335,27 +335,9 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(JProperty prop)
         {
-            var split = prop.Name.ToUpperInvariant().Split('_');
-            if (split.Length != 2)
-            {
-                split = new string[2];
-            }
-
             // "ltc_btc":{ "high":105.41,"low":104.67,"avg":105.04,"vol":43398.22251455,"vol_cur":4546.26962359,"last":105.11,"buy":104.2,"sell":105.11,"updated":1418654531 }
-            return new ExchangeTicker
-            {
-                Ask = prop.First["sell"].ConvertInvariant<decimal>(),
-                Bid = prop.First["buy"].ConvertInvariant<decimal>(),
-                Last = prop.First["last"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    ConvertedVolume = prop.First["vol_cur"].ConvertInvariant<decimal>(),
-                    BaseVolume = prop.First["vol"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = split[0],
-                    BaseSymbol = split[1],
-                    Timestamp = DateTimeOffset.FromUnixTimeSeconds(prop.First["updated"].ConvertInvariant<long>()).DateTime
-                }
-            };
+            string symbol = prop.Name.ToUpperInvariant();
+            return this.ParseTicker(prop.First, symbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSecondsLong);
         }
 
         private ExchangeTrade ParseTrade(JToken prop)

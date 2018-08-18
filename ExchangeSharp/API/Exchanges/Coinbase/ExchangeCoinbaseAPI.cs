@@ -124,8 +124,8 @@ namespace ExchangeSharp
         protected override void ProcessResponse(IHttpWebResponse response)
         {
             base.ProcessResponse(response);
-            cursorAfter = response.Headers["CB-AFTER"]?.FirstOrDefault();
-            cursorBefore = response.Headers["CB-BEFORE"]?.FirstOrDefault();
+            cursorAfter = response.GetHeader("CB-AFTER").FirstOrDefault();
+            cursorBefore = response.GetHeader("CB-BEFORE").FirstOrDefault();
         }
 
         public ExchangeCoinbaseAPI()
@@ -182,17 +182,9 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            Dictionary<string, string> ticker = await MakeJsonRequestAsync<Dictionary<string, string>>("/products/" + symbol + "/ticker");
-            decimal volume = Convert.ToDecimal(ticker["volume"], System.Globalization.CultureInfo.InvariantCulture);
-            DateTime timestamp = ticker["time"].ToDateTimeInvariant();
-            decimal price = Convert.ToDecimal(ticker["price"], System.Globalization.CultureInfo.InvariantCulture);
-            return new ExchangeTicker
-            {
-                Ask = Convert.ToDecimal(ticker["ask"], System.Globalization.CultureInfo.InvariantCulture),
-                Bid = Convert.ToDecimal(ticker["bid"], System.Globalization.CultureInfo.InvariantCulture),
-                Last = price,
-                Volume = new ExchangeVolume { BaseVolume = volume, BaseSymbol = symbol, ConvertedVolume = volume * price, ConvertedSymbol = symbol, Timestamp = timestamp }
-            };
+            symbol = NormalizeSymbol(symbol);
+            JToken ticker = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/ticker");
+            return this.ParseTicker(ticker, symbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -305,7 +297,7 @@ namespace ExchangeSharp
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["type"].ToStringInvariant() == "ticker")
                 {
-                    ExchangeTicker ticker = ParseTickerWebSocket(token);
+                    ExchangeTicker ticker = this.ParseTicker(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601);
                     callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
                 }
                 return Task.CompletedTask;
@@ -327,28 +319,6 @@ namespace ExchangeSharp
                 };
                 await _socket.SendMessageAsync(subscribeRequest);
             });
-        }
-
-        private ExchangeTicker ParseTickerWebSocket(JToken token)
-        {
-            var price = token["price"].ConvertInvariant<decimal>();
-            var volume = token["volume_24h"].ConvertInvariant<decimal>();
-            var symbol = token["product_id"].ToStringInvariant();
-            var time = token["time"].ConvertInvariant<DateTime>(DateTime.UtcNow);
-            return new ExchangeTicker
-            {
-                Ask = token["best_ask"].ConvertInvariant<decimal>(),
-                Bid = token["best_bid"].ConvertInvariant<decimal>(),
-                Last = price,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = volume * price,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = volume,
-                    ConvertedSymbol = symbol,
-                    Timestamp = time
-                }
-            };
         }
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)

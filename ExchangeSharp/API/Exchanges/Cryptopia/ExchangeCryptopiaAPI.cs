@@ -427,25 +427,8 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(JToken token)
         {
             // [{ "TradePairId":100,"Label":"LTC/BTC","AskPrice":0.00006000,"BidPrice":0.02000000,"Low":0.00006000,"High":0.00006000,"Volume":1000.05639978,"LastPrice":0.00006000,"BuyVolume":34455.678,"SellVolume":67003436.37658233,"Change":-400.00000000,"Open": 0.00000500,"Close": 0.00000600, "BaseVolume": 3.58675866,"BaseBuyVolume": 11.25364758, "BaseSellVolume": 3456.06746543 }, ... ]
-            var symbols = token["Label"].ToStringInvariant().Split('/');
-            ExchangeTicker ticker = new ExchangeTicker()
-            {
-                Id = token["TradePairId"].ToStringInvariant(),
-                Ask = token["AskPrice"].ConvertInvariant<decimal>(),
-                Bid = token["BidPrice"].ConvertInvariant<decimal>(),
-                Last = token["LastPrice"].ConvertInvariant<decimal>(),
-                // Since we're parsing a ticker for a market, we'll use the volume/baseVolume fields here and ignore the Buy/Sell Volumes
-                // This is a quess as to ambiguous intent of these fields.
-                Volume = new ExchangeVolume()
-                {
-                    BaseSymbol = symbols[0],
-                    ConvertedSymbol = symbols[1],
-                    BaseVolume = token["Volume"].ConvertInvariant<decimal>(),
-                    ConvertedVolume = token["BaseVolume"].ConvertInvariant<decimal>(),
-                    Timestamp = DateTime.UtcNow           // No TimeStamp is returned, but Now seems appropriate
-                }
-            };
-            return ticker;
+            string symbol = token["Label"].ToStringInvariant();
+            return this.ParseTicker(token, symbol, "AskPrice", "BidPrice", "LastPrice", "Volume", "BaseVolume");
         }
 
         private ExchangeTrade ParseTrade(JToken token)

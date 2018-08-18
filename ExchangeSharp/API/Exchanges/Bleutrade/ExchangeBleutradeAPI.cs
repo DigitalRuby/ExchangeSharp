@@ -118,22 +118,9 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
+            symbol = NormalizeSymbol(symbol);
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + symbol);
-            result = result[0];
-            return new ExchangeTicker
-            {
-                Ask = result["Ask"].ConvertInvariant<decimal>(),
-                Bid = result["Bid"].ConvertInvariant<decimal>(),
-                Last = result["Last"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = result["Volume"].ConvertInvariant<decimal>(),
-                    BaseSymbol = result["BaseCurrency"].ToStringInvariant(),
-                    ConvertedVolume = result["BaseVolume"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = result["MarketCurrency"].ToStringInvariant(),
-                    Timestamp = result["TimeStamp"].ToDateTimeInvariant()
-                }
-            };
+            return this.ParseTicker(result, symbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -143,20 +130,7 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummaries");
             foreach (JToken token in result)
             {
-                var ticker = new ExchangeTicker
-                {
-                    Ask = token["Ask"].ConvertInvariant<decimal>(),
-                    Bid = token["Bid"].ConvertInvariant<decimal>(),
-                    Last = token["Last"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume()
-                    {
-                        Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
-                        BaseSymbol = token["BaseCurrency"].ToStringInvariant(),
-                        BaseVolume = token["BaseVolume"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = token["MarketCurrency"].ToStringInvariant(),
-                        ConvertedVolume = token["Volume"].ConvertInvariant<decimal>()
-                    }
-                };
+                var ticker = this.ParseTicker(result, token["MarketName"].ToStringInvariant(), "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
                 tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
             }
             return tickers;

@@ -38,6 +38,16 @@ namespace ExchangeSharp
         private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, true);
 
         /// <summary>
+        /// Empty object array
+        /// </summary>
+        public static readonly object[] EmptyObjectArray = new object[0];
+
+        /// <summary>
+        /// Empty string array
+        /// </summary>
+        public static readonly string[] EmptyStringArray = new string[0];
+
+        /// <summary>
         /// Static constructor
         /// </summary>
         static CryptoUtility()
@@ -506,6 +516,41 @@ namespace ExchangeSharp
                 dt = dt.ToUniversalTime();
             }
             return (dt - unixEpoch).TotalMilliseconds;
+        }
+
+        /// <summary>
+        /// Convert a timestamp to DateTime. If value is null, DateTime.UtcNow is returned.
+        /// </summary>
+        /// <param name="value">Timestamp object (JToken, string, double, etc.)</param>
+        /// <param name="type">Type of timestamp</param>
+        /// <returns>DateTime</returns>
+        public static DateTime ParseTimestamp(object value, TimestampType type)
+        {
+            if (value == null || type == TimestampType.None)
+            {
+                return DateTime.UtcNow;
+            }
+
+            switch (type)
+            {
+                case TimestampType.Iso8601:
+                    return value.ToDateTimeInvariant();
+
+                case TimestampType.UnixMillisecondsDouble:
+                    return UnixTimeStampToDateTimeMilliseconds(value.ConvertInvariant<double>());
+
+                case TimestampType.UnixMilliseconds:
+                    return UnixTimeStampToDateTimeMilliseconds(value.ConvertInvariant<long>());
+
+                case TimestampType.UnixSecondsDouble:
+                    return UnixTimeStampToDateTimeSeconds(value.ConvertInvariant<double>());
+
+                case TimestampType.UnixSecondsLong:
+                    return UnixTimeStampToDateTimeSeconds(value.ConvertInvariant<long>());
+
+                default:
+                    throw new ArgumentException("Invalid timestamp type " + type);
+            }
         }
 
         /// <summary>
@@ -1140,5 +1185,41 @@ namespace ExchangeSharp
         {
             return task.ConfigureAwait(false).GetAwaiter().GetResult();
         }
+    }
+
+    /// <summary>
+    /// Possible types of timestamps
+    /// </summary>
+    public enum TimestampType
+    {
+        /// <summary>
+        /// No timestamp type
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Unix milliseconds (double)
+        /// </summary>
+        UnixMillisecondsDouble,
+
+        /// <summary>
+        /// Unix milliseconds (long)
+        /// </summary>
+        UnixMilliseconds,
+
+        /// <summary>
+        /// Unix seconds (double)
+        /// </summary>
+        UnixSecondsDouble,
+
+        /// <summary>
+        /// Unix seconds (long)
+        /// </summary>
+        UnixSecondsLong,
+
+        /// <summary>
+        /// ISO 8601
+        /// </summary>
+        Iso8601
     }
 }

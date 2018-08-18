@@ -740,38 +740,13 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(string symbol, JToken token)
         {
             // {"priceChange":"-0.00192300","priceChangePercent":"-4.735","weightedAvgPrice":"0.03980955","prevClosePrice":"0.04056700","lastPrice":"0.03869000","lastQty":"0.69300000","bidPrice":"0.03858500","bidQty":"38.35000000","askPrice":"0.03869000","askQty":"31.90700000","openPrice":"0.04061300","highPrice":"0.04081900","lowPrice":"0.03842000","volume":"128015.84300000","quoteVolume":"5096.25362239","openTime":1512403353766,"closeTime":1512489753766,"firstId":4793094,"lastId":4921546,"count":128453}
-            return new ExchangeTicker
-            {
-                Ask = token["askPrice"].ConvertInvariant<decimal>(),
-                Bid = token["bidPrice"].ConvertInvariant<decimal>(),
-                Last = token["lastPrice"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = token["volume"].ConvertInvariant<decimal>(),
-                    BaseSymbol = symbol,
-                    ConvertedVolume = token["quoteVolume"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["closeTime"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(token, symbol, "askPrice", "bidPrice", "lastPrice", "volume", "quoteVolume", "closeTime", TimestampType.UnixMilliseconds);
         }
 
         private ExchangeTicker ParseTickerWebSocket(JToken token)
         {
-            return new ExchangeTicker
-            {
-                Ask = token["a"].ConvertInvariant<decimal>(),
-                Bid = token["b"].ConvertInvariant<decimal>(),
-                Last = token["c"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = token["v"].ConvertInvariant<decimal>(),
-                    BaseSymbol = token["s"].ToStringInvariant(),
-                    ConvertedVolume = token["q"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = token["s"].ToStringInvariant(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["E"].ConvertInvariant<long>())
-                }
-            };
+            string symbol = token["s"].ToStringInvariant();
+            return this.ParseTicker(token, symbol, "a", "b", "c", "v", "q", "E", TimestampType.UnixMilliseconds);
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)

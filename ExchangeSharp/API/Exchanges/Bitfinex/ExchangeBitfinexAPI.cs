@@ -144,8 +144,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             symbol = NormalizeSymbol(symbol);
-            decimal[] ticker = await MakeJsonRequestAsync<decimal[]>("/ticker/t" + symbol);
-            return new ExchangeTicker { Bid = ticker[0], Ask = ticker[2], Last = ticker[6], Volume = new ExchangeVolume { BaseVolume = ticker[7], BaseSymbol = symbol, ConvertedVolume = ticker[7] * ticker[6], ConvertedSymbol = symbol, Timestamp = DateTime.UtcNow } };
+            JToken ticker = await MakeJsonRequestAsync<JToken>("/ticker/t" + symbol);
+            return this.ParseTicker(ticker, symbol, 2, 0, 6, 7);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -883,22 +883,7 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTickerWebSocket(string symbol, JToken token)
         {
-            decimal last = token[7].ConvertInvariant<decimal>();
-            decimal volume = token[8].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = token[3].ConvertInvariant<decimal>(),
-                Bid = token[1].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = volume,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = volume * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
-                }
-            };
+            return this.ParseTicker(token, symbol, 3, 1, 7, 8);
         }
 
         /// <summary>Gets the withdrawal fees for various currencies.</summary>

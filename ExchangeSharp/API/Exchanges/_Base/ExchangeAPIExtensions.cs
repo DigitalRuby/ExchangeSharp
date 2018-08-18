@@ -274,5 +274,110 @@ namespace ExchangeSharp
 
             return book;
         }
+
+        /// <summary>
+        /// Parse a JToken into a ticker
+        /// </summary>
+        /// <param name="api">ExchangeAPI</param>
+        /// <param name="token">Token</param>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="askKey">Ask key</param>
+        /// <param name="bidKey">Bid key</param>
+        /// <param name="lastKey">Last key</param>
+        /// <param name="baseVolumeKey">Base volume key</param>
+        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="timestampKey">Timestamp key</param>
+        /// <param name="timestampType">Timestamp type</param>
+        /// <param name="baseCurrencyKey">Base currency key</param>
+        /// <param name="convertCurrencyKey">Convert currency key</param>
+        /// <param name="idKey">Id key</param>
+        /// <returns>ExchangeTicker</returns>
+        public static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
+            object askKey, object bidKey, object lastKey, object baseVolumeKey,
+            object convertVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
+            object baseCurrencyKey = null, object convertCurrencyKey = null, object idKey = null)
+        {
+            if (token == null || !token.HasValues)
+            {
+                return null;
+            }
+            decimal last = token[lastKey].ConvertInvariant<decimal>();
+
+            // parse out volumes, handle cases where one or both do not exist
+            decimal baseVolume;
+            decimal convertVolume;
+            if (baseVolumeKey == null)
+            {
+                if (convertVolumeKey == null)
+                {
+                    baseVolume = convertVolume = 0m;
+                }
+                else
+                {
+                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
+                    baseVolume = (last <= 0m ? 0m : convertVolume / last);
+                }
+            }
+            else
+            {
+                baseVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
+                if (convertVolumeKey == null)
+                {
+                    convertVolume = baseVolume * last;
+                }
+                else
+                {
+                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
+                }
+            }
+
+            // pull out timestamp
+            DateTime timestamp = (timestampKey == null ? DateTime.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+
+            // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
+            string baseSymbol;
+            string convertSymbol;
+            if (baseCurrencyKey != null && convertCurrencyKey != null)
+            {
+                baseSymbol = token[baseCurrencyKey].ToStringInvariant();
+                convertSymbol = token[convertCurrencyKey].ToStringInvariant();
+            }
+            else if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new ArgumentNullException(nameof(symbol));
+            }
+            else if (api.SymbolSeparator.Length != 0)
+            {
+                string[] pieces = symbol.Split(api.SymbolSeparator[0]);
+                if (pieces.Length != 2)
+                {
+                    throw new ArgumentException($"Symbol does not have the correct symbol separator of '{api.SymbolSeparator}'");
+                }
+                baseSymbol = pieces[0];
+                convertSymbol = pieces[1];
+            }
+            else
+            {
+                baseSymbol = convertSymbol = symbol;
+            }
+
+            // create the ticker and return it
+            ExchangeTicker ticker = new ExchangeTicker
+            {
+                Ask = token[askKey].ConvertInvariant<decimal>(),
+                Bid = token[bidKey].ConvertInvariant<decimal>(),
+                Id = (idKey == null ? null : token[idKey].ToStringInvariant()),
+                Last = last,
+                Volume = new ExchangeVolume
+                {
+                    BaseVolume = baseVolume,
+                    BaseSymbol = baseSymbol,
+                    ConvertedVolume = convertVolume,
+                    ConvertedSymbol = convertSymbol,
+                    Timestamp = timestamp
+                }
+            };
+            return ticker;
+        }
     }
 }

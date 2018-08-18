@@ -45,50 +45,16 @@ namespace ExchangeSharp
             return new Tuple<JToken, string>(obj, symbol);
         }
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data, DateTime? date)
+        private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             // {{"ticker":{"vol":"18202.5979","last":"6698.2","sell":"6703.21","buy":"6693.2","high":"6757.69","low":"6512.69"},"date":"1531822098779"}}
-
-            JToken ticker = data["ticker"];
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["vol"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", "date", TimestampType.UnixMilliseconds);
         }
 
-        private ExchangeTicker ParseTickerV2(string symbol, JToken data, DateTime date)
+        private ExchangeTicker ParseTickerV2(string symbol, JToken data)
         {
             //{"hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"}}
-
-            JToken ticker = data.First;
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["vol"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = date
-                }
-            };
+            return this.ParseTicker(data.First, symbol, "sell", "buy", "last", "vol");
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
@@ -105,7 +71,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestZBcomAsync(symbol, "/ticker?market=$SYMBOL$");
-            return ParseTicker(data.Item2, data.Item1, null);
+            return ParseTicker(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -113,13 +79,12 @@ namespace ExchangeSharp
             //{ "hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"},"tvqc":{ "vol":"2125511.1",
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
-            var date = DateTime.UtcNow; //ZB.com doesn't give a timestamp when asking all tickers
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             foreach (JToken token in data.Item1)
             {
                 symbol = token.Path;
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token, date)));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token)));
             }
             return tickers;
         }

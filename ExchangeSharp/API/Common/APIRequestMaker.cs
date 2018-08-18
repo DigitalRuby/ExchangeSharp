@@ -108,6 +108,11 @@ namespace ExchangeSharp
                 this.response = response;
             }
 
+            public IReadOnlyList<string> GetHeader(string name)
+            {
+                return response.Headers.GetValues(name) ?? CryptoUtility.EmptyStringArray;
+            }
+
             public Dictionary<string, IReadOnlyList<string>> Headers
             {
                 get

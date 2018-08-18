@@ -113,7 +113,7 @@ namespace ExchangeSharp
         /// Separator for exchange symbol, derived classes can change in constructor. This should be a single char string or empty string.
         /// Default is hyphen '-'.
         /// </summary>
-        protected string SymbolSeparator { get; set; } = "-";
+        public string SymbolSeparator { get; protected set; } = "-";
 
         /// <summary>
         /// Whether the exchange symbol is reversed from most other exchanges, derived classes can change to true in constructor.
@@ -121,13 +121,13 @@ namespace ExchangeSharp
         /// But Bittrex and Poloniex are examples of exchanges that do the opposite (SymbolIsReversed == true)
         /// Default is false.
         /// </summary>
-        protected bool SymbolIsReversed { get; set; }
+        public bool SymbolIsReversed { get; protected set; }
 
         /// <summary>
         /// Whether the exchange symbol is uppercase.
         /// Default is true.
         /// </summary>
-        protected bool SymbolIsUppercase { get; set; } = true;
+        public bool SymbolIsUppercase { get; protected set; } = true;
 
         /// <summary>
         /// List of exchange to global currency conversions. Exchange currency is key, global currency is value.

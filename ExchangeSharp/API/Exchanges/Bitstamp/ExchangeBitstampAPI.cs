@@ -100,20 +100,7 @@ namespace ExchangeSharp
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
             symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/ticker/" + symbol);
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].ConvertInvariant<decimal>(),
-                Bid = token["bid"].ConvertInvariant<decimal>(),
-                Last = token["last"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = token["volume"].ConvertInvariant<decimal>(),
-                    BaseSymbol = symbol,
-                    ConvertedVolume = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["timestamp"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSecondsLong);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)

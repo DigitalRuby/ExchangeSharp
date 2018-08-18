@@ -130,25 +130,9 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             // { "coinType": "KCS","trading": true,"lastDealPrice": 5040,"buy": 5000,"sell": 5040, "coinTypePair": "BTC","sort": 0,"feeRate": 0.001,"volValue": 308140577,"high": 6890, "datetime": 1506050394000, "vol": 5028739175025, "low": 5040, "changeRate": -0.2642 }
+            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeJsonRequestAsync<JToken>("/" + symbol + "/open/tick");
-            if (token.HasValues)
-            {
-                return new ExchangeTicker
-                {
-                    Ask = token["sell"].ConvertInvariant<decimal>(),
-                    Bid = token["buy"].ConvertInvariant<decimal>(),
-                    Last = token["lastDealPrice"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume()
-                    {
-                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(token["datetime"].ConvertInvariant<long>()).DateTime,
-                        ConvertedVolume = token["volValue"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = token["coinTypePair"].ToStringInvariant(),
-                        BaseVolume = token["vol"].ConvertInvariant<decimal>(),
-                        BaseSymbol = token["coinType"].ToStringInvariant()
-                    }
-                };
-            }
-            return null;
+            return this.ParseTicker(token, symbol);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -158,20 +142,8 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/open/tick");
             foreach (JToken tick in token)
             {
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(tick["coinType"].ToStringInvariant() + "-" + tick["coinTypePair"].ToStringInvariant(), new ExchangeTicker()
-                {
-                    Ask = tick["sell"].ConvertInvariant<decimal>(),
-                    Bid = tick["buy"].ConvertInvariant<decimal>(),
-                    Last = tick["lastDealPrice"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume()
-                    {
-                        Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(tick["datetime"].ConvertInvariant<long>()).DateTime,
-                        ConvertedVolume = tick["volValue"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = tick["coinTypePair"].ToStringInvariant(),
-                        BaseVolume = tick["vol"].ConvertInvariant<decimal>(),
-                        BaseSymbol = tick["coinType"].ToStringInvariant()
-                    }
-                }));
+                string symbol = tick["coinType"].ToStringInvariant() + "-" + tick["coinTypePair"].ToStringInvariant();
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTicker(tick, symbol)));
             }
             return tickers;
         }
@@ -433,6 +405,11 @@ namespace ExchangeSharp
         #endregion
 
         #region Private Functions
+
+        private ExchangeTicker ParseTicker(JToken token, string symbol)
+        {
+            return this.ParseTicker(token, symbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds, "coinType", "coinTypePair");
+        }
 
         // { "oid": "59e59b279bd8d31d093d956e", "type": "SELL", "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "SELL","price": 0.1,"dealAmount": 0,"pendingAmount": 100, "createdAt": 1508219688000, "updatedAt": 1508219688000 }
         private ExchangeOrderResult ParseOpenOrder(JToken token)

@@ -513,46 +513,13 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             //{"date":"1518043621","ticker":{"high":"0.01878000","vol":"1911074.97335534","last":"0.01817627","low":"0.01813515","buy":"0.01817626","sell":"0.01823447"}}
-
-            JToken ticker = data["ticker"];
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["vol"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(data["date"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSecondsLong);
         }
 
         private ExchangeTicker ParseTickerV2(string symbol, JToken ticker)
         {
             // {"buy":"0.00001273","change":"-0.00000009","changePercentage":"-0.70%","close":"0.00001273","createdDate":1527355333053,"currencyId":535,"dayHigh":"0.00001410","dayLow":"0.00001174","high":"0.00001410","inflows":"19.52673814","last":"0.00001273","low":"0.00001174","marketFrom":635,"name":{},"open":"0.00001282","outflows":"52.53715678","productId":535,"sell":"0.00001284","symbol":"you_btc","volume":"5643177.15601228"}
-
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["volume"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["createdDate"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(ticker, symbol, "sell", "buy", "last", "volume", null, "createdDate", TimestampType.UnixMilliseconds);
         }
 
         private Dictionary<string, decimal> ParseAmounts(JToken token, Dictionary<string, decimal> amounts)

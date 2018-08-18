@@ -80,22 +80,9 @@ namespace ExchangeSharp
             return new Tuple<JToken, string>(obj, symbol);
         }
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data, DateTime? date)
+        private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
-            return new ExchangeTicker
-            {
-                Ask = data["sell_price"].ConvertInvariant<decimal>(),
-                Bid = data["buy_price"].ConvertInvariant<decimal>(),
-                Last = data["buy_price"].ConvertInvariant<decimal>(), // Silly Bithumb doesn't provide the last actual trade value in the ticker,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = data["average_price"].ConvertInvariant<decimal>(),
-                    BaseSymbol = "KRW",
-                    ConvertedVolume = data["units_traded"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(data, symbol, "sell_price", "buy_price", "buy_price", "average_price", "units_traded", "date", TimestampType.UnixMilliseconds);
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
@@ -116,7 +103,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
-            return ParseTicker(data.Item2, data.Item1, null);
+            return ParseTicker(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -129,7 +116,9 @@ namespace ExchangeSharp
             {
                 if (token.Name != "date")
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ParseTicker(token.Name, token.Value, date)));
+                    ExchangeTicker ticker = ParseTicker(token.Name, token.Value);
+                    ticker.Volume.Timestamp = date;
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ticker));
                 }
             }
             return tickers;

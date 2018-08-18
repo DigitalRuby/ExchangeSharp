@@ -108,6 +108,13 @@ namespace ExchangeSharp
     public interface IHttpWebResponse
     {
         /// <summary>
+        /// Get header by name
+        /// </summary>
+        /// <param name="name">Header name</param>
+        /// <returns>Header values, count of 0 if header not exist, will never return null</returns>
+        IReadOnlyList<string> GetHeader(string name);
+
+        /// <summary>
         /// Headers
         /// </summary>
         Dictionary<string, IReadOnlyList<string>> Headers { get; }

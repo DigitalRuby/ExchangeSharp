@@ -216,12 +216,9 @@ namespace ExchangeSharp
              */
             symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + symbol);
-            var tick = obj["tick"];
-            var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj["ts"].ConvertInvariant<double>());
-
-            return ParseTicker(symbol, ts, tick);
+            var token = obj["tick"];
+            return this.ParseTicker(token, symbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
         }
-
 
         protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
@@ -787,25 +784,6 @@ namespace ExchangeSharp
             result.Result = ExchangeAPIOrderResult.Pending;
 
             return result;
-        }
-
-        private ExchangeTicker ParseTicker(string symbol, DateTime ts, JToken token)
-        {
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].First.ConvertInvariant<decimal>(),
-                Bid = token["bid"].First.ConvertInvariant<decimal>(),
-                Last = token["close"].ConvertInvariant<decimal>(),
-                Id = token["id"].ToStringInvariant(),
-                Volume = new ExchangeVolume
-                {
-                    ConvertedVolume = token["vol"].ConvertInvariant<decimal>(),
-                    BaseVolume = token["amount"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    BaseSymbol = symbol,
-                    Timestamp = ts,
-                }
-            };
         }
 
         private ExchangeAPIOrderResult ParseState(string state)

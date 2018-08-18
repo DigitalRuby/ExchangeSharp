@@ -506,19 +506,7 @@ namespace ExchangeSharp
                     string symbol = token["product_id"].ToStringInvariant();
                     tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
                     {
-                        new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
-                        {
-                            Id = token["trade_id"].ConvertInvariant<long>().ToStringInvariant(),
-                            Last = token["price"].ConvertInvariant<decimal>(),
-                            Ask = token["best_ask"].ConvertInvariant<decimal>(),
-                            Bid = token["best_bid"].ConvertInvariant<decimal>(),
-                            Volume = new ExchangeVolume()
-                            {
-                                ConvertedSymbol = token["product_id"].ToStringInvariant(),
-                                ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
-                                Timestamp = token["time"].ToDateTimeInvariant()
-                            }
-                        })
+                        new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(token, symbol, "best_ask", "best_bid", "price", "last_size", null, "time", TimestampType.Iso8601))
                     });
                 }
                 return Task.CompletedTask;
@@ -546,26 +534,7 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
-            if (!token.HasValues)
-            {
-                return null;
-            }
-            decimal size = token["size"].ConvertInvariant<decimal>();
-            decimal price = token["price"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].ConvertInvariant<decimal>(),
-                Bid = token["bid"].ConvertInvariant<decimal>(),
-                Last = price,
-                Volume = new ExchangeVolume()
-                {
-                    BaseVolume = size,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = size * price,
-                    ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
-                }
-            };
+            return this.ParseTicker(token, symbol, "ask", "bid", "price", "size");
         }
 
         #endregion

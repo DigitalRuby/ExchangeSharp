@@ -124,19 +124,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getticker");
             foreach (JProperty prop in token)
             {
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(prop.Name, new ExchangeTicker()
-                {
-                    Id = prop.First["id"].ToStringLowerInvariant(),
-                    Ask = prop.First["lowestAsk"].ConvertInvariant<decimal>(),
-                    Bid = prop.First["highestBid"].ConvertInvariant<decimal>(),
-                    Last = prop.First["last"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume()
-                    {
-                        // not sure which is which here
-                        ConvertedVolume = prop.First["quoteVolume"].ConvertInvariant<decimal>(),
-                        BaseVolume = prop.First["baseVolume"].ConvertInvariant<decimal>(),
-                    }
-                }));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(prop.Name, this.ParseTicker(prop, prop.Name, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
             }
             return tickers;
         }

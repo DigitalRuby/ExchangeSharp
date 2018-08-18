@@ -205,26 +205,9 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + NormalizeSymbol(symbol));
-            JToken ticker = result[0];
-            if (ticker != null)
-            {
-                return new ExchangeTicker
-                {
-                    Ask = ticker["Ask"].ConvertInvariant<decimal>(),
-                    Bid = ticker["Bid"].ConvertInvariant<decimal>(),
-                    Last = ticker["Last"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume
-                    {
-                        BaseVolume = ticker["Volume"].ConvertInvariant<decimal>(),
-                        BaseSymbol = symbol,
-                        ConvertedVolume = ticker["BaseVolume"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = symbol,
-                        Timestamp = ticker["TimeStamp"].ToDateTimeInvariant()
-                    }
-                };
-            }
-            return null;
+            symbol = NormalizeSymbol(symbol);
+            JToken ticker = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + symbol);
+            return this.ParseTicker(ticker[0], symbol, "Ask", "Bid", "Last", "BaseVolume", "Volume", "Timestamp", TimestampType.Iso8601);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -235,20 +218,7 @@ namespace ExchangeSharp
             foreach (JToken ticker in tickers)
             {
                 symbol = ticker["MarketName"].ToStringInvariant();
-                ExchangeTicker tickerObj = new ExchangeTicker
-                {
-                    Ask = ticker["Ask"].ConvertInvariant<decimal>(),
-                    Bid = ticker["Bid"].ConvertInvariant<decimal>(),
-                    Last = ticker["Last"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume
-                    {
-                        BaseVolume = ticker["BaseVolume"].ConvertInvariant<decimal>(),
-                        BaseSymbol = symbol,
-                        ConvertedVolume = ticker["Volume"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = symbol,
-                        Timestamp = ticker["TimeStamp"].ToDateTimeInvariant()
-                    }
-                };
+                ExchangeTicker tickerObj = this.ParseTicker(ticker, symbol, "Ask", "Bid", "Last", "BaseVolume", "Volume", "Timestamp", TimestampType.Iso8601);
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(symbol, tickerObj));
             }
             return tickerList;

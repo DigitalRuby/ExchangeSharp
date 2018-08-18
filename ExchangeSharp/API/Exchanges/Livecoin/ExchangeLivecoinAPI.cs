@@ -351,22 +351,8 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(JToken token)
         {
             // [{"symbol": "LTC/BTC","last": 0.00805061,"high": 0.00813633,"low": 0.00784855,"volume": 14729.48452951,"vwap": 0.00795126,"max_bid": 0.00813633,"min_ask": 0.00784855,"best_bid": 0.00798,"best_ask": 0.00811037}, ... ]
-            var split = token["symbol"].ToStringInvariant().Split('/');
-            return new ExchangeTicker()
-            {
-                   Ask = token["best_ask"].ConvertInvariant<decimal>(),
-                   Bid = token["best_bid"].ConvertInvariant<decimal>(),
-                   Last = token["last"].ConvertInvariant<decimal>(),
-                   Volume = new ExchangeVolume()
-                   {
-                        // TODO: This is a guess. Need to verify the use of these values
-                        ConvertedVolume = token["volume"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = split[0],
-                        BaseSymbol = split[1],
-                        BaseVolume = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
-                        Timestamp = DateTime.UtcNow
-                   }
-            };
+            string symbol = token["symbol"].ToStringInvariant();
+            return this.ParseTicker(token, symbol, "best_ask", "best_bid", "last", "volume");
         }
 
         private ExchangeTrade ParseTrade(JToken token)

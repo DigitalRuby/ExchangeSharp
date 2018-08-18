@@ -239,20 +239,7 @@ namespace ExchangeSharp
             high24hr: args[8],
             low24hr: args[9]
             */
-            return new ExchangeTicker
-            {
-                Ask = token[2].ConvertInvariant<decimal>(),
-                Bid = token[3].ConvertInvariant<decimal>(),
-                Last = token[1].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = token[5].ConvertInvariant<decimal>(),
-                    BaseSymbol = symbol,
-                    ConvertedVolume = token[6].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
-                }
-            };
+            return this.ParseTicker(token, symbol, 2, 3, 1, 5, 6);
         }
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -383,21 +370,8 @@ namespace ExchangeSharp
             {
                 string symbol = prop.Name;
                 JToken values = prop.Value;
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
-                {
-                    Ask = values["lowestAsk"].ConvertInvariant<decimal>(),
-                    Bid = values["highestBid"].ConvertInvariant<decimal>(),
-                    Id = values["id"].ToStringInvariant(),
-                    Last = values["last"].ConvertInvariant<decimal>(),
-                    Volume = new ExchangeVolume
-                    {
-                        BaseVolume = values["baseVolume"].ConvertInvariant<decimal>(),
-                        BaseSymbol = symbol,
-                        ConvertedVolume = values["quoteVolume"].ConvertInvariant<decimal>(),
-                        ConvertedSymbol = symbol,
-                        Timestamp = DateTime.UtcNow
-                    }
-                }));
+                ExchangeTicker ticker = this.ParseTicker(values, symbol, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id");
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(values, symbol, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
             }
             return tickers;
         }
