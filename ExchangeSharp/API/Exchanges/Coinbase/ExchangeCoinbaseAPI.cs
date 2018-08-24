@@ -488,19 +488,20 @@ namespace ExchangeSharp
                 { "product_id", order.Symbol },
                 { "size", order.RoundAmount().ToStringInvariant() }
             };
-
-            if (order.OrderType == OrderType.Limit)
-            {
-                payload["time_in_force"] = "GTC"; // good til cancel
-                payload["price"] = order.Price.ToStringInvariant();
-                payload["post_only"] = "true";
+            payload["time_in_force"] = "GTC"; // good til cancel
+            payload["price"] = order.Price.ToStringInvariant();
+            switch (order.OrderType) {
+                case OrderType.Limit:
+                    payload["post_only"] = "true";
+                    break;
+                case OrderType.Stop:
+                    payload["stop"] = (order.IsBuy ? "entry" : "loss");
+                    payload["stop_price"] = order.StopPrice.ToStringInvariant();
+                    break;
+                case OrderType.Market:
+                default:
+                    break;
             }
-            if (order.OrderType == OrderType.Stop) {
-                payload["time_in_force"] = "GTC"; // good til cancel
-                payload["price"] = order.Price.ToStringInvariant();
-                payload["stop"] = (order.IsBuy ? "entry" : "loss");
-                payload["stop_price"] = order.StopPrice.ToStringInvariant();
-             }
 
             order.ExtraParameters.CopyTo(payload);
             JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
