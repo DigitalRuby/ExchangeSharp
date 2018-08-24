@@ -44,6 +44,9 @@ namespace ExchangeSharp
         /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
 
+        /// <summary>Fill datetime in UTC</summary>
+        public DateTime FillDate { get; set; }
+    
         /// <summary>Symbol. E.g. ADA/ETH</summary>
         public string Symbol { get; set; }
 

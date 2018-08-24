@@ -57,6 +57,7 @@ namespace ExchangeSharp
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ToDateTimeInvariant(),
+                FillDate = result["done_at"].ToDateTimeInvariant(),
                 Symbol = symbol,
                 OrderId = result["id"].ToStringInvariant()
             };
@@ -488,11 +489,18 @@ namespace ExchangeSharp
                 { "size", order.RoundAmount().ToStringInvariant() }
             };
 
-            if (order.OrderType != OrderType.Market)
+            if (order.OrderType == OrderType.Limit)
             {
                 payload["time_in_force"] = "GTC"; // good til cancel
                 payload["price"] = order.Price.ToStringInvariant();
+                payload["post_only"] = "true";
             }
+            if (order.OrderType == OrderType.Stop) {
+                payload["time_in_force"] = "GTC"; // good til cancel
+                payload["price"] = order.Price.ToStringInvariant();
+                payload["stop"] = (order.IsBuy ? "entry" : "loss");
+                payload["stop_price"] = order.StopPrice.ToStringInvariant();
+             }
 
             order.ExtraParameters.CopyTo(payload);
             JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");

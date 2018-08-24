@@ -37,6 +37,11 @@ namespace ExchangeSharp
         public decimal Price { get; set; }
 
         /// <summary>
+        /// The price to trigger a stop
+        /// </summary>
+        public decimal StopPrice { get; set; }
+    
+        /// <summary>
         /// True if this is a buy, false if a sell
         /// </summary>
         public bool IsBuy { get; set; }
@@ -91,6 +96,11 @@ namespace ExchangeSharp
         /// <summary>
         /// A market order, you will buy or sell the full amount - use with caution as this will give you a terrible deal if the order book is thin
         /// </summary>
-        Market
-    }
+        Market,
+
+        /// <summary>
+        /// A stop order, you will sell if price reaches a low enough level down to a limit
+        /// </summary>
+        Stop
+  }
 }
