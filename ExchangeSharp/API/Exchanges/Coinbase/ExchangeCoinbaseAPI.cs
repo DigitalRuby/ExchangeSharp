@@ -103,9 +103,15 @@ namespace ExchangeSharp
 
         protected override async Task OnGetNonceOffset()
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/time");
-            DateTime serverDate = token["iso"].ToDateTimeInvariant();
-            NonceOffset = (DateTime.UtcNow - serverDate);
+            try
+            {
+                JToken token = await MakeJsonRequestAsync<JToken>("/time");
+                DateTime serverDate = token["iso"].ToDateTimeInvariant();
+                NonceOffset = (DateTime.UtcNow - serverDate);
+            }
+            catch
+            {
+            }
         }
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
