@@ -57,6 +57,7 @@ namespace ExchangeSharp
                 AveragePrice = averagePrice,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ToDateTimeInvariant(),
+                FillDate = result["done_at"].ToDateTimeInvariant(),
                 Symbol = symbol,
                 OrderId = result["id"].ToStringInvariant()
             };
@@ -487,11 +488,19 @@ namespace ExchangeSharp
                 { "product_id", order.Symbol },
                 { "size", order.RoundAmount().ToStringInvariant() }
             };
-
-            if (order.OrderType != OrderType.Market)
-            {
-                payload["time_in_force"] = "GTC"; // good til cancel
-                payload["price"] = order.Price.ToStringInvariant();
+            payload["time_in_force"] = "GTC"; // good til cancel
+            payload["price"] = order.Price.ToStringInvariant();
+            switch (order.OrderType) {
+                case OrderType.Limit:
+                    payload["post_only"] = "true";
+                    break;
+                case OrderType.Stop:
+                    payload["stop"] = (order.IsBuy ? "entry" : "loss");
+                    payload["stop_price"] = order.StopPrice.ToStringInvariant();
+                    break;
+                case OrderType.Market:
+                default:
+                    break;
             }
 
             order.ExtraParameters.CopyTo(payload);
