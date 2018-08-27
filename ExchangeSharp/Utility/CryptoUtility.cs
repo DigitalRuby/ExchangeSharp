@@ -396,7 +396,8 @@ namespace ExchangeSharp
                 .Replace("&", "%26")
                 .Replace("=", "%3D")
                 .Replace("\r", "%0D")
-                .Replace("\n", "%0A");
+                .Replace("\n", "%0A")
+                .Replace(":", "%3A");
         }
 
         /// <summary>
@@ -642,7 +643,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload</param>
         /// <param name="includeNonce">Whether to add the nonce</param>
         /// <returns>Form string</returns>
-        public static string GetFormForPayload(this Dictionary<string, object> payload, bool includeNonce = true)
+        public static string GetFormForPayload(this IReadOnlyDictionary<string, object> payload, bool includeNonce = true)
         {
             if (payload != null && payload.Count != 0)
             {
