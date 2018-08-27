@@ -79,7 +79,7 @@ namespace ExchangeSharp
             if (CanMakeAuthenticatedRequest(payload))
             {
                 // must sort case sensitive
-                var dict = new SortedDictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                var dict = new SortedDictionary<string, object>(StringComparer.Ordinal)
                 {
                     ["Timestamp"] = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(payload["nonce"].ConvertInvariant<long>()).ToString("s"),
                     ["AccessKeyId"] = PublicApiKey.ToUnsecureString(),
