@@ -131,7 +131,8 @@ namespace ExchangeSharp
                 request.AddHeader("CB-ACCESS-SIGN", signatureBase64String);
                 request.AddHeader("CB-ACCESS-TIMESTAMP", timestamp);
                 request.AddHeader("CB-ACCESS-PASSPHRASE", CryptoUtility.ToUnsecureString(Passphrase));
-                if (request.Method == "POST") {
+                if (request.Method == "POST")
+                {
                     await CryptoUtility.WriteToRequestAsync(request, form);
                 }
             }
@@ -480,7 +481,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync(), "POST");
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync(), "GET");
             foreach (JToken token in array)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -525,7 +526,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "POST");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "GET");
             return ParseOrder(obj);
         }
 

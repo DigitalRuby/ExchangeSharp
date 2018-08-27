@@ -36,7 +36,7 @@ namespace ExchangeSharp
         public ExchangeHuobiAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            NonceStyle = NonceStyle.UnixSecondsString;   // not used, see below
+            NonceStyle = NonceStyle.UnixMilliseconds;
             SymbolSeparator = string.Empty;
             SymbolIsUppercase = false;
         }
@@ -68,7 +68,6 @@ namespace ExchangeSharp
                 if (request.Method == "POST")
                 {
                     request.AddHeader("content-type", "application/json");
-                    payload.Remove("nonce");
                     var msg = CryptoUtility.GetJsonForPayload(payload);
                     await CryptoUtility.WriteToRequestAsync(request, msg);
                 }
@@ -79,50 +78,39 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                if (!payload.ContainsKey("method"))
+                // must sort case sensitive
+                var dict = new SortedDictionary<string, object>(StringComparer.Ordinal)
                 {
-                    return url.Uri;
-                }
-                method = payload["method"].ToStringInvariant();
-                payload.Remove("method");
-
-                var dict = new Dictionary<string, object>
-                {
-                    ["Timestamp"] = DateTime.UtcNow.ToString("s"),
+                    ["Timestamp"] = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(payload["nonce"].ConvertInvariant<long>()).ToString("s"),
                     ["AccessKeyId"] = PublicApiKey.ToUnsecureString(),
                     ["SignatureMethod"] = "HmacSHA256",
                     ["SignatureVersion"] = "2"
                 };
 
-                string msg = null;
+                payload.Remove("nonce");
+
                 if (method == "GET")
                 {
-                    dict = dict.Concat(payload).ToDictionary(x => x.Key, x => x.Value);
+                    foreach (var kv in payload)
+                    {
+                        dict.Add(kv.Key, kv.Value);
+                    }
                 }
 
-                msg = CryptoUtility.GetFormForPayload(dict, false);
+                string msg = CryptoUtility.GetFormForPayload(dict);
 
-                // must sort case sensitive
-                msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
-
+                // construct sign request
                 StringBuilder sb = new StringBuilder();
                 sb.Append(method).Append("\n")
                     .Append(url.Host).Append("\n")
                     .Append(url.Path).Append("\n")
                     .Append(msg);
 
-                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytesUTF8());
-                var signUrl = sign.UrlEncode();
-                msg += $"&Signature={signUrl}";
+                // calculate signature
+                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytesUTF8()).UrlEncode();
 
-                /*
-                // Huobi rolled this back, it is no longer needed. Leaving it here in case they change their minds again.
-                // https://github.com/huobiapi/API_Docs_en/wiki/Signing_API_Requests
-                // API Authentication Change
-                var privateSign = GetPrivateSignatureStr(Passphrase.ToUnsecureString(), sign);
-                var privateSignUrl = privateSign.UrlEncode();
-                msg += $"&PrivateSignature={privateSignUrl}";
-                */
+                // append signature to end of message
+                msg += $"&Signature={sign}";
 
                 url.Query = msg;
             }
@@ -503,13 +491,6 @@ namespace ExchangeSharp
             return accounts;
         }
 
-        protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
-        {
-            var result = await base.GetNoncePayloadAsync();
-            result["method"] = "GET";
-            return result;
-        }
-
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             /*
@@ -542,7 +523,6 @@ namespace ExchangeSharp
       },
              */
             var account_id = await GetAccountID();
-
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
@@ -671,7 +651,6 @@ namespace ExchangeSharp
             payload.Add("symbol", order.Symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("source", order.IsMargin ? "margin-api" : "api");
-            payload["method"] = "POST";
 
             decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
             decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
@@ -699,7 +678,6 @@ namespace ExchangeSharp
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = await GetNoncePayloadAsync();
-            payload["method"] = "POST";
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
@@ -711,21 +689,6 @@ namespace ExchangeSharp
         protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
-
-            /*
-            var payload = await GetNoncePayloadAsync();
-            payload.Add("need_new", forceRegenerate ? 1 : 0);
-            payload.Add("method", "GetDepositAddress");
-            payload.Add("coinName", symbol);
-            payload["method"] = "POST";
-            // "return":{"address": 1UHAnAWvxDB9XXETsi7z483zRRBmcUZxb3,"processed_amount": 1.00000000,"server_time": 1437146228 }
-            JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateUrlV1, payload, "POST");
-            return new ExchangeDepositDetails
-            {
-                Address = token["address"].ToStringInvariant(),
-                Symbol = symbol
-            };
-            */
         }
 
         protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
@@ -736,7 +699,7 @@ namespace ExchangeSharp
 
 #endregion
 
-#region Private Functions
+        #region Private Functions
 
         protected override JToken CheckJsonResponse(JToken result)
         {
@@ -835,55 +798,6 @@ namespace ExchangeSharp
             return account_id;
         }
         #endregion
-
-
-        /// <summary>
-        /// Sign with ECDsa encryption method with the generated ECDsa private key
-        /// </summary>
-        /// <param name="privateKeyStr"></param>
-        /// <param name="signData"></param>
-        /// <returns></returns>
-        private String GetPrivateSignatureStr(string privateKeyStr, string signData)
-        {
-            var privateSignedData = string.Empty;
-
-#if NET472
-
-            // net core not support this
-            try
-            {
-                byte[] keyBytes = Convert.FromBase64String(privateKeyStr);
-                CngKey cng = CngKey.Import(keyBytes, CngKeyBlobFormat.Pkcs8PrivateBlob);
-
-                ECDsaCng dsa = new ECDsaCng(cng)
-                {
-                    HashAlgorithm = CngAlgorithm.Sha256
-                };
-
-                byte[] signDataBytes = signData.ToBytesUTF8();
-                privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
-            }
-            catch (CryptographicException ex)
-            {
-                Logger.Error(ex, "Private signature error because: " + ex.Message);
-            }
-
-#endif
-
-            return privateSignedData;
-
-            // net core 
-
-            //var ecDsa = ECDsa.Create();
-            //var ecParameters = new ECParameters();
-            //ecParameters.Curve = null;
-            //ecParameters.D = null;
-            //ecParameters.Q = null;
-            //ecDsa.ImportParameters(ecParameters);
-
-            //byte[] signDataBytes = signData.ToBytes();
-            //privateSignedData = Convert.ToBase64String(ecDsa.SignData(signDataBytes, HashAlgorithmName.SHA256));
-        }
     }
 
     public partial class ExchangeName { public const string Huobi = "Huobi"; }
