@@ -131,7 +131,10 @@ namespace ExchangeSharp
                 request.AddHeader("CB-ACCESS-SIGN", signatureBase64String);
                 request.AddHeader("CB-ACCESS-TIMESTAMP", timestamp);
                 request.AddHeader("CB-ACCESS-PASSPHRASE", CryptoUtility.ToUnsecureString(Passphrase));
-                await CryptoUtility.WriteToRequestAsync(request, form);
+                if (request.Method == "POST")
+                {
+                    await CryptoUtility.WriteToRequestAsync(request, form);
+                }
             }
         }
 
@@ -463,7 +466,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync(), "POST");
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync(), "GET");
             foreach (JToken token in array)
             {
                 decimal amount = token["balance"].ConvertInvariant<decimal>();
@@ -478,7 +481,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync(), "POST");
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync(), "GET");
             foreach (JToken token in array)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -523,14 +526,14 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "POST");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "GET");
             return ParseOrder(obj);
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await GetNoncePayloadAsync(), "POST");
+            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await GetNoncePayloadAsync(), "GET");
             foreach (JToken token in array)
             {
                 orders.Add(ParseOrder(token));
@@ -542,7 +545,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await GetNoncePayloadAsync(), "POST");
+            JArray array = await MakeJsonRequestAsync<JArray>("orders?status=done" + (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "&product_id=" + symbol), null, await GetNoncePayloadAsync(), "GET");
             foreach (JToken token in array)
             {
                 ExchangeOrderResult result = ParseOrder(token);
