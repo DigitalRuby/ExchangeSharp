@@ -4,7 +4,7 @@
     <TargetFrameworks>net472;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
-    <PackageVersion>0.5.6.0</PackageVersion>
+    <PackageVersion>0.5.7.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
     <Summary>Supported exchanges: Abucoins, Binance, Bitfinex, Bithumb, Bitmex, Bitstamp, Bittrex, Bleutrade, Coinbase, Cryptopia, Gemini, Hitbtc, Huobi, Kraken, Kucoin, Livecoin, Okex, Poloniex, TuxExchange, Yobit, ZBcom. Pull request welcome.</Summary>
