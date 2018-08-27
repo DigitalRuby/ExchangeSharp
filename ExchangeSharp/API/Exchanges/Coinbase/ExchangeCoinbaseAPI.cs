@@ -131,7 +131,8 @@ namespace ExchangeSharp
                 request.AddHeader("CB-ACCESS-SIGN", signatureBase64String);
                 request.AddHeader("CB-ACCESS-TIMESTAMP", timestamp);
                 request.AddHeader("CB-ACCESS-PASSPHRASE", CryptoUtility.ToUnsecureString(Passphrase));
-                if (request.Method == "POST") {
+                if (request.Method == "POST")
+                {
                     await CryptoUtility.WriteToRequestAsync(request, form);
                 }
             }
