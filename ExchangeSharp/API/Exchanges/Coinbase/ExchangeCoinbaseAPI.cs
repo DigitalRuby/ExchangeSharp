@@ -52,7 +52,7 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                Price = price == 0 ? stop_price : price,
+                Price = price <= 0m ? stop_price : price,
                 Fees = fees,
                 FeesCurrency = symbol.Substring(0, symbol.IndexOf('-')),
                 AveragePrice = averagePrice,
