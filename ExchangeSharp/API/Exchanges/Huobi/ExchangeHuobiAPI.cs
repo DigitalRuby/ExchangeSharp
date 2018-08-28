@@ -68,6 +68,7 @@ namespace ExchangeSharp
                 if (request.Method == "POST")
                 {
                     request.AddHeader("content-type", "application/json");
+                    payload.Remove("nonce");
                     var msg = CryptoUtility.GetJsonForPayload(payload);
                     await CryptoUtility.WriteToRequestAsync(request, msg);
                 }
@@ -87,8 +88,6 @@ namespace ExchangeSharp
                     ["SignatureVersion"] = "2"
                 };
 
-                payload.Remove("nonce");
-
                 if (method == "GET")
                 {
                     foreach (var kv in payload)
@@ -97,17 +96,11 @@ namespace ExchangeSharp
                     }
                 }
 
-                string msg = CryptoUtility.GetFormForPayload(dict);
-
-                // construct sign request
-                StringBuilder sb = new StringBuilder();
-                sb.Append(method).Append("\n")
-                    .Append(url.Host).Append("\n")
-                    .Append(url.Path).Append("\n")
-                    .Append(msg);
+                string msg = CryptoUtility.GetFormForPayload(dict, false, false, false);
+                string toSign = $"{method}\n{url.Host}\n{url.Path}\n{msg}";
 
                 // calculate signature
-                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytesUTF8()).UrlEncode();
+                var sign = CryptoUtility.SHA256SignBase64(toSign, PrivateApiKey.ToBytesUTF8()).UrlEncode();
 
                 // append signature to end of message
                 msg += $"&Signature={sign}";
@@ -689,6 +682,21 @@ namespace ExchangeSharp
         protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
+
+            /*
+            var payload = await GetNoncePayloadAsync();
+            payload.Add("need_new", forceRegenerate ? 1 : 0);
+            payload.Add("method", "GetDepositAddress");
+            payload.Add("coinName", symbol);
+            payload["method"] = "POST";
+            // "return":{"address": 1UHAnAWvxDB9XXETsi7z483zRRBmcUZxb3,"processed_amount": 1.00000000,"server_time": 1437146228 }
+            JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateUrlV1, payload, "POST");
+            return new ExchangeDepositDetails
+            {
+                Address = token["address"].ToStringInvariant(),
+                Symbol = symbol
+            };
+            */
         }
 
         protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)

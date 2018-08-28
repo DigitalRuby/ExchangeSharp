@@ -642,17 +642,22 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="payload">Payload</param>
         /// <param name="includeNonce">Whether to add the nonce</param>
+        /// <param name="orderByKey">Whether to order by the key</param>
+        /// <param name="formEncode">True to use form encoding, false to use url encoding</param>
         /// <returns>Form string</returns>
-        public static string GetFormForPayload(this IReadOnlyDictionary<string, object> payload, bool includeNonce = true)
+        public static string GetFormForPayload(this IReadOnlyDictionary<string, object> payload, bool includeNonce = true, bool orderByKey = true, bool formEncode = true)
         {
             if (payload != null && payload.Count != 0)
             {
                 StringBuilder form = new StringBuilder();
-                foreach (KeyValuePair<string, object> keyValue in payload.OrderBy(kv => kv.Key))
+                IEnumerable<KeyValuePair<string, object>> e = (orderByKey ? payload.OrderBy(kv => kv.Key) : payload.AsEnumerable<KeyValuePair<string, object>>());
+                foreach (KeyValuePair<string, object> keyValue in e)
                 {
                     if (!string.IsNullOrWhiteSpace(keyValue.Key) && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
                     {
-                        form.Append($"{keyValue.Key.FormEncode()}={keyValue.Value.ToStringInvariant().FormEncode()}&");
+                        string key = (formEncode ? keyValue.Key.FormEncode() : keyValue.Key.UrlEncode());
+                        string value = (formEncode ? keyValue.Value.ToStringInvariant().FormEncode() : keyValue.Value.ToStringInvariant().UrlEncode());
+                        form.Append($"{key}={value}&");
                     }
                 }
                 if (form.Length != 0)
