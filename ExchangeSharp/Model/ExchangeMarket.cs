@@ -15,6 +15,9 @@ namespace ExchangeSharp
     /// <summary>Representation of a market on an exchange.</summary>
     public sealed class ExchangeMarket
     {
+        /// <summary>Id of the market (specific to the exchange), null if none</summary>
+        public string MarketId { get; set; }
+
         /// <summary>Gets or sets the name of the market.</summary>
         public string MarketName { get; set; }
 

@@ -23,8 +23,11 @@ namespace ExchangeSharp
         /// <summary>The transaction fee.</summary>
         public decimal TxFee { get; set; }
 
-        /// <summary>A value indicating whether the currency is enabled for deposits/withdrawals.</summary>
-        public bool IsEnabled { get; set; }
+        /// <summary>A value indicating whether deposit is enabled.</summary>
+        public bool DepositEnabled { get; set; }
+
+        /// <summary>A value indicating whether withdrawal is enabled.</summary>
+        public bool WithdrawalEnabled { get; set; }
 
         /// <summary>Extra information from the exchange.</summary>
         public string Notes { get; set; }

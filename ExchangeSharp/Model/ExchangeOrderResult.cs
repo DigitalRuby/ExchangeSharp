@@ -44,6 +44,9 @@ namespace ExchangeSharp
         /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
 
+        /// <summary>Fill datetime in UTC</summary>
+        public DateTime FillDate { get; set; }
+    
         /// <summary>Symbol. E.g. ADA/ETH</summary>
         public string Symbol { get; set; }
 
@@ -75,7 +78,7 @@ namespace ExchangeSharp
             FeesCurrency = other.FeesCurrency;
             AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
             OrderId = other.OrderId;
-            OrderDate = OrderDate == default(DateTime) ? other.OrderDate : OrderDate;
+            OrderDate = OrderDate == default ? other.OrderDate : OrderDate;
             Symbol = other.Symbol;
             IsBuy = other.IsBuy;
         }

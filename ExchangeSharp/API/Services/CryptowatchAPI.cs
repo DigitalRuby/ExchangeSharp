@@ -31,7 +31,6 @@ namespace ExchangeSharp
     public sealed class CryptowatchAPI : BaseAPI
     {
         public override string BaseUrl { get; set; } = "https://api.cryptowat.ch";
-        public override string Name => "Cryptowatch";
 
         private async Task<JToken> MakeCryptowatchRequestAsync(string subUrl)
         {
@@ -59,21 +58,11 @@ namespace ExchangeSharp
             JToken token = await MakeCryptowatchRequestAsync(url);
             foreach (JProperty prop in token)
             {
-                foreach (JArray array in prop.Value)
+                foreach (JToken candleToken in prop.Value)
                 {
-                    candles.Add(new MarketCandle
-                    {
-                        ExchangeName = exchange,
-                        Name = marketName,
-                        ClosePrice = array[4].ConvertInvariant<decimal>(),
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[0].ConvertInvariant<long>()),
-                        HighPrice = array[2].ConvertInvariant<decimal>(),
-                        LowPrice = array[3].ConvertInvariant<decimal>(),
-                        OpenPrice = array[1].ConvertInvariant<decimal>(),
-                        PeriodSeconds = prop.Name.ConvertInvariant<int>(),
-                        BaseVolume = array[5].ConvertInvariant<double>(),
-                        ConvertedVolume = array[5].ConvertInvariant<double>() * array[4].ConvertInvariant<double>()
-                    });
+                    MarketCandle candle = this.ParseCandle(candleToken, marketName, 0, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 5);
+                    candle.PeriodSeconds = prop.Name.ConvertInvariant<int>();
+                    candles.Add(candle);
                 }
             }
 

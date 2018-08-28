@@ -39,8 +39,8 @@ namespace ExchangeSharp
         /// </summary>
         public void Update()
         {
-            Ticker = ExchangeInfo.API.GetTicker(Symbol);
-            RecentTrades = ExchangeInfo.API.GetRecentTrades(Symbol).ToArray();
+            Ticker = ExchangeInfo.API.GetTickerAsync(Symbol).Sync();
+            RecentTrades = ExchangeInfo.API.GetRecentTradesAsync(Symbol).Sync().ToArray();
             if (RecentTrades.Length == 0)
             {
                 Trade = new Trade();
@@ -49,7 +49,7 @@ namespace ExchangeSharp
             {
                 Trade = new Trade { Amount = (float)RecentTrades[RecentTrades.Length - 1].Amount, Price = (float)RecentTrades[RecentTrades.Length - 1].Price, Ticks = (long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(RecentTrades[RecentTrades.Length - 1].Timestamp) };
             }
-            Orders = ExchangeInfo.API.GetOrderBook(Symbol);
+            Orders = ExchangeInfo.API.GetOrderBookAsync(Symbol).Sync();
         }
 
         /// <summary>

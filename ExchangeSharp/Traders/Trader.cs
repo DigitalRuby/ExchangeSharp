@@ -81,7 +81,7 @@ namespace ExchangeSharp
         {
             if (ProductionMode)
             {
-                var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTrade();
+                var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTradeAsync().Sync();
                 string[] tradeSymbols = TradeInfo.Symbol.Split('_');
                 dict.TryGetValue(tradeSymbols[1], out decimal itemCount);
                 dict.TryGetValue(tradeSymbols[0], out decimal cashFlow);
@@ -159,14 +159,14 @@ namespace ExchangeSharp
                 actualBuyPrice += (actualBuyPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    TradeInfo.ExchangeInfo.API.PlaceOrder(new ExchangeOrderRequest
+                    TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
                     {
                         Amount = count,
                         IsBuy = true,
                         Price = actualBuyPrice,
                         ShouldRoundAmount = false,
                         Symbol = TradeInfo.Symbol
-                    });
+                    }).Sync();
                 }
                 else
                 {
@@ -193,14 +193,14 @@ namespace ExchangeSharp
                 actualSellPrice -= (actualSellPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    TradeInfo.ExchangeInfo.API.PlaceOrder(new ExchangeOrderRequest
+                    TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
                     {
                         Amount = count,
                         IsBuy = false,
                         Price = actualSellPrice,
                         ShouldRoundAmount = false,
                         Symbol = TradeInfo.Symbol
-                    });
+                    }).Sync();
                 }
                 else
                 {
