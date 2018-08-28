@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net471</TargetFrameworks>
+    <TargetFrameworks>net472;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
     <PackageVersion>0.5.6.0</PackageVersion>
