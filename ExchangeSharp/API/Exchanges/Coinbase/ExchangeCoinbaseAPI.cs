@@ -43,6 +43,7 @@ namespace ExchangeSharp
             decimal amountFilled = result["filled_size"].ConvertInvariant<decimal>();
             decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
             decimal price = result["price"].ConvertInvariant<decimal>();
+            decimal stop_price = result["stop_price"].ConvertInvariant<decimal>();
             decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
             decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
             string symbol = result["id"].ToStringInvariant(result["product_id"].ToStringInvariant());
@@ -51,7 +52,7 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                Price = price,
+                Price = price == 0 ? stop_price : price,
                 Fees = fees,
                 FeesCurrency = symbol.Substring(0, symbol.IndexOf('-')),
                 AveragePrice = averagePrice,
@@ -83,7 +84,19 @@ namespace ExchangeSharp
                     break;
                 case "done":
                 case "settled":
-                    order.Result = ExchangeAPIOrderResult.Filled;
+                    switch (result["done_reason"].ToStringInvariant()) 
+                    {
+                        case "cancelled":
+                        case "canceled":
+                            order.Result = ExchangeAPIOrderResult.Canceled;
+                            break;
+                        case "filled":
+                            order.Result = ExchangeAPIOrderResult.Filled;
+                            break;
+                        default:
+                            order.Result = ExchangeAPIOrderResult.Unknown;
+                            break;
+                    }
                     break;
                 case "cancelled":
                 case "canceled":
@@ -513,6 +526,7 @@ namespace ExchangeSharp
                 case OrderType.Stop:
                     payload["stop"] = (order.IsBuy ? "entry" : "loss");
                     payload["stop_price"] = order.StopPrice.ToStringInvariant();
+                    payload["type"] = order.Price != 0 ? "limit" : "market";
                     break;
                 case OrderType.Market:
                 default:
