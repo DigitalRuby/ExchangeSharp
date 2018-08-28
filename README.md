@@ -67,7 +67,7 @@ You can also publish from Visual Studio (right click project, select publish), w
 
 ### Nuget
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.3 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.8 ```  
 </a> 
 
 ### Simple Example
