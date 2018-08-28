@@ -519,15 +519,18 @@ namespace ExchangeSharp
             };
             payload["time_in_force"] = "GTC"; // good til cancel
             payload["price"] = order.Price.ToStringInvariant();
-            switch (order.OrderType) {
+            switch (order.OrderType)
+            {
                 case OrderType.Limit:
                     payload["post_only"] = "true";
                     break;
+                    
                 case OrderType.Stop:
                     payload["stop"] = (order.IsBuy ? "entry" : "loss");
                     payload["stop_price"] = order.StopPrice.ToStringInvariant();
-                    payload["type"] = order.Price != 0 ? "limit" : "market";
+                    payload["type"] = order.Price > 0m ? "limit" : "market";
                     break;
+                    
                 case OrderType.Market:
                 default:
                     break;
