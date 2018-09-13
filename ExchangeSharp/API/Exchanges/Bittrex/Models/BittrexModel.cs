@@ -174,9 +174,13 @@ namespace ExchangeSharp
             [JsonConverter(typeof(OrderSideConverter))]
             [JsonProperty("OT")]
             public OrderSide OrderSide { get; set; }
-        }
 
-        public class BittrexStreamQueryExchangeState
+			/// <summary>Rate of the fill</summary>
+			[JsonProperty("FI")]
+			public long FillId { get; set; }
+		}
+
+		public class BittrexStreamQueryExchangeState
         {
             [JsonProperty("N")]
             public long Nonce { get; set; }

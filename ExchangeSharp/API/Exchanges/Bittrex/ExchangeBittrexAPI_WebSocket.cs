@@ -218,10 +218,42 @@ namespace ExchangeSharp
             return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, symbols);
         }
 
-        /// <summary>
-        /// Gets the BittrexSocketClient for this API
-        /// </summary>
-        private BittrexWebSocketManager SocketManager
+		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+		{
+			if (callback == null)
+			{
+				return null;
+			}
+			if (symbols == null || symbols.Length == 0)
+			{
+				symbols = GetSymbolsAsync().Sync().ToArray();
+			}
+			void innerCallback(string json)
+			{
+				var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
+				foreach (var fill in ordersUpdates.Fills)
+				{
+					callback(new KeyValuePair<string, ExchangeTrade>(ordersUpdates.MarketName, new ExchangeTrade()
+					{
+						Amount = fill.Quantity,
+						// Bittrex doesn't currently send out FillId on socket.bittrex.com, only beta.bittrex.com, but this will be ready when they start
+						// https://github.com/Bittrex/beta/issues/2, https://github.com/Bittrex/bittrex.github.io/issues/3
+						// You can always change the URL on the top of the file to beta.bittrex.com to start getting FillIds now
+						Id = fill.FillId,
+						IsBuy = fill.OrderSide == OrderSide.Buy,
+						Price = fill.Rate,
+						Timestamp = fill.Timestamp
+					}));
+				}
+			}
+
+			return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, symbols);
+		}
+
+		/// <summary>
+		/// Gets the BittrexSocketClient for this API
+		/// </summary>
+		private BittrexWebSocketManager SocketManager
         {
             get
             {
