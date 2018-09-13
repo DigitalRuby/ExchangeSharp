@@ -407,11 +407,6 @@ namespace ExchangeSharp
 
 		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
 		{
-			if (callback == null)
-			{
-				return null;
-			}
-
 			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
 			return ConnectWebSocket(string.Empty, (_socket, msg) =>
 			{

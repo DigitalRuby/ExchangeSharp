@@ -62,6 +62,20 @@ namespace ExchangeSharp
         public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
 
         /// <summary>
+        /// Throw ArgumentNullException if obj is null
+        /// </summary>
+        /// <param name="obj">Object</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="message">Message</param>
+        public static void ThrowIfNull(this object obj, string name, string message)
+        {
+            if (obj == null)
+            {
+                throw new ArgumentNullException(name, message);
+            }
+        }
+
+        /// <summary>
         /// Convert an object to string using invariant culture
         /// </summary>
         /// <param name="obj">Object</param>

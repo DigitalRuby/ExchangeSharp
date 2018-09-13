@@ -220,10 +220,6 @@ namespace ExchangeSharp
 
 		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
 		{
-			if (callback == null)
-			{
-				return null;
-			}
 			if (symbols == null || symbols.Length == 0)
 			{
 				symbols = GetSymbolsAsync().Sync().ToArray();

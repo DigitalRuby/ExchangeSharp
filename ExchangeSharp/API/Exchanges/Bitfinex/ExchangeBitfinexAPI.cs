@@ -230,10 +230,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
             return ConnectWebSocket("/2", (_socket , msg) => //use websocket V2 (beta, but millisecond timestamp)
             {

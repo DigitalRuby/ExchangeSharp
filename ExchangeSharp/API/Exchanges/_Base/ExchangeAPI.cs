@@ -723,7 +723,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback) => OnGetTickersWebSocket(callback);
+        public virtual IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        {
+            callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+            return OnGetTickersWebSocket(callback);
+        }
 
         /// <summary>
         /// Get information about trades via web socket
@@ -731,7 +735,11 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="symbols">Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => OnGetTradesWebSocket(callback, symbols);
+        public virtual IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        {
+            callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+            return OnGetTradesWebSocket(callback, symbols);
+        }
 
         /// <summary>
         /// Get delta order book bids and asks via web socket. Only the deltas are returned for each callback. To manage a full order book, use ExchangeAPIExtensions.GetOrderBookWebSocket.
@@ -740,21 +748,33 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => OnGetOrderBookDeltasWebSocket(callback, maxCount, symbols);
+        public virtual IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        {
+            callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+            return OnGetOrderBookDeltasWebSocket(callback, maxCount, symbols);
+        }
 
         /// <summary>
         /// Get the details of all changed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => OnGetOrderDetailsWebSocket(callback);
+        public virtual IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        {
+            callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+            return OnGetOrderDetailsWebSocket(callback);
+        }
 
         /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => OnGetCompletedOrderDetailsWebSocket(callback);
+        public virtual IWebSocket GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        {
+            callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+            return OnGetCompletedOrderDetailsWebSocket(callback);
+        }
 
         #endregion Web Socket API
     }

@@ -90,11 +90,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());

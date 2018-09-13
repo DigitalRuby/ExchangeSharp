@@ -76,16 +76,10 @@ namespace ExchangeSharp
             /// <returns>Connection</returns>
             public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
             {
-                if (callback == null)
-                {
-                    throw new ArgumentNullException(nameof(callback));
-                }
+                callback.ThrowIfNull(nameof(callback), "Callback must not be null");
 
                 SignalrManager _manager = this.manager;
-                if (_manager == null)
-                {
-                    throw new ArgumentNullException("SignalrManager is null");
-                }
+                _manager.ThrowIfNull(nameof(manager), "Manager is null");
 
                 Exception ex = null;
                 param = (param ?? new object[][] { new object[0] });
