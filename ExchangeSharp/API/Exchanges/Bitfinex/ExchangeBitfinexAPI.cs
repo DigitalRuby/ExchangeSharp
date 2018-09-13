@@ -116,8 +116,9 @@ namespace ExchangeSharp
                 {
                     IsActive = true,
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
-                    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>()
-                };
+                    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>(),
+					MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>()
+				};
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
                 if (m.Success)
                 {
