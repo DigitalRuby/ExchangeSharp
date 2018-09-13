@@ -32,7 +32,7 @@ The following cryptocurrency exchanges are supported:
 | Kucoin           | x         | x           |           |
 | Livecoin         | x         | x           |           |
 | Okex             | x         | x           | RB        |
-| Poloniex         | x         | x           | TB        |
+| Poloniex         | x         | x           | TRB        |
 | TuxExchange      | x         | x           |           |
 | Yobit            | x         | x           |           |
 | ZB.com           | wip       |             | R         |
