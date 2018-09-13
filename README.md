@@ -21,7 +21,7 @@ The following cryptocurrency exchanges are supported:
 | Bithumb          | x         |             |           |
 | Bitmex           | x         | x           |           |
 | Bitstamp         | x         | x           |           |
-| Bittrex          | x         | x           | T         |
+| Bittrex          | x         | x           | TR        |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | TR        |
 | Cryptopia        | x         | x           |           |
@@ -32,7 +32,7 @@ The following cryptocurrency exchanges are supported:
 | Kucoin           | x         | x           |           |
 | Livecoin         | x         | x           |           |
 | Okex             | x         | x           | RB        |
-| Poloniex         | x         | x           | TRB        |
+| Poloniex         | x         | x           | TRB       |
 | TuxExchange      | x         | x           |           |
 | Yobit            | x         | x           |           |
 | ZB.com           | wip       |             | R         |
