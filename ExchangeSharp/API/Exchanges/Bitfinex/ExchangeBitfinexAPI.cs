@@ -236,7 +236,11 @@ namespace ExchangeSharp
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
                 {
-                    if (token.Last.Last.HasValues == false)
+					if (token[1].ConvertInvariant<string>() == "hb")
+					{
+						// heartbeat
+					}
+					else if (token.Last.Last.HasValues == false)
                     {
                         //[29654, "tu", [270343572, 1532012917722, -0.003, 7465.636738]] "te"=temp/intention to execute "tu"=confirmed and ID is definitive
                         //chan id, -- , [ID       , timestamp    , amount, price      ]]
