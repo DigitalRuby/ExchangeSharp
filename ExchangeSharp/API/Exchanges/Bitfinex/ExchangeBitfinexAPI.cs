@@ -116,7 +116,9 @@ namespace ExchangeSharp
                 {
                     IsActive = true,
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
-		    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>(),
+		    MinTradeSize = pair["minimum_order_size"].
+		    
+		    <decimal>(),
                     MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>()
 		};
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
@@ -236,13 +238,17 @@ namespace ExchangeSharp
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
                 {
-                    if (token.Last.Last.HasValues == false)
+					if (token[1].ToStringInvariant() == "hb")
+					{
+						// heartbeat
+					}
+					else if (token.Last.Last.HasValues == false)
                     {
                         //[29654, "tu", [270343572, 1532012917722, -0.003, 7465.636738]] "te"=temp/intention to execute "tu"=confirmed and ID is definitive
                         //chan id, -- , [ID       , timestamp    , amount, price      ]]
                         if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
                         {
-                            if (token[1].ConvertInvariant<string>() == "tu")
+                            if (token[1].ToStringInvariant() == "tu")
                             {
                                 ExchangeTrade trade = ParseTradeWebSocket(token.Last);
                                 if (trade != null)
