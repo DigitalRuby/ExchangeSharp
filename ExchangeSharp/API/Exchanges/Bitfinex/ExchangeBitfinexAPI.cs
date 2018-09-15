@@ -116,11 +116,9 @@ namespace ExchangeSharp
                 {
                     IsActive = true,
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
-		    MinTradeSize = pair["minimum_order_size"].
-		    
-		    <decimal>(),
+                    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>(),
                     MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>()
-		};
+                };
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
                 if (m.Success)
                 {
@@ -233,16 +231,16 @@ namespace ExchangeSharp
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket("/2", (_socket , msg) => //use websocket V2 (beta, but millisecond timestamp)
+            return ConnectWebSocket("/2", (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
                 {
-					if (token[1].ToStringInvariant() == "hb")
-					{
-						// heartbeat
-					}
-					else if (token.Last.Last.HasValues == false)
+                    if (token[1].ToStringInvariant() == "hb")
+                    {
+                        // heartbeat
+                    }
+                    else if (token.Last.Last.HasValues == false)
                     {
                         //[29654, "tu", [270343572, 1532012917722, -0.003, 7465.636738]] "te"=temp/intention to execute "tu"=confirmed and ID is definitive
                         //chan id, -- , [ID       , timestamp    , amount, price      ]]
@@ -414,7 +412,7 @@ namespace ExchangeSharp
             }
             return lookup;
         }
-        
+
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbolV1(order.Symbol);
@@ -431,7 +429,7 @@ namespace ExchangeSharp
             {
                 payload["type"] = order.OrderType == OrderType.Market ? "exchange market" : "exchange limit";
             }
-            
+
             if (order.OrderType != OrderType.Market)
             {
                 payload["price"] = (await ClampOrderPrice(symbol, order.Price)).ToStringInvariant();
