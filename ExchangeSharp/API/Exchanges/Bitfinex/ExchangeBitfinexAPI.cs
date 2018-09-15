@@ -248,7 +248,7 @@ namespace ExchangeSharp
                         //chan id, -- , [ID       , timestamp    , amount, price      ]]
                         if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
                         {
-                            if (token[1].ConvertInvariant<string>() == "tu")
+                            if (token[1].ToStringInvariant() == "tu")
                             {
                                 ExchangeTrade trade = ParseTradeWebSocket(token.Last);
                                 if (trade != null)
