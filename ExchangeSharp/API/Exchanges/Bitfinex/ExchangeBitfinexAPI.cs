@@ -116,7 +116,9 @@ namespace ExchangeSharp
                 {
                     IsActive = true,
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
-		    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>(),
+		    MinTradeSize = pair["minimum_order_size"].
+		    
+		    <decimal>(),
                     MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>()
 		};
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
@@ -236,7 +238,7 @@ namespace ExchangeSharp
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
                 {
-					if (token[1].ConvertInvariant<string>() == "hb")
+					if (token[1].ToStringInvariant() == "hb")
 					{
 						// heartbeat
 					}
