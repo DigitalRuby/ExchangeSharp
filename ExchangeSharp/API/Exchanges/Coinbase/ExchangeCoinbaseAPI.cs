@@ -120,7 +120,7 @@ namespace ExchangeSharp
             {
                 JToken token = await MakeJsonRequestAsync<JToken>("/time");
                 DateTime serverDate = token["iso"].ToDateTimeInvariant();
-                NonceOffset = (DateTime.UtcNow - serverDate);
+                NonceOffset = (CryptoUtility.UtcNow - serverDate);
             }
             catch
             {
@@ -451,12 +451,12 @@ namespace ExchangeSharp
             string url = "/products/" + symbol + "/candles?granularity=" + periodSeconds;
             if (startDate == null)
             {
-                startDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
+                startDate = CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(1.0));
             }
             url += "&start=" + startDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
             if (endDate == null)
             {
-                endDate = DateTime.UtcNow;
+                endDate = CryptoUtility.UtcNow;
             }
             url += "&end=" + endDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
 

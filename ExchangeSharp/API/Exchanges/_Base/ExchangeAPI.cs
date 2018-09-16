@@ -408,7 +408,7 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             return (await Cache.Get<string[]>(nameof(GetSymbolsAsync), async () =>
             {
-                return new CachedItem<string[]>((await OnGetSymbolsAsync()).ToArray(), DateTime.UtcNow.AddHours(1.0));
+                return new CachedItem<string[]>((await OnGetSymbolsAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0));
             })).Value;
         }
 
@@ -421,7 +421,7 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             return (await Cache.Get<ExchangeMarket[]>(nameof(GetSymbolsMetadataAsync), async () =>
             {
-                return new CachedItem<ExchangeMarket[]>((await OnGetSymbolsMetadataAsync()).ToArray(), DateTime.UtcNow.AddHours(1.0));
+                return new CachedItem<ExchangeMarket[]>((await OnGetSymbolsMetadataAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0));
             })).Value;
         }
 
@@ -656,7 +656,7 @@ namespace ExchangeSharp
             string cacheKey = "GetCompletedOrderDetails_" + symbol + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
             return (await Cache.Get<ExchangeOrderResult[]>(cacheKey, async () =>
             {
-                return new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), DateTime.UtcNow.AddMinutes(2.0));
+                return new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), CryptoUtility.UtcNow.AddMinutes(2.0));
             })).Value;
         }
 

@@ -140,7 +140,7 @@ namespace ExchangeSharp
             List<MarketCandle> candles = new List<MarketCandle>();
             string periodString = PeriodSecondsToString(periodSeconds);
             limit = limit ?? (limit > 2160 ? 2160 : limit);
-            endDate = endDate ?? DateTime.UtcNow.AddMinutes(1.0);
+            endDate = endDate ?? CryptoUtility.UtcNow.AddMinutes(1.0);
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
             //market period(15m, 20m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 1d) count(default: 1000, max: 999999) lasthours(default: 24, max: 2160) 

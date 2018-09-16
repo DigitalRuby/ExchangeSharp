@@ -296,8 +296,8 @@ namespace ExchangeSharp
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
 
             var payload = await GetNoncePayloadAsync();
-            payload.Add("start", DateTime.UtcNow.AddYears(-1).UnixTimestampFromDateTimeMilliseconds());       // required. Arbitrarily going with 1 year
-            payload.Add("end", DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds());                      // also required
+            payload.Add("start", CryptoUtility.UtcNow.AddYears(-1).UnixTimestampFromDateTimeMilliseconds());       // required. Arbitrarily going with 1 year
+            payload.Add("end", CryptoUtility.UtcNow.UnixTimestampFromDateTimeMilliseconds());                      // also required
             payload.Add("types", "DEPOSIT,WITHDRAWAL");  // opting to return both deposits and withdraws. 
 
             // We can also include trades and orders with this call (which makes 3 ways to return the same data)

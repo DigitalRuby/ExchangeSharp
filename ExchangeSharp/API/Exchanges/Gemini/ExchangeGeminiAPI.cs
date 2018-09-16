@@ -172,7 +172,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
                 { "nonce", nonce },
-                { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
+                { "client_order_id", "ExchangeSharp_" + CryptoUtility.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
                 { "symbol", order.Symbol },
                 { "amount", order.RoundAmount().ToStringInvariant() },
                 { "price", order.Price.ToStringInvariant() },

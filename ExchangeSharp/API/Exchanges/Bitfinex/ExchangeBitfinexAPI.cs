@@ -72,8 +72,8 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["limit"] = 250;
-            payload["start"] = DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
-            payload["end"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds();
+            payload["start"] = CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
+            payload["end"] = CryptoUtility.UtcNow.UnixTimestampFromDateTimeMilliseconds();
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload);
             Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
             if (result is JArray array)
@@ -168,7 +168,7 @@ namespace ExchangeSharp
                 }
                 symbolString.Length--;
                 JToken token = await MakeJsonRequestAsync<JToken>("/tickers?symbols=" + symbolString);
-                DateTime now = DateTime.UtcNow;
+                DateTime now = CryptoUtility.UtcNow;
                 foreach (JArray array in token)
                 {
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(array[0].ToStringInvariant().Substring(1), new ExchangeTicker
@@ -357,7 +357,7 @@ namespace ExchangeSharp
             string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1";
             if (startDate != null || endDate != null)
             {
-                endDate = endDate ?? DateTime.UtcNow;
+                endDate = endDate ?? CryptoUtility.UtcNow;
                 startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
                 url += "&start=" + ((long)startDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
                 url += "&end=" + ((long)endDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
@@ -730,7 +730,7 @@ namespace ExchangeSharp
                 if (afterDate != null)
                 {
                     payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
-                    payload["until"] = DateTime.UtcNow.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
+                    payload["until"] = CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/mytrades", BaseUrlV1, payload);
                 foreach (JToken trade in token)

@@ -163,7 +163,7 @@ namespace ExchangeSharp
                         throw new NotSupportedException("Full order book web socket not supported for exchange " + api.Name);
                 }
 
-                fullOrderBook.LastUpdatedUtc = DateTime.UtcNow;
+                fullOrderBook.LastUpdatedUtc = CryptoUtility.UtcNow;
                 callback(fullOrderBook);
             }
 
@@ -415,7 +415,7 @@ namespace ExchangeSharp
             token.ParseVolumes(baseVolumeKey, convertVolumeKey, last, out decimal baseVolume, out decimal convertVolume);
 
             // pull out timestamp
-            DateTime timestamp = (timestampKey == null ? DateTime.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+            DateTime timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
 
             // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
             string baseSymbol;
@@ -494,7 +494,7 @@ namespace ExchangeSharp
                 Price = token[priceKey].ConvertInvariant<decimal>(),
                 IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue))
             };
-            trade.Timestamp = (timestampKey == null ? DateTime.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+            trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
             if (idKey == null)
             {
                 trade.Id = trade.Timestamp.Ticks;

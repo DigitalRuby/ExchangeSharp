@@ -266,7 +266,7 @@ namespace ExchangeSharp
                 while (true)
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of offset can help
-                    DateTime now = DateTime.UtcNow - NonceOffset;
+                    DateTime now = CryptoUtility.UtcNow - NonceOffset;
                     switch (NonceStyle)
                     {
                         case NonceStyle.Ticks:

@@ -67,7 +67,7 @@ namespace ExchangeSharp
                 Url = Url.Replace("[symbol]", Symbol);
                 List<ExchangeTrade> trades = new List<ExchangeTrade>();
                 ExchangeTrade trade;
-                EndDate = (EndDate ?? DateTime.UtcNow);
+                EndDate = (EndDate ?? CryptoUtility.UtcNow);
                 StartDate = (StartDate ?? EndDate.Value.Subtract(BlockTime));
                 string startTimestamp;
                 string endTimestamp;

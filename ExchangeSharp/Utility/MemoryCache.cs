@@ -81,7 +81,7 @@ namespace ExchangeSharp
 
 #endif
 
-            DateTime now = DateTime.UtcNow;
+            DateTime now = CryptoUtility.UtcNow;
             using (var lockerWrite = cacheTimerLock.LockWrite())
             {
                 foreach (var item in cache.ToArray())

@@ -393,7 +393,7 @@ namespace ExchangeSharp
                     BaseSymbol = symbol,
                     ConvertedVolume = ticker["v"][1].ConvertInvariant<decimal>() * last,
                     ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = CryptoUtility.UtcNow
                 }
             };
         }
@@ -457,8 +457,8 @@ namespace ExchangeSharp
             // https://api.kraken.com/0/public/OHLC
             // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given id(optional.exclusive)
             // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)
-            startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
-            endDate = endDate ?? DateTime.UtcNow;
+            startDate = startDate ?? CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(1.0));
+            endDate = endDate ?? CryptoUtility.UtcNow;
             JToken json = await MakeJsonRequestAsync<JToken>("/0/public/OHLC?pair=" + symbol + "&interval=" + (periodSeconds / 60).ToStringInvariant() + "&since=" + startDate);
             List<MarketCandle> candles = new List<MarketCandle>();
             if (json.Children().Count() != 0)
@@ -527,7 +527,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
             ExchangeOrderResult result = new ExchangeOrderResult
             {
-                OrderDate = DateTime.UtcNow
+                OrderDate = CryptoUtility.UtcNow
             };
             if (token["txid"] is JArray array)
             {

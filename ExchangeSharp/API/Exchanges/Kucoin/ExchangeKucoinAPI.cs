@@ -79,7 +79,7 @@ namespace ExchangeSharp
             try
             {
                 JToken token = await MakeJsonRequestAsync<JToken>("/open/tick");
-                NonceOffset = DateTime.UtcNow - CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestamp"].ConvertInvariant<long>());
+                NonceOffset = CryptoUtility.UtcNow - CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestamp"].ConvertInvariant<long>());
             }
             catch
             {
@@ -200,8 +200,8 @@ namespace ExchangeSharp
             List<MarketCandle> candles = new List<MarketCandle>();
 
             string periodString = PeriodSecondsToString(periodSeconds);
-            endDate = endDate ?? DateTime.UtcNow;
-            startDate = startDate ?? DateTime.UtcNow.AddDays(-1);
+            endDate = endDate ?? CryptoUtility.UtcNow;
+            startDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
 
             // this is a little tricky. The call is private, but not a POST. We need the payload for the sig, but also for the uri
             // so, we'll do both... This is the only ExchangeAPI public call (private on Kucoin) like this.

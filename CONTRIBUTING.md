@@ -8,6 +8,7 @@ Please follow these coding guidelines...
 - Avoid passing hard-coded JSON strings when writing to socket or http. Create a ```var obj = new {}``` and use that instead.
 - Before adding NuGet packages, consider copying in the bits of the source that matter into the Dependencies folder. The fewer packages that ExchangeSharp depends on, the better.
 - Only implement async methods as a general rule. Synchronous calls can be done by using the Sync extension method in ```CryptoUtility```. Saves a lot of duplicate code.
+- Use CryptoUtility.UtcNow instead of DateTime.UtcNow. This makes it easy to mock the date and time for unit or integration tests.
 - Follow these code style guidelines please (we're not monsters):
   - Tabs for indent.
   - Curly braces on separate lines.

@@ -802,7 +802,7 @@ namespace ExchangeSharp
             symbol = string.IsNullOrWhiteSpace(symbol) ? "all" : NormalizeSymbol(symbol);
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            afterDate = afterDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0));
+            afterDate = afterDate ?? CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(365.0));
             long afterTimestamp = (long)afterDate.Value.UnixTimestampFromDateTimeSeconds();
             JToken result = await MakePrivateAPIRequestAsync("returnTradeHistory", new object[] { "currencyPair", symbol, "limit", 10000, "start", afterTimestamp });
             if (symbol != "all")
@@ -887,7 +887,7 @@ namespace ExchangeSharp
                 new object[]
                 {
                     "start", DateTime.MinValue.ToUniversalTime().UnixTimestampFromDateTimeSeconds(),
-                    "end", DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()
+                    "end", CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds()
                 });
 
             var transactions = new List<ExchangeTransaction>();

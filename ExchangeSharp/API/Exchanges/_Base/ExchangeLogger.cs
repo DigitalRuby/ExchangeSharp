@@ -105,7 +105,7 @@ namespace ExchangeSharp
                     // all API calls succeeded, we can write to files
 
                     // write system date / time
-                    sysTimeWriter.Write(DateTime.UtcNow.Ticks);
+                    sysTimeWriter.Write(CryptoUtility.UtcNow.Ticks);
 
                     // write ticker
                     Tickers.First().Value.ToBinary(tickerWriter);

@@ -37,6 +37,23 @@ namespace ExchangeSharp
         private static readonly DateTime unixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
         private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, true);
 
+        private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
+
+        private static DateTime UtcNowFuncImpl()
+        {
+            return DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// Set utc now func for override CryptoUtility.UtcNow. Set to null to go back to default CryptoUtility.UtcNow.
+        /// This is primarily useful for unit or integration testing.
+        /// </summary>
+        /// <param name="utcNowFunc">Utc now override func</param>
+        public static void SetDateTimeUtcNowFunc(Func<DateTime> utcNowFunc)
+        {
+            CryptoUtility.utcNowFunc = utcNowFunc ?? UtcNowFuncImpl;
+        }
+
         /// <summary>
         /// Empty object array
         /// </summary>
@@ -46,20 +63,6 @@ namespace ExchangeSharp
         /// Empty string array
         /// </summary>
         public static readonly string[] EmptyStringArray = new string[0];
-
-        /// <summary>
-        /// Static constructor
-        /// </summary>
-        static CryptoUtility()
-        {
-            IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            IsMono = (Type.GetType("Mono.Runtime") != null);
-        }
-
-        /// <summary>
-        /// Utf-8 encoding with no prefix bytes
-        /// </summary>
-        public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
 
         /// <summary>
         /// Throw ArgumentNullException if obj is null
@@ -534,7 +537,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a timestamp to DateTime. If value is null, DateTime.UtcNow is returned.
+        /// Convert a timestamp to DateTime. If value is null, CryptoUtility.UtcNow is returned.
         /// </summary>
         /// <param name="value">Timestamp object (JToken, string, double, etc.)</param>
         /// <param name="type">Type of timestamp</param>
@@ -543,7 +546,7 @@ namespace ExchangeSharp
         {
             if (value == null || type == TimestampType.None)
             {
-                return DateTime.UtcNow;
+                return CryptoUtility.UtcNow;
             }
 
             switch (type)
@@ -1161,16 +1164,6 @@ namespace ExchangeSharp
             return Math.Floor(amount * adjustment) / adjustment;
         }
 
-        /// <summary>
-        /// True if platform is Windows, false otherwise
-        /// </summary>
-        public static bool IsWindows { get; private set; }
-
-        /// <summary>
-        /// True if running under Mono (https://www.mono-project.com/), false if not
-        /// </summary>
-        public static bool IsMono { get; private set; }
-
         /// <summary>Calculates the precision allowed based on the number of decimal points in a number.</summary>
         /// <param name="numberWithDecimals">The number on which to count decimal points.</param>
         /// <returns>A number indicating how many digits are after the decimal point. 
@@ -1205,6 +1198,26 @@ namespace ExchangeSharp
         {
             return task.ConfigureAwait(false).GetAwaiter().GetResult();
         }
+
+        /// <summary>
+        /// Utf-8 encoding with no prefix bytes
+        /// </summary>
+        public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
+
+        /// <summary>
+        /// Return CryptoUtility.UtcNow or override if SetDateTimeUtcNowFunc has been called
+        /// </summary>
+        public static DateTime UtcNow { get { return utcNowFunc(); } }
+
+        /// <summary>
+        /// True if platform is Windows, false otherwise
+        /// </summary>
+        public static bool IsWindows { get; } = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        /// <summary>
+        /// True if running under Mono (https://www.mono-project.com/), false if not
+        /// </summary>
+        public static bool IsMono { get; } = (Type.GetType("Mono.Runtime") != null);
     }
 
     /// <summary>

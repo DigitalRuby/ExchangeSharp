@@ -452,7 +452,7 @@ namespace ExchangeSharp
 
         private async Task MessageTask()
         {
-            DateTime lastCheck = DateTime.UtcNow;
+            DateTime lastCheck = CryptoUtility.UtcNow;
 
             while (!disposed)
             {
@@ -478,9 +478,9 @@ namespace ExchangeSharp
                         Logger.Info(ex.ToString());
                     }
                 }
-                if (ConnectInterval.Ticks > 0 && (DateTime.UtcNow - lastCheck) >= ConnectInterval)
+                if (ConnectInterval.Ticks > 0 && (CryptoUtility.UtcNow - lastCheck) >= ConnectInterval)
                 {
-                    lastCheck = DateTime.UtcNow;
+                    lastCheck = CryptoUtility.UtcNow;
 
                     // this must succeed, the callback may be requests lists or other resources that must not fail
                     QueueActionsWithNoExceptions(InvokeConnected);
