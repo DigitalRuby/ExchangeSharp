@@ -236,7 +236,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a secure string to non-scure binary data
+        /// Convert a secure string to non-secure binary data
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
