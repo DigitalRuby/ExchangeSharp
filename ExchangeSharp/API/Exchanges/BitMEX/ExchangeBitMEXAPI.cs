@@ -67,7 +67,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
                 var msg = CryptoUtility.GetJsonForPayload(payload);
                 var sign = $"{request.Method}{request.RequestUri.AbsolutePath}{request.RequestUri.Query}{nonce}{msg}";
-                string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytesUTF8(PrivateApiKey));
+                string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey));
 
                 request.AddHeader("api-expires", nonce.ToStringInvariant());
                 request.AddHeader("api-key", PublicApiKey.ToUnsecureString());

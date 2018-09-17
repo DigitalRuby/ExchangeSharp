@@ -100,7 +100,7 @@ namespace ExchangeSharp
                 string toSign = $"{method}\n{url.Host}\n{url.Path}\n{msg}";
 
                 // calculate signature
-                var sign = CryptoUtility.SHA256SignBase64(toSign, PrivateApiKey.ToBytesUTF8()).UrlEncode();
+                var sign = CryptoUtility.SHA256SignBase64(toSign, PrivateApiKey.ToUnsecureBytesUTF8()).UrlEncode();
 
                 // append signature to end of message
                 msg += $"&Signature={sign}";

@@ -37,7 +37,7 @@ namespace ExchangeSharp
             {
                 string payloadForm = CryptoUtility.GetFormForPayload(payload, false);
                 request.AddHeader("API-Key", PublicApiKey.ToUnsecureString());
-                request.AddHeader("Sign", CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToBytesUTF8()).ToUpperInvariant());
+                request.AddHeader("Sign", CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToUnsecureBytesUTF8()).ToUpperInvariant());
                 await request.WriteToRequestAsync(payloadForm);
             }
         }

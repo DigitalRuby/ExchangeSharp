@@ -236,11 +236,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a secure string to binary data
+        /// Convert a secure string to non-scure binary data
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
-        public static byte[] ToBytesUTF8(this SecureString s)
+        public static byte[] ToUnsecureBytesUTF8(this SecureString s)
         {
             if (s == null)
             {
