@@ -44,6 +44,7 @@ namespace ExchangeSharp
 
             SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 
             RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
@@ -262,7 +263,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             /*
 {"info":"Welcome to the BitMEX Realtime API.","version":"2018-06-29T18:05:14.000Z","timestamp":"2018-07-05T14:22:26.267Z","docs":"https://www.bitmex.com/app/wsAPI","limit":{"remaining":39}}

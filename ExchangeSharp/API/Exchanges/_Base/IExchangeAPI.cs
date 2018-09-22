@@ -18,16 +18,11 @@ using System.Threading.Tasks;
 namespace ExchangeSharp
 {
     /// <summary>
-    /// Interface for communicating with an exchange over the Internet
+    /// Interface for common exchange end points
     /// </summary>
-    public interface IExchangeAPI : IDisposable
+    public interface IExchangeAPI : IDisposable, INamed, IOrderBookProvider
     {
         #region Properties
-
-        /// <summary>
-        /// Get the name of the exchange this API connects to
-        /// </summary>
-        string Name { get; }
 
         /// <summary>
         /// Optional public API key
@@ -182,21 +177,6 @@ namespace ExchangeSharp
         Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
 
         /// <summary>
-        /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Orders</returns>
-        Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100);
-
-        /// <summary>
-        /// Get exchange order book for all symbols. Not all exchanges support  Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
-        /// </summary>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Symbol and order books pairs</returns>
-        Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100);
-
-        /// <summary>
         /// Get historical trades for the exchange
         /// </summary>
         /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
@@ -322,15 +302,6 @@ namespace ExchangeSharp
         /// <param name="symbols">Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
         IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
-
-        /// <summary>
-        /// Get delta order book bids and asks via web socket. Only the deltas are returned for each callback. To manage a full order book, use ExchangeAPIExtensions.GetOrderBookWebSocket.
-        /// </summary>
-        /// <param name="callback">Callback of symbol, order book</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
 
         /// <summary>
         /// Get the details of all changed orders via web socket

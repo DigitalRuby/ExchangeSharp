@@ -97,9 +97,20 @@ namespace ExchangeSharp
     }
 
     /// <summary>
+    /// Anything wit ha name
+    /// </summary>
+    public interface INamed
+    {
+        /// <summary>
+        /// The name of the service, exchange, etc.
+        /// </summary>
+        string Name { get; }
+    }
+
+    /// <summary>
     /// API base class functionality
     /// </summary>
-    public abstract class BaseAPI : IAPIRequestHandler
+    public abstract class BaseAPI : IAPIRequestHandler, INamed
     {
         /// <summary>
         /// User agent for requests

@@ -45,7 +45,6 @@ namespace ExchangeSharp
                 }
             }
             WithdrawalFieldCount = fieldCount;
-
             ExchangeGlobalCurrencyReplacements[typeof(ExchangePoloniexAPI)] = new KeyValuePair<string, string>[]
             {
                 new KeyValuePair<string, string>("STR", "XLM") // WTF
@@ -57,6 +56,7 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
             SymbolIsReversed = true;
+            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
         /// <summary>
@@ -463,7 +463,7 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+		protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>

@@ -145,10 +145,10 @@ namespace ExchangeSharpConsole
             RunWebSocket(dict, (api) =>
             {
                 symbols = ValidateSymbols(api, symbols);
-                return api.GetOrderBookWebSocket(message =>
+                return ExchangeAPIExtensions.GetFullOrderBookWebSocket(api, message =>
                 {
-                    //print the top bid and ask with amount
-                    var topBid = message.Bids.FirstOrDefault();
+                   //print the top bid and ask with amount
+                   var topBid = message.Bids.FirstOrDefault();
                     var topAsk = message.Asks.FirstOrDefault();
                     Console.WriteLine($"[{message.Symbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
                 }, symbols: symbols);

@@ -148,7 +148,7 @@ namespace ExchangeSharp
             return client.SubscribeToSummaryDeltas(innerCallback);
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket
+        protected override IWebSocket OnGetOrderBookWebSocket
         (
             Action<ExchangeOrderBook> callback,
             int maxCount = 20,

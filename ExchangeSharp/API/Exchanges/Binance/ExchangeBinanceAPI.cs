@@ -71,6 +71,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
             SymbolSeparator = string.Empty;
+            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
@@ -287,7 +288,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (symbols == null || symbols.Length == 0)
             {

@@ -98,7 +98,7 @@ namespace ExchangeSharp
 
         protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
+        protected virtual IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
 
@@ -748,10 +748,10 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        public virtual IWebSocket GetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-            return OnGetOrderBookDeltasWebSocket(callback, maxCount, symbols);
+            return OnGetOrderBookWebSocket(callback, maxCount, symbols);
         }
 
         /// <summary>

@@ -30,6 +30,7 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
             SymbolIsUppercase = false;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -231,7 +232,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             /*
 {[

@@ -162,6 +162,7 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
@@ -250,7 +251,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {

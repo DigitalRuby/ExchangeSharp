@@ -66,6 +66,7 @@ namespace ExchangeSharp
             };
 
             SymbolIsReversed = true;
+            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
         public override string PeriodSecondsToString(int seconds)
