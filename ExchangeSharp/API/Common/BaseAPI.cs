@@ -459,8 +459,17 @@ namespace ExchangeSharp
             WebSocketConnectionDelegate disconnectCallback = null
         )
         {
+            if (messageCallback == null)
+            {
+                throw new ArgumentNullException(nameof(messageCallback));
+            }
+
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
-            ExchangeSharp.ClientWebSocket wrapper = new ExchangeSharp.ClientWebSocket { Uri = new Uri(fullUrl), OnMessage = messageCallback, KeepAlive = TimeSpan.FromSeconds(5.0) };
+            ExchangeSharp.ClientWebSocket wrapper = new ExchangeSharp.ClientWebSocket
+            {
+                Uri = new Uri(fullUrl),
+                OnBinaryMessage = messageCallback
+            };
             if (connectCallback != null)
             {
                 wrapper.Connected += connectCallback;

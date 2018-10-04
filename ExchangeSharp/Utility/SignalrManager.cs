@@ -237,7 +237,8 @@ namespace ExchangeSharp
                 }
 
                 WebSocket.Uri = new Uri(connectUrl);
-                WebSocket.OnMessage = WebSocketOnMessageReceived;
+                WebSocket.OnBinaryMessage = WebSocketOnBinaryMessageReceived;
+                WebSocket.OnTextMessage = WebSocketOnTextMessageReceived;
                 WebSocket.KeepAlive = TimeSpan.FromSeconds(5.0);
                 WebSocket.Start();
             }
@@ -286,10 +287,16 @@ namespace ExchangeSharp
                 connection.OnError(e);
             }
 
-            private Task WebSocketOnMessageReceived(IWebSocket socket, byte[] data)
+            private Task WebSocketOnBinaryMessageReceived(IWebSocket socket, byte[] data)
             {
                 string dataText = data.ToStringFromUTF8();
                 ProcessResponse(connection, dataText);
+                return Task.CompletedTask;
+            }
+
+            private Task WebSocketOnTextMessageReceived(IWebSocket socket, string data)
+            {
+                ProcessResponse(connection, data);
                 return Task.CompletedTask;
             }
         }

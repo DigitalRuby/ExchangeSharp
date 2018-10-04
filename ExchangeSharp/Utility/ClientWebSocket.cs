@@ -157,9 +157,14 @@ namespace ExchangeSharp
         public Uri Uri { get; set; }
 
         /// <summary>
-        /// Action to handle incoming messages
+        /// Action to handle incoming text messages. If null, text messages are handled with OnBinaryMessage.
         /// </summary>
-        public Func<IWebSocket, byte[], Task> OnMessage { get; set; }
+        public Func<IWebSocket, string, Task> OnTextMessage { get; set; }
+
+        /// <summary>
+        /// Action to handle incoming binary messages
+        /// </summary>
+        public Func<IWebSocket, byte[], Task> OnBinaryMessage { get; set; }
 
         /// <summary>
         /// Interval to call connect at regularly (default is 1 hour)
@@ -273,20 +278,24 @@ namespace ExchangeSharp
                 QueueActions(async (socket) =>
                 {
                     byte[] bytes;
+                    WebSocketMessageType messageType;
                     if (message is string s)
                     {
                         bytes = s.ToBytesUTF8();
+                        messageType = WebSocketMessageType.Text;
                     }
                     else if (message is byte[] b)
                     {
                         bytes = b;
+                        messageType = WebSocketMessageType.Binary;
                     }
                     else
                     {
                         bytes = JsonConvert.SerializeObject(message).ToBytesUTF8();
+                        messageType = WebSocketMessageType.Text;
                     }
                     ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(bytes);
-                    await webSocket.SendAsync(messageArraySegment, WebSocketMessageType.Text, true, cancellationToken);
+                    await webSocket.SendAsync(messageArraySegment, messageType, true, cancellationToken);
                 });
                 return Task.FromResult<bool>(true);
             }
@@ -410,12 +419,21 @@ namespace ExchangeSharp
                         while (result != null && !result.EndOfMessage);
                         if (stream.Length != 0)
                         {
-                            // make a copy of the bytes, the memory stream will be re-used and could potentially corrupt in multi-threaded environments
-                            // not using ToArray just in case it is making a slice/span from the internal bytes, we want an actual physical copy
-                            byte[] bytesCopy = new byte[stream.Length];
-                            Array.Copy(stream.GetBuffer(), bytesCopy, stream.Length);
+                            // if text message and we are handling text messages
+                            if (result.MessageType == WebSocketMessageType.Text && OnTextMessage != null)
+                            {
+                                messageQueue.Add(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length));
+                            }
+                            // otherwise treat message as binary
+                            else
+                            {
+                                // make a copy of the bytes, the memory stream will be re-used and could potentially corrupt in multi-threaded environments
+                                // not using ToArray just in case it is making a slice/span from the internal bytes, we want an actual physical copy
+                                byte[] bytesCopy = new byte[stream.Length];
+                                Array.Copy(stream.GetBuffer(), bytesCopy, stream.Length);
+                                messageQueue.Add(bytesCopy);
+                            }
                             stream.SetLength(0);
-                            messageQueue.Add(bytesCopy);
                         }
                     }
                 }
@@ -466,7 +484,21 @@ namespace ExchangeSharp
                         }
                         else if (message is byte[] messageBytes)
                         {
-                            await OnMessage?.Invoke(this, messageBytes);
+                            // multi-thread safe null check
+                            Func<IWebSocket, byte[], Task> actionCopy = OnBinaryMessage;
+                            if (actionCopy != null)
+                            {
+                                await actionCopy.Invoke(this, messageBytes);
+                            }
+                        }
+                        else if (message is string messageString)
+                        {
+                            // multi-thread safe null check
+                            Func<IWebSocket, string, Task> actionCopy = OnTextMessage;
+                            if (actionCopy != null)
+                            {
+                                await actionCopy.Invoke(this, messageString);
+                            }
                         }
                     }
                     catch (OperationCanceledException)
