@@ -570,7 +570,10 @@ namespace ExchangeSharp
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAsync()
         {
             await new SynchronizationContextRemover();
-            return await OnGetAmountsAsync();
+            return (await Cache.Get<Dictionary<string, decimal>>(nameof(GetAmountsAsync), async () =>
+            {
+                return new CachedItem<Dictionary<string, decimal>>((await OnGetAmountsAsync()), CryptoUtility.UtcNow.AddMinutes(1.0));
+            })).Value;
         }
 
         /// <summary>
@@ -590,7 +593,10 @@ namespace ExchangeSharp
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
         {
             await new SynchronizationContextRemover();
-            return await OnGetAmountsAvailableToTradeAsync();
+            return (await Cache.Get<Dictionary<string, decimal>>(nameof(GetAmountsAvailableToTradeAsync), async () =>
+            {
+                return new CachedItem<Dictionary<string, decimal>>((await GetAmountsAvailableToTradeAsync()), CryptoUtility.UtcNow.AddMinutes(1.0));
+            })).Value;
         }
 
         /// <summary>
@@ -608,7 +614,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Place bulk orders
         /// </summary>
-        /// <param name="orders">Order requests</param>
+        /// <param name="orders">Order requests</param>f
         /// <returns>Order results, each result matches up with each order in index</returns>
         public virtual async Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders)
         {
