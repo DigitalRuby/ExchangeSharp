@@ -33,10 +33,7 @@ namespace ExchangeSharp
             RequestContentType = "x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = "-";
-            if (PublicApiKey != null && PrivateApiKey != null)
-            {
-                RateLimit = new RateGate(20, TimeSpan.FromSeconds(60.0));
-            }
+            RateLimit = new RateGate(20, TimeSpan.FromSeconds(60.0));
         }
 
         public override string PeriodSecondsToString(int seconds)
