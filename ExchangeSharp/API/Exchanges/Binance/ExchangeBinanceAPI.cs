@@ -422,7 +422,10 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["symbol"] = order.Symbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
-            payload["type"] = order.OrderType.ToStringUpperInvariant();
+            if (order.OrderType == OrderType.Stop)
+                payload["type"] = "STOP_LOOSE";//if order type is stop loose/limit, then binance expect word 'STOP_LOOSE' inestead of 'STOP'
+            else
+                payload["type"] = order.OrderType.ToStringUpperInvariant();
 
             // Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
             decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
