@@ -183,6 +183,23 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Constructor
+        /// </summary>
+        public ExchangeAPI()
+        {
+            MethodCachePolicy.Add(nameof(GetSymbolsAsync), TimeSpan.FromHours(1.0));
+            MethodCachePolicy.Add(nameof(GetSymbolsMetadataAsync), TimeSpan.FromHours(1.0));
+            MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
+            MethodCachePolicy.Add(nameof(GetTickersAsync), TimeSpan.FromSeconds(10.0));
+            MethodCachePolicy.Add(nameof(GetOrderBookAsync), TimeSpan.FromSeconds(10.0));
+            MethodCachePolicy.Add(nameof(GetOrderBooksAsync), TimeSpan.FromSeconds(10.0));
+            MethodCachePolicy.Add(nameof(GetCandlesAsync), TimeSpan.FromSeconds(10.0));
+            MethodCachePolicy.Add(nameof(GetAmountsAsync), TimeSpan.FromMinutes(1.0));
+            MethodCachePolicy.Add(nameof(GetAmountsAvailableToTradeAsync), TimeSpan.FromMinutes(1.0));
+            MethodCachePolicy.Add(nameof(GetCompletedOrderDetailsAsync), TimeSpan.FromMinutes(2.0));
+        }
+
+        /// <summary>
         /// Finalizer
         /// </summary>
         ~ExchangeAPI()
@@ -232,7 +249,7 @@ namespace ExchangeSharp
                     // find an API with the right name
                     foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
                     {
-                        api = Activator.CreateInstance(type) as ExchangeAPI;
+                        api = Activator.CreateInstance(type) as IExchangeAPI;
                         if (api.Name == exchangeName)
                         {
                             // found one with right name, add it to the API dictionary
@@ -395,8 +412,7 @@ namespace ExchangeSharp
         /// <returns>Collection of Currencies</returns>
         public virtual async Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync()
         {
-            await new SynchronizationContextRemover();
-            return await OnGetCurrenciesAsync();
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetCurrenciesAsync(), nameof(GetCurrenciesAsync));
         }
 
         /// <summary>
@@ -405,11 +421,7 @@ namespace ExchangeSharp
         /// <returns>Array of symbols</returns>
         public virtual async Task<IEnumerable<string>> GetSymbolsAsync()
         {
-            await new SynchronizationContextRemover();
-            return (await Cache.Get<string[]>(nameof(GetSymbolsAsync), async () =>
-            {
-                return new CachedItem<string[]>((await OnGetSymbolsAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0));
-            })).Value;
+            return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetSymbolsAsync()).ToArray(), nameof(GetSymbolsAsync));
         }
 
         /// <summary>
@@ -418,11 +430,7 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeMarkets</returns>
         public virtual async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync()
         {
-            await new SynchronizationContextRemover();
-            return (await Cache.Get<ExchangeMarket[]>(nameof(GetSymbolsMetadataAsync), async () =>
-            {
-                return new CachedItem<ExchangeMarket[]>((await OnGetSymbolsMetadataAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0));
-            })).Value;
+            return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetSymbolsMetadataAsync()).ToArray(), nameof(GetSymbolsMetadataAsync));
         }
 
         /// <summary>
@@ -435,6 +443,8 @@ namespace ExchangeSharp
         {
             try
             {
+                // *NOTE*: custom caching, do not wrap in CacheMethodCall...
+
                 // not sure if this is needed, but adding it just in case
                 await new SynchronizationContextRemover();
                 ExchangeMarket[] markets = (await GetSymbolsMetadataAsync()).ToArray();
@@ -465,8 +475,8 @@ namespace ExchangeSharp
         /// <returns>Ticker</returns>
         public virtual async Task<ExchangeTicker> GetTickerAsync(string symbol)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetTickerAsync(NormalizeSymbol(symbol));
+            NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetTickerAsync(symbol), nameof(GetTickerAsync), nameof(symbol), symbol);
         }
 
         /// <summary>
@@ -475,8 +485,7 @@ namespace ExchangeSharp
         /// <returns>Key value pair of symbol and tickers array</returns>
         public virtual async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync()
         {
-            await new SynchronizationContextRemover();
-            return await OnGetTickersAsync();
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetTickersAsync(), nameof(GetTickersAsync));
         }
 
         /// <summary>
@@ -487,8 +496,8 @@ namespace ExchangeSharp
         /// <returns>Exchange order book or null if failure</returns>
         public virtual async Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetOrderBookAsync(NormalizeSymbol(symbol), maxCount);
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOrderBookAsync(symbol, maxCount), nameof(GetOrderBookAsync), nameof(symbol), symbol, nameof(maxCount), maxCount);
         }
 
         /// <summary>
@@ -498,8 +507,7 @@ namespace ExchangeSharp
         /// <returns>Symbol and order books pairs</returns>
         public virtual async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetOrderBooksAsync(maxCount);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOrderBooksAsync(maxCount), nameof(GetOrderBooksAsync), nameof(maxCount), maxCount);
         }
 
         /// <summary>
@@ -511,6 +519,7 @@ namespace ExchangeSharp
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         public virtual async Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
+            // *NOTE*: Do not wrap in CacheMethodCall, uses a callback with custom queries, not easy to cache
             await new SynchronizationContextRemover();
             await OnGetHistoricalTradesAsync(callback, NormalizeSymbol(symbol), startDate, endDate);
         }
@@ -522,8 +531,8 @@ namespace ExchangeSharp
         /// <returns>An enumerator that loops through all recent trades</returns>
         public virtual async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string symbol)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetRecentTradesAsync(NormalizeSymbol(symbol));
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetRecentTradesAsync(symbol), nameof(GetRecentTradesAsync), nameof(symbol), symbol);
         }
 
         /// <summary>
@@ -534,8 +543,16 @@ namespace ExchangeSharp
         /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
         public virtual async Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetDepositAddressAsync(NormalizeSymbol(symbol), forceRegenerate);
+            symbol = NormalizeSymbol(symbol);
+            if (forceRegenerate)
+            {
+                // force regenetate, do not cache
+                return await OnGetDepositAddressAsync(symbol, forceRegenerate);
+            }
+            else
+            {
+                return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetDepositAddressAsync(symbol, forceRegenerate), nameof(GetDepositAddressAsync), nameof(symbol), symbol);
+            }
         }
 
         /// <summary>
@@ -544,8 +561,8 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeCoinTransfers</returns>
         public virtual async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetDepositHistoryAsync(NormalizeSymbol(symbol));
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetDepositHistoryAsync(symbol), nameof(GetDepositHistoryAsync), nameof(symbol), symbol);
         }
 
         /// <summary>
@@ -559,8 +576,9 @@ namespace ExchangeSharp
         /// <returns>Candles</returns>
         public virtual async Task<IEnumerable<MarketCandle>> GetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetCandlesAsync(NormalizeSymbol(symbol), periodSeconds, startDate, endDate, limit);
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetCandlesAsync(symbol, periodSeconds, startDate, endDate, limit), nameof(GetCandlesAsync),
+                nameof(symbol), symbol, nameof(periodSeconds), periodSeconds, nameof(startDate), startDate, nameof(endDate), endDate, nameof(limit), limit);
         }
 
         /// <summary>
@@ -569,11 +587,7 @@ namespace ExchangeSharp
         /// <returns>Dictionary of symbols and amounts</returns>
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAsync()
         {
-            await new SynchronizationContextRemover();
-            return (await Cache.Get<Dictionary<string, decimal>>(nameof(GetAmountsAsync), async () =>
-            {
-                return new CachedItem<Dictionary<string, decimal>>((await OnGetAmountsAsync()), CryptoUtility.UtcNow.AddMinutes(1.0));
-            })).Value;
+            return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetAmountsAsync()), nameof(GetAmountsAsync));
         }
 
         /// <summary>
@@ -582,8 +596,7 @@ namespace ExchangeSharp
         /// <returns>The customer trading fees</returns>
         public virtual async Task<Dictionary<string, decimal>> GetFeesAync()
         {
-            await new SynchronizationContextRemover();
-            return await OnGetFeesAsync();
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetFeesAsync(), nameof(GetFeesAync));
         }
 
         /// <summary>
@@ -592,11 +605,7 @@ namespace ExchangeSharp
         /// <returns>Symbol / amount dictionary</returns>
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
         {
-            await new SynchronizationContextRemover();
-            return (await Cache.Get<Dictionary<string, decimal>>(nameof(GetAmountsAvailableToTradeAsync), async () =>
-            {
-                return new CachedItem<Dictionary<string, decimal>>((await GetAmountsAvailableToTradeAsync()), CryptoUtility.UtcNow.AddMinutes(1.0));
-            })).Value;
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetAmountsAvailableToTradeAsync(), nameof(GetAmountsAvailableToTradeAsync));
         }
 
         /// <summary>
@@ -606,6 +615,7 @@ namespace ExchangeSharp
         /// <returns>Result</returns>
         public virtual async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
         {
+            // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();
             order.Symbol = NormalizeSymbol(order.Symbol);
             return await OnPlaceOrderAsync(order);
@@ -618,6 +628,7 @@ namespace ExchangeSharp
         /// <returns>Order results, each result matches up with each order in index</returns>
         public virtual async Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders)
         {
+            // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();
             foreach (ExchangeOrderRequest request in orders)
             {
@@ -634,8 +645,8 @@ namespace ExchangeSharp
         /// <returns>Order details</returns>
         public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetOrderDetailsAsync(orderId, NormalizeSymbol(symbol));
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOrderDetailsAsync(orderId, symbol), nameof(GetOrderDetailsAsync), nameof(orderId), orderId, nameof(symbol), symbol);
         }
 
         /// <summary>
@@ -645,8 +656,8 @@ namespace ExchangeSharp
         /// <returns>All open order details</returns>
         public virtual async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string symbol = null)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetOpenOrderDetailsAsync(NormalizeSymbol(symbol));
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOpenOrderDetailsAsync(symbol), nameof(GetOpenOrderDetailsAsync), nameof(symbol), symbol);
         }
 
         /// <summary>
@@ -657,13 +668,9 @@ namespace ExchangeSharp
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
         public virtual async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            await new SynchronizationContextRemover();
             symbol = NormalizeSymbol(symbol);
-            string cacheKey = "GetCompletedOrderDetails_" + symbol + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
-            return (await Cache.Get<ExchangeOrderResult[]>(cacheKey, async () =>
-            {
-                return new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), CryptoUtility.UtcNow.AddMinutes(2.0));
-            })).Value;
+            return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), nameof(GetCompletedOrderDetailsAsync),
+                nameof(symbol), symbol, nameof(afterDate), afterDate);
         }
 
         /// <summary>
@@ -673,6 +680,7 @@ namespace ExchangeSharp
         /// <param name="symbol">Symbol of order (most exchanges do not require this)</param>
         public virtual async Task CancelOrderAsync(string orderId, string symbol = null)
         {
+            // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();
             await OnCancelOrderAsync(orderId, NormalizeSymbol(symbol));
         }
@@ -683,6 +691,7 @@ namespace ExchangeSharp
         /// <param name="withdrawalRequest">The withdrawal request.</param>
         public virtual async Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
+            // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();
             withdrawalRequest.Currency = NormalizeSymbol(withdrawalRequest.Currency);
             return await OnWithdrawAsync(withdrawalRequest);
@@ -694,8 +703,7 @@ namespace ExchangeSharp
         /// <returns>Symbol / amount dictionary</returns>
         public virtual async Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync()
         {
-            await new SynchronizationContextRemover();
-            return await OnGetMarginAmountsAvailableToTradeAsync();
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetMarginAmountsAvailableToTradeAsync(), nameof(GetMarginAmountsAvailableToTradeAsync));
         }
 
         /// <summary>
@@ -705,8 +713,8 @@ namespace ExchangeSharp
         /// <returns>Open margin position result</returns>
         public virtual async Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string symbol)
         {
-            await new SynchronizationContextRemover();
-            return await OnGetOpenPositionAsync(NormalizeSymbol(symbol));
+            symbol = NormalizeSymbol(symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOpenPositionAsync(symbol), nameof(GetOpenPositionAsync), nameof(symbol), symbol);
         }
 
         /// <summary>
@@ -716,6 +724,7 @@ namespace ExchangeSharp
         /// <returns>Close margin position result</returns>
         public virtual async Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string symbol)
         {
+            // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();
             return await OnCloseMarginPositionAsync(NormalizeSymbol(symbol));
         }

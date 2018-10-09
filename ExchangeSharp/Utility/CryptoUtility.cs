@@ -20,6 +20,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
@@ -70,7 +71,7 @@ namespace ExchangeSharp
         /// <param name="obj">Object</param>
         /// <param name="name">Parameter name</param>
         /// <param name="message">Message</param>
-        public static void ThrowIfNull(this object obj, string name, string message)
+        public static void ThrowIfNull(this object obj, string name, string message = null)
         {
             if (obj == null)
             {
@@ -1197,6 +1198,44 @@ namespace ExchangeSharp
         public static T Sync<T>(this Task<T> task)
         {
             return task.ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Wrap a method in caching logic. Also takes care of making a new SynchronizationContextRemover.
+        /// This should not be used for post requests or other requests that operate on real-time data that changes with each request.
+        /// </summary>
+        /// <typeparam name="T">Return type</typeparam>
+        /// <param name="cache">Memory cache</param>
+        /// <param name="methodCachePolicy">Method cache policy</param>
+        /// <param name="method">Method implementation</param>
+        /// <param name="arguments">Function arguments - function name and then param name, value, name, value, etc.</param>
+        /// <returns></returns>
+        public static async Task<T> CacheMethod<T>(this MemoryCache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object[] arguments) where T : class
+        {
+            await new SynchronizationContextRemover();
+            methodCachePolicy.ThrowIfNull(nameof(methodCachePolicy));
+            if (arguments.Length % 2 == 0)
+            {
+                throw new ArgumentException("Must pass function name and then name and value of each argument");
+            }
+            string methodName = arguments[0].ToStringInvariant();
+            string cacheKey = methodName;
+            for (int i = 1; i < arguments.Length;)
+            {
+                cacheKey += "|" + arguments[i++].ToStringInvariant() + "=" + arguments[i++].ToStringInvariant("(null)");
+            }
+            if (methodCachePolicy.TryGetValue(methodName, out TimeSpan cacheTime))
+            {
+                return (await cache.Get<T>(cacheKey, async () =>
+                {
+                    T innerResult = await method();
+                    return new CachedItem<T>(innerResult, CryptoUtility.UtcNow.Add(cacheTime));
+                })).Value;
+            }
+            else
+            {
+                return await method();
+            }
         }
 
         /// <summary>

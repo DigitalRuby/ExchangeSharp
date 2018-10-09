@@ -12,11 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -197,6 +200,12 @@ namespace ExchangeSharp
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
         /// </summary>
         public System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
+
+        /// <summary>
+        /// Method cache policy (method name, time to cache)
+        /// Can be cleared for no caching, or you can put in custom cache times using nameof(method) and timespan.
+        /// </summary>
+        public Dictionary<string, TimeSpan> MethodCachePolicy { get; } = new Dictionary<string, TimeSpan>();
 
         /// <summary>
         /// Fast in memory cache

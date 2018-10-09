@@ -20,63 +20,9 @@ namespace ExchangeSharp
     /// <summary>
     /// Interface for common exchange end points
     /// </summary>
-    public interface IExchangeAPI : IDisposable, INamed, IOrderBookProvider
+    public interface IExchangeAPI : IDisposable, IBaseAPI, IOrderBookProvider
     {
-        #region Properties
-
-        /// <summary>
-        /// Optional public API key
-        /// </summary>
-        SecureString PublicApiKey { get; set; }
-
-        /// <summary>
-        /// Optional private API key
-        /// </summary>
-        SecureString PrivateApiKey { get; set; }
-
-        /// <summary>
-        /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
-        /// Most exchanges do not require this, but Coinbase is an example of one that does
-        /// </summary>
-        System.Security.SecureString Passphrase { get; set; }
-
-        /// <summary>
-        /// Request timeout
-        /// </summary>
-        TimeSpan RequestTimeout { get; set; }
-
-        /// <summary>
-        /// Request window - most services do not use this, but Binance API is an example of one that does
-        /// </summary>
-        TimeSpan RequestWindow { get; set; }
-
-        /// <summary>
-        /// Nonce style
-        /// </summary>
-        NonceStyle NonceStyle { get; }
-
-        /// <summary>
-        /// Cache policy - defaults to no cache, don't change unless you have specific needs
-        /// </summary>
-        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
-
-        #endregion Properties
-
         #region Utility Methods
-
-        /// <summary>
-        /// Load API keys from an encrypted file - keys will stay encrypted in memory
-        /// </summary>
-        /// <param name="encryptedFile">Encrypted file to load keys from</param>
-        void LoadAPIKeys(string encryptedFile);
-
-        /// <summary>
-        ///  Load API keys from unsecure strings
-        /// <param name="publicApiKey">Public Api Key</param>
-        /// <param name="privateApiKey">Private Api Key</param>
-        /// <param name="passPhrase">Pass phrase, null for none</param>
-        /// </summary>
-        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null);
 
         /// <summary>
         /// Normalize a symbol for use on this exchange
@@ -101,23 +47,6 @@ namespace ExchangeSharp
         /// <param name="symbol">Global symbol</param>
         /// <returns>Exchange symbol</returns>
         string GlobalSymbolToExchangeSymbol(string symbol);
-
-        /// <summary>
-        /// Generate a nonce
-        /// </summary>
-        /// <returns>Nonce (can be string, long, double, etc., so object is used)</returns>
-        Task<object> GenerateNonceAsync();
-
-        /// <summary>
-        /// Make a JSON request to an API end point
-        /// </summary>
-        /// <typeparam name="T">Type of object to parse JSON as</typeparam>
-        /// <param name="url">Path and query</param>
-        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// <param name="requestMethod">Request method or null for default</param>
-        /// <returns>Result decoded from JSON response</returns>
-        Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
 
         /// <summary>
         /// Convert seconds to a period string, or throw exception if seconds invalid. Example: 60 seconds becomes 1m.

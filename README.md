@@ -118,6 +118,11 @@ ExchangeSharp uses NLog internally currently. To log, use ExchangeSharp.Logger. 
 
 Provide your own nlog.config or app.config nlog configuration if you want to change logging settings or turn logging off.
 
+### Caching
+The ExchageAPI class provides a method caching mechanism. Use MethodCachePolicy to put caching behind public methods, or clear to remove caching. Some methods are cached by default.
+
+You can also set request cache policy if you want to tweak how the http caching behaves.
+
 ### How to contribute
 Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
 
