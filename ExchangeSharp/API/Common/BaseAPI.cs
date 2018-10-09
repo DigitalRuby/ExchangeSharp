@@ -207,10 +207,19 @@ namespace ExchangeSharp
         /// </summary>
         public Dictionary<string, TimeSpan> MethodCachePolicy { get; } = new Dictionary<string, TimeSpan>();
 
+        private ICache cache = new MemoryCache();
         /// <summary>
-        /// Fast in memory cache
+        /// Get or set the current cache. Defaults to MemoryCache.
         /// </summary>
-        protected MemoryCache Cache { get; } = new MemoryCache();
+        public ICache Cache
+        {
+            get { return cache; }
+            set
+            {
+                value.ThrowIfNull(nameof(Cache));
+                cache = value;
+            }
+        }
 
         private decimal lastNonce;
 

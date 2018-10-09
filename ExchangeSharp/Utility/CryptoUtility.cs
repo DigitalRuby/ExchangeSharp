@@ -1205,12 +1205,12 @@ namespace ExchangeSharp
         /// This should not be used for post requests or other requests that operate on real-time data that changes with each request.
         /// </summary>
         /// <typeparam name="T">Return type</typeparam>
-        /// <param name="cache">Memory cache</param>
+        /// <param name="cache">Cache</param>
         /// <param name="methodCachePolicy">Method cache policy</param>
         /// <param name="method">Method implementation</param>
         /// <param name="arguments">Function arguments - function name and then param name, value, name, value, etc.</param>
         /// <returns></returns>
-        public static async Task<T> CacheMethod<T>(this MemoryCache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object[] arguments) where T : class
+        public static async Task<T> CacheMethod<T>(this ICache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object[] arguments) where T : class
         {
             await new SynchronizationContextRemover();
             methodCachePolicy.ThrowIfNull(nameof(methodCachePolicy));

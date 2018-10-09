@@ -54,9 +54,31 @@ namespace ExchangeSharp
     }
 
     /// <summary>
+    /// ICache interface for simple caching
+    /// </summary>
+    public interface ICache : IDisposable
+    {
+        /// <summary>
+        /// Read a value from the cache
+        /// </summary>
+        /// <typeparam name="T">Type to read</typeparam>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
+        /// <param name="notFound">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
+        Task<CachedItem<T>> Get<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class;
+
+        /// <summary>
+        /// Remove a key from the cache immediately
+        /// </summary>
+        /// <param name="key">Key to remove</param>
+        /// <returns>True if removed, false if not found</returns>
+        bool Remove(string key);
+    }
+
+    /// <summary>
     /// Simple fast in memory cache with auto expiration
     /// </summary>
-    public class MemoryCache : IDisposable
+    public class MemoryCache : IDisposable, ICache
     {
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
         private readonly Timer cacheTimer;
