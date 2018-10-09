@@ -402,27 +402,33 @@ namespace ExchangeSharp
         /// <summary>
         /// Get exchange symbols
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Array of symbols</returns>
-        public virtual async Task<IEnumerable<string>> GetSymbolsAsync()
+        public virtual async Task<IEnumerable<string>> GetSymbolsAsync(bool cacheResponse = true)
         {
             await new SynchronizationContextRemover();
-            return (await Cache.Get<string[]>(nameof(GetSymbolsAsync), async () =>
-            {
-                return new CachedItem<string[]>((await OnGetSymbolsAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0));
-            })).Value;
+            return cacheResponse
+                       ? (await Cache.Get<string[]>(
+                                  nameof(GetSymbolsAsync),
+                                  async () => new CachedItem<string[]>((await OnGetSymbolsAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0))
+                              )).Value
+                       : (await OnGetSymbolsAsync()).ToArray();
         }
 
         /// <summary>
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Collection of ExchangeMarkets</returns>
-        public virtual async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync()
+        public virtual async Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync(bool cacheResponse = true)
         {
             await new SynchronizationContextRemover();
-            return (await Cache.Get<ExchangeMarket[]>(nameof(GetSymbolsMetadataAsync), async () =>
-            {
-                return new CachedItem<ExchangeMarket[]>((await OnGetSymbolsMetadataAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0));
-            })).Value;
+            return cacheResponse
+                       ? (await Cache.Get<ExchangeMarket[]>(
+                                  nameof(GetSymbolsMetadataAsync),
+                                  async () => new CachedItem<ExchangeMarket[]>((await OnGetSymbolsMetadataAsync()).ToArray(), CryptoUtility.UtcNow.AddHours(1.0))
+                              )).Value
+                       : (await OnGetSymbolsMetadataAsync()).ToArray();
         }
 
         /// <summary>
@@ -566,14 +572,17 @@ namespace ExchangeSharp
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Dictionary of symbols and amounts</returns>
-        public virtual async Task<Dictionary<string, decimal>> GetAmountsAsync()
+        public virtual async Task<Dictionary<string, decimal>> GetAmountsAsync(bool cacheResponse = false)
         {
             await new SynchronizationContextRemover();
-            return (await Cache.Get<Dictionary<string, decimal>>(nameof(GetAmountsAsync), async () =>
-            {
-                return new CachedItem<Dictionary<string, decimal>>((await OnGetAmountsAsync()), CryptoUtility.UtcNow.AddMinutes(1.0));
-            })).Value;
+            return cacheResponse
+                       ? (await Cache.Get<Dictionary<string, decimal>>(
+                                  nameof(GetAmountsAsync),
+                                  async () => new CachedItem<Dictionary<string, decimal>>((await OnGetAmountsAsync()), CryptoUtility.UtcNow.AddMinutes(1.0))
+                              )).Value
+                       : await OnGetAmountsAsync();
         }
 
         /// <summary>
@@ -589,14 +598,17 @@ namespace ExchangeSharp
         /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Symbol / amount dictionary</returns>
-        public virtual async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
+        public virtual async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync(bool cacheResponse = false)
         {
             await new SynchronizationContextRemover();
-            return (await Cache.Get<Dictionary<string, decimal>>(nameof(GetAmountsAvailableToTradeAsync), async () =>
-            {
-                return new CachedItem<Dictionary<string, decimal>>((await GetAmountsAvailableToTradeAsync()), CryptoUtility.UtcNow.AddMinutes(1.0));
-            })).Value;
+            return cacheResponse
+                       ? (await Cache.Get<Dictionary<string, decimal>>(
+                                  nameof(GetAmountsAvailableToTradeAsync),
+                                  async () => new CachedItem<Dictionary<string, decimal>>((await GetAmountsAvailableToTradeAsync()), CryptoUtility.UtcNow.AddMinutes(1.0))
+                              )).Value
+                       : await GetAmountsAvailableToTradeAsync();
         }
 
         /// <summary>
@@ -654,16 +666,19 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        public virtual async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        public virtual async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null, bool cacheResponse = false)
         {
             await new SynchronizationContextRemover();
             symbol = NormalizeSymbol(symbol);
             string cacheKey = "GetCompletedOrderDetails_" + symbol + "_" + (afterDate == null ? string.Empty : afterDate.Value.Ticks.ToStringInvariant());
-            return (await Cache.Get<ExchangeOrderResult[]>(cacheKey, async () =>
-            {
-                return new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), CryptoUtility.UtcNow.AddMinutes(2.0));
-            })).Value;
+            return cacheResponse
+                       ? (await Cache.Get<ExchangeOrderResult[]>(
+                                  cacheKey,
+                                  async () => new CachedItem<ExchangeOrderResult[]>((await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray(), CryptoUtility.UtcNow.AddMinutes(2.0))
+                              )).Value
+                       : (await OnGetCompletedOrderDetailsAsync(symbol, afterDate)).ToArray();
         }
 
         /// <summary>

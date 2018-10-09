@@ -154,14 +154,16 @@ namespace ExchangeSharp
         /// <summary>
         /// Get symbols for the exchange
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Symbols</returns>
-        Task<IEnumerable<string>> GetSymbolsAsync();
+        Task<IEnumerable<string>> GetSymbolsAsync(bool cacheResponse = true);
 
         /// <summary>
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Collection of ExchangeMarkets</returns>
-        Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync();
+        Task<IEnumerable<ExchangeMarket>> GetSymbolsMetadataAsync(bool cacheResponse = true);
 
         /// <summary>
         /// Get latest ticker
@@ -206,14 +208,16 @@ namespace ExchangeSharp
         /// <summary>
         /// Get total amounts, symbol / amount dictionary
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Dictionary of symbols and amounts</returns>
-        Task<Dictionary<string, decimal>> GetAmountsAsync();
+        Task<Dictionary<string, decimal>> GetAmountsAsync(bool cacheResponse = false);
 
         /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>Dictionary of symbols and amounts available to trade</returns>
-        Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync();
+        Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync(bool cacheResponse = false);
 
         /// <summary>
         /// Place an order
@@ -248,8 +252,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="symbol">Symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
+        /// <param name="cacheResponse">Cache the response?</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null);
+        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null, bool cacheResponse = false);
 
         /// <summary>
         /// Cancel an order, an exception is thrown if failure
