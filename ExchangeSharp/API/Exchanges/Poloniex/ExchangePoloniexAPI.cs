@@ -651,7 +651,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             var accountArgumentName = "account";
@@ -660,7 +660,7 @@ namespace ExchangeSharp
             foreach (JProperty child in result[accountArgumentValue].Children())
             {
                 decimal amount = child.Value.ConvertInvariant<decimal>();
-                if (amount > 0m)
+                if (amount > 0m || includeZeroBalances)
                 {
                     amounts[child.Name] = amount;
                 }
