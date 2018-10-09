@@ -261,8 +261,9 @@ namespace ExchangeSharp
         /// <summary>
         /// Get margin amounts available to trade, symbol / amount dictionary
         /// </summary>
+        /// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
         /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
-        Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync();
+        Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false);
 
         /// <summary>
         /// Get open margin position
