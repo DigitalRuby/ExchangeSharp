@@ -124,6 +124,10 @@ namespace ExchangeSharpConsole
                 {
                     RunGetHistoricalTrades(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("getOrderHistory"))
+                {
+                    RunGetOrderHistory(argsDictionary);
+                }
                 else
                 {
                     Logger.Error("Unrecognized command line arguments.");

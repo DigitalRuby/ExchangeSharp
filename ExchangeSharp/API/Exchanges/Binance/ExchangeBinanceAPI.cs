@@ -552,8 +552,7 @@ namespace ExchangeSharp
                 payload["symbol"] = symbol;
                 if (afterDate != null)
                 {
-                    // TODO: timestamp param is causing duplicate request errors which is a bug in the Binance API
-                    // payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                    payload["startTime"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
                 foreach (JToken order in token)
