@@ -28,6 +28,12 @@ namespace ExchangeSharp
         /// </summary>
         public const char GlobalSymbolSeparator = '-';
 
+        /// <summary>
+        /// Whether to use the default method cache policy, default is true.
+        /// The default cache policy caches things like get symbols, tickers, order book, order details, etc. See ExchangeAPI constructor for full list.
+        /// </summary>
+        public static bool UseDefaultMethodCachePolicy { get; set; } = true;
+
         #region Private methods
 
         private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
@@ -187,16 +193,19 @@ namespace ExchangeSharp
         /// </summary>
         public ExchangeAPI()
         {
-            MethodCachePolicy.Add(nameof(GetSymbolsAsync), TimeSpan.FromHours(1.0));
-            MethodCachePolicy.Add(nameof(GetSymbolsMetadataAsync), TimeSpan.FromHours(1.0));
-            MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
-            MethodCachePolicy.Add(nameof(GetTickersAsync), TimeSpan.FromSeconds(10.0));
-            MethodCachePolicy.Add(nameof(GetOrderBookAsync), TimeSpan.FromSeconds(10.0));
-            MethodCachePolicy.Add(nameof(GetOrderBooksAsync), TimeSpan.FromSeconds(10.0));
-            MethodCachePolicy.Add(nameof(GetCandlesAsync), TimeSpan.FromSeconds(10.0));
-            MethodCachePolicy.Add(nameof(GetAmountsAsync), TimeSpan.FromMinutes(1.0));
-            MethodCachePolicy.Add(nameof(GetAmountsAvailableToTradeAsync), TimeSpan.FromMinutes(1.0));
-            MethodCachePolicy.Add(nameof(GetCompletedOrderDetailsAsync), TimeSpan.FromMinutes(2.0));
+            if (UseDefaultMethodCachePolicy)
+            {
+                MethodCachePolicy.Add(nameof(GetSymbolsAsync), TimeSpan.FromHours(1.0));
+                MethodCachePolicy.Add(nameof(GetSymbolsMetadataAsync), TimeSpan.FromHours(1.0));
+                MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
+                MethodCachePolicy.Add(nameof(GetTickersAsync), TimeSpan.FromSeconds(10.0));
+                MethodCachePolicy.Add(nameof(GetOrderBookAsync), TimeSpan.FromSeconds(10.0));
+                MethodCachePolicy.Add(nameof(GetOrderBooksAsync), TimeSpan.FromSeconds(10.0));
+                MethodCachePolicy.Add(nameof(GetCandlesAsync), TimeSpan.FromSeconds(10.0));
+                MethodCachePolicy.Add(nameof(GetAmountsAsync), TimeSpan.FromMinutes(1.0));
+                MethodCachePolicy.Add(nameof(GetAmountsAvailableToTradeAsync), TimeSpan.FromMinutes(1.0));
+                MethodCachePolicy.Add(nameof(GetCompletedOrderDetailsAsync), TimeSpan.FromMinutes(2.0));
+            }
         }
 
         /// <summary>
