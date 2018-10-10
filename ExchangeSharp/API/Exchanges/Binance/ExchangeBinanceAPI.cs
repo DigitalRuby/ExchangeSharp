@@ -71,6 +71,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
             SymbolSeparator = string.Empty;
+            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
@@ -287,7 +288,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (symbols == null || symbols.Length == 0)
             {
@@ -421,7 +422,10 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["symbol"] = order.Symbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
-            payload["type"] = order.OrderType.ToStringUpperInvariant();
+            if (order.OrderType == OrderType.Stop)
+                payload["type"] = "STOP_LOOSE";//if order type is stop loose/limit, then binance expect word 'STOP_LOOSE' inestead of 'STOP'
+            else
+                payload["type"] = order.OrderType.ToStringUpperInvariant();
 
             // Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
             decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
@@ -552,8 +556,7 @@ namespace ExchangeSharp
                 payload["symbol"] = symbol;
                 if (afterDate != null)
                 {
-                    // TODO: timestamp param is causing duplicate request errors which is a bug in the Binance API
-                    // payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                    payload["startTime"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
                 foreach (JToken order in token)
@@ -881,7 +884,7 @@ namespace ExchangeSharp
                 var query = (url.Query ?? string.Empty).Trim('?', '&');
                 string newQuery = "timestamp=" + payload["nonce"].ToStringInvariant() + (query.Length != 0 ? "&" + query : string.Empty) +
                     (payload.Count > 1 ? "&" + CryptoUtility.GetFormForPayload(payload, false) : string.Empty);
-                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToBytesUTF8(PrivateApiKey));
+                string signature = CryptoUtility.SHA256Sign(newQuery, CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey));
                 newQuery += "&signature=" + signature;
                 url.Query = newQuery;
                 return url.Uri;

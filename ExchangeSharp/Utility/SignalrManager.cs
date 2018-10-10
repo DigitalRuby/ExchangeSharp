@@ -76,16 +76,10 @@ namespace ExchangeSharp
             /// <returns>Connection</returns>
             public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
             {
-                if (callback == null)
-                {
-                    throw new ArgumentNullException(nameof(callback));
-                }
+                callback.ThrowIfNull(nameof(callback), "Callback must not be null");
 
                 SignalrManager _manager = this.manager;
-                if (_manager == null)
-                {
-                    throw new ArgumentNullException("SignalrManager is null");
-                }
+                _manager.ThrowIfNull(nameof(manager), "Manager is null");
 
                 Exception ex = null;
                 param = (param ?? new object[][] { new object[0] });
@@ -243,7 +237,8 @@ namespace ExchangeSharp
                 }
 
                 WebSocket.Uri = new Uri(connectUrl);
-                WebSocket.OnMessage = WebSocketOnMessageReceived;
+                WebSocket.OnBinaryMessage = WebSocketOnBinaryMessageReceived;
+                WebSocket.OnTextMessage = WebSocketOnTextMessageReceived;
                 WebSocket.KeepAlive = TimeSpan.FromSeconds(5.0);
                 WebSocket.Start();
             }
@@ -292,10 +287,16 @@ namespace ExchangeSharp
                 connection.OnError(e);
             }
 
-            private Task WebSocketOnMessageReceived(IWebSocket socket, byte[] data)
+            private Task WebSocketOnBinaryMessageReceived(IWebSocket socket, byte[] data)
             {
                 string dataText = data.ToStringFromUTF8();
                 ProcessResponse(connection, dataText);
+                return Task.CompletedTask;
+            }
+
+            private Task WebSocketOnTextMessageReceived(IWebSocket socket, string data)
+            {
+                ProcessResponse(connection, data);
                 return Task.CompletedTask;
             }
         }

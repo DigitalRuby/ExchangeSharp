@@ -3,9 +3,6 @@
 ## Overview
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
-### I Can Help
-I do cryptocurrency consulting, please don't hesitate to contact me if you have enhancements to ExchangeSharp that you need or a custom solution you would like me to implement (exchangesharp@digitalruby.com).
-
 ### Features
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
@@ -24,7 +21,7 @@ The following cryptocurrency exchanges are supported:
 | Bithumb          | x         |             |           |
 | Bitmex           | x         | x           |           |
 | Bitstamp         | x         | x           |           |
-| Bittrex          | x         | x           | T         |
+| Bittrex          | x         | x           | TR        |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | TR        |
 | Cryptopia        | x         | x           |           |
@@ -35,7 +32,7 @@ The following cryptocurrency exchanges are supported:
 | Kucoin           | x         | x           |           |
 | Livecoin         | x         | x           |           |
 | Okex             | x         | x           | RB        |
-| Poloniex         | x         | x           | TB        |
+| Poloniex         | x         | x           | TRB       |
 | TuxExchange      | x         | x           |           |
 | Yobit            | x         | x           |           |
 | ZB.com           | wip       |             | R         |
@@ -121,11 +118,16 @@ ExchangeSharp uses NLog internally currently. To log, use ExchangeSharp.Logger. 
 
 Provide your own nlog.config or app.config nlog configuration if you want to change logging settings or turn logging off.
 
+### Caching
+The ExchageAPI class provides a method caching mechanism. Use MethodCachePolicy to put caching behind public methods, or clear to remove caching. Some methods are cached by default. You can set ExchangeAPI.UseDefaultMethodCachePolicy to false to stop all caching as well.
+
+You can also set request cache policy if you want to tweak how the http caching behaves.
+
 ### How to contribute
 Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
 
-### I Can Help
-I do cryptocurrency consulting, please don't hesitate to contact me if you have enhancements to ExchangeSharp that you need or a custom solution you would like me to implement (exchangesharp@digitalruby.com).
+### Consulting
+I'm happy to make customizations to the software for you and keep in private repo, email exchangesharp@digitalruby.com.
 
 ### Donations Gratefully Accepted
 Believe it or not, donations are quite rare. I've posted publicly the total donation amounts below. If ExchangeSharp has helped you in anyway, please consider donating.

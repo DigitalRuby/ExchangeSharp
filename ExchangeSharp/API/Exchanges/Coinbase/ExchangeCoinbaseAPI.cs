@@ -43,6 +43,7 @@ namespace ExchangeSharp
             decimal amountFilled = result["filled_size"].ConvertInvariant<decimal>();
             decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
             decimal price = result["price"].ConvertInvariant<decimal>();
+            decimal stop_price = result["stop_price"].ConvertInvariant<decimal>();
             decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
             decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
             string symbol = result["id"].ToStringInvariant(result["product_id"].ToStringInvariant());
@@ -51,7 +52,7 @@ namespace ExchangeSharp
             {
                 Amount = amount,
                 AmountFilled = amountFilled,
-                Price = price,
+                Price = price <= 0m ? stop_price : price,
                 Fees = fees,
                 FeesCurrency = symbol.Substring(0, symbol.IndexOf('-')),
                 AveragePrice = averagePrice,
@@ -83,7 +84,19 @@ namespace ExchangeSharp
                     break;
                 case "done":
                 case "settled":
-                    order.Result = ExchangeAPIOrderResult.Filled;
+                    switch (result["done_reason"].ToStringInvariant()) 
+                    {
+                        case "cancelled":
+                        case "canceled":
+                            order.Result = ExchangeAPIOrderResult.Canceled;
+                            break;
+                        case "filled":
+                            order.Result = ExchangeAPIOrderResult.Filled;
+                            break;
+                        default:
+                            order.Result = ExchangeAPIOrderResult.Unknown;
+                            break;
+                    }
                     break;
                 case "cancelled":
                 case "canceled":
@@ -107,7 +120,7 @@ namespace ExchangeSharp
             {
                 JToken token = await MakeJsonRequestAsync<JToken>("/time");
                 DateTime serverDate = token["iso"].ToDateTimeInvariant();
-                NonceOffset = (DateTime.UtcNow - serverDate);
+                NonceOffset = (CryptoUtility.UtcNow - serverDate);
             }
             catch
             {
@@ -149,6 +162,7 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
@@ -237,7 +251,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
@@ -339,11 +353,6 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
-
             return ConnectWebSocket("/", (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -443,12 +452,12 @@ namespace ExchangeSharp
             string url = "/products/" + symbol + "/candles?granularity=" + periodSeconds;
             if (startDate == null)
             {
-                startDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
+                startDate = CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(1.0));
             }
             url += "&start=" + startDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
             if (endDate == null)
             {
-                endDate = DateTime.UtcNow;
+                endDate = CryptoUtility.UtcNow;
             }
             url += "&end=" + endDate.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -506,14 +515,18 @@ namespace ExchangeSharp
             };
             payload["time_in_force"] = "GTC"; // good til cancel
             payload["price"] = order.Price.ToStringInvariant();
-            switch (order.OrderType) {
+            switch (order.OrderType)
+            {
                 case OrderType.Limit:
                     payload["post_only"] = "true";
                     break;
+                    
                 case OrderType.Stop:
                     payload["stop"] = (order.IsBuy ? "entry" : "loss");
                     payload["stop_price"] = order.StopPrice.ToStringInvariant();
+                    payload["type"] = order.Price > 0m ? "limit" : "market";
                     break;
+                    
                 case OrderType.Market:
                 default:
                     break;

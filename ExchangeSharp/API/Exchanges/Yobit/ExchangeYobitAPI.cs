@@ -264,7 +264,7 @@ namespace ExchangeSharp
             ExchangeOrderResult result = new ExchangeOrderResult()
             {
                 OrderId = token["order_id"].ToStringInvariant(),
-                OrderDate = DateTime.UtcNow,                        // since they don't pass it back
+                OrderDate = CryptoUtility.UtcNow,                        // since they don't pass it back
                 AmountFilled = token["received"].ConvertInvariant<decimal>(),
             };
 

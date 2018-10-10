@@ -12,11 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -97,9 +100,20 @@ namespace ExchangeSharp
     }
 
     /// <summary>
+    /// Anything wit ha name
+    /// </summary>
+    public interface INamed
+    {
+        /// <summary>
+        /// The name of the service, exchange, etc.
+        /// </summary>
+        string Name { get; }
+    }
+
+    /// <summary>
     /// API base class functionality
     /// </summary>
-    public abstract class BaseAPI : IAPIRequestHandler
+    public abstract class BaseAPI : IAPIRequestHandler, INamed
     {
         /// <summary>
         /// User agent for requests
@@ -188,9 +202,24 @@ namespace ExchangeSharp
         public System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; } = new System.Net.Cache.RequestCachePolicy(System.Net.Cache.RequestCacheLevel.NoCacheNoStore);
 
         /// <summary>
-        /// Fast in memory cache
+        /// Method cache policy (method name, time to cache)
+        /// Can be cleared for no caching, or you can put in custom cache times using nameof(method) and timespan.
         /// </summary>
-        protected MemoryCache Cache { get; } = new MemoryCache();
+        public Dictionary<string, TimeSpan> MethodCachePolicy { get; } = new Dictionary<string, TimeSpan>();
+
+        private ICache cache = new MemoryCache();
+        /// <summary>
+        /// Get or set the current cache. Defaults to MemoryCache.
+        /// </summary>
+        public ICache Cache
+        {
+            get { return cache; }
+            set
+            {
+                value.ThrowIfNull(nameof(Cache));
+                cache = value;
+            }
+        }
 
         private decimal lastNonce;
 
@@ -266,7 +295,7 @@ namespace ExchangeSharp
                 while (true)
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of offset can help
-                    DateTime now = DateTime.UtcNow - NonceOffset;
+                    DateTime now = CryptoUtility.UtcNow - NonceOffset;
                     switch (NonceStyle)
                     {
                         case NonceStyle.Ticks:
@@ -448,8 +477,17 @@ namespace ExchangeSharp
             WebSocketConnectionDelegate disconnectCallback = null
         )
         {
+            if (messageCallback == null)
+            {
+                throw new ArgumentNullException(nameof(messageCallback));
+            }
+
             string fullUrl = BaseUrlWebSocket + (url ?? string.Empty);
-            ExchangeSharp.ClientWebSocket wrapper = new ExchangeSharp.ClientWebSocket { Uri = new Uri(fullUrl), OnMessage = messageCallback, KeepAlive = TimeSpan.FromSeconds(5.0) };
+            ExchangeSharp.ClientWebSocket wrapper = new ExchangeSharp.ClientWebSocket
+            {
+                Uri = new Uri(fullUrl),
+                OnBinaryMessage = messageCallback
+            };
             if (connectCallback != null)
             {
                 wrapper.Connected += connectCallback;

@@ -30,6 +30,7 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
             SymbolIsUppercase = false;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -231,7 +232,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             /*
 {[
@@ -608,7 +609,7 @@ namespace ExchangeSharp
                 var timeOffset = TimeSpan.FromHours(-8); //China time to utc, no DST correction needed
                 var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + timeOffset;
                 if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
-                var dt = DateTime.UtcNow.Date.Add(ts);
+                var dt = CryptoUtility.UtcNow.Date.Add(ts);
                 var trade = new ExchangeTrade()
                 {
                     Id = t[0].ConvertInvariant<long>(),

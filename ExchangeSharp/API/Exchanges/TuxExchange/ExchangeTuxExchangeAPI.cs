@@ -48,7 +48,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
 
                 var msg = CryptoUtility.GetFormForPayload(payload) + "&nonce=" + nonce;
-                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToBytesUTF8(PrivateApiKey)).ToLowerInvariant();
+                var sig = CryptoUtility.SHA512Sign(msg, CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey)).ToLowerInvariant();
                 request.AddHeader("Sign", sig);
                 request.AddHeader("Key", PublicApiKey.ToUnsecureString());
                 byte[] content = msg.ToBytesUTF8();
@@ -152,8 +152,8 @@ namespace ExchangeSharp
 
             // TuxExchange requires a begin and end date for this call
             // we'll return an arbitrary last 10 trades from the last 24 hrs for the market symbol (volume could be low)
-            long start = (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds();
-            long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
+            long start = (long)CryptoUtility.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds();
+            long end = (long)CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds();
 
             // All TuxExchange Market Symbols begin with "BTC_" as a base-currency. They only support getting Trades for the Market Currency Symbol, so we split it for the call
             string cur = symbol.Split(SymbolSeparator[0])[1];
@@ -173,8 +173,8 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            long start = startDate == null ? (long)DateTime.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
-            long end = (long)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds();
+            long start = startDate == null ? (long)CryptoUtility.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
+            long end = (long)CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds();
             string coin = symbol.Split(SymbolSeparator[0])[1];
             string url = "/api?method=gettradehistory&coin=" + coin + "&start=" + start + "&end=" + end;
             JToken token = await MakeJsonRequestAsync<JToken>(url);

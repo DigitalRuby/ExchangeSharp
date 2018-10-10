@@ -189,7 +189,7 @@ namespace ExchangeSharp
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return new ExchangeOrderResult
             {
-                OrderDate = DateTime.UtcNow,
+                OrderDate = CryptoUtility.UtcNow,
                 OrderId = responseObject["id"].ToStringInvariant(),
                 IsBuy = order.IsBuy,
                 Symbol = order.Symbol

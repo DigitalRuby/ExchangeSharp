@@ -72,8 +72,8 @@ namespace ExchangeSharp
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["limit"] = 250;
-            payload["start"] = DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
-            payload["end"] = DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds();
+            payload["start"] = CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
+            payload["end"] = CryptoUtility.UtcNow.UnixTimestampFromDateTimeMilliseconds();
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload);
             Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
             if (result is JArray array)
@@ -116,7 +116,8 @@ namespace ExchangeSharp
                 {
                     IsActive = true,
                     MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
-                    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>()
+                    MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>(),
+                    MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>()
                 };
                 m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
                 if (m.Success)
@@ -167,7 +168,7 @@ namespace ExchangeSharp
                 }
                 symbolString.Length--;
                 JToken token = await MakeJsonRequestAsync<JToken>("/tickers?symbols=" + symbolString);
-                DateTime now = DateTime.UtcNow;
+                DateTime now = CryptoUtility.UtcNow;
                 foreach (JArray array in token)
                 {
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(array[0].ToStringInvariant().Substring(1), new ExchangeTicker
@@ -229,23 +230,23 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null)
-            {
-                return null;
-            }
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket("/2", (_socket , msg) => //use websocket V2 (beta, but millisecond timestamp)
+            return ConnectWebSocket("/2", (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
                 {
-                    if (token.Last.Last.HasValues == false)
+                    if (token[1].ToStringInvariant() == "hb")
+                    {
+                        // heartbeat
+                    }
+                    else if (token.Last.Last.HasValues == false)
                     {
                         //[29654, "tu", [270343572, 1532012917722, -0.003, 7465.636738]] "te"=temp/intention to execute "tu"=confirmed and ID is definitive
                         //chan id, -- , [ID       , timestamp    , amount, price      ]]
                         if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
                         {
-                            if (token[1].ConvertInvariant<string>() == "tu")
+                            if (token[1].ToStringInvariant() == "tu")
                             {
                                 ExchangeTrade trade = ParseTradeWebSocket(token.Last);
                                 if (trade != null)
@@ -356,7 +357,7 @@ namespace ExchangeSharp
             string url = "/candles/trade:" + periodString + ":t" + symbol + "/hist?sort=1";
             if (startDate != null || endDate != null)
             {
-                endDate = endDate ?? DateTime.UtcNow;
+                endDate = endDate ?? CryptoUtility.UtcNow;
                 startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
                 url += "&start=" + ((long)startDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
                 url += "&end=" + ((long)endDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
@@ -411,7 +412,7 @@ namespace ExchangeSharp
             }
             return lookup;
         }
-        
+
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             string symbol = NormalizeSymbolV1(order.Symbol);
@@ -428,7 +429,7 @@ namespace ExchangeSharp
             {
                 payload["type"] = order.OrderType == OrderType.Market ? "exchange market" : "exchange limit";
             }
-            
+
             if (order.OrderType != OrderType.Market)
             {
                 payload["price"] = (await ClampOrderPrice(symbol, order.Price)).ToStringInvariant();
@@ -729,7 +730,7 @@ namespace ExchangeSharp
                 if (afterDate != null)
                 {
                     payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
-                    payload["until"] = DateTime.UtcNow.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
+                    payload["until"] = CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds().ToStringInvariant();
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/mytrades", BaseUrlV1, payload);
                 foreach (JToken trade in token)

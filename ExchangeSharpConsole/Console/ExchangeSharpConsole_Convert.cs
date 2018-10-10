@@ -25,7 +25,7 @@ namespace ExchangeSharpConsole
         public static void RunConvertData(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "symbol", "path");
-            TraderExchangeExport.ExportExchangeTrades(null, dict["symbol"], dict["path"], DateTime.UtcNow);
+            TraderExchangeExport.ExportExchangeTrades(null, dict["symbol"], dict["path"], CryptoUtility.UtcNow);
         }
     }
 }

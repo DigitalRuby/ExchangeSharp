@@ -33,6 +33,7 @@ namespace ExchangeSharp
             RequestContentType = "x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMillisecondsString;
             SymbolSeparator = "-";
+            RateLimit = new RateGate(20, TimeSpan.FromSeconds(60.0));
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -79,7 +80,7 @@ namespace ExchangeSharp
             try
             {
                 JToken token = await MakeJsonRequestAsync<JToken>("/open/tick");
-                NonceOffset = DateTime.UtcNow - CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestamp"].ConvertInvariant<long>());
+                NonceOffset = CryptoUtility.UtcNow - CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestamp"].ConvertInvariant<long>());
             }
             catch
             {
@@ -200,8 +201,8 @@ namespace ExchangeSharp
             List<MarketCandle> candles = new List<MarketCandle>();
 
             string periodString = PeriodSecondsToString(periodSeconds);
-            endDate = endDate ?? DateTime.UtcNow;
-            startDate = startDate ?? DateTime.UtcNow.AddDays(-1);
+            endDate = endDate ?? CryptoUtility.UtcNow;
+            startDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
 
             // this is a little tricky. The call is private, but not a POST. We need the payload for the sig, but also for the uri
             // so, we'll do both... This is the only ExchangeAPI public call (private on Kucoin) like this.
@@ -244,33 +245,12 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/balances", null, await GetNoncePayloadAsync());
-            foreach (JToken child in token["datas"])
-            {
-                decimal amount = child["balance"].ConvertInvariant<decimal>() + child["freezeBalance"].ConvertInvariant<decimal>();
-                if (amount > 0m)
-                {
-                    amounts.Add(child["coinType"].ToStringInvariant(), amount);
-                }
-            }
-
-            return amounts;
+            return await OnGetAmountsInternalAsync(true);
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/account/balances", null, await GetNoncePayloadAsync());
-            foreach (JToken child in obj["datas"])
-            {
-                decimal amount = child["balance"].ConvertInvariant<decimal>();
-                if (amount > 0m)
-                {
-                    amounts.Add(child["coinType"].ToStringInvariant(), amount);
-                }
-            }
-            return amounts;
+            return await OnGetAmountsInternalAsync(false);
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
@@ -278,15 +258,23 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             // "datas": [ {"createdAt": 1508219588000, "amount": 92.79323381, "dealValue": 0.00927932, "dealPrice": 0.0001, "fee": 1e-8,"feeRate": 0, "oid": "59e59ac49bd8d31d09f85fa8", "orderOid": "59e59ac39bd8d31d093d956a", "coinType": "KCS", "coinTypePair": "BTC", "direction": "BUY", "dealDirection": "BUY" }, ... ]
             var payload = await GetNoncePayloadAsync();
-            if (symbol != null)
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                payload["limit"] = 100;
+            }
+            else
             {
                 payload["symbol"] = symbol;
+                payload["limit"] = 20;
             }
 
             JToken token = await MakeJsonRequestAsync<JToken>("/order/dealt?" + CryptoUtility.GetFormForPayload(payload, false), null, payload);
             if (token != null && token.HasValues)
             {
-                foreach (JToken order in token["datas"]) orders.Add(ParseCompletedOrder(order));
+                foreach (JToken order in token["datas"])
+                {
+                    orders.Add(ParseCompletedOrder(order));
+                }
             }
             return orders;
         }
@@ -305,8 +293,14 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/order/active-map?" + CryptoUtility.GetFormForPayload(payload, false), null, payload);
             if (token != null && token.HasValues)
             {
-                foreach (JToken order in token["BUY"]) orders.Add(ParseOpenOrder(order));
-                foreach (JToken order in token["SELL"]) orders.Add(ParseOpenOrder(order));
+                foreach (JToken order in token["BUY"])
+                {
+                    orders.Add(ParseOpenOrder(order));
+                }
+                foreach (JToken order in token["SELL"])
+                {
+                    orders.Add(ParseOpenOrder(order));
+                }
             }
             return orders;
         }
@@ -447,6 +441,35 @@ namespace ExchangeSharp
                 OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).DateTime,
                 Result = ExchangeAPIOrderResult.Filled
             };
+        }
+
+        private async Task<Dictionary<string, decimal>> OnGetAmountsInternalAsync(bool includeFreezeBalance)
+        {
+            // {"success":true,"code":"OK","msg":"Operation succeeded.","timestamp":1538680663395,"data":{"total":201,"datas":[{"coinType":"KCS","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"VET","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"AXPR","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"EPRX","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"ETH","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"NEO","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"IHT","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"TMT","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"FOTA","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"NANO","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"ABT","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"BTC","balanceStr":"3.364E-5","freezeBalance":0.0,"balance":3.364E-5,"freezeBalanceStr":"0.0"}],"currPageNo":1,"limit":12,"pageNos":17}}
+            // Kucoin API docs are wrong, these are wrapped in datas element maybe with total counter
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            bool foundOne = true;
+            for (int i = 1; foundOne; i++)
+            {
+                foundOne = false;
+                JToken obj = await MakeJsonRequestAsync<JToken>($"/account/balances?page=${i.ToStringInvariant()}&limit=20", null, await GetNoncePayloadAsync());
+                foreach (JToken child in obj["datas"])
+                {
+                    foundOne = true;
+                    decimal amount = child["balance"].ConvertInvariant<decimal>() + (includeFreezeBalance ? child["freezeBalance"].ConvertInvariant<decimal>() : 0);
+                    if (amount > 0m)
+                    {
+                        amounts.Add(child["coinType"].ToStringInvariant(), amount);
+                    }
+                }
+
+                // check if we have hit max count
+                if (obj["total"] != null && obj["total"].ConvertInvariant<int>() <= amounts.Count)
+                {
+                    break;
+                }
+            }
+            return amounts;
         }
 
         #endregion

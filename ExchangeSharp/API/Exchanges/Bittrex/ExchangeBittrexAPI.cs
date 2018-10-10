@@ -66,6 +66,7 @@ namespace ExchangeSharp
             };
 
             SymbolIsReversed = true;
+            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -296,7 +297,7 @@ namespace ExchangeSharp
                 url = baseUrl;
                 if (startDate != null)
                 {
-                    url += "&_=" + DateTime.UtcNow.Ticks;
+                    url += "&_=" + CryptoUtility.UtcNow.Ticks;
                 }
                 JToken array = await MakeJsonRequestAsync<JToken>(url, BaseUrl2);
                 if (array == null || array.Count() == 0)
@@ -356,7 +357,7 @@ namespace ExchangeSharp
             // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
             string periodString = PeriodSecondsToString(periodSeconds);
             List<MarketCandle> candles = new List<MarketCandle>();
-            endDate = endDate ?? DateTime.UtcNow;
+            endDate = endDate ?? CryptoUtility.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
             JToken result = await MakeJsonRequestAsync<JToken>("pub/market/GetTicks?marketName=" + symbol + "&tickInterval=" + periodString, BaseUrl2);
             if (result is JArray array)
@@ -427,7 +428,7 @@ namespace ExchangeSharp
             {
                 Amount = orderAmount,
                 IsBuy = order.IsBuy,
-                OrderDate = DateTime.UtcNow,
+                OrderDate = CryptoUtility.UtcNow,
                 OrderId = orderId,
                 Result = ExchangeAPIOrderResult.Pending,
                 Symbol = order.Symbol,

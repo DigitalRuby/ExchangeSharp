@@ -39,6 +39,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
             SymbolSeparator = string.Empty;
             SymbolIsUppercase = false;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
@@ -100,7 +101,7 @@ namespace ExchangeSharp
                 string toSign = $"{method}\n{url.Host}\n{url.Path}\n{msg}";
 
                 // calculate signature
-                var sign = CryptoUtility.SHA256SignBase64(toSign, PrivateApiKey.ToBytesUTF8()).UrlEncode();
+                var sign = CryptoUtility.SHA256SignBase64(toSign, PrivateApiKey.ToUnsecureBytesUTF8()).UrlEncode();
 
                 // append signature to end of message
                 msg += $"&Signature={sign}";
@@ -277,7 +278,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {

@@ -21,7 +21,7 @@ namespace ExchangeSharp
     public partial class ExchangeBittrexAPI
     {
         /// <summary>Order book type</summary>
-        public enum OrderBookType
+        internal enum OrderBookType
         {
             /// <summary>Only show buy orders</summary>
             Buy,
@@ -34,35 +34,35 @@ namespace ExchangeSharp
         }
 
         /// <summary>Whether the order is partially or fully filled</summary>
-        public enum FillType
+        internal enum FillType
         {
             Fill,
 
             PartialFill
         }
 
-        public enum OrderSide
+        internal enum OrderSide
         {
             Buy,
 
             Sell
         }
 
-        public enum OrderType
+        internal enum OrderType
         {
             Limit,
 
             Market
         }
 
-        public enum OrderSideExtended
+        internal enum OrderSideExtended
         {
             LimitBuy,
 
             LimitSell
         }
 
-        public enum TickInterval
+        internal enum TickInterval
         {
             OneMinute,
 
@@ -75,14 +75,14 @@ namespace ExchangeSharp
             OneDay
         }
 
-        public enum TimeInEffect
+        internal enum TimeInEffect
         {
             GoodTillCancelled,
 
             ImmediateOrCancel
         }
 
-        public enum ConditionType
+        internal enum ConditionType
         {
             None,
 
@@ -95,7 +95,7 @@ namespace ExchangeSharp
             StopLossPercentage
         }
 
-        public enum OrderUpdateType
+        internal enum OrderUpdateType
         {
             Open,
 
@@ -106,14 +106,14 @@ namespace ExchangeSharp
             Cancel
         }
 
-        public class BittrexStreamOrderBookUpdateEntry : BittrexStreamOrderBookEntry
+        internal class BittrexStreamOrderBookUpdateEntry : BittrexStreamOrderBookEntry
         {
             /// <summary>how to handle data (used by stream)</summary>
             [JsonProperty("TY")]
             public OrderBookEntryType Type { get; set; }
         }
 
-        public class BittrexStreamOrderBookEntry
+        internal class BittrexStreamOrderBookEntry
         {
             /// <summary>Total quantity of order at this price</summary>
             [JsonProperty("Q")]
@@ -124,7 +124,7 @@ namespace ExchangeSharp
             public decimal Rate { get; set; }
         }
 
-        public enum OrderBookEntryType
+        internal enum OrderBookEntryType
         {
             NewEntry = 0,
 
@@ -133,7 +133,7 @@ namespace ExchangeSharp
             UpdateEntry = 2
         }
 
-        public class BittrexStreamUpdateExchangeState
+        internal class BittrexStreamUpdateExchangeState
         {
             [JsonProperty("N")]
             public long Nonce { get; set; }
@@ -155,7 +155,7 @@ namespace ExchangeSharp
             public List<BittrexStreamFill> Fills { get; set; }
         }
 
-        public class BittrexStreamFill
+        internal class BittrexStreamFill
         {
             /// <summary>Timestamp of the fill</summary>
             [JsonProperty("T")]
@@ -174,9 +174,13 @@ namespace ExchangeSharp
             [JsonConverter(typeof(OrderSideConverter))]
             [JsonProperty("OT")]
             public OrderSide OrderSide { get; set; }
-        }
 
-        public class BittrexStreamQueryExchangeState
+	    /// <summary>Rate of the fill</summary>
+	    [JsonProperty("FI")]
+	    public long FillId { get; set; }
+	}	
+
+	internal class BittrexStreamQueryExchangeState
         {
             [JsonProperty("N")]
             public long Nonce { get; set; }
@@ -198,7 +202,7 @@ namespace ExchangeSharp
             public List<BittrexStreamMarketHistory> Fills { get; set; }
         }
 
-        public class OrderSideConverter : BaseConverter<OrderSide>
+        internal class OrderSideConverter : BaseConverter<OrderSide>
         {
             public OrderSideConverter()
                 : this(true)
@@ -213,7 +217,7 @@ namespace ExchangeSharp
             protected override Dictionary<OrderSide, string> Mapping => new Dictionary<OrderSide, string> { { OrderSide.Buy, "BUY" }, { OrderSide.Sell, "SELL" } };
         }
 
-        public class BittrexStreamMarketHistory
+        internal class BittrexStreamMarketHistory
         {
             /// <summary>The order id</summary>
             [JsonProperty("I")]

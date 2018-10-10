@@ -45,7 +45,6 @@ namespace ExchangeSharp
                 }
             }
             WithdrawalFieldCount = fieldCount;
-
             ExchangeGlobalCurrencyReplacements[typeof(ExchangePoloniexAPI)] = new KeyValuePair<string, string>[]
             {
                 new KeyValuePair<string, string>("STR", "XLM") // WTF
@@ -57,6 +56,7 @@ namespace ExchangeSharp
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = "_";
             SymbolIsReversed = true;
+            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
         /// <summary>
@@ -405,7 +405,65 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+		{
+			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
+			return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				int msgId = token[0].ConvertInvariant<int>();
+
+				//return if this is a heartbeat message
+				if (msgId == 1010)
+				{
+					return Task.CompletedTask;
+				}
+
+				var seq = token[1].ConvertInvariant<long>();
+				var dataArray = token[2];
+				foreach (var data in dataArray)
+				{
+					var dataType = data[0].ToStringInvariant();
+					if (dataType == "i")
+					{
+						var marketInfo = data[1];
+						var market = marketInfo["currencyPair"].ToStringInvariant();
+						messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
+					}
+					else if (dataType == "t")
+					{
+						if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
+						{   //   0        1                 2                  3         4          5
+							// ["t", "<trade id>", <1 for buy 0 for sell>, "<size>", "<price>", <timestamp>]
+							ExchangeTrade trade = data.ParseTrade(3, 4, 2, 5, TimestampType.UnixSeconds, 1, "1");
+							callback(new KeyValuePair<string, ExchangeTrade>(symbol.Item1, trade));
+						}
+					}
+					else if (dataType == "o")
+					{
+						continue;
+					}
+					else
+					{
+						continue;
+					}
+				}
+				return Task.CompletedTask;
+			}, async (_socket) =>
+			{
+				if (symbols == null || symbols.Length == 0)
+				{
+					symbols = (await GetSymbolsAsync()).ToArray();
+				}
+				// subscribe to order book and trades channel for each symbol
+				foreach (var sym in symbols)
+				{
+					await _socket.SendMessageAsync(new { command = "subscribe", channel = NormalizeSymbol(sym) });
+				}
+			});
+		}
+
+		protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
@@ -593,7 +651,7 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync()
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             var accountArgumentName = "account";
@@ -602,7 +660,7 @@ namespace ExchangeSharp
             foreach (JProperty child in result[accountArgumentValue].Children())
             {
                 decimal amount = child.Value.ConvertInvariant<decimal>();
-                if (amount > 0m)
+                if (amount > 0m || includeZeroBalances)
                 {
                     amounts[child.Name] = amount;
                 }
@@ -744,7 +802,7 @@ namespace ExchangeSharp
             symbol = string.IsNullOrWhiteSpace(symbol) ? "all" : NormalizeSymbol(symbol);
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            afterDate = afterDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(365.0));
+            afterDate = afterDate ?? CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(365.0));
             long afterTimestamp = (long)afterDate.Value.UnixTimestampFromDateTimeSeconds();
             JToken result = await MakePrivateAPIRequestAsync("returnTradeHistory", new object[] { "currencyPair", symbol, "limit", 10000, "start", afterTimestamp });
             if (symbol != "all")
@@ -829,7 +887,7 @@ namespace ExchangeSharp
                 new object[]
                 {
                     "start", DateTime.MinValue.ToUniversalTime().UnixTimestampFromDateTimeSeconds(),
-                    "end", DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()
+                    "end", CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds()
                 });
 
             var transactions = new List<ExchangeTransaction>();

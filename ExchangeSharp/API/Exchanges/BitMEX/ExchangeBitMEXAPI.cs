@@ -44,6 +44,7 @@ namespace ExchangeSharp
 
             SymbolSeparator = string.Empty;
             RequestContentType = "application/json";
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 
             RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
@@ -67,7 +68,7 @@ namespace ExchangeSharp
                 payload.Remove("nonce");
                 var msg = CryptoUtility.GetJsonForPayload(payload);
                 var sign = $"{request.Method}{request.RequestUri.AbsolutePath}{request.RequestUri.Query}{nonce}{msg}";
-                string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToBytesUTF8(PrivateApiKey));
+                string signature = CryptoUtility.SHA256Sign(sign, CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey));
 
                 request.AddHeader("api-expires", nonce.ToStringInvariant());
                 request.AddHeader("api-key", PublicApiKey.ToUnsecureString());
@@ -262,7 +263,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             /*
 {"info":"Welcome to the BitMEX Realtime API.","version":"2018-06-29T18:05:14.000Z","timestamp":"2018-07-05T14:22:26.267Z","docs":"https://www.bitmex.com/app/wsAPI","limit":{"remaining":39}}

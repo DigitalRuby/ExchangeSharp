@@ -178,7 +178,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    RequestStateChanged?.Invoke(this, RequestMakerState.Begin, null);
+                    RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
                     response = await request.request.GetResponseAsync() as HttpWebResponse;
                     if (response == null)
                     {

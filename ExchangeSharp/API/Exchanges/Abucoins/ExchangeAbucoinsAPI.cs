@@ -41,7 +41,7 @@ namespace ExchangeSharp
             {
                 payload.Remove("nonce");
                 string body = CryptoUtility.GetJsonForPayload(payload);
-                string timestamp = ((int)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()).ToStringInvariant();
+                string timestamp = ((int)CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds()).ToStringInvariant();
                 string msg = timestamp + request.Method + request.RequestUri.PathAndQuery + (request.Method.Equals("POST") ? body : string.Empty);
                 string sign = CryptoUtility.SHA256SignBase64(msg, CryptoUtility.ToBytesBase64Decode(PrivateApiKey));
 
@@ -186,7 +186,7 @@ namespace ExchangeSharp
             //if (limit != null) throw new APIException("Limit parameter not supported");  Really? You want to throw an exception instead of ignoring the parm?
             List<MarketCandle> candles = new List<MarketCandle>();
 
-            endDate = endDate ?? DateTime.UtcNow;
+            endDate = endDate ?? CryptoUtility.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
             //[time, low, high, open, close, volume], ["1505984400","14209.92500000","14209.92500000","14209.92500000","14209.92500000","0.001"]

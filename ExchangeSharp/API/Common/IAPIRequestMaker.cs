@@ -148,7 +148,7 @@ namespace ExchangeSharp
         Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method);
 
         /// <summary>
-        /// Base url
+        /// Base url for the request
         /// </summary>
         string BaseUrl { get; }
 
@@ -168,7 +168,7 @@ namespace ExchangeSharp
         System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; }
         
         /// <summary>
-        /// Request timeout
+        /// Request timeout, this will get assigned to the request before sending it off
         /// </summary>
         TimeSpan RequestTimeout { get; }
 

@@ -18,70 +18,11 @@ using System.Threading.Tasks;
 namespace ExchangeSharp
 {
     /// <summary>
-    /// Interface for communicating with an exchange over the Internet
+    /// Interface for common exchange end points
     /// </summary>
-    public interface IExchangeAPI : IDisposable
+    public interface IExchangeAPI : IDisposable, IBaseAPI, IOrderBookProvider
     {
-        #region Properties
-
-        /// <summary>
-        /// Get the name of the exchange this API connects to
-        /// </summary>
-        string Name { get; }
-
-        /// <summary>
-        /// Optional public API key
-        /// </summary>
-        SecureString PublicApiKey { get; set; }
-
-        /// <summary>
-        /// Optional private API key
-        /// </summary>
-        SecureString PrivateApiKey { get; set; }
-
-        /// <summary>
-        /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
-        /// Most exchanges do not require this, but Coinbase is an example of one that does
-        /// </summary>
-        System.Security.SecureString Passphrase { get; set; }
-
-        /// <summary>
-        /// Request timeout
-        /// </summary>
-        TimeSpan RequestTimeout { get; set; }
-
-        /// <summary>
-        /// Request window - most services do not use this, but Binance API is an example of one that does
-        /// </summary>
-        TimeSpan RequestWindow { get; set; }
-
-        /// <summary>
-        /// Nonce style
-        /// </summary>
-        NonceStyle NonceStyle { get; }
-
-        /// <summary>
-        /// Cache policy - defaults to no cache, don't change unless you have specific needs
-        /// </summary>
-        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
-
-        #endregion Properties
-
         #region Utility Methods
-
-        /// <summary>
-        /// Load API keys from an encrypted file - keys will stay encrypted in memory
-        /// </summary>
-        /// <param name="encryptedFile">Encrypted file to load keys from</param>
-        void LoadAPIKeys(string encryptedFile);
-
-        /// <summary>
-        ///  Load API keys from unsecure strings
-        /// <param name="publicApiKey">Public Api Key</param>
-        /// <param name="privateApiKey">Private Api Key</param>
-        /// <param name="passPhrase">Pass phrase, null for none</param>
-        /// </summary>
-        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null);
 
         /// <summary>
         /// Normalize a symbol for use on this exchange
@@ -106,23 +47,6 @@ namespace ExchangeSharp
         /// <param name="symbol">Global symbol</param>
         /// <returns>Exchange symbol</returns>
         string GlobalSymbolToExchangeSymbol(string symbol);
-
-        /// <summary>
-        /// Generate a nonce
-        /// </summary>
-        /// <returns>Nonce (can be string, long, double, etc., so object is used)</returns>
-        Task<object> GenerateNonceAsync();
-
-        /// <summary>
-        /// Make a JSON request to an API end point
-        /// </summary>
-        /// <typeparam name="T">Type of object to parse JSON as</typeparam>
-        /// <param name="url">Path and query</param>
-        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// <param name="requestMethod">Request method or null for default</param>
-        /// <returns>Result decoded from JSON response</returns>
-        Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
 
         /// <summary>
         /// Convert seconds to a period string, or throw exception if seconds invalid. Example: 60 seconds becomes 1m.
@@ -180,21 +104,6 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>Key value pair of symbol and tickers array</returns>
         Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync();
-
-        /// <summary>
-        /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
-        /// </summary>
-        /// <param name="symbol">Symbol</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Orders</returns>
-        Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100);
-
-        /// <summary>
-        /// Get exchange order book for all symbols. Not all exchanges support  Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
-        /// </summary>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <returns>Symbol and order books pairs</returns>
-        Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100);
 
         /// <summary>
         /// Get historical trades for the exchange
@@ -281,8 +190,9 @@ namespace ExchangeSharp
         /// <summary>
         /// Get margin amounts available to trade, symbol / amount dictionary
         /// </summary>
+        /// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
         /// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
-        Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync();
+        Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false);
 
         /// <summary>
         /// Get open margin position
@@ -322,15 +232,6 @@ namespace ExchangeSharp
         /// <param name="symbols">Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
         IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
-
-        /// <summary>
-        /// Get delta order book bids and asks via web socket. Only the deltas are returned for each callback. To manage a full order book, use ExchangeAPIExtensions.GetOrderBookWebSocket.
-        /// </summary>
-        /// <param name="callback">Callback of symbol, order book</param>
-        /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <param name="symbol">Ticker symbols or null/empty for all of them (if supported)</param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
 
         /// <summary>
         /// Get the details of all changed orders via web socket

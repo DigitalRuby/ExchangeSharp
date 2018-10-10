@@ -154,7 +154,7 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetCandlesAsync... ", api.Name);
-                            var candles = api.GetCandlesAsync(symbol, 86400, DateTime.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
+                            var candles = api.GetCandlesAsync(symbol, 86400, CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
                             Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
                                 candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
                                 !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseVolume > 0.0 &&

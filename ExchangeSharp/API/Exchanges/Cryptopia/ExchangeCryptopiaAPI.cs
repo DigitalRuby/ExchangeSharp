@@ -163,7 +163,7 @@ namespace ExchangeSharp
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            string hours = startDate == null ? "24" : ((DateTime.UtcNow - startDate.Value.ToUniversalTime()).TotalHours).ToStringInvariant();
+            string hours = startDate == null ? "24" : ((CryptoUtility.UtcNow - startDate.Value.ToUniversalTime()).TotalHours).ToStringInvariant();
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbolForUrl(symbol) + "/" + hours);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
