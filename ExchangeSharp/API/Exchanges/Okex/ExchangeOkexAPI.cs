@@ -25,6 +25,11 @@ namespace ExchangeSharp
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
 
+	/// <summary>
+	/// China time to utc, no DST correction needed
+	/// </summary>
+	private static readonly TimeSpan chinaTimeOffset = TimeSpan.FromHours(-8);
+		
         public ExchangeOkexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
@@ -606,8 +611,7 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                var timeOffset = TimeSpan.FromHours(-8); //China time to utc, no DST correction needed
-                var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + timeOffset;
+                var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + chinaTimeOffset;
                 if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
                 var dt = CryptoUtility.UtcNow.Date.Add(ts);
                 var trade = new ExchangeTrade()
