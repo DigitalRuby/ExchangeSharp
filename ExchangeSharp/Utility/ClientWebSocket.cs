@@ -533,10 +533,20 @@ namespace ExchangeSharp
     /// </summary>
     public interface IWebSocket : IDisposable
     {
-        /// <summary>
-        /// Connected event
-        /// </summary>
-        event WebSocketConnectionDelegate Connected;
+		/// <summary>
+		/// Interval to call connect at regularly (default is 1 hour)
+		/// </summary>
+		TimeSpan ConnectInterval { get; set; }
+
+		/// <summary>
+		/// Keep alive interval (default varies by exchange)
+		/// </summary>
+		TimeSpan KeepAlive { get; set; }
+
+		/// <summary>
+		/// Connected event
+		/// </summary>
+		event WebSocketConnectionDelegate Connected;
 
         /// <summary>
         /// Disconnected event
