@@ -601,13 +601,16 @@ namespace ExchangeSharp
             return result;
         }
 
+		/// <summary>
+		/// China time to utc, no DST correction needed
+		/// </summary>
+		readonly TimeSpan chinaTimeOffset = TimeSpan.FromHours(-8);
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
         {
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                var timeOffset = TimeSpan.FromHours(-8); //China time to utc, no DST correction needed
-                var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + timeOffset;
+                var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + chinaTimeOffset;
                 if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
                 var dt = CryptoUtility.UtcNow.Date.Add(ts);
                 var trade = new ExchangeTrade()
