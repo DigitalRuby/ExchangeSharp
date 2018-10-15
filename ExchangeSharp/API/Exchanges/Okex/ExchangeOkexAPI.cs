@@ -25,6 +25,11 @@ namespace ExchangeSharp
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
 
+		/// <summary>
+		/// China time to utc, no DST correction needed
+		/// </summary>
+		private static readonly TimeSpan chinaTimeOffset = TimeSpan.FromHours(-8);
+		
         public ExchangeOkexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
@@ -601,10 +606,6 @@ namespace ExchangeSharp
             return result;
         }
 
-		/// <summary>
-		/// China time to utc, no DST correction needed
-		/// </summary>
-		readonly TimeSpan chinaTimeOffset = TimeSpan.FromHours(-8);
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
         {
             var trades = new List<ExchangeTrade>();
