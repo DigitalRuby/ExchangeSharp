@@ -106,9 +106,10 @@ namespace ExchangeSharp
             {
                 markets.Add(new ExchangeMarket()
                 {
+                    //NOTE: Bleutrade is another weird one that calls the QuoteCurrency the "BaseCurrency" and the BaseCurrency the "MarketCurrency".
+                    QuoteCurrency = token["BaseCurrency"].ToStringInvariant(),
+                    BaseCurrency = token["MarketCurrency"].ToStringInvariant(),
                     MarketName = token["MarketName"].ToStringInvariant(),
-                    BaseCurrency = token["BaseCurrency"].ToStringInvariant(),
-                    MarketCurrency = token["MarketCurrency"].ToStringInvariant(),
                     IsActive = token["IsActive"].ToStringInvariant().Equals("true"),
                     MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
                 });

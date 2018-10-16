@@ -201,8 +201,8 @@ namespace ExchangeSharp
                 {
                     MarketName = symbol["symbol"].ToStringUpperInvariant(),
                     IsActive = symbol["status"].ToStringInvariant().EqualsWithOption("Open"),
-                    BaseCurrency = symbol["quoteCurrency"].ToStringUpperInvariant(),
-                    MarketCurrency = symbol["underlying"].ToStringUpperInvariant(),
+                    QuoteCurrency = symbol["quoteCurrency"].ToStringUpperInvariant(),
+                    BaseCurrency = symbol["underlying"].ToStringUpperInvariant(),
                 };
 
                 try

@@ -118,12 +118,16 @@ namespace ExchangeSharp
             {
                 markets.Add(new ExchangeMarket()
                 {
+                    MarketId = token["Id"].ToStringInvariant(),
                     MarketName = token["Label"].ToStringInvariant(),
-                    BaseCurrency = token["BaseSymbol"].ToStringInvariant(),
-                    MarketCurrency = token["Symbol"].ToStringInvariant(),
+                    //NOTE: Cryptopia is calls the QuoteCurrency the "BaseSymbol" and the BaseCurrency the "Symbol".. not confusing at all!
+                    QuoteCurrency = token["BaseSymbol"].ToStringInvariant(),
+                    BaseCurrency = token["Symbol"].ToStringInvariant(),
                     MaxTradeSize = token["MaximumTrade"].ConvertInvariant<decimal>(),
+                    MaxTradeSizeInQuoteCurrency = token["MaximumBaseTrade"].ConvertInvariant<decimal>(),
                     MaxPrice = token["MaximumPrice"].ConvertInvariant<decimal>(),
                     MinTradeSize = token["MinimumTrade"].ConvertInvariant<decimal>(),
+                    MinTradeSizeInQuoteCurrency = token["MinimumBaseTrade"].ConvertInvariant<decimal>(),
                     MinPrice = token["MinimumPrice"].ConvertInvariant<decimal>(),
                     IsActive = token["Status"].ToStringInvariant().Equals("OK")
                 });

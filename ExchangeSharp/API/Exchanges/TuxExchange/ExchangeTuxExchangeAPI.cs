@@ -109,8 +109,9 @@ namespace ExchangeSharp
                 {
                     MarketName = prop.Name.ToStringInvariant(),
                     IsActive = prop.First["isFrozen"].ConvertInvariant<int>() == 0,
-                    BaseCurrency = split[0],
-                    MarketCurrency = split[1]
+                    //NOTE: they list the quote currency first which is unusual
+                    QuoteCurrency = split[0],
+                    BaseCurrency = split[1]
                 });
             }
             return markets;

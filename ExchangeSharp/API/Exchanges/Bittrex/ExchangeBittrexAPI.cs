@@ -209,9 +209,11 @@ namespace ExchangeSharp
             {
                 var market = new ExchangeMarket
                 {
-                    BaseCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
+                    //NOTE: Bittrex is weird in that they call the QuoteCurrency the "BaseCurrency" and the BaseCurrency the "MarketCurrency".
+                    QuoteCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
                     IsActive = token["IsActive"].ConvertInvariant<bool>(),
-                    MarketCurrency = token["MarketCurrency"].ToStringUpperInvariant(),
+                    BaseCurrency = token["MarketCurrency"].ToStringUpperInvariant(),
+                    //NOTE: They also reverse the order of the currencies in the MarketName
                     MarketName = token["MarketName"].ToStringUpperInvariant(),
                     MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
                     MinPrice = StepSize,

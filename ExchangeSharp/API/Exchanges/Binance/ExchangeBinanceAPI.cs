@@ -117,38 +117,40 @@ namespace ExchangeSharp
         {
             /*
              *         {
-            "symbol": "QTUMETH",
-            "status": "TRADING",
-            "baseAsset": "QTUM",
-            "baseAssetPrecision": 8,
-            "quoteAsset": "ETH",
-            "quotePrecision": 8,
-            "orderTypes": [
-                "LIMIT",
-                "LIMIT_MAKER",
-                "MARKET",
-                "STOP_LOSS_LIMIT",
-                "TAKE_PROFIT_LIMIT"
-            ],
-            "icebergAllowed": true,
-            "filters": [
-                {
-                    "filterType": "PRICE_FILTER",
-                    "minPrice": "0.00000100",
-                    "maxPrice": "100000.00000000",
-                    "tickSize": "0.00000100"
-                },
-                {
-                    "filterType": "LOT_SIZE",
-                    "minQty": "0.01000000",
-                    "maxQty": "90000000.00000000",
-                    "stepSize": "0.01000000"
-                },
-                {
-                    "filterType": "MIN_NOTIONAL",
-                    "minNotional": "0.01000000"
-                }
-            ]
+                "symbol": "ETHBTC",
+                "status": "TRADING",
+                "baseAsset": "ETH",
+                "baseAssetPrecision": 8,
+                "quoteAsset": "BTC",
+                "quotePrecision": 8,
+                "orderTypes": [
+                    "LIMIT",
+                    "MARKET",
+                    "STOP_LOSS",
+                    "STOP_LOSS_LIMIT",
+                    "TAKE_PROFIT",
+                    "TAKE_PROFIT_LIMIT",
+                    "LIMIT_MAKER"
+                ],
+                "icebergAllowed": false,
+                "filters": [
+                    {
+                        "filterType": "PRICE_FILTER",
+                        "minPrice": "0.00000100",
+                        "maxPrice": "100000.00000000",
+                        "tickSize": "0.00000100"
+                    }, 
+                    {
+                        "filterType": "LOT_SIZE",
+                        "minQty": "0.00100000",
+                        "maxQty": "100000.00000000",
+                        "stepSize": "0.00100000"
+                    }, 
+                    {
+                        "filterType": "MIN_NOTIONAL",
+                        "minNotional": "0.00100000"
+                    }
+                ]
         },
              */
 
@@ -161,8 +163,8 @@ namespace ExchangeSharp
                 {
                     MarketName = symbol["symbol"].ToStringUpperInvariant(),
                     IsActive = ParseMarketStatus(symbol["status"].ToStringUpperInvariant()),
-                    BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant(),
-                    MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant()
+                    QuoteCurrency = symbol["quoteAsset"].ToStringUpperInvariant(),
+                    BaseCurrency = symbol["baseAsset"].ToStringUpperInvariant()
                 };
 
                 // "LOT_SIZE"
@@ -182,6 +184,13 @@ namespace ExchangeSharp
                     market.MaxPrice = priceFilter["maxPrice"].ConvertInvariant<decimal>();
                     market.MinPrice = priceFilter["minPrice"].ConvertInvariant<decimal>();
                     market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
+                }
+
+                // MIN_NOTIONAL
+                JToken minNotionalFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "MIN_NOTIONAL"));
+                if (minNotionalFilter != null)
+                {
+                    market.MinTradeSizeInQuoteCurrency = minNotionalFilter["minNotional"].ConvertInvariant<decimal>();
                 }
                 markets.Add(market);
             }
@@ -688,11 +697,12 @@ namespace ExchangeSharp
                 switch (status)
                 {
                     case "TRADING":
-                    case "PRE_TRADING":
-                    case "POST_TRADING":
                         isActive = true;
                         break;
-                        /* case "END_OF_DAY":
+                        /* 
+                            case "PRE_TRADING":
+                            case "POST_TRADING":
+                            case "END_OF_DAY":
                             case "HALT":
                             case "AUCTION_MATCH":
                             case "BREAK": */

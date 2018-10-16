@@ -128,6 +128,10 @@ namespace ExchangeSharpConsole
                 {
                     RunGetOrderHistory(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("symbols-metadata"))
+                {
+                    RunGetSymbolsMetadata(argsDictionary);
+                }
                 else
                 {
                     Logger.Error("Unrecognized command line arguments.");

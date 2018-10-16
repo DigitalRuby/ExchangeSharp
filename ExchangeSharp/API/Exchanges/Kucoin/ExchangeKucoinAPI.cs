@@ -121,17 +121,17 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
-            // [ { "coinType": "KCS", "trading": true, "lastDealPrice": 4500,"buy": 4120, "sell": 4500, "coinTypePair": "BTC", "sort": 0,"feeRate": 0.001,"volValue": 324866889, "high": 6890, "datetime": 1506051488000, "vol": 5363831663913, "low": 4500, "changeRate": -0.3431 }, ... ]
+            // [ { "coinType": "ETH", "trading": true, "symbol": "ETH-BTC", "lastDealPrice": 0.03169122, "buy": 0.03165041, "sell": 0.03168714, "change": -0.00004678, "coinTypePair": "BTC", "sort": 100, "feeRate": 0.001, "volValue": 121.99939218, "plus": true, "high": 0.03203444, "datetime": 1539730948000, "vol": 3847.9028281, "low": 0.03153312, "changeRate": -0.0015 }, ... ]
             JToken token = await MakeJsonRequestAsync<JToken>("/market/open/symbols");
             foreach (JToken symbol in token)
             {
                 ExchangeMarket market = new ExchangeMarket()
                 {
                     IsActive = symbol["trading"].ConvertInvariant<bool>(),
-                    MarketCurrency = symbol["coinType"].ToStringInvariant(),
-                    BaseCurrency = symbol["coinTypePair"].ToStringInvariant(),
+                    BaseCurrency = symbol["coinType"].ToStringInvariant(),
+                    QuoteCurrency = symbol["coinTypePair"].ToStringInvariant(),
+                    MarketName = symbol["symbol"].ToStringInvariant()
                 };
-                market.MarketName = market.MarketCurrency + "-" + market.BaseCurrency;
                 markets.Add(market);
             }
             return markets;

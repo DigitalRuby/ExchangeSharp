@@ -82,20 +82,17 @@ namespace ExchangeSharp
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/products");
-            const decimal StepSize = 0.00000001m;
             foreach (JToken token in obj)
             {
                 markets.Add(new ExchangeMarket
                 {
                     MarketName = token["id"].ToStringInvariant(),
                     BaseCurrency = token["base_currency"].ToStringInvariant(),
-                    MarketCurrency = token["quote_currency"].ToStringInvariant(),
+                    QuoteCurrency = token["quote_currency"].ToStringInvariant(),
                     MinTradeSize = token["base_min_size"].ConvertInvariant<decimal>(),
                     MaxTradeSize = token["base_max_size"].ConvertInvariant<decimal>(),
-                    QuantityStepSize = token["quote_increment"].ConvertInvariant<decimal>(),
-                    MaxPrice = StepSize,
-                    MinPrice = StepSize,
-                    PriceStepSize = StepSize,
+                    PriceStepSize = token["quote_increment"].ConvertInvariant<decimal>(),
+                    MinPrice = token["quote_increment"].ConvertInvariant<decimal>(),
                     IsActive = true
                 });
             }

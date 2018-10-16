@@ -90,11 +90,11 @@ namespace ExchangeSharp
                 var exchangeMarket = new ExchangeMarket
                 {
                     MarketName = market["currencyPair"].ToStringInvariant(),
-                    BaseCurrency = split[1],
-                    MarketCurrency = split[0],
+                    BaseCurrency = split[0],
+                    QuoteCurrency = split[1],
                     IsActive = true,
-                    MinTradeSize = (decimal) market["minLimitQuantity"],
-                    PriceStepSize = (decimal?) (1 / Math.Pow(10, (int) market["priceScale"]))
+                    MinTradeSize = market["minLimitQuantity"].ConvertInvariant<decimal>(),
+                    PriceStepSize = Math.Pow(.1, market["priceScale"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
                 };
 
                 markets.Add(exchangeMarket);

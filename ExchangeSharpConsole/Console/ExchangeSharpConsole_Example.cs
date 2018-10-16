@@ -176,5 +176,34 @@ namespace ExchangeSharpConsole
                 throw new ArgumentException("Invalid mode: " + dict["mode"]);
             }
         }
+
+        public static void RunGetSymbolsMetadata(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName");
+            using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
+            {
+                if (api == null)
+                {
+                    throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+                }
+
+                try
+                {
+                    var symbols = api.GetSymbolsMetadataAsync().Sync();
+
+                    foreach (var symbol in symbols)
+                    {
+                        Console.WriteLine(symbol);
+                    }
+
+                    Console.WriteLine("Press any key to quit.");
+                    Console.ReadKey();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                }
+            }
+        }
     }
 }

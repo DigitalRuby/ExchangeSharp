@@ -174,10 +174,11 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     MarketName = product["id"].ToStringUpperInvariant(),
-                    BaseCurrency = product["quote_currency"].ToStringUpperInvariant(),
-                    MarketCurrency = product["base_currency"].ToStringUpperInvariant(),
+                    QuoteCurrency = product["quote_currency"].ToStringUpperInvariant(),
+                    BaseCurrency = product["base_currency"].ToStringUpperInvariant(),
                     IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase),
                     MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>(),
+                    MaxTradeSize = product["base_max_size"].ConvertInvariant<decimal>(),
                     PriceStepSize = product["quote_increment"].ConvertInvariant<decimal>()
                 };
                 markets.Add(market);

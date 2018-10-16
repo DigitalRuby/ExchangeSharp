@@ -148,25 +148,25 @@ namespace ExchangeSharp
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
             foreach (var symbol in allSymbols)
             {
-                var marketCurrency = symbol["base-currency"].ToStringLowerInvariant();
-                var baseCurrency = symbol["quote-currency"].ToStringLowerInvariant();
-                var price_precision = symbol["price-precision"].ConvertInvariant<double>();
-                var priceStepSize = Math.Pow(10, -price_precision);
-                var amount_precision = symbol["amount-precision"].ConvertInvariant<double>();
-                var quantityStepSize = Math.Pow(10, -amount_precision);
+                var baseCurrency = symbol["base-currency"].ToStringLowerInvariant();
+                var quoteCurrency = symbol["quote-currency"].ToStringLowerInvariant();
+                var pricePrecision = symbol["price-precision"].ConvertInvariant<double>();
+                var priceStepSize = Math.Pow(10, -pricePrecision).ConvertInvariant<decimal>();
+                var amountPrecision = symbol["amount-precision"].ConvertInvariant<double>();
+                var quantityStepSize = Math.Pow(10, -amountPrecision).ConvertInvariant<decimal>();
 
-                var market = new ExchangeMarket()
-                {
-                    MarketCurrency = marketCurrency,
-                    BaseCurrency = baseCurrency,
-                    MarketName = marketCurrency + baseCurrency,
-                    IsActive = true,
-                };
+                var market = new ExchangeMarket
+                             {
+                                 BaseCurrency = baseCurrency,
+                                 QuoteCurrency = quoteCurrency,
+                                 MarketName = baseCurrency + quoteCurrency,
+                                 IsActive = true,
+                                 PriceStepSize = priceStepSize,
+                                 QuantityStepSize = quantityStepSize,
+                                 MinPrice = priceStepSize,
+                                 MinTradeSize = quantityStepSize,
+                             };
 
-                market.PriceStepSize = priceStepSize.ConvertInvariant<decimal>();
-                market.QuantityStepSize = quantityStepSize.ConvertInvariant<decimal>();
-                market.MinPrice = market.PriceStepSize.Value;
-                market.MinTradeSize = market.QuantityStepSize.Value;
 
                 markets.Add(market);
             }

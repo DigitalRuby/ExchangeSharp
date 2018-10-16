@@ -115,29 +115,31 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     IsActive = true,
-                    MarketName = NormalizeSymbol(pair["pair"].ToStringInvariant()),
+                    MarketName = pair["pair"].ToStringInvariant(),
                     MinTradeSize = pair["minimum_order_size"].ConvertInvariant<decimal>(),
-                    MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>()
+                    MaxTradeSize = pair["maximum_order_size"].ConvertInvariant<decimal>(),
+                    MarginEnabled = pair["margin"].ConvertInvariant<bool>(false)
                 };
-                m = Regex.Match(market.MarketName, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
+                var pairPropertyVal = pair["pair"].ToStringUpperInvariant();
+                m = Regex.Match(pairPropertyVal, "^(BTC|USD|ETH|GBP|JPY|EUR|EOS)");
                 if (m.Success)
                 {
-                    market.MarketCurrency = m.Value;
-                    market.BaseCurrency = market.MarketName.Substring(m.Length);
+                    market.BaseCurrency = m.Value;
+                    market.QuoteCurrency = pairPropertyVal.Substring(m.Length);
                 }
                 else
                 {
-                    m = Regex.Match(market.MarketName, "(BTC|USD|ETH|GBP|JPY|EUR|EOS)$");
+                    m = Regex.Match(pairPropertyVal, "(BTC|USD|ETH|GBP|JPY|EUR|EOS)$");
                     if (m.Success)
                     {
-                        market.MarketCurrency = market.MarketName.Substring(0, m.Index);
-                        market.BaseCurrency = m.Value;
+                        market.BaseCurrency = pairPropertyVal.Substring(0, m.Index);
+                        market.QuoteCurrency = m.Value;
                     }
                     else
                     {
                         // TODO: Figure out a nicer way to handle newly added pairs
-                        market.MarketCurrency = market.MarketName.Substring(0, 3);
-                        market.BaseCurrency = market.MarketName.Substring(3);
+                        market.BaseCurrency = pairPropertyVal.Substring(0, 3);
+                        market.QuoteCurrency = pairPropertyVal.Substring(3);
                     }
                 }
                 int pricePrecision = pair["price_precision"].ConvertInvariant<int>();

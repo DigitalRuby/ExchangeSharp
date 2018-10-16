@@ -128,14 +128,15 @@ namespace ExchangeSharp
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/markets/products", BaseUrlV2);
             foreach (JToken symbol in allSymbols)
             {
-                var marketName = symbol["symbol"].ToStringLowerInvariant();
-                string[] pieces = marketName.Split('_');
+                var marketName = symbol["symbol"].ToStringInvariant();
+                string[] pieces = marketName.ToStringUpperInvariant().Split('_');
                 var market = new ExchangeMarket
                 {
                     MarketName = marketName,
                     IsActive = symbol["online"].ConvertInvariant<bool>(),
-                    BaseCurrency = pieces[1],
-                    MarketCurrency = pieces[0],
+                    QuoteCurrency = pieces[1],
+                    BaseCurrency = pieces[0],
+                    MarginEnabled = symbol["isMarginOpen"].ConvertInvariant(false)
                 };
 
                 var quotePrecision = symbol["quotePrecision"].ConvertInvariant<double>();

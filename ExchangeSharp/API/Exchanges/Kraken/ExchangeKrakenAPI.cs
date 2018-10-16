@@ -335,20 +335,18 @@ namespace ExchangeSharp
 
             foreach (JToken pair in res)
             {
-                
+                var quantityStepSize = Math.Pow(0.1, pair["lot_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>();
                 var market = new ExchangeMarket
-                {
-                    IsActive = true,
-                    MarketName = NormalizeSymbol(pair["altname"].ToStringInvariant()),
-                    MinTradeSize = pair["lot_decimals"].ConvertInvariant<decimal>()
-
-                };
-                market.MarketCurrency = pair["quote"].ToStringInvariant();
-                market.BaseCurrency = pair["base"].ToStringInvariant();
-                int quantityPrecision = pair["lot_decimals"].ConvertInvariant<int>();
-                market.QuantityStepSize = (decimal)Math.Pow(0.1, quantityPrecision);
-                int pricePrecision = pair["pair_decimals"].ConvertInvariant<int>();
-                market.PriceStepSize = (decimal)Math.Pow(0.1, pricePrecision);
+                             {
+                                 IsActive = true,
+                                 MarketName = NormalizeSymbol(pair["altname"].ToStringInvariant()),
+                                 MinTradeSize = quantityStepSize,
+                                 MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
+                                 BaseCurrency = pair["base"].ToStringInvariant(),
+                                 QuoteCurrency = pair["quote"].ToStringInvariant(),
+                                 QuantityStepSize = quantityStepSize,
+                                 PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
+                             };
                 markets.Add(market);
             }
 

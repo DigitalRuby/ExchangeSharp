@@ -90,12 +90,13 @@ namespace ExchangeSharp
                 markets.Add(new ExchangeMarket()
                 {
                     MarketName = prop.Name.ToStringInvariant(),
-                    MarketCurrency = split[0],
-                    BaseCurrency = split[1],
+                    BaseCurrency = split[0],
+                    QuoteCurrency = split[1],
                     IsActive = prop.First["hidden"].ConvertInvariant<int>().Equals(0),
                     MaxPrice = prop.First["max_price"].ConvertInvariant<decimal>(),
                     MinPrice = prop.First["min_price"].ConvertInvariant<decimal>(),
-                    MinTradeSize = prop.First["min_amount"].ConvertInvariant<decimal>()
+                    MinTradeSize = prop.First["min_amount"].ConvertInvariant<decimal>(),
+                    PriceStepSize = Math.Pow(.1, prop.First["decimal_places"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
                 });
             }
             return markets;
