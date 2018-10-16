@@ -171,15 +171,24 @@ namespace ExchangeSharp
         /// </summary>
         public TimeSpan ConnectInterval { get; set; } = TimeSpan.FromHours(1.0);
 
-        /// <summary>
-        /// Keep alive interval (default is 30 seconds)
-        /// </summary>
-        public TimeSpan KeepAlive { get; set; } = TimeSpan.FromSeconds(30.0);
+		private TimeSpan _keepAlive = TimeSpan.FromSeconds(30.0);
+		/// <summary>
+		/// Keep alive interval (default is 30 seconds)
+		/// </summary>
+		public TimeSpan KeepAlive
+		{
+			get { return _keepAlive; }
+			set
+			{
+				_keepAlive = value;
+				webSocket.KeepAliveInterval = value;
+			}
+		}
 
-        /// <summary>
-        /// Allows additional listeners for connect event
-        /// </summary>
-        public event WebSocketConnectionDelegate Connected;
+		/// <summary>
+		/// Allows additional listeners for connect event
+		/// </summary>
+		public event WebSocketConnectionDelegate Connected;
 
         /// <summary>
         /// Allows additional listeners for disconnect event
