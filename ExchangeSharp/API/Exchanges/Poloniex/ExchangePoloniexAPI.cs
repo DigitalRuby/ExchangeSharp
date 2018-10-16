@@ -375,7 +375,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>

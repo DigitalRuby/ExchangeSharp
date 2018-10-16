@@ -84,7 +84,7 @@ namespace ExchangeSharp
 
         private BittrexWebSocketManager webSocket;
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             void innerCallback(string json)
             {

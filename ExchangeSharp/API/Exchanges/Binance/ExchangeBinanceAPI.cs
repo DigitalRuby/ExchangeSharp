@@ -231,7 +231,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             return ConnectWebSocket("/stream?streams=!ticker@arr", (_socket, msg) =>
             {

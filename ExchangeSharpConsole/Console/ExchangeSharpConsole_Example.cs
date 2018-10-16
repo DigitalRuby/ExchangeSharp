@@ -49,10 +49,11 @@ namespace ExchangeSharpConsole
             Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
 
-        private static string[] GetSymbols(Dictionary<string, string> dict)
+        private static string[] GetSymbols(Dictionary<string, string> dict, bool required = true)
         {
-            RequireArgs(dict, "symbols");
-            if (dict["symbols"] == "*")
+            if(required)
+                RequireArgs(dict, "symbols");
+            if ((!dict.ContainsKey("symbols") && !required) || dict["symbols"] == "*")
             {
                 return null;
             }
@@ -117,13 +118,22 @@ namespace ExchangeSharpConsole
 
         private static void RunWebSocketTickers(Dictionary<string, string> dict)
         {
-            RunWebSocket(dict, (api) => api.GetTickersWebSocket(freshTickers =>
-            {
-                foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
-                {
-                    Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
-                }
-            }));
+            string[] symbols = GetSymbols(dict, false);
+            RunWebSocket(dict, (api) =>
+                               {
+                                   if(symbols != null)
+                                    symbols = ValidateSymbols(api, symbols);
+                                   return api.GetTickersWebSocket(
+                                           freshTickers =>
+                                           {
+                                               foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                                               {
+                                                   Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                                               }
+                                           }, symbols
+                                       );
+                               }
+                );
         }
 
         private static void RunTradesWebSocket(Dictionary<string, string> dict)
