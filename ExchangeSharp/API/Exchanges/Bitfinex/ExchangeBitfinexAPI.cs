@@ -220,7 +220,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                symbols = symbols ?? (await GetSymbolsAsync()).ToArray();
+                symbols = symbols == null || symbols.Length == 0 ? (await GetSymbolsAsync()).ToArray() : symbols;
                 foreach (var symbol in symbols)
                 {
                     await _socket.SendMessageAsync(new { @event = "subscribe", channel = "ticker", pair = symbol });

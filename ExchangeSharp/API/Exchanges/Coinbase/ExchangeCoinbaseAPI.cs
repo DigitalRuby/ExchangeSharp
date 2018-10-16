@@ -334,7 +334,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                symbols = symbols ?? (await GetSymbolsAsync()).ToArray();
+                symbols = symbols == null || symbols.Length == 0 ? (await GetSymbolsAsync()).ToArray() : symbols;
                 var subscribeRequest = new
                 {
                     type = "subscribe",

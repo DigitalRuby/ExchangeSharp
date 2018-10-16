@@ -414,7 +414,7 @@ namespace ExchangeSharp
                                   }, async (_socket) =>
                                      {
                                          //need to subscribe to tickers one by one
-                                         symbols = symbols ?? (await GetSymbolsAsync()).ToArray();
+                                         symbols = symbols == null || symbols.Length == 0 ? (await GetSymbolsAsync()).ToArray() : symbols;
                                          var id = DateTime.UtcNow.Ticks;
                                          foreach (var symbol in symbols)
                                          {
