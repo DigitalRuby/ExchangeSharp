@@ -222,8 +222,9 @@ namespace ExchangeSharp
         /// Get all tickers via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
+        /// <param name="symbols">Symbols. If no symbols are specified, this will get the tickers for all symbols. NOTE: Some exchanges don't allow you to specify which symbols to return.</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback);
+        IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols);
 
         /// <summary>
         /// Get information about trades via web socket
