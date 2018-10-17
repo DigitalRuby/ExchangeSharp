@@ -205,5 +205,34 @@ namespace ExchangeSharpConsole
                 }
             }
         }
+
+        public static void RunGetSymbols(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName");
+            using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
+            {
+                if (api == null)
+                {
+                    throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+                }
+
+                try
+                {
+                    var symbols = api.GetSymbolsAsync().Sync();
+
+                    foreach (var symbol in symbols)
+                    {
+                        Console.WriteLine(symbol);
+                    }
+
+                    Console.WriteLine("Press any key to quit.");
+                    Console.ReadKey();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                }
+            }
+        }
     }
 }

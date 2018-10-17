@@ -18,14 +18,7 @@ namespace ExchangeSharpConsole
             IExchangeAPI api = ExchangeAPI.GetExchangeAPI(exchangeName);
             string symbol = dict["symbol"];
 
-            Console.Write("Enter Public Api Key: ");
-            var publicApiKey = GetSecureInput();
-            api.PublicApiKey = publicApiKey;
-            Console.WriteLine();
-            Console.Write("Enter Private Api Key: ");
-            var privateApiKey = GetSecureInput();
-            api.PrivateApiKey = privateApiKey;
-            Console.WriteLine();
+            Authenticate(api);
 
             DateTime? startDate = null;
             if (dict.ContainsKey("startDate"))
@@ -41,6 +34,45 @@ namespace ExchangeSharpConsole
 
             Console.Write("Press enter to exit..");
             Console.ReadLine();
+        }
+
+        public static void RunGetOrderDetails(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName", "orderId");
+
+            string exchangeName = dict["exchangeName"];
+            IExchangeAPI api = ExchangeAPI.GetExchangeAPI(exchangeName);
+            string orderId = dict["orderId"];
+
+            Authenticate(api);
+
+            string symbol = null;
+            if (dict.ContainsKey("symbol"))
+            {
+                symbol = dict["symbol"];
+            }
+
+            var orderDetails = api.GetOrderDetailsAsync(orderId, symbol).Sync();
+            Console.WriteLine(orderDetails);
+
+            Console.Write("Press enter to exit..");
+            Console.ReadLine();
+        }
+
+        private static void Authenticate(IExchangeAPI api)
+        {
+            Console.Write("Enter Public Api Key: ");
+            var publicApiKey = GetSecureInput();
+            api.PublicApiKey = publicApiKey;
+            Console.WriteLine();
+            Console.Write("Enter Private Api Key: ");
+            var privateApiKey = GetSecureInput();
+            api.PrivateApiKey = privateApiKey;
+            Console.WriteLine();
+            Console.Write("Enter Passphrase: ");
+            var passphrase = GetSecureInput();
+            api.Passphrase = passphrase;
+            Console.WriteLine();
         }
 
         private static SecureString GetSecureInput()

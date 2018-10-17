@@ -229,31 +229,31 @@ namespace ExchangeSharp
             JObject first = transactions.First() as JObject;
             List<string> excludeStrings = new List<string>() { "tid", "price", "fee", "datetime", "type", "btc", "usd", "eur" };
 
-            string baseCurrency;
-            string marketCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
-            if (string.IsNullOrWhiteSpace(marketCurrency))
+            string quoteCurrency;
+            string baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
+            if (string.IsNullOrWhiteSpace(baseCurrency))
             {
                 // the only 2 cases are BTC-USD and BTC-EUR
-                marketCurrency = "btc";
+                baseCurrency = "btc";
                 excludeStrings.RemoveAll(s => s.Equals("usd") || s.Equals("eur"));
-                baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
+                quoteCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
             }
             else
             {
                 excludeStrings.RemoveAll(s => s.Equals("usd") || s.Equals("eur") || s.Equals("btc"));
-                excludeStrings.Add(marketCurrency);
-                baseCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
+                excludeStrings.Add(baseCurrency);
+                quoteCurrency = first.Properties().FirstOrDefault(p => !excludeStrings.Contains(p.Name, StringComparer.InvariantCultureIgnoreCase))?.Name;
             }
-            string _symbol = $"{marketCurrency}-{baseCurrency}";
+            string _symbol = $"{baseCurrency}-{quoteCurrency}";
 
-            decimal amountFilled = 0, spentBaseCurrency = 0, price = 0;
+            decimal amountFilled = 0, spentQuoteCurrency = 0, price = 0;
 
             foreach (var t in transactions)
             {
                 int type = t["type"].ConvertInvariant<int>();
                 if (type != 2) { continue; }
-                spentBaseCurrency += t[baseCurrency].ConvertInvariant<decimal>();
-                amountFilled += t[marketCurrency].ConvertInvariant<decimal>();
+                spentQuoteCurrency += t[quoteCurrency].ConvertInvariant<decimal>();
+                amountFilled += t[baseCurrency].ConvertInvariant<decimal>();
                 //set price only one time
                 if (price == 0)
                 {
@@ -266,7 +266,7 @@ namespace ExchangeSharp
             {
                 AmountFilled = amountFilled,
                 Symbol = _symbol,
-                AveragePrice = spentBaseCurrency / amountFilled,
+                AveragePrice = spentQuoteCurrency / amountFilled,
                 Price = price,
             };
         }
@@ -305,7 +305,7 @@ namespace ExchangeSharp
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync(), "POST");
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            List<ExchangeOrderResult> transactions = new List<ExchangeOrderResult>();
             foreach (var transaction in result as JArray)
             {
                 int type = transaction["type"].ConvertInvariant<int>();
@@ -319,31 +319,34 @@ namespace ExchangeSharp
                 {
                     continue;
                 }
-                string marketCurrency, baseCurrency;
-                baseCurrency = tradingPair.Trim().Substring(tradingPair.Length - 3).ToLowerInvariant();
-                marketCurrency = tradingPair.Trim().ToLowerInvariant().Replace(baseCurrency, "").Replace("-", "").Replace("_", "");
 
-                decimal resultMarketCurrency = transaction[marketCurrency].ConvertInvariant<decimal>();
+                var quoteCurrency = tradingPair.Trim().Substring(tradingPair.Length - 3).ToLowerInvariant();
+                var baseCurrency = tradingPair.Trim().ToLowerInvariant().Replace(quoteCurrency, "").Replace("-", "").Replace("_", "");
+
+                decimal resultBaseCurrency = transaction[baseCurrency].ConvertInvariant<decimal>();
                 ExchangeOrderResult order = new ExchangeOrderResult()
                 {
                     OrderId = transaction["order_id"].ToStringInvariant(),
-                    IsBuy = resultMarketCurrency > 0,
+                    IsBuy = resultBaseCurrency > 0,
+                    Fees = transaction["fee"].ConvertInvariant<decimal>(),
+                    FeesCurrency = quoteCurrency.ToStringUpperInvariant(),
                     Symbol = NormalizeSymbol(tradingPair),
                     OrderDate = transaction["datetime"].ToDateTimeInvariant(),
-                    AmountFilled = Math.Abs(resultMarketCurrency),
-                    AveragePrice = Math.Abs(transaction[baseCurrency].ConvertInvariant<decimal>() / resultMarketCurrency)
+                    AmountFilled = Math.Abs(resultBaseCurrency),
+                    AveragePrice = transaction[$"{baseCurrency}_{quoteCurrency}"].ConvertInvariant<decimal>()
                 };
-                orders.Add(order);
+                transactions.Add(order);
             }
             // at this point one transaction transformed into one order, we need to consolidate parts into order
             // group by order id  
-            var groupings = orders.GroupBy(o => o.OrderId);
+            var groupings = transactions.GroupBy(o => o.OrderId);
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             foreach (var group in groupings)
             {
-                decimal spentBaseCurrency = group.Sum(o => o.AveragePrice * o.AmountFilled);
+                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice * o.AmountFilled);
                 ExchangeOrderResult order = group.First();
                 order.AmountFilled = group.Sum(o => o.AmountFilled);
-                order.AveragePrice = spentBaseCurrency / order.AmountFilled;
+                order.AveragePrice = spentQuoteCurrency / order.AmountFilled;
                 order.Price = order.AveragePrice;
                 orders.Add(order);
             }

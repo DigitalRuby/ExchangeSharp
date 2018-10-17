@@ -128,9 +128,17 @@ namespace ExchangeSharpConsole
                 {
                     RunGetOrderHistory(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("getOrderDetails"))
+                {
+                    RunGetOrderDetails(argsDictionary);
+                }
                 else if (argsDictionary.ContainsKey("symbols-metadata"))
                 {
                     RunGetSymbolsMetadata(argsDictionary);
+                }
+                else if (argsDictionary.ContainsKey("symbols"))
+                {
+                    RunGetSymbols(argsDictionary);
                 }
                 else
                 {
@@ -147,6 +155,8 @@ namespace ExchangeSharpConsole
             finally
             {
                 Logger.Info("ExchangeSharp console finished.");
+                Logger.Info("Press any key to exit");
+                Console.ReadKey(true);
             }
         }
     }
