@@ -181,7 +181,8 @@ namespace ExchangeSharp
 			set
 			{
 				_keepAlive = value;
-				webSocket.KeepAliveInterval = value;
+                if(webSocket != null)
+				    webSocket.KeepAliveInterval = value;
 			}
 		}
 
