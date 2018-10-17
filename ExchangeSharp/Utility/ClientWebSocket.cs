@@ -180,8 +180,8 @@ namespace ExchangeSharp
 			get { return _keepAlive; }
 			set
 			{
-				_keepAlive = value;
-				webSocket.KeepAliveInterval = value;
+			    _keepAlive = value;
+                            webSocket?.KeepAliveInterval = value;
 			}
 		}
 
