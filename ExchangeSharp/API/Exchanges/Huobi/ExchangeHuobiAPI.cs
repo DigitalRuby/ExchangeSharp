@@ -675,7 +675,7 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
-        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
         }

@@ -87,7 +87,7 @@ namespace ExchangeSharp
         protected virtual Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100) => throw new NotImplementedException();
         protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false) => throw new NotImplementedException();
-        protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAsync() => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetFeesAsync() => throw new NotImplementedException();
@@ -635,10 +635,9 @@ namespace ExchangeSharp
         /// Gets the deposit history for a symbol
         /// </summary>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        public virtual async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol)
+        public virtual async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string currency)
         {
-            symbol = NormalizeSymbol(symbol);
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetDepositHistoryAsync(symbol), nameof(GetDepositHistoryAsync), nameof(symbol), symbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetDepositHistoryAsync(currency), nameof(GetDepositHistoryAsync), nameof(currency), currency);
         }
 
         /// <summary>

@@ -878,9 +878,9 @@ namespace ExchangeSharp
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>
-        /// <param name="symbol">(ignored) The symbol to check.</param>
+        /// <param name="currency">(ignored) The symbol to check.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             JToken result = await MakePrivateAPIRequestAsync("returnDepositsWithdrawals",
                 new object[]
@@ -895,7 +895,7 @@ namespace ExchangeSharp
             {
                 var deposit = new ExchangeTransaction
                 {
-                    Symbol = token["currency"].ToStringUpperInvariant(),
+                    Currency = token["currency"].ToStringUpperInvariant(),
                     Address = token["address"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
                     BlockchainTxId = token["txid"].ToStringInvariant(),

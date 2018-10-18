@@ -261,12 +261,12 @@ namespace ExchangeSharp
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>
-        /// <param name="symbol">The symbol to check. May be null.</param>
+        /// <param name="currency">The symbol to check. May be null.</param>
         /// <returns>Collection of ExchangeTransactions</returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             var transactions = new List<ExchangeTransaction>();
-            string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(symbol) ? string.Empty : $"?currency={symbol}")}";
+            string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(currency) ? string.Empty : $"?currency={currency}")}";
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
             foreach (JToken token in result)
             {
@@ -274,7 +274,7 @@ namespace ExchangeSharp
                 {
                     Amount = token["Amount"].ConvertInvariant<decimal>(),
                     Address = token["CryptoAddress"].ToStringInvariant(),
-                    Symbol = token["Currency"].ToStringInvariant(),
+                    Currency = token["Currency"].ToStringInvariant(),
                     PaymentId = token["Id"].ToStringInvariant(),
                     BlockchainTxId = token["TxId"].ToStringInvariant(),
                     Status = TransactionStatus.Complete // As soon as it shows up in this list it is complete (verified manually)

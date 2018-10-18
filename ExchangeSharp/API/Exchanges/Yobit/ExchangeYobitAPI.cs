@@ -285,7 +285,7 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
         }
 
-        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             throw new NotImplementedException("Yobit does not provide a deposit history via the API");  // I don't wonder why
         }

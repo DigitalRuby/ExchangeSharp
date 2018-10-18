@@ -575,17 +575,17 @@ namespace ExchangeSharp
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>
-        /// <param name="symbol">The symbol to check. Must be specified.</param>
+        /// <param name="currency">The symbol to check. Must be specified.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
-            if (symbol.Length == 0)
+            if (currency.Length == 0)
             {
-                throw new ArgumentNullException(nameof(symbol));
+                throw new ArgumentNullException(nameof(currency));
             }
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["currency"] = symbol;
+            payload["currency"] = currency;
 
             JToken result = await MakeJsonRequestAsync<JToken>("/history/movements", BaseUrlV1, payload, "POST");
             var transactions = new List<ExchangeTransaction>();
@@ -600,7 +600,7 @@ namespace ExchangeSharp
                 {
                     PaymentId = token["id"].ToStringInvariant(),
                     BlockchainTxId = token["txid"].ToStringInvariant(),
-                    Symbol = token["currency"].ToStringUpperInvariant(),
+                    Currency = token["currency"].ToStringUpperInvariant(),
                     Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
                     Address = token["address"].ToStringInvariant()

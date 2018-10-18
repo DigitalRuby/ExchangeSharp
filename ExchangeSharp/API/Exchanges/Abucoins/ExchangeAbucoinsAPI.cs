@@ -359,7 +359,7 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JArray>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
         }
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
 
@@ -373,7 +373,7 @@ namespace ExchangeSharp
             {
                 ExchangeTransaction deposit = new ExchangeTransaction()
                 {
-                    Symbol = token["currency"].ToStringInvariant(),
+                    Currency = token["currency"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
                     Timestamp = token["date"].ToDateTimeInvariant(),
                     PaymentId = token["deposit_id"].ToStringInvariant(),
@@ -385,7 +385,7 @@ namespace ExchangeSharp
                     case "pending": deposit.Status = TransactionStatus.Processing; break;
                     default: deposit.Status = TransactionStatus.AwaitingApproval; break;
                 }
-                if (deposit.Symbol == symbol) deposits.Add(deposit);
+                if (deposit.Currency == currency) deposits.Add(deposit);
             }
             return deposits;
         }

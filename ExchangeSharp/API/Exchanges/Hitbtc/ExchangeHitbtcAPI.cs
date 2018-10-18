@@ -379,9 +379,9 @@ namespace ExchangeSharp
         /// This returns both Deposit and Withdawl history for the Bank and Trading Accounts. Currently returning everything and not filtering. 
         /// There is no support for retrieving by Symbol, so we'll filter that after reteiving all symbols
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="currency"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
             // [ {"id": "6a2fb54d-7466-490c-b3a6-95d8c882f7f7","index": 20400458,"currency": "ETH","amount": "38.616700000000000000000000","fee": "0.000880000000000000000000", "address": "0xfaEF4bE10dDF50B68c220c9ab19381e20B8EEB2B", "hash": "eece4c17994798939cea9f6a72ee12faa55a7ce44860cfb95c7ed71c89522fe8","status": "pending","type": "payout", "createdAt": "2017-05-18T18:05:36.957Z", "updatedAt": "2017-05-18T19:21:05.370Z" }, ... ]
@@ -390,12 +390,12 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in result)
                 {
-                    if (token["currency"].ToStringInvariant().Equals(symbol))
+                    if (token["currency"].ToStringInvariant().Equals(currency))
                     {
                         ExchangeTransaction transaction = new ExchangeTransaction
                         {
                             PaymentId = token["id"].ToStringInvariant(),
-                            Symbol = token["currency"].ToStringInvariant(),
+                            Currency = token["currency"].ToStringInvariant(),
                             Address = token["address"].ToStringInvariant(),               // Address Tag isn't returned
                             BlockchainTxId = token["hash"].ToStringInvariant(),           // not sure about this
                             Amount = token["amount"].ConvertInvariant<decimal>(),

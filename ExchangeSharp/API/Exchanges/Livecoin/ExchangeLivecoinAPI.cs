@@ -291,7 +291,7 @@ namespace ExchangeSharp
             }
         }
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
 

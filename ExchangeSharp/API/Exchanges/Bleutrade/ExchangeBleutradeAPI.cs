@@ -290,7 +290,7 @@ namespace ExchangeSharp
             return null;
         }
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
 
@@ -303,7 +303,7 @@ namespace ExchangeSharp
                     PaymentId = token["Id"].ToStringInvariant(),
                     BlockchainTxId = token["TransactionId"].ToStringInvariant(),
                     Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
-                    Symbol = token["Coin"].ToStringInvariant(),
+                    Currency = token["Coin"].ToStringInvariant(),
                     Amount = token["Amount"].ConvertInvariant<decimal>(),
                     Notes = token["Label"].ToStringInvariant(),
                     TxFee = token["fee"].ConvertInvariant<decimal>(),

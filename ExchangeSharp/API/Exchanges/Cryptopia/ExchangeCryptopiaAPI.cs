@@ -349,9 +349,9 @@ namespace ExchangeSharp
         /// Cryptopia does support filtering by Transaction Type (deposits and withdraws), but here we're returning both. The Tx Type will be returned in the Message field
         /// By Symbol isn't supported, so we'll filter. Also, the default limit is 100 transactions, we could possibly increase this to support the extra data we have to return for Symbol
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="currency"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
             var payload = await GetNoncePayloadAsync();
@@ -365,7 +365,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/GetTransactions", null, payload, "POST");
             foreach (JToken data in token)
             {
-                if (data["Currency"].ToStringInvariant().Equals(symbol))
+                if (data["Currency"].ToStringInvariant().Equals(currency))
                 {
                     ExchangeTransaction tx = new ExchangeTransaction()
                     {
@@ -375,7 +375,7 @@ namespace ExchangeSharp
                         Notes = data["Type"].ToStringInvariant(),
                         PaymentId = data["Id"].ToStringInvariant(),
                         Timestamp = data["TimeStamp"].ToDateTimeInvariant(),
-                        Symbol = data["Currency"].ToStringInvariant(),
+                        Currency = data["Currency"].ToStringInvariant(),
                         TxFee = data["Fee"].ConvertInvariant<decimal>()
                     };
                     // They may support more status types, but it's not documented

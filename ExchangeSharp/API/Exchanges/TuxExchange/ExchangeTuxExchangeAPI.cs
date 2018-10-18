@@ -325,7 +325,7 @@ namespace ExchangeSharp
             // nothing is returned on this call
         }
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
             var payload = await GetNoncePayloadAsync();
@@ -336,9 +336,9 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
             foreach (JToken deposit in token.First)
             {
-                if (deposit["symbol"].ToStringInvariant().Equals(symbol)) deposits.Add(new ExchangeTransaction()
+                if (deposit["symbol"].ToStringInvariant().Equals(currency)) deposits.Add(new ExchangeTransaction()
                 {
-                    Symbol = symbol,
+                    Currency = currency,
                     Timestamp = deposit["date"].ToDateTimeInvariant(),
                     Address = deposit["coin"].ToStringInvariant(),
                     BlockchainTxId = deposit["txid"].ToStringInvariant(),

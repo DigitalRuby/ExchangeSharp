@@ -74,11 +74,11 @@ namespace ExchangeSharp
         Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false);
 
         /// <summary>
-        /// Gets the deposit history for a symbol
+        /// Gets the deposit history for a currency
         /// </summary>
-        /// <param name="symbol">The symbol to check. May be null.</param>
+        /// <param name="currency">The currency to check. May be null.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string symbol);
+        Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string currency);
 
         /// <summary>
         /// Get symbols for the exchange

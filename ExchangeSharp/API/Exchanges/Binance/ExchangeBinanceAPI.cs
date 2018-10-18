@@ -933,15 +933,15 @@ namespace ExchangeSharp
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>
-        /// <param name="symbol">The symbol to check. Null for all symbols.</param>
+        /// <param name="currency">The symbol to check. Null for all symbols.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             // TODO: API supports searching on status, startTime, endTime
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (symbol.Length != 0)
+            if (currency.Length != 0)
             {
-                payload["asset"] = symbol;
+                payload["asset"] = currency;
             }
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);
@@ -952,7 +952,7 @@ namespace ExchangeSharp
                 {
                     Timestamp = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
-                    Symbol = token["asset"].ToStringUpperInvariant(),
+                    Currency = token["asset"].ToStringUpperInvariant(),
                     Address = token["address"].ToStringInvariant(),
                     AddressTag = token["addressTag"].ToStringInvariant(),
                     BlockchainTxId = token["txId"].ToStringInvariant()
