@@ -350,7 +350,7 @@ namespace ExchangeSharp
             {
                 lock (listeners)
                 {
-                    if (!listeners.TryGetValue(functionName, out HubListener listener))
+                    if (!listeners.TryGetValue(functionFullName, out HubListener listener))
                     {
                         listeners[functionFullName] = listener = new HubListener { FunctionName = functionName, FunctionFullName = functionFullName, Param = param };
                     }
@@ -372,7 +372,7 @@ namespace ExchangeSharp
                     listener.Callbacks.Remove(callback);
                     if (listener.Callbacks.Count == 0)
                     {
-                        listeners.Remove(functionName);
+                        listeners.Remove(functionFullName);
                     }
                 }
                 if (listeners.Count == 0)
