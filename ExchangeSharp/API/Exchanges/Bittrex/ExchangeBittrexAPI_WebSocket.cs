@@ -120,23 +120,25 @@ namespace ExchangeSharp
                 foreach (JToken ticker in token)
                 {
                     string marketName = ticker["M"].ToStringInvariant();
+                    var (baseCurrency, quoteCurrency) = ExchangeSymbolToCurrencies(marketName);
                     decimal last = ticker["l"].ConvertInvariant<decimal>();
                     decimal ask = ticker["A"].ConvertInvariant<decimal>();
                     decimal bid = ticker["B"].ConvertInvariant<decimal>();
-                    decimal volume = ticker["V"].ConvertInvariant<decimal>();
-                    decimal baseVolume = ticker["m"].ConvertInvariant<decimal>();
+                    decimal baseCurrencyVolume = ticker["V"].ConvertInvariant<decimal>();
+                    decimal quoteCurrencyVolume = ticker["m"].ConvertInvariant<decimal>();//NOTE: Bittrex uses the term BaseVolume when referring to QuoteCurrencyVolume
                     DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["T"].ConvertInvariant<long>());
                     var t = new ExchangeTicker
                     {
+                        Symbol = marketName,
                         Ask = ask,
                         Bid = bid,
                         Last = last,
                         Volume = new ExchangeVolume
                         {
-                            ConvertedVolume = volume,
-                            ConvertedSymbol = marketName,
-                            BaseVolume = baseVolume,
-                            BaseSymbol = marketName,
+                            BaseCurrencyVolume = baseCurrencyVolume,
+                            BaseCurrency = baseCurrency,
+                            QuoteCurrencyVolume = quoteCurrencyVolume,
+                            QuoteCurrency = quoteCurrency,
                             Timestamp = timestamp
                         }
                     };

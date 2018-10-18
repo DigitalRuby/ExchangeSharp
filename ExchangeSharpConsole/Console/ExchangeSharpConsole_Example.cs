@@ -234,5 +234,47 @@ namespace ExchangeSharpConsole
                 }
             }
         }
+
+        public static void RunGetTickers(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName");
+            using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
+            {
+                if (api == null)
+                {
+                    throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+                }
+
+                try
+                {
+                    IEnumerable<KeyValuePair<string, ExchangeTicker>> tickers;
+                    if (dict.ContainsKey("symbol"))
+                    {
+                        var symbol = dict["symbol"];
+                        var ticker = api.GetTickerAsync(symbol).Sync();
+                        tickers = new List<KeyValuePair<string, ExchangeTicker>>()
+                                  {
+                                      new KeyValuePair<string, ExchangeTicker>(symbol, ticker)
+                                  };
+                    }
+                    else
+                    {
+                        tickers = api.GetTickersAsync().Sync();
+                    }
+                    
+                    foreach (var ticker in tickers)
+                    {
+                        Console.WriteLine(ticker);
+                    }
+
+                    Console.WriteLine("Press any key to quit.");
+                    Console.ReadKey();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                }
+            }
+        }
     }
 }

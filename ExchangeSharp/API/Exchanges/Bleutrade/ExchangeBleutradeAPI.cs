@@ -130,7 +130,7 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummaries");
             foreach (JToken token in result)
             {
-                var ticker = this.ParseTicker(result, token["MarketName"].ToStringInvariant(), "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+                var ticker = this.ParseTicker(token, token["MarketName"].ToStringInvariant(), "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
                 tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
             }
             return tickers;

@@ -391,18 +391,18 @@ namespace ExchangeSharp
         /// <param name="askKey">Ask key</param>
         /// <param name="bidKey">Bid key</param>
         /// <param name="lastKey">Last key</param>
-        /// <param name="baseVolumeKey">Base volume key</param>
-        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="baseVolumeKey">Base currency volume key</param>
+        /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="timestampKey">Timestamp key</param>
         /// <param name="timestampType">Timestamp type</param>
         /// <param name="baseCurrencyKey">Base currency key</param>
-        /// <param name="convertCurrencyKey">Convert currency key</param>
+        /// <param name="quoteCurrencyKey">Quote currency key</param>
         /// <param name="idKey">Id key</param>
         /// <returns>ExchangeTicker</returns>
         internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
-            object convertVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
-            object baseCurrencyKey = null, object convertCurrencyKey = null, object idKey = null)
+            object quoteVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
+            object baseCurrencyKey = null, object quoteCurrencyKey = null, object idKey = null)
         {
             if (token == null || !token.HasValues)
             {
@@ -411,36 +411,26 @@ namespace ExchangeSharp
             decimal last = token[lastKey].ConvertInvariant<decimal>();
 
             // parse out volumes, handle cases where one or both do not exist
-            token.ParseVolumes(baseVolumeKey, convertVolumeKey, last, out decimal baseVolume, out decimal convertVolume);
+            token.ParseVolumes(baseVolumeKey, quoteVolumeKey, last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume);
 
             // pull out timestamp
             DateTime timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
 
             // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
-            string baseSymbol;
-            string convertSymbol;
-            if (baseCurrencyKey != null && convertCurrencyKey != null)
+            string baseCurrency;
+            string quoteCurrency;
+            if (baseCurrencyKey != null && quoteCurrencyKey != null)
             {
-                baseSymbol = token[baseCurrencyKey].ToStringInvariant();
-                convertSymbol = token[convertCurrencyKey].ToStringInvariant();
+                baseCurrency = token[baseCurrencyKey].ToStringInvariant();
+                quoteCurrency = token[quoteCurrencyKey].ToStringInvariant();
             }
             else if (string.IsNullOrWhiteSpace(symbol))
             {
                 throw new ArgumentNullException(nameof(symbol));
             }
-            else if (api.SymbolSeparator.Length != 0)
-            {
-                string[] pieces = symbol.Split(api.SymbolSeparator[0]);
-                if (pieces.Length != 2)
-                {
-                    throw new ArgumentException($"Symbol does not have the correct symbol separator of '{api.SymbolSeparator}'");
-                }
-                baseSymbol = pieces[0];
-                convertSymbol = pieces[1];
-            }
             else
             {
-                baseSymbol = convertSymbol = symbol;
+                (baseCurrency, quoteCurrency) = api.ExchangeSymbolToCurrencies(symbol);
             }
 
             // create the ticker and return it
@@ -456,16 +446,17 @@ namespace ExchangeSharp
             }
             ExchangeTicker ticker = new ExchangeTicker
             {
+                Symbol = symbol,
                 Ask = askValue.ConvertInvariant<decimal>(),
                 Bid = bidValue.ConvertInvariant<decimal>(),
                 Id = (idKey == null ? null : token[idKey].ToStringInvariant()),
                 Last = last,
                 Volume = new ExchangeVolume
                 {
-                    BaseVolume = baseVolume,
-                    BaseSymbol = baseSymbol,
-                    ConvertedVolume = convertVolume,
-                    ConvertedSymbol = convertSymbol,
+                    BaseCurrencyVolume = baseCurrencyVolume,
+                    BaseCurrency = baseCurrency,
+                    QuoteCurrencyVolume = quoteCurrencyVolume,
+                    QuoteCurrency = quoteCurrency,
                     Timestamp = timestamp
                 }
             };
@@ -516,36 +507,36 @@ namespace ExchangeSharp
         /// Parse volume from JToken
         /// </summary>
         /// <param name="token">JToken</param>
-        /// <param name="baseVolumeKey">Base volume key</param>
-        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="baseVolumeKey">Base currency volume key</param>
+        /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="last">Last volume value</param>
-        /// <param name="baseVolume">Receive base volume</param>
-        /// <param name="convertVolume">Receive convert volume</param>
-        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object convertVolumeKey, decimal last, out decimal baseVolume, out decimal convertVolume)
+        /// <param name="baseCurrencyVolume">Receive base currency volume</param>
+        /// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
+        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
         {
             // parse out volumes, handle cases where one or both do not exist
             if (baseVolumeKey == null)
             {
-                if (convertVolumeKey == null)
+                if (quoteVolumeKey == null)
                 {
-                    baseVolume = convertVolume = 0m;
+                    baseCurrencyVolume = quoteCurrencyVolume = 0m;
                 }
                 else
                 {
-                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
-                    baseVolume = (last <= 0m ? 0m : convertVolume / last);
+                    quoteCurrencyVolume = token[quoteVolumeKey].ConvertInvariant<decimal>();
+                    baseCurrencyVolume = (last <= 0m ? 0m : quoteCurrencyVolume / last);
                 }
             }
             else
             {
-                baseVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
-                if (convertVolumeKey == null)
+                baseCurrencyVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
+                if (quoteVolumeKey == null)
                 {
-                    convertVolume = baseVolume * last;
+                    quoteCurrencyVolume = baseCurrencyVolume * last;
                 }
                 else
                 {
-                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
+                    quoteCurrencyVolume = token[quoteVolumeKey].ConvertInvariant<decimal>();
                 }
             }
         }

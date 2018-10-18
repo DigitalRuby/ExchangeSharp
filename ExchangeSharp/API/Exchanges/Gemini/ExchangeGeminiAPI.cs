@@ -32,16 +32,17 @@ namespace ExchangeSharp
             SymbolSeparator = string.Empty;
         }
 
-        private ExchangeVolume ParseVolume(JToken token)
+        private ExchangeVolume ParseVolume(JToken token, string symbol)
         {
             ExchangeVolume vol = new ExchangeVolume();
             JProperty[] props = token.Children<JProperty>().ToArray();
             if (props.Length == 3)
             {
-                vol.BaseSymbol = props[0].Name;
-                vol.BaseVolume = props[0].Value.ConvertInvariant<decimal>();
-                vol.ConvertedSymbol = props[1].Name;
-                vol.ConvertedVolume = props[1].Value.ConvertInvariant<decimal>();
+                var (baseCurrency, quoteCurrency) = ExchangeSymbolToCurrencies(symbol);
+                vol.QuoteCurrency = quoteCurrency.ToUpperInvariant();
+                vol.QuoteCurrencyVolume = token[quoteCurrency.ToUpperInvariant()].ConvertInvariant<decimal>();
+                vol.BaseCurrency = baseCurrency.ToUpperInvariant();
+                vol.BaseCurrencyVolume = token[baseCurrency.ToUpperInvariant()].ConvertInvariant<decimal>();
                 vol.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(props[2].Value.ConvertInvariant<long>());
             }
 
@@ -99,11 +100,12 @@ namespace ExchangeSharp
             }
             ExchangeTicker t = new ExchangeTicker
             {
+                Symbol = symbol,
                 Ask = obj["ask"].ConvertInvariant<decimal>(),
                 Bid = obj["bid"].ConvertInvariant<decimal>(),
                 Last = obj["last"].ConvertInvariant<decimal>()
             };
-            t.Volume = ParseVolume(obj["volume"]);
+            t.Volume = ParseVolume(obj["volume"], symbol);
             return t;
         }
 

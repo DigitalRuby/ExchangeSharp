@@ -250,7 +250,7 @@ namespace ExchangeSharp
                 foreach (JToken childToken in token["data"])
                 {
                     ticker = ParseTickerWebSocket(childToken);
-                    tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.BaseSymbol, ticker));
+                    tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.QuoteCurrency, ticker));
                 }
                 if (tickerList.Count != 0)
                 {

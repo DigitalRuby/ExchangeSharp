@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -195,6 +196,7 @@ namespace ExchangeSharp
         {
             if (UseDefaultMethodCachePolicy)
             {
+                MethodCachePolicy.Add(nameof(GetCurrenciesAsync), TimeSpan.FromHours(1.0));
                 MethodCachePolicy.Add(nameof(GetSymbolsAsync), TimeSpan.FromHours(1.0));
                 MethodCachePolicy.Add(nameof(GetSymbolsMetadataAsync), TimeSpan.FromHours(1.0));
                 MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
@@ -379,6 +381,71 @@ namespace ExchangeSharp
                 return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + (symbol.Substring(symbol.Length - 3, 3)), GlobalSymbolSeparator);
             }
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol, SymbolSeparator[0]);
+        }
+
+        public virtual string CurrenciesToExchangeSymbol(string baseCurrency, string quoteCurrency)
+        {
+            var symbol = SymbolIsReversed 
+                       ? $"{quoteCurrency}{SymbolSeparator}{baseCurrency}" 
+                       : $"{baseCurrency}{SymbolSeparator}{quoteCurrency}";
+
+            return SymbolIsUppercase
+                       ? symbol.ToUpperInvariant()
+                       : symbol;
+        }
+
+        /// <summary>
+        /// NOTE: This method can potentially make a call to GetSymbolsMetadataAsync 
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public virtual (string BaseCurrency, string QuoteCurrency) ExchangeSymbolToCurrencies(string symbol)
+        {
+            string baseCurrency, quoteCurrency;
+            if (string.IsNullOrWhiteSpace(SymbolSeparator))
+            {
+                if (symbol.Length != 6)
+                {
+                    var errorMessage = Name + " symbol must be 6 chars: '" + symbol + "' is not. Override this method to handle symbols that are not 6 chars in length.";
+                    try
+                    {
+                        //let's try looking this up by the metadata..
+                        var symbols = GetSymbolsMetadataAsync().Sync().ToArray();//.ToDictionary(market => market.MarketName, market => market);
+                        var symbolMetadata = symbols.First(
+                                market => market.MarketName.Equals(symbol, StringComparison.InvariantCultureIgnoreCase) || CurrenciesToExchangeSymbol(market.BaseCurrency, market.QuoteCurrency)
+                                   .Equals(symbol, StringComparison.InvariantCultureIgnoreCase)
+                            );
+
+                        return (symbolMetadata.BaseCurrency, symbolMetadata.QuoteCurrency);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new InvalidOperationException(errorMessage, e);
+                    }
+                    throw new InvalidOperationException(errorMessage);
+                }
+
+                if (SymbolIsReversed)
+                {
+                    quoteCurrency = symbol.Substring(0, symbol.Length - 3);
+                    baseCurrency = symbol.Substring(symbol.Length - 3, 3);
+                }
+                else
+                {
+                    baseCurrency = symbol.Substring(0, symbol.Length - 3);
+                    quoteCurrency = symbol.Substring(symbol.Length - 3, 3);
+                }
+            }
+            else
+            {
+                var pieces = symbol.Split(SymbolSeparator[0]);
+                if (pieces.Length != 2)
+                    throw new InvalidOperationException($"Splitting {Name} symbol '{symbol}' with symbol separator '{SymbolSeparator}' must result in exactly 2 pieces.");
+                quoteCurrency = SymbolIsReversed ? pieces[0] : pieces[1];
+                baseCurrency = SymbolIsReversed ? pieces[1] : pieces[0];
+            }
+
+            return (baseCurrency, quoteCurrency);
         }
 
         /// <summary>

@@ -158,11 +158,11 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            IReadOnlyCollection<string> symbols = (await GetSymbolsAsync()).ToArray();
-            if (symbols != null && symbols.Count != 0)
+            IReadOnlyDictionary<string, ExchangeMarket> marketsBySymbol = (await GetSymbolsMetadataAsync()).ToDictionary(market => market.MarketName, market => market);
+            if (marketsBySymbol != null && marketsBySymbol.Count != 0)
             {
                 StringBuilder symbolString = new StringBuilder();
-                foreach (string symbol in symbols)
+                foreach (var symbol in marketsBySymbol.Keys)
                 {
                     symbolString.Append('t');
                     symbolString.Append(symbol.ToUpperInvariant());
@@ -173,17 +173,35 @@ namespace ExchangeSharp
                 DateTime now = CryptoUtility.UtcNow;
                 foreach (JArray array in token)
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(array[0].ToStringInvariant().Substring(1), new ExchangeTicker
+                    #region Return Values
+                    //[
+                    //  SYMBOL,
+                    //  BID,                float	Price of last highest bid
+                    //  BID_SIZE,           float	Sum of the 25 highest bid sizes
+                    //  ASK,                float	Price of last lowest ask
+                    //  ASK_SIZE,           float	Sum of the 25 lowest ask sizes
+                    //  DAILY_CHANGE,       float	Amount that the last price has changed since yesterday
+                    //  DAILY_CHANGE_PERC,  float	Amount that the price has changed expressed in percentage terms
+                    //  LAST_PRICE,         float	Price of the last trade
+                    //  VOLUME,             float	Daily volume
+                    //  HIGH,               float	Daily high
+                    //  LOW                 float	Daily low
+                    //]
+                    #endregion
+                    var symbol = array[0].ToStringInvariant().Substring(1);
+                    var market = marketsBySymbol[symbol.ToLowerInvariant()];
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
                     {
+                        Symbol = symbol,
                         Ask = array[3].ConvertInvariant<decimal>(),
                         Bid = array[1].ConvertInvariant<decimal>(),
                         Last = array[7].ConvertInvariant<decimal>(),
                         Volume = new ExchangeVolume
                         {
-                            BaseVolume = array[8].ConvertInvariant<decimal>(),
-                            BaseSymbol = array[0].ToStringInvariant(),
-                            ConvertedVolume = array[8].ConvertInvariant<decimal>() * array[7].ConvertInvariant<decimal>(),
-                            ConvertedSymbol = array[0].ToStringInvariant(),
+                            QuoteCurrencyVolume = array[8].ConvertInvariant<decimal>() * array[7].ConvertInvariant<decimal>(),
+                            QuoteCurrency = market.QuoteCurrency,
+                            BaseCurrencyVolume = array[8].ConvertInvariant<decimal>(),
+                            BaseCurrency = market.BaseCurrency,
                             Timestamp = now
                         }
                     }));

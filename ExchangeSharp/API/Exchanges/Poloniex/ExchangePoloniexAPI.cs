@@ -370,7 +370,7 @@ namespace ExchangeSharp
                 string symbol = prop.Name;
                 JToken values = prop.Value;
                 ExchangeTicker ticker = this.ParseTicker(values, symbol, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id");
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(values, symbol, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
             }
             return tickers;
         }

@@ -16,6 +16,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
@@ -227,6 +228,28 @@ namespace ExchangeSharp
             }
         }
 
+        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        {
+            // https://api.kraken.com/0/public/Assets
+            Dictionary<string, ExchangeCurrency> allCoins = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+
+            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+            JToken array = await MakeJsonRequestAsync<JToken>("/0/public/Assets");
+            foreach (JProperty token in array)
+            {
+                var coin = new ExchangeCurrency
+                           {
+                               CoinType = token.Value["aclass"].ToStringInvariant(),
+                               Name = token.Name,
+                               FullName = token.Value["altname"].ToStringInvariant()
+                           };
+
+                currencies[coin.Name] = coin;
+            }
+
+            return currencies;
+        }
+
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
@@ -331,15 +354,16 @@ namespace ExchangeSharp
             //}
             var markets = new List<ExchangeMarket>();
             JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
-            var res = (from prop in allPairs.Children<JProperty>() select prop.Value).ToArray();
+            var res = (from prop in allPairs.Children<JProperty>() select prop).ToArray();
 
-            foreach (JToken pair in res)
+            foreach (JProperty prop in res)
             {
+                JToken pair = prop.Value;
                 var quantityStepSize = Math.Pow(0.1, pair["lot_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>();
                 var market = new ExchangeMarket
                              {
-                                 IsActive = true,
-                                 MarketName = NormalizeSymbol(pair["altname"].ToStringInvariant()),
+                                 IsActive = !prop.Name.Contains(".d"),
+                                 MarketName = prop.Name,
                                  MinTradeSize = quantityStepSize,
                                  MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
                                  BaseCurrency = pair["base"].ToStringInvariant(),
@@ -377,20 +401,22 @@ namespace ExchangeSharp
             return ConvertToExchangeTicker(symbol, ticker);
         }
 
-        private static ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
+        private ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
         {
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();
+            var (baseCurrency, quoteCurrency) = ExchangeSymbolToCurrencies(symbol);
             return new ExchangeTicker
             {
+                Symbol = symbol,
                 Ask = ticker["a"][0].ConvertInvariant<decimal>(),
                 Bid = ticker["b"][0].ConvertInvariant<decimal>(),
                 Last = last,
                 Volume = new ExchangeVolume
                 {
-                    BaseVolume = ticker["v"][1].ConvertInvariant<decimal>(),
-                    BaseSymbol = symbol,
-                    ConvertedVolume = ticker["v"][1].ConvertInvariant<decimal>() * last,
-                    ConvertedSymbol = symbol,
+                    QuoteCurrencyVolume = ticker["v"][1].ConvertInvariant<decimal>(),
+                    QuoteCurrency = quoteCurrency,
+                    BaseCurrencyVolume = ticker["v"][1].ConvertInvariant<decimal>() * ticker["p"][1].ConvertInvariant<decimal>(),
+                    BaseCurrency = baseCurrency,
                     Timestamp = CryptoUtility.UtcNow
                 }
             };

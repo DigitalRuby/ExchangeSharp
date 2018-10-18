@@ -120,7 +120,7 @@ namespace ExchangeSharpConsole
                             Console.Write("Test {0} GetTickerAsync... ", api.Name);
                             var ticker = api.GetTickerAsync(symbol).Sync();
                             Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-                                ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
+                                ticker.Volume != null && ticker.Volume.QuoteCurrencyVolume > 0m && ticker.Volume.BaseCurrencyVolume > 0m);
                             Console.WriteLine($"OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
                         }
                         catch

@@ -480,7 +480,7 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
-            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volumeQuote", "volume", "timestamp", TimestampType.Iso8601);
+            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
         }
 
         private ExchangeTrade ParseExchangeTrade(JToken token)

@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
@@ -79,10 +80,12 @@ namespace ExchangeSharp
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            var symbols = (await GetSymbolsAsync()).ToArray();
             string symbol;
             foreach (JToken token in data.Item1)
             {
-                symbol = token.Path;
+                //for some reason when returning tickers, the api doesn't include the symbol separator like it does everywhere else so we need to convert it to the correct format
+                symbol = symbols.First(s => s.Replace(SymbolSeparator, string.Empty).Equals(token.Path));
                 tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token)));
             }
             return tickers;

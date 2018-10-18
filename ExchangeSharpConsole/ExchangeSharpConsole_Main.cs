@@ -140,6 +140,10 @@ namespace ExchangeSharpConsole
                 {
                     RunGetSymbols(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("tickers"))
+                {
+                    RunGetTickers(argsDictionary);
+                }
                 else
                 {
                     Logger.Error("Unrecognized command line arguments.");
@@ -155,8 +159,6 @@ namespace ExchangeSharpConsole
             finally
             {
                 Logger.Info("ExchangeSharp console finished.");
-                Logger.Info("Press any key to exit");
-                Console.ReadKey(true);
             }
         }
     }
