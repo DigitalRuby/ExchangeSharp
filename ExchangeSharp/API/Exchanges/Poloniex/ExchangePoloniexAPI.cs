@@ -375,7 +375,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
@@ -413,9 +413,8 @@ namespace ExchangeSharp
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				int msgId = token[0].ConvertInvariant<int>();
 
-				//return if this is a heartbeat message
-				if (msgId == 1010)
-				{
+				if (msgId == 1010 || token.Count() == 2) // "[7,2]"
+				{ // this is a heartbeat message
 					return Task.CompletedTask;
 				}
 

@@ -225,26 +225,27 @@ namespace ExchangeSharp
 
             // stupid Coinbase does not have a one shot API call for tickers outside of web sockets
             using (var socket = GetTickersWebSocket((t) =>
-            {
-                lock (tickers)
-                {
-                    if (symbols.Count != 0)
-                    {
-                        foreach (var kv in t)
-                        {
-                            if (!tickers.Exists(m => m.Key == kv.Key))
-                            {
-                                tickers.Add(kv);
-                                symbols.Remove(kv.Key);
-                            }
-                        }
-                        if (symbols.Count == 0)
-                        {
-                            evt.Set();
-                        }
-                    }
-                }
-            }))
+                                                    {
+                                                        lock (tickers)
+                                                        {
+                                                            if (symbols.Count != 0)
+                                                            {
+                                                                foreach (var kv in t)
+                                                                {
+                                                                    if (!tickers.Exists(m => m.Key == kv.Key))
+                                                                    {
+                                                                        tickers.Add(kv);
+                                                                        symbols.Remove(kv.Key);
+                                                                    }
+                                                                }
+                                                                if (symbols.Count == 0)
+                                                                {
+                                                                    evt.Set();
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                ))
             {
                 evt.WaitOne(10000);
                 return tickers;
@@ -320,7 +321,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             return ConnectWebSocket("/", (_socket, msg) =>
             {
@@ -333,7 +334,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                var symbols = await GetSymbolsAsync();
+                symbols = symbols == null || symbols.Length == 0 ? (await GetSymbolsAsync()).ToArray() : symbols;
                 var subscribeRequest = new
                 {
                     type = "subscribe",
