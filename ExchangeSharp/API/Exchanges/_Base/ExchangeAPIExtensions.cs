@@ -554,12 +554,12 @@ namespace ExchangeSharp
         /// <param name="closeKey">Close key</param>
         /// <param name="timestampKey">Timestamp key</param>
         /// <param name="timestampType">Timestamp type</param>
-        /// <param name="baseVolumeKey">Base volume key</param>
-        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="baseVolumeKey">Base currency volume key</param>
+        /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="weightedAverageKey">Weighted average key</param>
         /// <returns>MarketCandle</returns>
         internal static MarketCandle ParseCandle(this INamed named, JToken token, string symbol, int periodSeconds, object openKey, object highKey, object lowKey,
-            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object convertVolumeKey = null, object weightedAverageKey = null)
+            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object quoteVolumeKey = null, object weightedAverageKey = null)
         {
             MarketCandle candle = new MarketCandle
             {
@@ -573,9 +573,9 @@ namespace ExchangeSharp
                 Timestamp = CryptoUtility.ParseTimestamp(token[timestampKey], timestampType)
             };
 
-            token.ParseVolumes(baseVolumeKey, convertVolumeKey, candle.ClosePrice, out decimal baseVolume, out decimal convertVolume);
-            candle.BaseVolume = (double)baseVolume;
-            candle.ConvertedVolume = (double)convertVolume;
+            token.ParseVolumes(baseVolumeKey, quoteVolumeKey, candle.ClosePrice, out decimal baseVolume, out decimal convertVolume);
+            candle.BaseCurrencyVolume = (double)baseVolume;
+            candle.QuoteCurrencyVolume = (double)convertVolume;
             if (weightedAverageKey != null)
             {
                 candle.WeightedAverage = token[weightedAverageKey].ConvertInvariant<decimal>();

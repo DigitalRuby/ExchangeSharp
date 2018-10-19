@@ -368,7 +368,8 @@ namespace ExchangeSharp
             {
                 foreach (JToken jsonCandle in array)
                 {
-                    MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, "O", "H", "L", "C", "T", TimestampType.Iso8601, "BV", "V");
+                    //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
+                    MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, "O", "H", "L", "C", "T", TimestampType.Iso8601, "V", "BV");
                     if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                     {
                         candles.Add(candle);

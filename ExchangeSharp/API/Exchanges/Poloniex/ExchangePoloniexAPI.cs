@@ -369,7 +369,8 @@ namespace ExchangeSharp
             {
                 string symbol = prop.Name;
                 JToken values = prop.Value;
-                ExchangeTicker ticker = this.ParseTicker(values, symbol, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id");
+                //NOTE: Poloniex uses the term "caseVolume" when referring to the QuoteCurrencyVolume
+                ExchangeTicker ticker = this.ParseTicker(values, symbol, "lowestAsk", "highestBid", "last", "quoteVolume", "baseVolume", idKey: "id");
                 tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
             }
             return tickers;
@@ -615,7 +616,7 @@ namespace ExchangeSharp
             List<MarketCandle> candles = new List<MarketCandle>();
             foreach (JToken candle in token)
             {
-                candles.Add(this.ParseCandle(candle, symbol, periodSeconds, "open", "high", "low", "close", "date", TimestampType.UnixSeconds, "volume", "quoteVolume", "weightedAverage"));
+                candles.Add(this.ParseCandle(candle, symbol, periodSeconds, "open", "high", "low", "close", "date", TimestampType.UnixSeconds, "quoteVolume", "volume", "weightedAverage"));
             }
             return candles;
         }

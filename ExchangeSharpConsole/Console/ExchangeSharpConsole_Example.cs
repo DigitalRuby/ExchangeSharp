@@ -276,5 +276,35 @@ namespace ExchangeSharpConsole
                 }
             }
         }
+
+        public static void RunGetCandles(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName", "symbol");
+            using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
+            {
+                if (api == null)
+                {
+                    throw new ArgumentException("Cannot find exchange with name {0}", dict["exchangeName"]);
+                }
+
+                try
+                {
+                    var symbol = dict["symbol"];
+                    var candles = api.GetCandlesAsync(symbol, 1800, DateTime.UtcNow.AddDays(-12), DateTime.UtcNow).Sync();                   
+                    
+                    foreach (var candle in candles)
+                    {
+                        Console.WriteLine(candle);
+                    }
+
+                    Console.WriteLine("Press any key to quit.");
+                    Console.ReadKey();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex);
+                }
+            }
+        }
     }
 }

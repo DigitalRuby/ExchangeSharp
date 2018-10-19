@@ -144,6 +144,10 @@ namespace ExchangeSharpConsole
                 {
                     RunGetTickers(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("candles"))
+                {
+                    RunGetCandles(argsDictionary);
+                }
                 else
                 {
                     Logger.Error("Unrecognized command line arguments.");

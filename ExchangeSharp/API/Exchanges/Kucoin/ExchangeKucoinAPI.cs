@@ -231,8 +231,8 @@ namespace ExchangeSharp
                         HighPrice = token["h"][i].ConvertInvariant<decimal>(),
                         LowPrice = token["l"][i].ConvertInvariant<decimal>(),
                         OpenPrice = token["o"][i].ConvertInvariant<decimal>(),
-                        ConvertedVolume = token["v"][i].ConvertInvariant<double>(),
-                        BaseVolume = token["v"][i].ConvertInvariant<double>() * token["c"][i].ConvertInvariant<double>()
+                        BaseCurrencyVolume = token["v"][i].ConvertInvariant<double>(),
+                        QuoteCurrencyVolume = token["v"][i].ConvertInvariant<double>() * token["c"][i].ConvertInvariant<double>()
                     });
                 }
             }

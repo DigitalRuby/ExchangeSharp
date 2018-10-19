@@ -66,12 +66,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Base currency volume (i.e. in BTC-USD, this would be BTC volume)
         /// </summary>
-        public double BaseVolume { get; set; }
+        public double BaseCurrencyVolume { get; set; }
 
         /// <summary>
-        /// Conversion currency volume (i.e. in BTC-USD, this would be USD volume)
+        /// Quote currency volume (i.e. in BTC-USD, this would be USD volume)
         /// </summary>
-        public double ConvertedVolume { get; set; }
+        public double QuoteCurrencyVolume { get; set; }
 
         /// <summary>
         /// The weighted average price if provided
@@ -84,7 +84,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}, {7}, {8}", Timestamp, PeriodSeconds, OpenPrice, HighPrice, LowPrice, ClosePrice, BaseVolume, ConvertedVolume, WeightedAverage);
+            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}, {7}, {8}", Timestamp, PeriodSeconds, OpenPrice, HighPrice, LowPrice, ClosePrice, BaseCurrencyVolume, QuoteCurrencyVolume, WeightedAverage);
         }
     }
 }

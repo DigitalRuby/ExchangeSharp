@@ -155,7 +155,7 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/candles/" + symbol + "?period=" + periodString + "&limit=" + limit);
             foreach (JToken token in obj)
             {
-                candles.Add(this.ParseCandle(token, symbol, periodSeconds, "open", "max", "min", "close", "timestamp", TimestampType.Iso8601, "volumeQuote", "volume"));
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, "open", "max", "min", "close", "timestamp", TimestampType.Iso8601, "volume", "volumeQuote"));
             }
             return candles;
         }

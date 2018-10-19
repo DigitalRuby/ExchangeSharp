@@ -149,7 +149,8 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getcandles?market=" + symbol + "&period=" + periodString + (limit == null ? string.Empty : "&lasthours=" + limit));
             foreach (JToken jsonCandle in result)
             {
-                MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, "Open", "High", "Low", "Close", "Timestamp", TimestampType.Iso8601, "BaseVolume", "Volume");
+                //NOTE: Bleutrade uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
+                MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, "Open", "High", "Low", "Close", "Timestamp", TimestampType.Iso8601, "Volume", "BaseVolume");
                 if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                 {
                     candles.Add(candle);
