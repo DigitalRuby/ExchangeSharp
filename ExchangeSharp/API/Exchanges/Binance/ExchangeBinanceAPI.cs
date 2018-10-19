@@ -905,12 +905,12 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the address to deposit to and applicable details.
         /// </summary>
-        /// <param name="symbol">Symbol to get address for</param>
+        /// <param name="currency">Currency to get address for</param>
         /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
         /// <returns>
         /// Deposit address details (including tag if applicable, such as XRP)
         /// </returns>
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             /* 
             * TODO: Binance does not offer a "regenerate" option in the API, but a second IOTA deposit to the same address will not be credited
@@ -919,12 +919,12 @@ namespace ExchangeSharp
             */
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["asset"] = symbol;
+            payload["asset"] = currency;
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
-                Symbol = response["asset"].ToStringInvariant(),
+                Currency = response["asset"].ToStringInvariant(),
                 Address = response["address"].ToStringInvariant(),
                 AddressTag = response["addressTag"].ToStringInvariant()
             };

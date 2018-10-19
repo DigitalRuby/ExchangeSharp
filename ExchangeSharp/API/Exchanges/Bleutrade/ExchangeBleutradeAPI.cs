@@ -275,15 +275,15 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/market/cancel?orderid=" + orderId, null, await GetNoncePayloadAsync());
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/getdepositaddress?" + "currency=" + NormalizeSymbol(symbol), BaseUrl, await GetNoncePayloadAsync());
-            if (token["Currency"].ToStringInvariant().Equals(symbol) && token["Address"] != null)
+            JToken token = await MakeJsonRequestAsync<JToken>("/account/getdepositaddress?" + "currency=" + NormalizeSymbol(currency), BaseUrl, await GetNoncePayloadAsync());
+            if (token["Currency"].ToStringInvariant().Equals(currency) && token["Address"] != null)
             {
                 // At this time, according to Bleutrade support, they don't support any currency requiring an Address Tag, but they will add this feature in the future
                 return new ExchangeDepositDetails()
                 {
-                    Symbol = token["Currency"].ToStringInvariant(),
+                    Currency = token["Currency"].ToStringInvariant(),
                     Address = token["Address"].ToStringInvariant()
                 };
             }

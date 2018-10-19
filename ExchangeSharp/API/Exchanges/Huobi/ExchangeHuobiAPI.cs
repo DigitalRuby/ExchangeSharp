@@ -680,7 +680,7 @@ namespace ExchangeSharp
             throw new NotImplementedException("Huobi does not provide a deposit API");
         }
 
-        protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
 

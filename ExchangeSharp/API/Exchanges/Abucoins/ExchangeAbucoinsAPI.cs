@@ -390,21 +390,21 @@ namespace ExchangeSharp
             return deposits;
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
             JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
-                var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
+                var rc = array.Where(t => t["currency"].ToStringInvariant() == currency).FirstOrDefault();
                 payload = await GetNoncePayloadAsync();
-                payload["currency"] = symbol;
+                payload["currency"] = currency;
                 payload["method"] = rc["id"].ToStringInvariant();
 
                 JToken token = await MakeJsonRequestAsync<JToken>("/deposits/make", null, payload, "POST");
                 ExchangeDepositDetails deposit = new ExchangeDepositDetails()
                 {
-                    Symbol = symbol,
+                    Currency = currency,
                     Address = token["address"].ToStringInvariant(),
                     AddressTag = token["tag"].ToStringInvariant()
                 };

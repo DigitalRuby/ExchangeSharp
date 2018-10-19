@@ -68,10 +68,10 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the address to deposit to and applicable details.
         /// </summary>
-        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="currency">Currency to get address for.</param>
         /// <param name="forceRegenerate">True to regenerate the address</param>
         /// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-        Task<ExchangeDepositDetails> GetDepositAddressAsync(string symbol, bool forceRegenerate = false);
+        Task<ExchangeDepositDetails> GetDepositAddressAsync(string currency, bool forceRegenerate = false);
 
         /// <summary>
         /// Gets the deposit history for a currency

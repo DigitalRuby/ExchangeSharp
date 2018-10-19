@@ -391,15 +391,15 @@ namespace ExchangeSharp
             return deposits;
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
-            payload["Currency"] = symbol;
+            payload["Currency"] = currency;
             JToken token = await MakeJsonRequestAsync<JToken>("/GetDepositAddress", null, payload, "POST");
             if (token["Address"] == null) return null;
             return new ExchangeDepositDetails()
             {
-                Symbol = symbol,
+                Currency = currency,
                 Address = token["Address"].ToStringInvariant(),
                 AddressTag = token["BaseAddress"].ToStringInvariant()
             };

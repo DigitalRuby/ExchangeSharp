@@ -358,10 +358,10 @@ namespace ExchangeSharp
             result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            ExchangeDepositDetails deposit = new ExchangeDepositDetails() { Symbol = symbol };
-            JToken token = await MakeJsonRequestAsync<JToken>("/payment/address/" + symbol, null, await GetNoncePayloadAsync());
+            ExchangeDepositDetails deposit = new ExchangeDepositDetails() { Currency = currency };
+            JToken token = await MakeJsonRequestAsync<JToken>("/payment/address/" + currency, null, await GetNoncePayloadAsync());
             if (token != null)
             {
                 deposit.Address = token["address"].ToStringInvariant();

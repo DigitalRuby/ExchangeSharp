@@ -350,19 +350,19 @@ namespace ExchangeSharp
         }
 
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmyaddresses");
 
             // "addresses": { "BTC": "14iuWRBwB35HYG98vBxmVJoJZG73BZy4bZ", "LTC": "LXLWHFLpPbcKx69diMVEXVLAzSMXsyrQH2", "DOGE": "DGon17FjjTTVXaHeotm1gvw6ewUZ49WeZr",  }
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
-            if (token != null && token.HasValues && token["addresses"][symbol] != null)
+            if (token != null && token.HasValues && token["addresses"][currency] != null)
             {
                 return new ExchangeDepositDetails()
                 {
-                    Symbol = symbol,
-                    Address = token["addresses"][symbol].ToStringInvariant()
+                    Currency = currency,
+                    Address = token["addresses"][currency].ToStringInvariant()
                 };
             }
             return null;

@@ -532,23 +532,23 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/order/cancel", BaseUrlV1, payload);
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            if (symbol.Length == 0)
+            if (currency.Length == 0)
             {
-                throw new ArgumentNullException(nameof(symbol));
+                throw new ArgumentNullException(nameof(currency));
             }
 
             // IOTA addresses should never be used more than once
-            if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
+            if (currency.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
             {
                 forceRegenerate = true;
             }
 
             // symbol needs to be translated to full name of coin: bitcoin/litecoin/ethereum
-            if (!DepositMethodLookup.TryGetValue(symbol, out string fullName))
+            if (!DepositMethodLookup.TryGetValue(currency, out string fullName))
             {
-                fullName = symbol.ToLowerInvariant();
+                fullName = currency.ToLowerInvariant();
             }
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
@@ -559,7 +559,7 @@ namespace ExchangeSharp
             JToken result = await MakeJsonRequestAsync<JToken>("/deposit/new", BaseUrlV1, payload, "POST");
             var details = new ExchangeDepositDetails
             {
-                Symbol = result["currency"].ToStringInvariant(),
+                Currency = result["currency"].ToStringInvariant(),
             };
             if (result["address_pool"] != null)
             {

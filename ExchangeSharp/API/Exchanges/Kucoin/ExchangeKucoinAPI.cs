@@ -357,15 +357,15 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/cancel-order?" + CryptoUtility.GetFormForPayload(payload, false), null, payload, "POST");
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             // { "oid": "598aeb627da3355fa3e851ca", "address": "598aeb627da3355fa3e851ca", "context": null, "userOid": "5969ddc96732d54312eb960e", "coinType": "KCS", "createdAt": 1502276446000, "deletedAt": null, "updatedAt": 1502276446000,    "lastReceivedAt": 1502276446000   }
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/" + symbol + "/wallet/address", null, await GetNoncePayloadAsync());
+            JToken token = await MakeJsonRequestAsync<JToken>("/account/" + currency + "/wallet/address", null, await GetNoncePayloadAsync());
             if (token != null && token.HasValues)
             {
                 return new ExchangeDepositDetails()
                 {
-                    Symbol = symbol,
+                    Currency = currency,
                     Address = token["address"].ToStringInvariant(),
                     AddressTag = token["userOid"].ToStringInvariant()           // this isn't in their documentation, but is how it's being used on other interfaces
                 };

@@ -513,28 +513,28 @@ namespace ExchangeSharp
         /// Gets the address to deposit to and applicable details.
         /// If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
         /// </summary>
-        /// <param name="symbol">Symbol to get address for.</param>
+        /// <param name="currency">Currency to get address for.</param>
         /// <param name="forceRegenerate">(ignored) Bittrex does not support regenerating deposit addresses.</param>
         /// <returns>
         /// Deposit address details (including tag if applicable, such as with XRP)
         /// </returns>
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             IReadOnlyDictionary<string, ExchangeCurrency> updatedCurrencies = (await GetCurrenciesAsync());
 
-            string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(symbol);
+            string url = "/account/getdepositaddress?currency=" + NormalizeSymbol(currency);
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
 
             // NOTE API 1.1 does not include the the static wallet address for currencies with tags such as XRP & NXT (API 2.0 does!)
             // We are getting the static addresses via the GetCurrencies() api.
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
-                Symbol = result["Currency"].ToStringInvariant(),
+                Currency = result["Currency"].ToStringInvariant(),
             };
 
-            if (!updatedCurrencies.TryGetValue(depositDetails.Symbol, out ExchangeCurrency coin))
+            if (!updatedCurrencies.TryGetValue(depositDetails.Currency, out ExchangeCurrency coin))
             {
-                Logger.Warn($"Unable to find {depositDetails.Symbol} in existing list of coins.");
+                Logger.Warn($"Unable to find {depositDetails.Currency} in existing list of coins.");
                 return null;
             }
 

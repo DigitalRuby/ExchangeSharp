@@ -290,18 +290,18 @@ namespace ExchangeSharp
             throw new NotImplementedException("Yobit does not provide a deposit history via the API");  // I don't wonder why
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("need_new", forceRegenerate ? 1 : 0);
             payload.Add("method", "GetDepositAddress");
-            payload.Add("coinName", symbol);
+            payload.Add("coinName", currency);
             // "return":{"address": 1UHAnAWvxDB9XXETsi7z483zRRBmcUZxb3,"processed_amount": 1.00000000,"server_time": 1437146228 }
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
             return new ExchangeDepositDetails()
             {
                 Address = token["address"].ToStringInvariant(),
-                Symbol = symbol
+                Currency = currency
             };
         }
 

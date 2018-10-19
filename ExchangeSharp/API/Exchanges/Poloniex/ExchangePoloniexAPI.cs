@@ -854,24 +854,24 @@ namespace ExchangeSharp
             return resp;
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             // Never reuse IOTA addresses
-            if (symbol.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
+            if (currency.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
             {
                 forceRegenerate = true;
             }
 
             IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
             var depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
-            if (!forceRegenerate && !(await TryFetchExistingAddresses(symbol, currencies, depositAddresses)))
+            if (!forceRegenerate && !(await TryFetchExistingAddresses(currency, currencies, depositAddresses)))
             {
                 return null;
             }
 
-            if (!depositAddresses.TryGetValue(symbol, out var depositDetails))
+            if (!depositAddresses.TryGetValue(currency, out var depositDetails))
             {
-                depositDetails = await CreateDepositAddress(symbol, currencies);
+                depositDetails = await CreateDepositAddress(currency, currencies);
             }
 
             return depositDetails;
@@ -937,28 +937,28 @@ namespace ExchangeSharp
             return feesCurrency;
         }
 
-        private async Task<bool> TryFetchExistingAddresses(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, Dictionary<string, ExchangeDepositDetails> depositAddresses)
+        private async Task<bool> TryFetchExistingAddresses(string currency, IReadOnlyDictionary<string, ExchangeCurrency> currencies, Dictionary<string, ExchangeDepositDetails> depositAddresses)
         {
             JToken result = await MakePrivateAPIRequestAsync("returnDepositAddresses");
             foreach (JToken jToken in result)
             {
                 var token = (JProperty)jToken;
-                var details = new ExchangeDepositDetails { Symbol = token.Name };
+                var details = new ExchangeDepositDetails { Currency = token.Name };
 
-                if (!TryPopulateAddressAndTag(symbol, currencies, details, token.Value.ToStringInvariant()))
+                if (!TryPopulateAddressAndTag(currency, currencies, details, token.Value.ToStringInvariant()))
                 {
                     return false;
                 }
 
-                depositAddresses[details.Symbol] = details;
+                depositAddresses[details.Currency] = details;
             }
 
             return true;
         }
 
-        private static bool TryPopulateAddressAndTag(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
+        private static bool TryPopulateAddressAndTag(string currency, IReadOnlyDictionary<string, ExchangeCurrency> currencies, ExchangeDepositDetails details, string address)
         {
-            if (currencies.TryGetValue(symbol, out ExchangeCurrency coin))
+            if (currencies.TryGetValue(currency, out ExchangeCurrency coin))
             {
                 if (!string.IsNullOrWhiteSpace(coin.BaseAddress))
                 {
@@ -982,18 +982,18 @@ namespace ExchangeSharp
         /// <summary>
         /// Create a deposit address
         /// </summary>
-        /// <param name="symbol">Symbol to create an address for</param>
+        /// <param name="currency">Currency to create an address for</param>
         /// <param name="currencies">Lookup of existing currencies</param>
         /// <returns>ExchangeDepositDetails with an address or a BaseAddress/AddressTag pair.</returns>
-        private async Task<ExchangeDepositDetails> CreateDepositAddress(string symbol, IReadOnlyDictionary<string, ExchangeCurrency> currencies)
+        private async Task<ExchangeDepositDetails> CreateDepositAddress(string currency, IReadOnlyDictionary<string, ExchangeCurrency> currencies)
         {
-            JToken result = await MakePrivateAPIRequestAsync("generateNewAddress", new object[] { "currency", symbol });
+            JToken result = await MakePrivateAPIRequestAsync("generateNewAddress", new object[] { "currency", currency });
             var details = new ExchangeDepositDetails
             {
-                Symbol = symbol,
+                Currency = currency,
             };
 
-            if (!TryPopulateAddressAndTag(symbol, currencies, details, result["response"].ToStringInvariant()))
+            if (!TryPopulateAddressAndTag(currency, currencies, details, result["response"].ToStringInvariant()))
             {
                 return null;
             }

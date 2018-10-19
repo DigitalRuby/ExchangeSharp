@@ -307,12 +307,12 @@ namespace ExchangeSharp
             return deposits;
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + symbol.UrlEncode(), BaseUrl, await GetNoncePayloadAsync());
-            if (token != null && token.HasValues && token["currency"].ToStringInvariant() == symbol && token["wallet"].ToStringInvariant().Length != 0)
+            JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + currency.UrlEncode(), BaseUrl, await GetNoncePayloadAsync());
+            if (token != null && token.HasValues && token["currency"].ToStringInvariant() == currency && token["wallet"].ToStringInvariant().Length != 0)
             {
-                ExchangeDepositDetails address = new ExchangeDepositDetails() {Symbol = symbol };
+                ExchangeDepositDetails address = new ExchangeDepositDetails() {Currency = currency };
                 if (token["wallet"].ToStringInvariant().Contains("::"))
                 {
                     // address tags are separated with a '::'
