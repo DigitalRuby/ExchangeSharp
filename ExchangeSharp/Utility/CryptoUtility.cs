@@ -147,6 +147,26 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Decompress deflate bytes
+        /// </summary>
+        /// <param name="bytes">Bytes that are Deflate</param>
+        /// <returns>Uncompressed bytes</returns>
+        public static byte[] DecompressDeflate(byte[] bytes)
+        {
+            using (var compressStream = new MemoryStream(bytes))
+            {
+                using (var zipStream = new DeflateStream(compressStream, CompressionMode.Decompress))
+                {
+                    using (var resultStream = new MemoryStream())
+                    {
+                        zipStream.CopyTo(resultStream);
+                        return resultStream.ToArray();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Convert a DateTime and set the kind using the DateTimeKind property.
         /// </summary>
         /// <param name="obj">Object to convert</param>
@@ -326,6 +346,20 @@ namespace ExchangeSharp
                 return null;
             }
             return DecompressGzip(bytes).ToStringFromUTF8();
+        }
+
+        /// <summary>
+        /// Convert Deflate utf-8 bytes to a string
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns>UTF-8 string or null if bytes is null</returns>
+        public static string ToStringFromUTF8Deflate(this byte[] bytes)
+        {
+            if (bytes == null)
+            {
+                return null;
+            }
+            return DecompressDeflate(bytes).ToStringFromUTF8();
         }
 
         /// <summary>
