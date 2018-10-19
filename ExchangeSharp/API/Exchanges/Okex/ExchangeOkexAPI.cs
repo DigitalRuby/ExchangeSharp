@@ -23,7 +23,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
-        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
+        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket?compress=true";
 
 	/// <summary>
 	/// China time to utc, no DST correction needed
@@ -632,7 +632,9 @@ namespace ExchangeSharp
         {
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
-                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                // https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
+                // All the messages returning from WebSocket API will be optimized by Deflate compression
+                JToken token = JToken.Parse(msg.ToStringFromUTF8Deflate());
                 token = token[0];
                 var channel = token["channel"].ToStringInvariant();
                 if (channel.EqualsWithOption("addChannel"))
