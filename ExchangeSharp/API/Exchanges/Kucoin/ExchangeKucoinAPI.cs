@@ -27,6 +27,7 @@ namespace ExchangeSharp
     public sealed partial class ExchangeKucoinAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kucoin.com/v1";
+        public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
         public ExchangeKucoinAPI()
         {
@@ -392,6 +393,40 @@ namespace ExchangeSharp
 
         #endregion
 
+        #region Websockets
+
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+        {
+            var websocketUrlToken = GetWebsocketBulletToken();
+            return ConnectWebSocket(
+                    $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
+                                  {
+                                      JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                                      if (token["type"].Value<string>() == "message")
+                                      {
+                                          var dataToken = token["data"];
+                                          var symbol = dataToken["symbol"].ToStringInvariant();
+                                          ExchangeTicker ticker = this.ParseTicker(dataToken, symbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
+                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() {new KeyValuePair<string, ExchangeTicker>(symbol, ticker)});
+                                      }
+
+                                      return Task.CompletedTask;
+                                  }, async (_socket) =>
+                                     {
+                                         //need to subscribe to tickers one by one
+                                         symbols = symbols == null || symbols.Length == 0 ? (await GetSymbolsAsync()).ToArray() : symbols;
+                                         var id = DateTime.UtcNow.Ticks;
+                                         foreach (var symbol in symbols)
+                                         {
+                                             // subscribe to tick topic
+                                             await _socket.SendMessageAsync(new {id = id++, type = "subscribe", topic = $"/market/{symbol}_TICK" });
+                                         }
+                                     }
+                );
+        }
+
+        #endregion
+
         #region Private Functions
 
         private ExchangeTicker ParseTicker(JToken token, string symbol)
@@ -470,6 +505,15 @@ namespace ExchangeSharp
                 }
             }
             return amounts;
+        }
+
+        private string GetWebsocketBulletToken()
+        {
+            var jsonRequestTask = MakeJsonRequestAsync<JToken>("/bullet/usercenter/loginUser?protocol=websocket&encrypt=true", BaseUrl);
+            //wait for one second before timing out so we don't hold up the thread
+            jsonRequestTask.Wait(TimeSpan.FromSeconds(1));
+            var result = jsonRequestTask.Result;
+            return result["bulletToken"].ToString();
         }
 
         #endregion

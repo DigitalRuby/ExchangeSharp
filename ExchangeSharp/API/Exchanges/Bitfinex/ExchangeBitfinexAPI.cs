@@ -210,7 +210,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
@@ -240,7 +240,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                var marketSymbols = await GetMarketSymbolsAsync();
+                marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
                 foreach (var marketSymbol in marketSymbols)
                 {
                     await _socket.SendMessageAsync(new { @event = "subscribe", channel = "ticker", pair = marketSymbol });
