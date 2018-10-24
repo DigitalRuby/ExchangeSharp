@@ -395,7 +395,7 @@ namespace ExchangeSharp
 
         #region Websockets
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
             var websocketUrlToken = GetWebsocketBulletToken();
             return ConnectWebSocket(
@@ -405,21 +405,21 @@ namespace ExchangeSharp
                                       if (token["type"].Value<string>() == "message")
                                       {
                                           var dataToken = token["data"];
-                                          var symbol = dataToken["symbol"].ToStringInvariant();
-                                          ExchangeTicker ticker = this.ParseTicker(dataToken, symbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
-                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() {new KeyValuePair<string, ExchangeTicker>(symbol, ticker)});
+                                          var marketSymbol = dataToken["symbol"].ToStringInvariant();
+                                          ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
+                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() {new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)});
                                       }
 
                                       return Task.CompletedTask;
                                   }, async (_socket) =>
                                      {
                                          //need to subscribe to tickers one by one
-                                         symbols = symbols == null || symbols.Length == 0 ? (await GetSymbolsAsync()).ToArray() : symbols;
+                                         marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
                                          var id = DateTime.UtcNow.Ticks;
-                                         foreach (var symbol in symbols)
+                                         foreach (var marketSymbol in marketSymbols)
                                          {
                                              // subscribe to tick topic
-                                             await _socket.SendMessageAsync(new {id = id++, type = "subscribe", topic = $"/market/{symbol}_TICK" });
+                                             await _socket.SendMessageAsync(new {id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
                                          }
                                      }
                 );

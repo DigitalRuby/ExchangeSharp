@@ -118,11 +118,11 @@ namespace ExchangeSharpConsole
 
         private static void RunWebSocketTickers(Dictionary<string, string> dict)
         {
-            string[] symbols = GetSymbols(dict, false);
+            string[] symbols = GetMarketSymbols(dict, false);
             RunWebSocket(dict, (api) =>
                                {
                                    if(symbols != null)
-                                    symbols = ValidateSymbols(api, symbols);
+                                    symbols = ValidateMarketSymbols(api, symbols);
                                    return api.GetTickersWebSocket(
                                            freshTickers =>
                                            {
