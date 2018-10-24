@@ -26,10 +26,10 @@ namespace ExchangeSharp
             private ExchangeAPI api;
 
             public Func<IEnumerable<ExchangeTrade>, bool> Callback { get; set; }
-            public string Symbol { get; set; }
+            public string MarketSymbol { get; set; }
             public DateTime? StartDate { get; set; }
             public DateTime? EndDate { get; set; }
-            public string Url { get; set; } // url with format [symbol], {0} = start timestamp, {1} = end timestamp
+            public string Url { get; set; } // url with format [marketSymbol], {0} = start timestamp, {1} = end timestamp
             public int DelayMilliseconds { get; set; } = 1000;
             public TimeSpan BlockTime { get; set; } = TimeSpan.FromHours(1.0); // how much time to move for each block of data, default 1 hour
             public bool MillisecondGranularity { get; set; } = true;
@@ -62,9 +62,9 @@ namespace ExchangeSharp
                     throw new ArgumentException("Missing required parameter", nameof(Url));
                 }
 
-                Symbol = api.NormalizeSymbol(Symbol);
+                MarketSymbol = api.NormalizeMarketSymbol(MarketSymbol);
                 string url;
-                Url = Url.Replace("[symbol]", Symbol);
+                Url = Url.Replace("[marketSymbol]", MarketSymbol);
                 List<ExchangeTrade> trades = new List<ExchangeTrade>();
                 ExchangeTrade trade;
                 EndDate = (EndDate ?? CryptoUtility.UtcNow);

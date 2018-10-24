@@ -18,8 +18,8 @@ namespace ExchangeSharp
         /// <summary>Id of the market (specific to the exchange), null if none</summary>
         public string MarketId { get; set; }
 
-        /// <summary>Gets or sets the name of the market.</summary>
-        public string MarketName { get; set; }
+        /// <summary>Gets or sets the symbol representing the market's currency pair.</summary>
+        public string MarketSymbol { get; set; }
 
         /// <summary>A value indicating whether the market is active.</summary>
         public bool IsActive { get; set; }
@@ -69,7 +69,7 @@ namespace ExchangeSharp
 
         public override string ToString()
         {
-            return $"{MarketName}, {BaseCurrency}-{QuoteCurrency}";
+            return $"{MarketSymbol}, {BaseCurrency}-{QuoteCurrency}";
         }
     }
 }

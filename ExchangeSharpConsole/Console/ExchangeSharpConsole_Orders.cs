@@ -12,11 +12,11 @@ namespace ExchangeSharpConsole
     {
         public static void RunGetOrderHistory(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "exchangeName", "symbol");
+            RequireArgs(dict, "exchangeName", "marketSymbol");
 
             string exchangeName = dict["exchangeName"];
             IExchangeAPI api = ExchangeAPI.GetExchangeAPI(exchangeName);
-            string symbol = dict["symbol"];
+            string marketSymbol = dict["marketSymbol"];
 
             Authenticate(api);
 
@@ -26,7 +26,7 @@ namespace ExchangeSharpConsole
                 startDate = DateTime.Parse(dict["startDate"]).ToUniversalTime();
             }
 
-            var completedOrders = api.GetCompletedOrderDetailsAsync(symbol, startDate).Sync();
+            var completedOrders = api.GetCompletedOrderDetailsAsync(marketSymbol, startDate).Sync();
             foreach (var completedOrder in completedOrders)
             {
                 Console.WriteLine(completedOrder);
@@ -46,13 +46,13 @@ namespace ExchangeSharpConsole
 
             Authenticate(api);
 
-            string symbol = null;
-            if (dict.ContainsKey("symbol"))
+            string marketSymbol = null;
+            if (dict.ContainsKey("marketSymbol"))
             {
-                symbol = dict["symbol"];
+                marketSymbol = dict["marketSymbol"];
             }
 
-            var orderDetails = api.GetOrderDetailsAsync(orderId, symbol).Sync();
+            var orderDetails = api.GetOrderDetailsAsync(orderId, marketSymbol).Sync();
             Console.WriteLine(orderDetails);
 
             Console.Write("Press enter to exit..");

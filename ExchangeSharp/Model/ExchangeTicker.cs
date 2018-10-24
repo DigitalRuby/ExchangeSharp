@@ -34,7 +34,7 @@ namespace ExchangeSharp
         /// <summary>
         /// The currency pair symbol that this ticker is in reference to
         /// </summary>
-        public string Symbol { get; set; }
+        public string MarketSymbol { get; set; }
 
         /// <summary>
         /// The bid is the price to sell at

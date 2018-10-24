@@ -24,28 +24,28 @@ namespace ExchangeSharp
 
         public ExchangeBithumbAPI()
         {
-            SymbolIsUppercase = true;
+            MarketSymbolIsUppercase = true;
         }
 
-        public override string NormalizeSymbol(string symbol)
+        public override string NormalizeMarketSymbol(string marketSymbol)
         {
-            symbol = base.NormalizeSymbol(symbol);
-            int pos = symbol.IndexOf(SymbolSeparator);
+            marketSymbol = base.NormalizeMarketSymbol(marketSymbol);
+            int pos = marketSymbol.IndexOf(MarketSymbolSeparator);
             if (pos >= 0)
             {
-                symbol = symbol.Substring(0, pos);
+                marketSymbol = marketSymbol.Substring(0, pos);
             }
-            return symbol;
+            return marketSymbol;
         }
 
-        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
         {
-            return "KRW" + GlobalSymbolSeparator + symbol;
+            return "KRW" + GlobalMarketSymbolSeparator + marketSymbol;
         }
 
-        public override string GlobalSymbolToExchangeSymbol(string symbol)
+        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
         {
-            return symbol.Substring(symbol.IndexOf(GlobalSymbolSeparator) + 1);
+            return marketSymbol.Substring(marketSymbol.IndexOf(GlobalMarketSymbolSeparator) + 1);
         }
 
         private string StatusToError(string status)
@@ -73,36 +73,36 @@ namespace ExchangeSharp
             return result["data"];
         }
 
-        private async Task<Tuple<JToken, string>> MakeRequestBithumbAsync(string symbol, string subUrl)
+        private async Task<Tuple<JToken, string>> MakeRequestBithumbAsync(string marketSymbol, string subUrl)
         {
-            symbol = NormalizeSymbol(symbol);
-            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty));
-            return new Tuple<JToken, string>(obj, symbol);
+            marketSymbol = NormalizeMarketSymbol(marketSymbol);
+            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", marketSymbol ?? string.Empty));
+            return new Tuple<JToken, string>(obj, marketSymbol);
         }
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data)
+        private ExchangeTicker ParseTicker(string marketSymbol, JToken data)
         {
-            return this.ParseTicker(data, symbol, "sell_price", "buy_price", "buy_price", "average_price", "units_traded", "date", TimestampType.UnixMilliseconds);
+            return this.ParseTicker(data, marketSymbol, "sell_price", "buy_price", "buy_price", "average_price", "units_traded", "date", TimestampType.UnixMilliseconds);
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
-            List<string> symbols = new List<string>();
-            string symbol = "all";
-            var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
+            List<string> marketSymbols = new List<string>();
+            string marketSymbol = "all";
+            var data = await MakeRequestBithumbAsync(marketSymbol, "/public/ticker/$SYMBOL$");
             foreach (JProperty token in data.Item1)
             {
                 if (token.Name != "date")
                 {
-                    symbols.Add(token.Name);
+                    marketSymbols.Add(token.Name);
                 }
             }
-            return symbols;
+            return marketSymbols;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
+            var data = await MakeRequestBithumbAsync(marketSymbol, "/public/ticker/$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1);
         }
 
@@ -124,9 +124,9 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
-            var data = await MakeRequestBithumbAsync(symbol, "/public/orderbook/$SYMBOL$");
+            var data = await MakeRequestBithumbAsync(marketSymbol, "/public/orderbook/$SYMBOL$");
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(data.Item1, amount: "quantity", sequence: "timestamp", maxCount: maxCount);
         }
 

@@ -138,7 +138,7 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.ContainsKey("symbols"))
                 {
-                    RunGetSymbols(argsDictionary);
+                    RunGetMarketSymbols(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("tickers"))
                 {

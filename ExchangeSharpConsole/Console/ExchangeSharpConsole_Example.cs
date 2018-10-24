@@ -36,7 +36,7 @@ namespace ExchangeSharpConsole
                 Amount = 0.01m,
                 IsBuy = true,
                 Price = ticker.Ask,
-                Symbol = "XXBTZUSD"
+                MarketSymbol = "XXBTZUSD"
             }).Sync();
 
             // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
@@ -49,31 +49,31 @@ namespace ExchangeSharpConsole
             Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
 
-        private static string[] GetSymbols(Dictionary<string, string> dict)
+        private static string[] GetMarketSymbols(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "symbols");
-            if (dict["symbols"] == "*")
+            RequireArgs(dict, "marketSymbols");
+            if (dict["marketSymbols"] == "*")
             {
                 return null;
             }
-            return dict["symbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            return dict["marketSymbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static string[] ValidateSymbols(IExchangeAPI api, string[] symbols)
+        private static string[] ValidateMarketSymbols(IExchangeAPI api, string[] marketSymbols)
         {
-            string[] apiSymbols = api.GetSymbolsAsync().Sync().ToArray();
-            if (symbols == null || symbols.Length == 0)
+            string[] apiSymbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+            if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                symbols = apiSymbols;
+                marketSymbols = apiSymbols;
             }
-            foreach (string symbol in symbols)
+            foreach (string marketSymbol in marketSymbols)
             {
-                if (!apiSymbols.Contains(symbol))
+                if (!apiSymbols.Contains(marketSymbol))
                 {
-                    throw new ArgumentException(string.Format("Symbol {0} does not exist in API {1}, valid symbols: {2}", symbol, api.Name, string.Join(",", apiSymbols.OrderBy(s => s))));
+                    throw new ArgumentException(string.Format("Symbol {0} does not exist in API {1}, valid symbols: {2}", marketSymbol, api.Name, string.Join(",", apiSymbols.OrderBy(s => s))));
                 }
             }
-            return symbols;
+            return marketSymbols;
         }
 
         private static void SetWebSocketEvents(IWebSocket socket)
@@ -128,10 +128,10 @@ namespace ExchangeSharpConsole
 
         private static void RunTradesWebSocket(Dictionary<string, string> dict)
         {
-            string[] symbols = GetSymbols(dict);
+            string[] symbols = GetMarketSymbols(dict);
             RunWebSocket(dict, (api) =>
             {
-                symbols = ValidateSymbols(api, symbols);
+                symbols = ValidateMarketSymbols(api, symbols);
                 return api.GetTradesWebSocket(message =>
                 {
                     Console.WriteLine($"{message.Key}: {message.Value}");
@@ -141,16 +141,16 @@ namespace ExchangeSharpConsole
 
         private static void RunOrderBookWebSocket(Dictionary<string, string> dict)
         {
-            string[] symbols = GetSymbols(dict);
+            string[] symbols = GetMarketSymbols(dict);
             RunWebSocket(dict, (api) =>
             {
-                symbols = ValidateSymbols(api, symbols);
+                symbols = ValidateMarketSymbols(api, symbols);
                 return ExchangeAPIExtensions.GetFullOrderBookWebSocket(api, message =>
                 {
                    //print the top bid and ask with amount
                    var topBid = message.Bids.FirstOrDefault();
                     var topAsk = message.Asks.FirstOrDefault();
-                    Console.WriteLine($"[{message.Symbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                    Console.WriteLine($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
                 }, symbols: symbols);
             });
         }
@@ -189,11 +189,11 @@ namespace ExchangeSharpConsole
 
                 try
                 {
-                    var symbols = api.GetSymbolsMetadataAsync().Sync();
+                    var marketSymbols = api.GetMarketSymbolsMetadataAsync().Sync();
 
-                    foreach (var symbol in symbols)
+                    foreach (var marketSymbol in marketSymbols)
                     {
-                        Console.WriteLine(symbol);
+                        Console.WriteLine(marketSymbol);
                     }
 
                     Console.WriteLine("Press any key to quit.");
@@ -206,7 +206,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        public static void RunGetSymbols(Dictionary<string, string> dict)
+        public static void RunGetMarketSymbols(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
@@ -218,11 +218,11 @@ namespace ExchangeSharpConsole
 
                 try
                 {
-                    var symbols = api.GetSymbolsAsync().Sync();
+                    var marketSymbols = api.GetMarketSymbolsAsync().Sync();
 
-                    foreach (var symbol in symbols)
+                    foreach (var marketSymbol in marketSymbols)
                     {
-                        Console.WriteLine(symbol);
+                        Console.WriteLine(marketSymbol);
                     }
 
                     Console.WriteLine("Press any key to quit.");
@@ -248,13 +248,13 @@ namespace ExchangeSharpConsole
                 try
                 {
                     IEnumerable<KeyValuePair<string, ExchangeTicker>> tickers;
-                    if (dict.ContainsKey("symbol"))
+                    if (dict.ContainsKey("marketSymbol"))
                     {
-                        var symbol = dict["symbol"];
-                        var ticker = api.GetTickerAsync(symbol).Sync();
+                        var marketSymbol = dict["marketSymbol"];
+                        var ticker = api.GetTickerAsync(marketSymbol).Sync();
                         tickers = new List<KeyValuePair<string, ExchangeTicker>>()
                                   {
-                                      new KeyValuePair<string, ExchangeTicker>(symbol, ticker)
+                                      new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)
                                   };
                     }
                     else
@@ -279,7 +279,7 @@ namespace ExchangeSharpConsole
 
         public static void RunGetCandles(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "exchangeName", "symbol");
+            RequireArgs(dict, "exchangeName", "marketSymbol");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
             {
                 if (api == null)
@@ -289,8 +289,8 @@ namespace ExchangeSharpConsole
 
                 try
                 {
-                    var symbol = dict["symbol"];
-                    var candles = api.GetCandlesAsync(symbol, 1800, DateTime.UtcNow.AddDays(-12), DateTime.UtcNow).Sync();                   
+                    var marketSymbol = dict["marketSymbol"];
+                    var candles = api.GetCandlesAsync(marketSymbol, 1800, DateTime.UtcNow.AddDays(-12), DateTime.UtcNow).Sync();                   
                     
                     foreach (var candle in candles)
                     {

@@ -81,7 +81,7 @@ namespace ExchangeSharp
                 // ideally all exchanges would send the full order book on first message, followed by delta order books
                 // but this is not the case
 
-                bool foundFullBook = fullBooks.TryGetValue(newOrderBook.Symbol, out ExchangeOrderBook fullOrderBook);
+                bool foundFullBook = fullBooks.TryGetValue(newOrderBook.MarketSymbol, out ExchangeOrderBook fullOrderBook);
                 switch (api.WebSocketOrderBookType)
                 {
                     case WebSocketOrderBookType.DeltasOnly:
@@ -95,10 +95,10 @@ namespace ExchangeSharp
                         // attempt to find the right queue to put the partial order book in to be processed later
                         lock (partialOrderBookQueues)
                         {
-                            if (!partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue))
+                            if (!partialOrderBookQueues.TryGetValue(newOrderBook.MarketSymbol, out partialOrderBookQueue))
                             {
                                 // no queue found, make a new one
-                                partialOrderBookQueues[newOrderBook.Symbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
+                                partialOrderBookQueues[newOrderBook.MarketSymbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
                                 requestFullOrderBook = !foundFullBook;
                             }
 
@@ -109,9 +109,9 @@ namespace ExchangeSharp
                         // request the entire order book if we need it
                         if (requestFullOrderBook)
                         {
-                            fullOrderBook = await api.GetOrderBookAsync(newOrderBook.Symbol, maxCount);
-                            fullOrderBook.Symbol = newOrderBook.Symbol;
-                            fullBooks[newOrderBook.Symbol] = fullOrderBook;
+                            fullOrderBook = await api.GetOrderBookAsync(newOrderBook.MarketSymbol, maxCount);
+                            fullOrderBook.MarketSymbol = newOrderBook.MarketSymbol;
+                            fullBooks[newOrderBook.MarketSymbol] = fullOrderBook;
                         }
                         else if (!foundFullBook)
                         {
@@ -125,7 +125,7 @@ namespace ExchangeSharp
                         // lock dictionary of queues for lookup only
                         lock (partialOrderBookQueues)
                         {
-                            partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue);
+                            partialOrderBookQueues.TryGetValue(newOrderBook.MarketSymbol, out partialOrderBookQueue);
                         }
 
                         if (partialOrderBookQueue != null)
@@ -147,7 +147,7 @@ namespace ExchangeSharp
                         // Subsequent updates will be deltas, at least some exchanges have their heads on straight
                         if (!foundFullBook)
                         {
-                            fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
+                            fullBooks[newOrderBook.MarketSymbol] = fullOrderBook = newOrderBook;
                         }
                         else
                         {
@@ -158,7 +158,7 @@ namespace ExchangeSharp
                     case WebSocketOrderBookType.FullBookAlways:
                     {
                         // Websocket always returns full order book, WTF...?
-                        fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
+                        fullBooks[newOrderBook.MarketSymbol] = fullOrderBook = newOrderBook;
                     } break;
                 }
 
@@ -269,7 +269,7 @@ namespace ExchangeSharp
                 OrderType = OrderType.Limit,
                 Price = CryptoUtility.RoundAmount((isBuy ? highPrice : lowPrice) * priceThreshold),
                 ShouldRoundAmount = true,
-                Symbol = symbol
+                MarketSymbol = symbol
             };
             ExchangeOrderResult result = await api.PlaceOrderAsync(request);
 
@@ -387,7 +387,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="api">ExchangeAPI</param>
         /// <param name="token">Token</param>
-        /// <param name="symbol">Symbol</param>
+        /// <param name="marketSymbol">Symbol</param>
         /// <param name="askKey">Ask key</param>
         /// <param name="bidKey">Bid key</param>
         /// <param name="lastKey">Last key</param>
@@ -399,7 +399,7 @@ namespace ExchangeSharp
         /// <param name="quoteCurrencyKey">Quote currency key</param>
         /// <param name="idKey">Id key</param>
         /// <returns>ExchangeTicker</returns>
-        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
+        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string marketSymbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
             object quoteVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
             object baseCurrencyKey = null, object quoteCurrencyKey = null, object idKey = null)
@@ -424,13 +424,13 @@ namespace ExchangeSharp
                 baseCurrency = token[baseCurrencyKey].ToStringInvariant();
                 quoteCurrency = token[quoteCurrencyKey].ToStringInvariant();
             }
-            else if (string.IsNullOrWhiteSpace(symbol))
+            else if (string.IsNullOrWhiteSpace(marketSymbol))
             {
-                throw new ArgumentNullException(nameof(symbol));
+                throw new ArgumentNullException(nameof(marketSymbol));
             }
             else
             {
-                (baseCurrency, quoteCurrency) = api.ExchangeSymbolToCurrencies(symbol);
+                (baseCurrency, quoteCurrency) = api.ExchangeMarketSymbolToCurrencies(marketSymbol);
             }
 
             // create the ticker and return it
@@ -446,7 +446,7 @@ namespace ExchangeSharp
             }
             ExchangeTicker ticker = new ExchangeTicker
             {
-                Symbol = symbol,
+                MarketSymbol = marketSymbol,
                 Ask = askValue.ConvertInvariant<decimal>(),
                 Bid = bidValue.ConvertInvariant<decimal>(),
                 Id = (idKey == null ? null : token[idKey].ToStringInvariant()),
@@ -546,7 +546,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="named">Named item</param>
         /// <param name="token">JToken</param>
-        /// <param name="symbol">Symbol</param>
+        /// <param name="marketSymbol">Symbol</param>
         /// <param name="periodSeconds">Period seconds</param>
         /// <param name="openKey">Open key</param>
         /// <param name="highKey">High key</param>
@@ -558,7 +558,7 @@ namespace ExchangeSharp
         /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="weightedAverageKey">Weighted average key</param>
         /// <returns>MarketCandle</returns>
-        internal static MarketCandle ParseCandle(this INamed named, JToken token, string symbol, int periodSeconds, object openKey, object highKey, object lowKey,
+        internal static MarketCandle ParseCandle(this INamed named, JToken token, string marketSymbol, int periodSeconds, object openKey, object highKey, object lowKey,
             object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object quoteVolumeKey = null, object weightedAverageKey = null)
         {
             MarketCandle candle = new MarketCandle
@@ -567,7 +567,7 @@ namespace ExchangeSharp
                 ExchangeName = named.Name,
                 HighPrice = token[highKey].ConvertInvariant<decimal>(),
                 LowPrice = token[lowKey].ConvertInvariant<decimal>(),
-                Name = symbol,
+                Name = marketSymbol,
                 OpenPrice = token[openKey].ConvertInvariant<decimal>(),
                 PeriodSeconds = periodSeconds,
                 Timestamp = CryptoUtility.ParseTimestamp(token[timestampKey], timestampType)

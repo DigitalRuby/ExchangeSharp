@@ -42,8 +42,8 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMilliseconds;
-            SymbolIsUppercase = false;
-            SymbolSeparator = string.Empty;
+            MarketSymbolIsUppercase = false;
+            MarketSymbolSeparator = string.Empty;
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace ExchangeSharp
             return token;
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             foreach (JToken token in (await MakeBitstampRequestAsync("/trading-pairs-info")))
@@ -95,23 +95,23 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
-            JToken token = await MakeBitstampRequestAsync("/ticker/" + symbol);
-            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSeconds);
+            JToken token = await MakeBitstampRequestAsync("/ticker/" + marketSymbol);
+            return this.ParseTicker(token, marketSymbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSeconds);
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
-            JToken token = await MakeBitstampRequestAsync("/order_book/" + symbol);
+            JToken token = await MakeBitstampRequestAsync("/order_book/" + marketSymbol);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // [{"date": "1513387997", "tid": "33734815", "price": "0.01724547", "type": "1", "amount": "5.56481714"}]
-            JToken token = await MakeBitstampRequestAsync("/transactions/" + symbol);
+            JToken token = await MakeBitstampRequestAsync("/transactions/" + marketSymbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             foreach (JToken trade in token)
             {
@@ -169,7 +169,7 @@ namespace ExchangeSharp
         {
             string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
-            string url = $"/{action}{market}/{order.Symbol}/";
+            string url = $"/{action}{market}/{order.MarketSymbol}/";
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
 
             if (order.OrderType != OrderType.Market)
@@ -192,11 +192,11 @@ namespace ExchangeSharp
                 OrderDate = CryptoUtility.UtcNow,
                 OrderId = responseObject["id"].ToStringInvariant(),
                 IsBuy = order.IsBuy,
-                Symbol = order.Symbol
+                MarketSymbol = order.MarketSymbol
             };
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
         {
             //{
             //    "status": "Finished",
@@ -265,13 +265,13 @@ namespace ExchangeSharp
             return new ExchangeOrderResult()
             {
                 AmountFilled = amountFilled,
-                Symbol = _symbol,
+                MarketSymbol = _symbol,
                 AveragePrice = spentQuoteCurrency / amountFilled,
                 Price = price,
             };
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
@@ -282,7 +282,7 @@ namespace ExchangeSharp
             {
                 //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
                 string tokenSymbol = token["currency_pair"].ToStringLowerInvariant().Replace("/", "");
-                if (!string.IsNullOrWhiteSpace(tokenSymbol) && !string.IsNullOrWhiteSpace(symbol) && !tokenSymbol.Equals(symbol, StringComparison.InvariantCultureIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(tokenSymbol) && !string.IsNullOrWhiteSpace(marketSymbol) && !tokenSymbol.Equals(marketSymbol, StringComparison.InvariantCultureIgnoreCase))
                 {
                     continue;
                 }
@@ -293,13 +293,13 @@ namespace ExchangeSharp
                     IsBuy = token["type"].ConvertInvariant<int>() == 0,
                     Price = token["price"].ConvertInvariant<decimal>(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
-                    Symbol = tokenSymbol ?? symbol
+                    MarketSymbol = tokenSymbol ?? marketSymbol
                 });
             }
             return orders;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
@@ -315,7 +315,7 @@ namespace ExchangeSharp
                 string tradingPair = ((JObject)transaction).Properties().FirstOrDefault(p =>
                     !p.Name.Equals("order_id", StringComparison.InvariantCultureIgnoreCase)
                     && p.Name.Contains("_"))?.Name.Replace("_", "-");
-                if (!string.IsNullOrWhiteSpace(tradingPair) && !string.IsNullOrWhiteSpace(symbol) && !NormalizeSymbol(tradingPair).Equals(symbol))
+                if (!string.IsNullOrWhiteSpace(tradingPair) && !string.IsNullOrWhiteSpace(marketSymbol) && !NormalizeMarketSymbol(tradingPair).Equals(marketSymbol))
                 {
                     continue;
                 }
@@ -330,7 +330,7 @@ namespace ExchangeSharp
                     IsBuy = resultBaseCurrency > 0,
                     Fees = transaction["fee"].ConvertInvariant<decimal>(),
                     FeesCurrency = quoteCurrency.ToStringUpperInvariant(),
-                    Symbol = NormalizeSymbol(tradingPair),
+                    MarketSymbol = NormalizeMarketSymbol(tradingPair),
                     OrderDate = transaction["datetime"].ToDateTimeInvariant(),
                     AmountFilled = Math.Abs(resultBaseCurrency),
                     AveragePrice = transaction[$"{baseCurrency}_{quoteCurrency}"].ConvertInvariant<decimal>()
@@ -354,7 +354,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             if (string.IsNullOrWhiteSpace(orderId))
             {
