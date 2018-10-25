@@ -219,8 +219,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-
-            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654
+            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654 + using Fiddler 
 
             // Get coinbase accounts
             JArray accounts = await this.MakeJsonRequestAsync<JArray>("/coinbase-accounts", null, await GetNoncePayloadAsync(), "GET");
@@ -230,8 +229,6 @@ namespace ExchangeSharp
                 string currency = token["currency"].ConvertInvariant<string>();
                 if (currency.Equals(symbol, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    // account.id - uriParts
-                    // addresses - headers
                     JToken accountWalletAddress = await this.MakeJsonRequestAsync<JToken>(
                                                                                           $"/coinbase-accounts/{token["id"]}/addresses",
                                                                                           null,
