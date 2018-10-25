@@ -209,7 +209,7 @@ namespace ExchangeSharp
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/market/tickers");
+            JToken obj = await MakeJsonRequestAsync<JToken>("/market/tickers", BaseUrl, null);
 
             foreach (JToken child in obj["data"])
             {
