@@ -205,9 +205,19 @@ namespace ExchangeSharp
             return this.ParseTicker(ticker["tick"], symbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
         }
 
-        protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        protected async override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            throw new NotImplementedException("Too many pairs and this exchange does not support a single call to get all the tickers");
+            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            string symbol;
+            JToken obj = await MakeJsonRequestAsync<JToken>("/market/tickers");
+
+            foreach (JToken child in obj["data"])
+            {
+                symbol = child["symbol"].ToStringInvariant();
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(child, symbol, null, null, "close", "amount", "vol")));
+            }
+
+            return tickers;
         }
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
