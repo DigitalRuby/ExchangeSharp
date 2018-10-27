@@ -47,6 +47,7 @@ namespace ExchangeSharp
 
             ExchangeOrderResult order = new ExchangeOrderResult
             {
+                TradeId = result["trade_id"].ToStringInvariant(), 
                 Amount = amount, 
                 AmountFilled = amount, 
                 Price = price,
@@ -55,7 +56,7 @@ namespace ExchangeSharp
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ToDateTimeInvariant(),
                 Symbol = symbol,
-                OrderId = result["id"].ToStringInvariant(), 
+                OrderId = result["order_id"].ToStringInvariant(), 
             };
              
             return order;
