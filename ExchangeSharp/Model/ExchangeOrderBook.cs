@@ -14,13 +14,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    using ExchangeSharp.Utility;
-
     /// <summary>
     /// A price entry in an exchange order book
     /// </summary>
@@ -82,6 +78,9 @@ namespace ExchangeSharp
         /// This property is not serialized using the ToBinary and FromBinary methods.
         /// </summary>
         public string Symbol { get; set; }
+
+        /// <summary>The last updated UTC</summary>
+        public DateTime LastUpdatedUtc { get; set; } = DateTime.MinValue;
 
         /// <summary>
         /// List of asks (sells)

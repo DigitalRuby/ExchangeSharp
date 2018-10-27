@@ -28,9 +28,10 @@ namespace ExchangeSharp
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             if (reader.Value == null)
+            {
                 return null;
-
-            var t = long.Parse(reader.Value.ToString());
+            }
+            long t = reader.Value.ConvertInvariant<long>();
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(t);
         }
 

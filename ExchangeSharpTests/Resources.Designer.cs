@@ -61,6 +61,43 @@ namespace ExchangeSharpTests {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {&quot;Abucoins&quot;:[&quot;ETH-BTC&quot;,&quot;LTC-BTC&quot;,&quot;ETC-BTC&quot;,&quot;ZEC-BTC&quot;,&quot;STRAT-BTC&quot;,&quot;DASH-BTC&quot;,&quot;XMR-BTC&quot;,&quot;SC-BTC&quot;,&quot;XEM-BTC&quot;,&quot;WAVES-BTC&quot;,&quot;XLM-BTC&quot;,&quot;GNT-BTC&quot;,&quot;REP-BTC&quot;,&quot;XRP-BTC&quot;,&quot;BCH-BTC&quot;,&quot;BTC-PLN&quot;,&quot;BTC-USD&quot;,&quot;BTC-EUR&quot;,&quot;ETH-PLN&quot;,&quot;BTG-BTC&quot;,&quot;BCH-PLN&quot;,&quot;BCH-USD&quot;,&quot;BCH-EUR&quot;,&quot;ETH-USD&quot;,&quot;ETH-EUR&quot;,&quot;BTG-PLN&quot;,&quot;BTG-USD&quot;,&quot;BTG-EUR&quot;,&quot;LSK-BTC&quot;,&quot;LSK-PLN&quot;,&quot;LSK-USD&quot;,&quot;LSK-EUR&quot;,&quot;HSR-BTC&quot;,&quot;QTUM-BTC&quot;,&quot;ADA-BTC&quot;,&quot;TRX-BTC&quot;,&quot;ARK-BTC&quot;,&quot;EOS-BTC&quot;,&quot;PIVX-BTC&quot;,&quot;DOGE-BTC&quot;,&quot;BLOCK-BTC&quot;,&quot;NEO-BTC&quot;,&quot;OMG-BTC&quot;,&quot;VEN-BTC&quot;,&quot;PPT-BTC&quot;,&quot;ONT-BTC&quot;,&quot;DGD-BTC&quot;,&quot;BTM-BTC&quot;,&quot;RHOC-BTC&quot; [rest of....
+        /// </summary>
+        internal static string AllSymbolsJson {
+            get {
+                return ResourceManager.GetString("AllSymbolsJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [
+        ///{
+        ///&quot;id&quot;: &quot;10&quot;,
+        ///&quot;assetCode&quot;: &quot;BNB&quot;,
+        ///&quot;assetName&quot;: &quot;Binance Coin&quot;,
+        ///&quot;unit&quot;: &quot;&quot;,
+        ///&quot;transactionFee&quot;: 0.23,
+        ///&quot;commissionRate&quot;: 0,
+        ///&quot;freeAuditWithdrawAmt&quot;: 20000,
+        ///&quot;freeUserChargeAmount&quot;: 10000000,
+        ///&quot;minProductWithdraw&quot;: &quot;0.460000000000000000&quot;,
+        ///&quot;withdrawIntegerMultiple&quot;: &quot;0E-18&quot;,
+        ///&quot;confirmTimes&quot;: &quot;30&quot;,
+        ///&quot;chargeLockConfirmTimes&quot;: null,
+        ///&quot;createTime&quot;: null,
+        ///&quot;test&quot;: 0,
+        ///&quot;url&quot;: &quot;https://etherscan.io/tx/&quot;,
+        ///&quot;addressUrl&quot;: &quot;https://etherscan.io/address/&quot;,
+        ///&quot;blockUrl&quot;: &quot;https://etherscan.io/blocks/&quot;,
+        ///&quot;enableCharge [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string BinanceGetAllAssets {
+            get {
+                return ResourceManager.GetString("BinanceGetAllAssets", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {&quot;BTC_AMP&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:53458743},&quot;BTC_ARDR&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:40603963},&quot;BTC_BCN&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:10872588},&quot;BTC_BCY&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:28184309},&quot;BTC_BLK&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:23874966},&quot;BTC_BTCD&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:25198804},&quot;BTC_BTM&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:20151600},&quot;BTC_BTS&quot;:{&quot;asks&quot;:[],&quot;bids&quot;:[],&quot;isFrozen&quot;:&quot;0&quot;,&quot;seq&quot;:67659413},&quot;BTC_BURST&quot;:{ [rest of string wa....
         /// </summary>
         internal static string PoloniexGetSymbolsMetadata1 {

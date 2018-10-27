@@ -204,14 +204,14 @@ namespace ExchangeSharpTests
             double msMax = (double)ms * 1.5;
             double msMin = (double)ms * (1.0 / 1.5);
             RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
-            if (!gate.WaitToProceed(0))
+            if (!gate.WaitToProceedAsync(0).Sync())
             {
                 throw new APIException("Rate gate should have allowed immediate access to first attempt");
             }
             for (int i = 0; i < loops; i++)
             {
                 Stopwatch timer = Stopwatch.StartNew();
-                gate.WaitToProceed();
+                gate.WaitToProceedAsync().Sync();
                 timer.Stop();
 
                 if (i > 0)

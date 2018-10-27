@@ -27,6 +27,106 @@ namespace ExchangeSharp
     {
         private readonly IAPIRequestHandler api;
 
+        private class InternalHttpWebRequest : IHttpWebRequest
+        {
+            internal readonly HttpWebRequest request;
+
+            public InternalHttpWebRequest(Uri fullUri)
+            {
+                request = HttpWebRequest.Create(fullUri) as HttpWebRequest;
+                request.KeepAlive = false;
+            }
+
+            public void AddHeader(string header, string value)
+            {
+                switch (header.ToStringLowerInvariant())
+                {
+                    case "content-type":
+                        request.ContentType = value;
+                        break;
+
+                    case "content-length":
+                        request.ContentLength = value.ConvertInvariant<long>();
+                        break;
+
+                    case "user-agent":
+                        request.UserAgent = value;
+                        break;
+
+                    case "accept":
+                        request.Accept = value;
+                        break;
+
+                    case "connection":
+                        request.Connection = value;
+                        break;
+
+                    default:
+                        request.Headers[header] = value;
+                        break;
+                }
+            }
+
+            public Uri RequestUri
+            {
+                get { return request.RequestUri; }
+            }
+
+            public string Method
+            {
+                get { return request.Method; }
+                set { request.Method = value; }
+            }
+
+            public int Timeout
+            {
+                get { return request.Timeout; }
+                set { request.Timeout = value; }
+            }
+
+            public int ReadWriteTimeout
+            {
+                get { return request.ReadWriteTimeout; }
+                set { request.ReadWriteTimeout = value; }
+            }
+
+            public async Task WriteAllAsync(byte[] data, int index, int length)
+            {
+                using (Stream stream = await request.GetRequestStreamAsync())
+                {
+                    await stream.WriteAsync(data, 0, data.Length);
+                }
+            }
+        }
+
+        private class InternalHttpWebResponse : IHttpWebResponse
+        {
+            private readonly HttpWebResponse response;
+
+            public InternalHttpWebResponse(HttpWebResponse response)
+            {
+                this.response = response;
+            }
+
+            public IReadOnlyList<string> GetHeader(string name)
+            {
+                return response.Headers.GetValues(name) ?? CryptoUtility.EmptyStringArray;
+            }
+
+            public Dictionary<string, IReadOnlyList<string>> Headers
+            {
+                get
+                {
+                    Dictionary<string, IReadOnlyList<string>> headers = new Dictionary<string, IReadOnlyList<string>>();
+                    foreach (var header in response.Headers.AllKeys)
+                    {
+                        headers[header] = new List<string>(response.Headers.GetValues(header));
+                    }
+                    return headers;
+                }
+            }
+        }
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -38,20 +138,6 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Make a request to a path on the API
-        /// </summary>
-        /// <param name="url">Path and query</param>
-        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// The encoding of payload is API dependant but is typically json.</param>
-        /// <param name="method">Request method or null for default</param>
-        /// <returns>Raw response</returns>
-        public string MakeRequest(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
-        {
-            return MakeRequestAsync(url, baseUrl, payload, method).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// ASYNC - Make a request to a path on the API
         /// </summary>
         /// <param name="url">Path and query</param>
         /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
@@ -76,23 +162,14 @@ namespace ExchangeSharp
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
             method = method ?? api.RequestMethod;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload, method);
-            HttpWebRequest request = HttpWebRequest.CreateHttp(uri);
-            request.Headers["Accept-Language"] = "en-US,en;q=0.5";
-            request.Method = method;
-            request.ContentType = api.RequestContentType;
-            request.UserAgent = BaseAPI.RequestUserAgent;
-            request.CachePolicy = api.RequestCachePolicy;
+            InternalHttpWebRequest request = new InternalHttpWebRequest(uri)
+            {
+                Method = method
+            };
+            request.AddHeader("accept-language", "en-US,en;q=0.5");
+            request.AddHeader("content-type", api.RequestContentType);
+            request.AddHeader("user-agent", BaseAPI.RequestUserAgent);
             request.Timeout = request.ReadWriteTimeout = (int)api.RequestTimeout.TotalMilliseconds;
-            try
-            {
-                // not supported on some platforms
-                request.ContinueTimeout = (int)api.RequestTimeout.TotalMilliseconds;
-            }
-            catch
-            {
-
-            }
-            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             await api.ProcessRequestAsync(request, payload);
             HttpWebResponse response = null;
             string responseString = null;
@@ -101,8 +178,8 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    RequestStateChanged?.Invoke(this, RequestMakerState.Begin, null);
-                    response = await request.GetResponseAsync() as HttpWebResponse;
+                    RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
+                    response = await request.request.GetResponseAsync() as HttpWebResponse;
                     if (response == null)
                     {
                         throw new APIException("Unknown response from server");
@@ -129,7 +206,7 @@ namespace ExchangeSharp
                         }
                         throw new APIException(responseString);
                     }
-                    api.ProcessResponse(response);
+                    api.ProcessResponse(new InternalHttpWebResponse(response));
                     RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
                 }
             }

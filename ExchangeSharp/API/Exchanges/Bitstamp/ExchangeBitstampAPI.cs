@@ -21,10 +21,9 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeBitstampAPI : ExchangeAPI
+    public sealed partial class ExchangeBitstampAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.bitstamp.net/api/v2";
-        public override string Name => ExchangeName.Bitstamp;
 
         /// <summary>
         /// Bitstamp private API requires a customer id. Internally this is secured in the PassPhrase property.
@@ -43,6 +42,8 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMilliseconds;
+            SymbolIsUppercase = false;
+            SymbolSeparator = string.Empty;
         }
 
         /// <summary>
@@ -55,7 +56,7 @@ namespace ExchangeSharp
             CustomerId = customerId;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -84,11 +85,6 @@ namespace ExchangeSharp
             return token;
         }
 
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("/", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
-        }
-
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
             List<string> symbols = new List<string>();
@@ -102,27 +98,12 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/ticker/" + symbol);
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].ConvertInvariant<decimal>(),
-                Bid = token["bid"].ConvertInvariant<decimal>(),
-                Last = token["last"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = token["volume"].ConvertInvariant<decimal>(),
-                    BaseSymbol = symbol,
-                    ConvertedVolume = token["volume"].ConvertInvariant<decimal>() * token["last"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["timestamp"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSeconds);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/order_book/" + symbol);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
         }
@@ -130,19 +111,11 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             // [{"date": "1513387997", "tid": "33734815", "price": "0.01724547", "type": "1", "amount": "5.56481714"}]
-            symbol = NormalizeSymbol(symbol);
             JToken token = await MakeBitstampRequestAsync("/transactions/" + symbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             foreach (JToken trade in token)
             {
-                trades.Add(new ExchangeTrade
-                {
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
-                    Id = trade["tid"].ConvertInvariant<long>(),
-                    IsBuy = trade["type"].ToStringInvariant() == "0",
-                    Price = trade["price"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(trade["date"].ConvertInvariant<long>())
-                });
+                trades.Add(trade.ParseTrade("amount", "price", "type", "date", TimestampType.UnixSeconds, "tid", "0"));
             }
             callback(trades);
         }
@@ -150,7 +123,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             string url = "/balance/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return ExtractDictionary(responseObject, "balance");
         }
@@ -159,7 +132,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
         {
             string url = "/balance/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return ExtractDictionary(responseObject, "fee");
         }
@@ -167,7 +140,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             string url = "/balance/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             var responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return ExtractDictionary(responseObject, "available");
         }
@@ -194,12 +167,10 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
-
             string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
-            string url = $"/{action}{market}/{symbol}/";
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            string url = $"/{action}{market}/{order.Symbol}/";
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
 
             if (order.OrderType != OrderType.Market)
             {
@@ -218,7 +189,7 @@ namespace ExchangeSharp
             JObject responseObject = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
             return new ExchangeOrderResult
             {
-                OrderDate = DateTime.UtcNow,
+                OrderDate = CryptoUtility.UtcNow,
                 OrderId = responseObject["id"].ToStringInvariant(),
                 IsBuy = order.IsBuy,
                 Symbol = order.Symbol
@@ -246,7 +217,7 @@ namespace ExchangeSharp
                 return null;
             }
             string url = "/order_status/";
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["id"] = orderId;
             JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
 
@@ -303,11 +274,10 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            symbol = NormalizeSymbol(symbol);
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
-            JArray result = await MakeJsonRequestAsync<JArray>(url, null, await OnGetNoncePayloadAsync(), "POST");
+            JArray result = await MakeJsonRequestAsync<JArray>(url, null, await GetNoncePayloadAsync(), "POST");
             foreach (JToken token in result)
             {
                 //This request doesn't give info about amount filled, use GetOrderDetails(orderId)
@@ -319,7 +289,7 @@ namespace ExchangeSharp
                 orders.Add(new ExchangeOrderResult()
                 {
                     OrderId = token["id"].ToStringInvariant(),
-                    OrderDate = ConvertDateTimeInvariant(token["datetime"]),
+                    OrderDate = token["datetime"].ToDateTimeInvariant(),
                     IsBuy = token["type"].ConvertInvariant<int>() == 0,
                     Price = token["price"].ConvertInvariant<decimal>(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
@@ -368,7 +338,7 @@ namespace ExchangeSharp
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["limit"] = 1000;
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
 
@@ -397,7 +367,7 @@ namespace ExchangeSharp
                 decimal price = Math.Abs(amount / signedQuantity);
                 bool isBuy = signedQuantity > 0;
                 var id = transaction["id"].ToStringInvariant();
-                var datetime = ConvertDateTimeInvariant(transaction["datetime"]);
+                var datetime = transaction["datetime"].ToDateTimeInvariant();
                 var fee = transaction["fee"].ConvertInvariant<decimal>();
                 var orderId = transaction["order_id"].ToStringInvariant();
 
@@ -411,11 +381,10 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
-            symbol = NormalizeSymbol(symbol);
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["limit"] = 1000;
             JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
@@ -442,7 +411,7 @@ namespace ExchangeSharp
                     OrderId = transaction["order_id"].ToStringInvariant(),
                     IsBuy = resultMarketCurrency > 0,
                     Symbol = NormalizeSymbol(tradingPair),
-                    OrderDate = ConvertDateTimeInvariant(transaction["datetime"]),
+                    OrderDate = transaction["datetime"].ToDateTimeInvariant(),
                     AmountFilled = Math.Abs(resultMarketCurrency),
                     AveragePrice = Math.Abs(transaction[baseCurrency].ConvertInvariant<decimal>() / resultMarketCurrency)
                 };
@@ -470,7 +439,7 @@ namespace ExchangeSharp
             {
                 throw new APIException("OrderId is needed for canceling order");
             }
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["id"] = orderId;
             await MakeJsonRequestAsync<JToken>("/cancel_order/", null, payload, "POST");
         }
@@ -484,7 +453,7 @@ namespace ExchangeSharp
         {
             string baseurl = null;
             string url;
-            switch (withdrawalRequest.Symbol)
+            switch (withdrawalRequest.Currency)
             {
                 case "BTC":
                     // use old API for Bitcoin withdraw
@@ -493,11 +462,11 @@ namespace ExchangeSharp
                     break;
                 default:
                     // this will work for some currencies and fail for others, caller must be aware of the supported currencies
-                    url = "/" + withdrawalRequest.Symbol.ToLowerInvariant() + "_withdrawal/";
+                    url = "/" + withdrawalRequest.Currency.ToLowerInvariant() + "_withdrawal/";
                     break;
             }
 
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["address"] = withdrawalRequest.Address.ToStringInvariant();
             payload["amount"] = withdrawalRequest.Amount.ToStringInvariant();
             payload["destination_tag"] = withdrawalRequest.AddressTag.ToStringInvariant();
@@ -512,4 +481,6 @@ namespace ExchangeSharp
             };
         }
     }
+
+    public partial class ExchangeName { public const string Bitstamp = "Bitstamp"; }
 }

@@ -10,97 +10,291 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+using Newtonsoft.Json.Linq;
+
 namespace ExchangeSharp
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-
-    using Newtonsoft.Json.Linq;
-
     /// <summary>Contains useful extension methods and parsing for the ExchangeAPI classes</summary>
     public static class ExchangeAPIExtensions
     {
-        /// <summary>Get full order book bids and asks via web socket. This is efficient and will
-        /// only use the order book deltas (if supported by the exchange).</summary>
+        /// <summary>
+        /// Get full order book bids and asks via web socket. This is efficient and will
+        /// only use the order book deltas (if supported by the exchange). This method deals
+        /// with the complexity of different exchanges sending order books that are full,
+        /// partial or otherwise.
+        /// </summary>
         /// <param name="callback">Callback containing full order book</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this
         /// parameter</param>
-        /// <param name="symbols">Ticker symbols or null/empty for all of them (if supported)</param>
+        /// <param name="symbols">Order book symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public static IWebSocket GetOrderBookWebSocket(this IExchangeAPI api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        public static IWebSocket GetFullOrderBookWebSocket(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
+            if (api.WebSocketOrderBookType == WebSocketOrderBookType.None)
+            {
+                throw new NotSupportedException(api.GetType().Name + " does not support web socket order books");
+            }
+
             // Notes:
             // * Confirm with the Exchange's API docs whether the data in each event is the absolute quantity or differential quantity
             // * Receiving an event that removes a price level that is not in your local order book can happen and is normal.
-            var fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
+            ConcurrentDictionary<string, ExchangeOrderBook> fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
+            Dictionary<string, Queue<ExchangeOrderBook>> partialOrderBookQueues = new Dictionary<string, Queue<ExchangeOrderBook>>();
 
-            void innerCallback(ExchangeOrderBook freshBook)
+            void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
             {
-                bool foundFullBook = fullBooks.TryGetValue(freshBook.Symbol, out ExchangeOrderBook fullOrderBook);
-                switch (api.Name)
+                foreach (ExchangeOrderPrice record in deltaValues.Values)
                 {
-                    // Fetch an initial book the first time and apply deltas on top
-                    case ExchangeName.Bittrex:
-                    case ExchangeName.Binance:
-                    case ExchangeName.Poloniex:
+                    if (record.Amount <= 0 || record.Price <= 0)
                     {
-                        // If we don't have an initial order book for this symbol, fetch it
-                        if (!foundFullBook)
-                        {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = api.GetOrderBook(freshBook.Symbol, 1000);
-                            fullOrderBook.Symbol = freshBook.Symbol;
-                        }
-
-                        // update deltas as long as the full book is at or before the delta timestamp
-                        if (fullOrderBook.SequenceId <= freshBook.SequenceId)
-                        {
-                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
-                            fullOrderBook.SequenceId = freshBook.SequenceId;
-                        }
-
-                        break;
+                        bookToEdit.Remove(record.Price);
                     }
-
-                    // First response from exchange will be the full order book.
-                    // Subsequent updates will be deltas
-                    case ExchangeName.BitMEX:
-                    case ExchangeName.Okex:
+                    else
                     {
+                        bookToEdit[record.Price] = record;
+                    }
+                }
+            }
+
+            void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
+            {
+                lock (fullOrderBook)
+                {
+                    // update deltas as long as the full book is at or before the delta timestamp
+                    if (fullOrderBook.SequenceId <= freshBook.SequenceId)
+                    {
+                        applyDelta(freshBook.Asks, fullOrderBook.Asks);
+                        applyDelta(freshBook.Bids, fullOrderBook.Bids);
+                        fullOrderBook.SequenceId = freshBook.SequenceId;
+                    }
+                }
+            }
+
+            async Task innerCallback(ExchangeOrderBook newOrderBook)
+            {
+                // depending on the exchange, newOrderBook may be a complete or partial order book
+                // ideally all exchanges would send the full order book on first message, followed by delta order books
+                // but this is not the case
+
+                bool foundFullBook = fullBooks.TryGetValue(newOrderBook.Symbol, out ExchangeOrderBook fullOrderBook);
+                switch (api.WebSocketOrderBookType)
+                {
+                    case WebSocketOrderBookType.DeltasOnly:
+                    {
+                        // Fetch an initial book the first time and apply deltas on top
+                        // send these exchanges scathing support tickets that they should send
+                        // the full book for the first web socket callback message
+                        Queue<ExchangeOrderBook> partialOrderBookQueue;
+                        bool requestFullOrderBook = false;
+
+                        // attempt to find the right queue to put the partial order book in to be processed later
+                        lock (partialOrderBookQueues)
+                        {
+                            if (!partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue))
+                            {
+                                // no queue found, make a new one
+                                partialOrderBookQueues[newOrderBook.Symbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
+                                requestFullOrderBook = !foundFullBook;
+                            }
+
+                            // always enqueue the partial order book, they get dequeued down below
+                            partialOrderBookQueue.Enqueue(newOrderBook);
+                        }
+
+                        // request the entire order book if we need it
+                        if (requestFullOrderBook)
+                        {
+                            fullOrderBook = await api.GetOrderBookAsync(newOrderBook.Symbol, maxCount);
+                            fullOrderBook.Symbol = newOrderBook.Symbol;
+                            fullBooks[newOrderBook.Symbol] = fullOrderBook;
+                        }
+                        else if (!foundFullBook)
+                        {
+                            // we got a partial book while the full order book was being requested
+                            // return out, the full order book loop will process this item in the queue
+                            return;
+                        }
+                        // else new partial book with full order book available, will get dequeued below
+
+                        // check if any old books for this symbol, if so process them first
+                        // lock dictionary of queues for lookup only
+                        lock (partialOrderBookQueues)
+                        {
+                            partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue);
+                        }
+
+                        if (partialOrderBookQueue != null)
+                        {
+                            // lock the individual queue for processing, fifo queue
+                            lock (partialOrderBookQueue)
+                            {
+                                while (partialOrderBookQueue.Count != 0)
+                                {
+                                    updateOrderBook(fullOrderBook, partialOrderBookQueue.Dequeue());
+                                }
+                            }
+                        }
+                    } break;
+
+                    case WebSocketOrderBookType.FullBookFirstThenDeltas:
+                    {
+                        // First response from exchange will be the full order book.
+                        // Subsequent updates will be deltas, at least some exchanges have their heads on straight
                         if (!foundFullBook)
                         {
-                            fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
-                            fullOrderBook.Symbol = freshBook.Symbol;
+                            fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
                         }
                         else
                         {
-                            ApplyDelta(freshBook.Asks, fullOrderBook.Asks);
-                            ApplyDelta(freshBook.Bids, fullOrderBook.Bids);
+                            updateOrderBook(fullOrderBook, newOrderBook);
                         }
+                    } break;
 
-                        break;
-                    }
-
-                    // Websocket always returns full order book
-                    case ExchangeName.Huobi:
+                    case WebSocketOrderBookType.FullBookAlways:
                     {
-                        fullBooks[freshBook.Symbol] = fullOrderBook = freshBook;
-                        break;
-                    }
+                        // Websocket always returns full order book, WTF...?
+                        fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
+                    } break;
                 }
 
+                fullOrderBook.LastUpdatedUtc = CryptoUtility.UtcNow;
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetOrderBookDeltasWebSocket(innerCallback, maxCount, symbols);
+            IWebSocket socket = api.GetOrderBookWebSocket(async (b) =>
+            {
+                try
+                {
+                    await innerCallback(b);
+                }
+                catch
+                {
+                }
+            }, maxCount, symbols);
             socket.Connected += (s) =>
             {
                 // when we re-connect, we must invalidate the order books, who knows how long we were disconnected
                 //  and how out of date the order books are
                 fullBooks.Clear();
+                lock (partialOrderBookQueues)
+                {
+                    partialOrderBookQueues.Clear();
+                }
+                return Task.CompletedTask;
             };
             return socket;
+        }
+
+        /// <summary>
+        /// Place a limit order by first querying the order book and then placing the order for a threshold below the bid or above the ask that would fully fulfill the amount.
+        /// The order book is scanned until an amount of bids or asks that will fulfill the order is found and then the order is placed at the lowest bid or highest ask price multiplied
+        /// by priceThreshold.
+        /// </summary>
+        /// <param name="symbol">Symbol to sell</param>
+        /// <param name="amount">Amount to sell</param>
+        /// <param name="isBuy">True for buy, false for sell</param>
+        /// <param name="orderBookCount">Amount of bids/asks to request in the order book</param>
+        /// <param name="priceThreshold">Threshold below the lowest bid or above the highest ask to set the limit order price at. For buys, this is converted to 1 / priceThreshold.
+        /// This can be set to 0 if you want to set the price like a market order.</param>
+        /// <param name="thresholdToAbort">If the lowest bid/highest ask price divided by the highest bid/lowest ask price is below this threshold, throw an exception.
+        /// This ensures that your order does not buy or sell at an extreme margin.</param>
+        /// <param name="abortIfOrderBookTooSmall">Whether to abort if the order book does not have enough bids or ask amounts to fulfill the order.</param>
+        /// <returns>Order result</returns>
+        public static async Task<ExchangeOrderResult> PlaceSafeMarketOrderAsync(this ExchangeAPI api, string symbol, decimal amount, bool isBuy, int orderBookCount = 100, decimal priceThreshold = 0.9m,
+            decimal thresholdToAbort = 0.75m, bool abortIfOrderBookTooSmall = false)
+        {
+            if (priceThreshold > 0.9m)
+            {
+                throw new APIException("You cannot specify a price threshold above 0.9m, otherwise there is a chance your order will never be fulfilled. For buys, this is " +
+                    "converted to 1.0m / priceThreshold, so always specify the value below 0.9m");
+            }
+            else if (priceThreshold <= 0m)
+            {
+                priceThreshold = 1m;
+            }
+            else if (isBuy && priceThreshold > 0m)
+            {
+                priceThreshold = 1.0m / priceThreshold;
+            }
+            ExchangeOrderBook book = await api.GetOrderBookAsync(symbol, orderBookCount);
+            if (book == null || (isBuy && book.Asks.Count == 0) || (!isBuy && book.Bids.Count == 0))
+            {
+                throw new APIException($"Error getting order book for {symbol}");
+            }
+            decimal counter = 0m;
+            decimal highPrice = decimal.MinValue;
+            decimal lowPrice = decimal.MaxValue;
+            if (isBuy)
+            {
+                foreach (ExchangeOrderPrice ask in book.Asks.Values)
+                {
+                    counter += ask.Amount;
+                    highPrice = Math.Max(highPrice, ask.Price);
+                    lowPrice = Math.Min(lowPrice, ask.Price);
+                    if (counter >= amount)
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                foreach (ExchangeOrderPrice bid in book.Bids.Values)
+                {
+                    counter += bid.Amount;
+                    highPrice = Math.Max(highPrice, bid.Price);
+                    lowPrice = Math.Min(lowPrice, bid.Price);
+                    if (counter >= amount)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (abortIfOrderBookTooSmall && counter < amount)
+            {
+                throw new APIException($"{(isBuy ? "Buy" : "Sell") } order for {symbol} and amount {amount} cannot be fulfilled because the order book is too thin.");
+            }
+            else if (lowPrice / highPrice < thresholdToAbort)
+            {
+                throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {symbol} and amount {amount} would place for a price below threshold of {thresholdToAbort}, aborting.");
+            }
+            ExchangeOrderRequest request = new ExchangeOrderRequest
+            {
+                Amount = amount,
+                OrderType = OrderType.Limit,
+                Price = CryptoUtility.RoundAmount((isBuy ? highPrice : lowPrice) * priceThreshold),
+                ShouldRoundAmount = true,
+                Symbol = symbol
+            };
+            ExchangeOrderResult result = await api.PlaceOrderAsync(request);
+
+            // wait about 10 seconds until the order is fulfilled
+            int i = 0;
+            const int maxTries = 20; // 500 ms for each try
+            for (; i < maxTries; i++)
+            {
+                await System.Threading.Tasks.Task.Delay(500);
+                result = await api.GetOrderDetailsAsync(result.OrderId, symbol);
+                switch (result.Result)
+                {
+                    case ExchangeAPIOrderResult.Filled:
+                    case ExchangeAPIOrderResult.Canceled:
+                    case ExchangeAPIOrderResult.Error:
+                        break;
+                }
+            }
+
+            if (i == maxTries)
+            {
+                throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {symbol} and amount {amount} timed out and may not have been fulfilled");
+            }
+
+            return result;
         }
 
         /// <summary>Common order book parsing method, most exchanges use "asks" and "bids" with
@@ -110,7 +304,14 @@ namespace ExchangeSharp
         /// <param name="bids">Bids key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenArrays(JToken token, string asks = "asks", string bids = "bids", string sequence = "ts", int maxCount = 100)
+        internal static ExchangeOrderBook ParseOrderBookFromJTokenArrays
+        (
+            this JToken token,
+            string asks = "asks",
+            string bids = "bids",
+            string sequence = "ts",
+            int maxCount = 100
+        )
         {
             var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JArray array in token[asks])
@@ -146,14 +347,16 @@ namespace ExchangeSharp
         /// <param name="sequence">Sequence key</param>
         /// <param name="maxCount">Max count</param>
         /// <returns>Order book</returns>
-        public static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries(
-            JToken token,
+        internal static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries
+        (
+            this JToken token,
             string asks = "asks",
             string bids = "bids",
             string price = "price",
             string amount = "amount",
             string sequence = "ts",
-            int maxCount = 100)
+            int maxCount = 100
+        )
         {
             var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JToken ask in token[asks])
@@ -179,22 +382,214 @@ namespace ExchangeSharp
             return book;
         }
 
-        /// <summary>Applies the delta order book on top of the existing book.</summary>
-        /// <param name="deltaValues">The delta values.</param>
-        /// <param name="bookToEdit">The book to edit.</param>
-        private static void ApplyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
+        /// <summary>
+        /// Parse a JToken into a ticker
+        /// </summary>
+        /// <param name="api">ExchangeAPI</param>
+        /// <param name="token">Token</param>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="askKey">Ask key</param>
+        /// <param name="bidKey">Bid key</param>
+        /// <param name="lastKey">Last key</param>
+        /// <param name="baseVolumeKey">Base volume key</param>
+        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="timestampKey">Timestamp key</param>
+        /// <param name="timestampType">Timestamp type</param>
+        /// <param name="baseCurrencyKey">Base currency key</param>
+        /// <param name="convertCurrencyKey">Convert currency key</param>
+        /// <param name="idKey">Id key</param>
+        /// <returns>ExchangeTicker</returns>
+        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
+            object askKey, object bidKey, object lastKey, object baseVolumeKey,
+            object convertVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
+            object baseCurrencyKey = null, object convertCurrencyKey = null, object idKey = null)
         {
-            foreach (ExchangeOrderPrice record in deltaValues.Values)
+            if (token == null || !token.HasValues)
             {
-                if (record.Amount <= 0 || record.Price <= 0)
+                return null;
+            }
+            decimal last = token[lastKey].ConvertInvariant<decimal>();
+
+            // parse out volumes, handle cases where one or both do not exist
+            token.ParseVolumes(baseVolumeKey, convertVolumeKey, last, out decimal baseVolume, out decimal convertVolume);
+
+            // pull out timestamp
+            DateTime timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+
+            // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
+            string baseSymbol;
+            string convertSymbol;
+            if (baseCurrencyKey != null && convertCurrencyKey != null)
+            {
+                baseSymbol = token[baseCurrencyKey].ToStringInvariant();
+                convertSymbol = token[convertCurrencyKey].ToStringInvariant();
+            }
+            else if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new ArgumentNullException(nameof(symbol));
+            }
+            else if (api.SymbolSeparator.Length != 0)
+            {
+                string[] pieces = symbol.Split(api.SymbolSeparator[0]);
+                if (pieces.Length != 2)
                 {
-                    bookToEdit.Remove(record.Price);
+                    throw new ArgumentException($"Symbol does not have the correct symbol separator of '{api.SymbolSeparator}'");
+                }
+                baseSymbol = pieces[0];
+                convertSymbol = pieces[1];
+            }
+            else
+            {
+                baseSymbol = convertSymbol = symbol;
+            }
+
+            // create the ticker and return it
+            JToken askValue = token[askKey];
+            JToken bidValue = token[bidKey];
+            if (askValue is JArray)
+            {
+                askValue = askValue[0];
+            }
+            if (bidValue is JArray)
+            {
+                bidValue = bidValue[0];
+            }
+            ExchangeTicker ticker = new ExchangeTicker
+            {
+                Ask = askValue.ConvertInvariant<decimal>(),
+                Bid = bidValue.ConvertInvariant<decimal>(),
+                Id = (idKey == null ? null : token[idKey].ToStringInvariant()),
+                Last = last,
+                Volume = new ExchangeVolume
+                {
+                    BaseVolume = baseVolume,
+                    BaseSymbol = baseSymbol,
+                    ConvertedVolume = convertVolume,
+                    ConvertedSymbol = convertSymbol,
+                    Timestamp = timestamp
+                }
+            };
+            return ticker;
+        }
+
+        /// <summary>
+        /// Parse a trade
+        /// </summary>
+        /// <param name="token">Token</param>
+        /// <param name="amountKey">Amount key</param>
+        /// <param name="priceKey">Price key</param>
+        /// <param name="typeKey">Type key</param>
+        /// <param name="timestampKey">Timestamp key</param>
+        /// <param name="timestampType">Timestamp type</param>
+        /// <param name="idKey">Id key</param>
+        /// <param name="typeKeyIsBuyValue">Type key buy value</param>
+        /// <returns>Trade</returns>
+        internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
+            object timestampKey, TimestampType timestampType, object idKey = null, string typeKeyIsBuyValue = "buy")
+        {
+            ExchangeTrade trade = new ExchangeTrade
+            {
+                Amount = token[amountKey].ConvertInvariant<decimal>(),
+                Price = token[priceKey].ConvertInvariant<decimal>(),
+                IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue))
+            };
+            trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+            if (idKey == null)
+            {
+                trade.Id = trade.Timestamp.Ticks;
+            }
+            else
+            {
+                try
+                {
+                    trade.Id = (long)token[idKey].ConvertInvariant<ulong>();
+                }
+                catch
+                {
+                    // dont care
+                }
+            }
+            return trade;
+        }
+
+        /// <summary>
+        /// Parse volume from JToken
+        /// </summary>
+        /// <param name="token">JToken</param>
+        /// <param name="baseVolumeKey">Base volume key</param>
+        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="last">Last volume value</param>
+        /// <param name="baseVolume">Receive base volume</param>
+        /// <param name="convertVolume">Receive convert volume</param>
+        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object convertVolumeKey, decimal last, out decimal baseVolume, out decimal convertVolume)
+        {
+            // parse out volumes, handle cases where one or both do not exist
+            if (baseVolumeKey == null)
+            {
+                if (convertVolumeKey == null)
+                {
+                    baseVolume = convertVolume = 0m;
                 }
                 else
                 {
-                    bookToEdit[record.Price] = record;
+                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
+                    baseVolume = (last <= 0m ? 0m : convertVolume / last);
                 }
             }
+            else
+            {
+                baseVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
+                if (convertVolumeKey == null)
+                {
+                    convertVolume = baseVolume * last;
+                }
+                else
+                {
+                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Parse market candle from JToken
+        /// </summary>
+        /// <param name="named">Named item</param>
+        /// <param name="token">JToken</param>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="periodSeconds">Period seconds</param>
+        /// <param name="openKey">Open key</param>
+        /// <param name="highKey">High key</param>
+        /// <param name="lowKey">Low key</param>
+        /// <param name="closeKey">Close key</param>
+        /// <param name="timestampKey">Timestamp key</param>
+        /// <param name="timestampType">Timestamp type</param>
+        /// <param name="baseVolumeKey">Base volume key</param>
+        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="weightedAverageKey">Weighted average key</param>
+        /// <returns>MarketCandle</returns>
+        internal static MarketCandle ParseCandle(this INamed named, JToken token, string symbol, int periodSeconds, object openKey, object highKey, object lowKey,
+            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object convertVolumeKey = null, object weightedAverageKey = null)
+        {
+            MarketCandle candle = new MarketCandle
+            {
+                ClosePrice = token[closeKey].ConvertInvariant<decimal>(),
+                ExchangeName = named.Name,
+                HighPrice = token[highKey].ConvertInvariant<decimal>(),
+                LowPrice = token[lowKey].ConvertInvariant<decimal>(),
+                Name = symbol,
+                OpenPrice = token[openKey].ConvertInvariant<decimal>(),
+                PeriodSeconds = periodSeconds,
+                Timestamp = CryptoUtility.ParseTimestamp(token[timestampKey], timestampType)
+            };
+
+            token.ParseVolumes(baseVolumeKey, convertVolumeKey, candle.ClosePrice, out decimal baseVolume, out decimal convertVolume);
+            candle.BaseVolume = (double)baseVolume;
+            candle.ConvertedVolume = (double)convertVolume;
+            if (weightedAverageKey != null)
+            {
+                candle.WeightedAverage = token[weightedAverageKey].ConvertInvariant<decimal>();
+            }
+            return candle;
         }
     }
 }

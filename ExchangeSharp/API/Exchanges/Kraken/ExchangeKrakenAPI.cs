@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -22,10 +22,9 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeKrakenAPI : ExchangeAPI
+    public sealed partial class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
-        public override string Name => ExchangeName.Kraken;
 
         static ExchangeKrakenAPI()
         {
@@ -44,13 +43,7 @@ namespace ExchangeSharp
             RequestMethod = "POST";
             RequestContentType = "application/x-www-form-urlencoded";
             SymbolSeparator = string.Empty;
-            SymbolIsReversed = true;
             NonceStyle = NonceStyle.UnixMilliseconds;
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
@@ -134,6 +127,8 @@ namespace ExchangeSharp
             { "XXBTZUSD.d", "btcusd" },
             { "XXDGXXBT", "dogebtc" },
             { "XXLMXXBT", "xlmbtc" },
+            { "XXLMZUSD", "xlmusd" },
+            { "XXLMZEUR", "xlmeur" },
             { "XXMRXXBT", "xmrbtc" },
             { "XXMRZEUR", "xmreur" },
             { "XXMRZUSD", "xmrusd" },
@@ -181,22 +176,25 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
-            List<ExchangeOrderResult> orders = new List<ExchangeSharp.ExchangeOrderResult>();
-            JToken result = await MakeJsonRequestAsync<JToken>(path, null, await OnGetNoncePayloadAsync());
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["open"];
-            symbol = NormalizeSymbol(symbol);
-            foreach (JProperty order in result)
+            if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
             {
-                if (symbol == null || order.Value["descr"]["pair"].ToStringInvariant() == symbol)
+                foreach (JProperty order in result)
                 {
-                    orders.Add(ParseOrder(order.Name, order.Value));
+                    if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpperInvariant())
+                    {
+                        orders.Add(ParseOrder(order.Name, order.Value));
+                    }
                 }
             }
+           
 
             return orders;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
             {
@@ -212,8 +210,8 @@ namespace ExchangeSharp
                 using (SHA256 sha256 = SHA256Managed.Create())
                 {
                     string hashString = nonce + form;
-                    byte[] sha256Bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(hashString));
-                    byte[] pathBytes = Encoding.UTF8.GetBytes(request.RequestUri.AbsolutePath);
+                    byte[] sha256Bytes = sha256.ComputeHash(hashString.ToBytesUTF8());
+                    byte[] pathBytes = request.RequestUri.AbsolutePath.ToBytesUTF8();
                     byte[] sigBytes = new byte[sha256Bytes.Length + pathBytes.Length];
                     pathBytes.CopyTo(sigBytes, 0);
                     sha256Bytes.CopyTo(sigBytes, pathBytes.Length);
@@ -221,10 +219,10 @@ namespace ExchangeSharp
                     using (System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
                     {
                         string sign = System.Convert.ToBase64String(hmac.ComputeHash(sigBytes));
-                        request.Headers.Add("API-Sign", sign);
+                        request.AddHeader("API-Sign", sign);
                     }
                 }
-                request.Headers.Add("API-Key", CryptoUtility.ToUnsecureString(PublicApiKey));
+                request.AddHeader("API-Key", CryptoUtility.ToUnsecureString(PublicApiKey));
                 await CryptoUtility.WriteToRequestAsync(request, form);
             }
         }
@@ -233,6 +231,130 @@ namespace ExchangeSharp
         {
             JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
             return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
+        }
+
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        {
+            //  {
+            //  "BCHEUR": {
+            //  "altname": "BCHEUR",
+            //  "aclass_base": "currency",
+            //  "base": "BCH",
+            //  "aclass_quote": "currency",
+            //  "quote": "ZEUR",
+            //  "lot": "unit",
+            //  "pair_decimals": 1,
+            //  "lot_decimals": 8,
+            //  "lot_multiplier": 1,
+            //  "leverage_buy": [],
+            //  "leverage_sell": [],
+            //  "fees": [
+            //    [
+            //      0,
+            //      0.26
+            //    ],
+            //    [
+            //      50000,
+            //      0.24
+            //    ],
+            //    [
+            //      100000,
+            //      0.22
+            //    ],
+            //    [
+            //      250000,
+            //      0.2
+            //    ],
+            //    [
+            //      500000,
+            //      0.18
+            //    ],
+            //    [
+            //      1000000,
+            //      0.16
+            //    ],
+            //    [
+            //      2500000,
+            //      0.14
+            //    ],
+            //    [
+            //      5000000,
+            //      0.12
+            //    ],
+            //    [
+            //      10000000,
+            //      0.1
+            //    ]
+            //  ],
+            //  "fees_maker": [
+            //    [
+            //      0,
+            //      0.16
+            //    ],
+            //    [
+            //      50000,
+            //      0.14
+            //    ],
+            //    [
+            //      100000,
+            //      0.12
+            //    ],
+            //    [
+            //      250000,
+            //      0.1
+            //    ],
+            //    [
+            //      500000,
+            //      0.08
+            //    ],
+            //    [
+            //      1000000,
+            //      0.06
+            //    ],
+            //    [
+            //      2500000,
+            //      0.04
+            //    ],
+            //    [
+            //      5000000,
+            //      0.02
+            //    ],
+            //    [
+            //      10000000,
+            //      0
+            //    ]
+            //  ],
+            //  "fee_volume_currency": "ZUSD",
+            //  "margin_call": 80,
+            //  "margin_stop": 40
+            //}
+            //}
+            var markets = new List<ExchangeMarket>();
+            JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
+            var res = (from prop in allPairs.Children<JProperty>() select prop.Value).ToArray();
+
+            foreach (JToken pair in res)
+            {
+                
+                var market = new ExchangeMarket
+                {
+                    IsActive = true,
+                    MarketName = NormalizeSymbol(pair["altname"].ToStringInvariant()),
+                    MinTradeSize = pair["lot_decimals"].ConvertInvariant<decimal>()
+
+                };
+                market.MarketCurrency = pair["quote"].ToStringInvariant();
+                market.BaseCurrency = pair["base"].ToStringInvariant();
+                int quantityPrecision = pair["lot_decimals"].ConvertInvariant<int>();
+                market.QuantityStepSize = (decimal)Math.Pow(0.1, quantityPrecision);
+                int pricePrecision = pair["pair_decimals"].ConvertInvariant<int>();
+                market.PriceStepSize = (decimal)Math.Pow(0.1, pricePrecision);
+                markets.Add(market);
+            }
+
+
+
+            return markets;
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -271,24 +393,21 @@ namespace ExchangeSharp
                     BaseSymbol = symbol,
                     ConvertedVolume = ticker["v"][1].ConvertInvariant<decimal>() * last,
                     ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
+                    Timestamp = CryptoUtility.UtcNow
                 }
             };
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/0/public/Depth?pair=" + symbol + "&count=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[symbol], maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            symbol = NormalizeSymbol(symbol);
             string baseUrl = "/0/public/Trades?pair=" + symbol;
             string url;
-            DateTime timestamp;
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             while (true)
             {
@@ -302,8 +421,7 @@ namespace ExchangeSharp
                 {
                     break;
                 }
-                JArray outerArray = result[symbol] as JArray;
-                if (outerArray == null || outerArray.Count == 0)
+                if (!(result[symbol] is JArray outerArray) || outerArray.Count == 0)
                 {
                     break;
                 }
@@ -311,17 +429,9 @@ namespace ExchangeSharp
                 {
                     startDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["last"].ConvertInvariant<double>() / 1000000.0d);
                 }
-                foreach (JArray array in outerArray.Children<JArray>())
+                foreach (JToken trade in outerArray.Children())
                 {
-                    timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[2].ConvertInvariant<double>());
-                    trades.Add(new ExchangeTrade
-                    {
-                        Amount = array[1].ConvertInvariant<decimal>(),
-                        Price = array[0].ConvertInvariant<decimal>(),
-                        Timestamp = timestamp,
-                        Id = timestamp.Ticks,
-                        IsBuy = array[3].ConvertInvariant<char>() == 'b'
-                    });
+                    trades.Add(trade.ParseTrade(1, 0, 3, 2, TimestampType.UnixSecondsDouble, null, "b"));
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
                 if (!callback(trades))
@@ -347,30 +457,16 @@ namespace ExchangeSharp
             // https://api.kraken.com/0/public/OHLC
             // pair = asset pair to get OHLC data for, interval = time frame interval in minutes(optional):, 1(default), 5, 15, 30, 60, 240, 1440, 10080, 21600, since = return committed OHLC data since given id(optional.exclusive)
             // array of array entries(<time>, <open>, <high>, <low>, <close>, <vwap>, <volume>, <count>)
-            symbol = NormalizeSymbol(symbol);
-            startDate = startDate ?? DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0));
-            endDate = endDate ?? DateTime.UtcNow;
-            JToken json = await MakeJsonRequestAsync<JToken>("/0/public/OHLC?pair=" + symbol + "&interval=" + periodSeconds / 60 + "&since=" + startDate);
+            startDate = startDate ?? CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(1.0));
+            endDate = endDate ?? CryptoUtility.UtcNow;
+            JToken json = await MakeJsonRequestAsync<JToken>("/0/public/OHLC?pair=" + symbol + "&interval=" + (periodSeconds / 60).ToStringInvariant() + "&since=" + startDate);
             List<MarketCandle> candles = new List<MarketCandle>();
             if (json.Children().Count() != 0)
             {
                 JProperty prop = json.Children().First() as JProperty;
-                foreach (JArray jsonCandle in prop.Value)
+                foreach (JToken jsonCandle in prop.Value)
                 {
-                    MarketCandle candle = new MarketCandle
-                    {
-                        ClosePrice = jsonCandle[4].ConvertInvariant<decimal>(),
-                        ExchangeName = Name,
-                        HighPrice = jsonCandle[2].ConvertInvariant<decimal>(),
-                        LowPrice = jsonCandle[3].ConvertInvariant<decimal>(),
-                        Name = symbol,
-                        OpenPrice = jsonCandle[1].ConvertInvariant<decimal>(),
-                        PeriodSeconds = periodSeconds,
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(jsonCandle[0].ConvertInvariant<long>()),
-                        BaseVolume = jsonCandle[6].ConvertInvariant<double>(),
-                        ConvertedVolume = jsonCandle[6].ConvertInvariant<double>() * jsonCandle[4].ConvertInvariant<double>(),
-                        WeightedAverage = jsonCandle[5].ConvertInvariant<decimal>()
-                    };
+                    MarketCandle candle = this.ParseCandle(jsonCandle, symbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 6, null, 5);
                     if (candle.Timestamp >= startDate.Value && candle.Timestamp <= endDate.Value)
                     {
                         candles.Add(candle);
@@ -383,7 +479,7 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, await OnGetNoncePayloadAsync());
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/Balance", null, await GetNoncePayloadAsync());
             Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
             foreach (JProperty prop in result)
             {
@@ -396,16 +492,31 @@ namespace ExchangeSharp
             return balances;
         }
 
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        {
+            JToken result = await MakeJsonRequestAsync<JToken>("/0/private/TradeBalance", null, await GetNoncePayloadAsync());
+            Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
+            foreach (JProperty prop in result)
+            {
+                decimal amount = prop.Value.ConvertInvariant<decimal>();
+                if (amount > 0m)
+                {
+                    balances[prop.Name] = amount;
+                }
+            }
+            return balances;
+        }
+        
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
-                { "pair", symbol },
+                { "pair", order.Symbol },
                 { "type", (order.IsBuy ? "buy" : "sell") },
                 { "ordertype", order.OrderType.ToString().ToLowerInvariant() },
                 { "volume", order.RoundAmount().ToStringInvariant() },
-                { "nonce", GenerateNonce() }
+                { "nonce", nonce }
             };
             if (order.OrderType != OrderType.Market)
             {
@@ -416,7 +527,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
             ExchangeOrderResult result = new ExchangeOrderResult
             {
-                OrderDate = DateTime.UtcNow
+                OrderDate = CryptoUtility.UtcNow
             };
             if (token["txid"] is JArray array)
             {
@@ -432,10 +543,11 @@ namespace ExchangeSharp
                 return null;
             }
 
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
-                { "nonce", GenerateNonce() }
+                { "nonce", nonce }
             };
             JToken result = await MakeJsonRequestAsync<JToken>("/0/private/QueryOrders", null, payload);
             ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
@@ -465,12 +577,15 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
                 { "txid", orderId },
-                { "nonce", GenerateNonce() }
+                { "nonce", nonce }
             };
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
     }
+
+    public partial class ExchangeName { public const string Kraken = "Kraken"; }
 }

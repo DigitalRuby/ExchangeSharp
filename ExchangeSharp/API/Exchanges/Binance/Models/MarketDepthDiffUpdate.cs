@@ -10,13 +10,33 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace ExchangeSharpConsoleApp
+namespace ExchangeSharp.Binance
 {
-    public static class ExchangeSharpConsoleMain
+    using System.Collections.Generic;
+
+    using Newtonsoft.Json;
+
+    internal class MarketDepthDiffUpdate
     {
-        public static int Main(string[] args)
-        {
-            return ExchangeSharpConsole.ConsoleMain(args);
-        }
+        [JsonProperty("e")]
+        public string EventType { get; set; }
+
+        [JsonProperty("E")]
+        public long EventTime { get; set; }
+
+        [JsonProperty("s")]
+        public string Symbol { get; set; }
+
+        [JsonProperty("U")]
+        public int FirstUpdate { get; set; }
+
+        [JsonProperty("u")]
+        public int FinalUpdate { get; set; }
+
+        [JsonProperty("b")]
+        public List<List<object>> Bids { get; set; }
+
+        [JsonProperty("a")]
+        public List<List<object>> Asks { get; set; }
     }
 }

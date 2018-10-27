@@ -1,12 +1,26 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.1;net471</TargetFrameworks>
-    <AssemblyVersion>0.5.3.0</AssemblyVersion>
-    <FileVersion>0.5.3.0</FileVersion>
+    <TargetFrameworks>net472;netcoreapp2.1</TargetFrameworks>
+    <AssemblyVersion>0.5.8.0</AssemblyVersion>
+    <FileVersion>0.5.8.0</FileVersion>
     <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="nlog.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="nlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WebSocket4Net" Version="0.15.2" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj" />

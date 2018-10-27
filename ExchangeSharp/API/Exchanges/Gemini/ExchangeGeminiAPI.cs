@@ -22,13 +22,14 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeGeminiAPI : ExchangeAPI
+    public sealed partial class ExchangeGeminiAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
-        public override string Name => ExchangeName.Gemini;
 
         public ExchangeGeminiAPI()
         {
+            SymbolIsUppercase = false;
+            SymbolSeparator = string.Empty;
         }
 
         private ExchangeVolume ParseVolume(JToken token)
@@ -66,27 +67,22 @@ namespace ExchangeSharp
             };
         }
 
-        protected override Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 payload.Add("request", request.RequestUri.AbsolutePath);
                 string json = JsonConvert.SerializeObject(payload);
-                string json64 = System.Convert.ToBase64String(CryptoUtility.UTF8EncodingNoPrefix.GetBytes(json));
+                string json64 = System.Convert.ToBase64String(json.ToBytesUTF8());
                 string hexSha384 = CryptoUtility.SHA384Sign(json64, CryptoUtility.ToUnsecureString(PrivateApiKey));
-                request.Headers["X-GEMINI-PAYLOAD"] = json64;
-                request.Headers["X-GEMINI-SIGNATURE"] = hexSha384;
-                request.Headers["X-GEMINI-APIKEY"] = CryptoUtility.ToUnsecureString(PublicApiKey);
+                request.AddHeader("X-GEMINI-PAYLOAD", json64);
+                request.AddHeader("X-GEMINI-SIGNATURE", hexSha384);
+                request.AddHeader("X-GEMINI-APIKEY", CryptoUtility.ToUnsecureString(PublicApiKey));
                 request.Method = "POST";
 
                 // gemini doesn't put the payload in the post body it puts it in as a http header, so no need to write to request stream
             }
             return base.ProcessRequestAsync(request, payload);
-        }
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant();
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
@@ -96,7 +92,6 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/pubticker/" + symbol);
             if (obj == null || obj.Count() == 0)
             {
@@ -114,29 +109,18 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/book/" + symbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(obj, maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            HistoricalTradeHelperState state = new HistoricalTradeHelperState(this)
+            ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
             {
                 Callback = callback,
                 DirectionIsBackwards = false,
                 EndDate = endDate,
-                ParseFunction = (JToken token) =>
-                {
-                    return new ExchangeTrade
-                    {
-                        Amount = token["amount"].ConvertInvariant<decimal>(),
-                        Price = token["price"].ConvertInvariant<decimal>(),
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["timestampms"].ConvertInvariant<long>()),
-                        Id = token["tid"].ConvertInvariant<long>(),
-                        IsBuy = token["type"].ToStringInvariant() == "buy"
-                    };
-                },
+                ParseFunction = (JToken token) => token.ParseTrade("amount", "price", "type", "timestampms", TimestampType.UnixMilliseconds),
                 StartDate = startDate,
                 Symbol = symbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
@@ -148,7 +132,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, await OnGetNoncePayloadAsync());
+            JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, await GetNoncePayloadAsync());
             var q = from JToken token in obj
                     select new { Currency = token["currency"].ToStringInvariant(), Available = token["amount"].ConvertInvariant<decimal>() };
             foreach (var kv in q)
@@ -164,7 +148,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, await OnGetNoncePayloadAsync());
+            JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", null, await GetNoncePayloadAsync());
             var q = from JToken token in obj
                     select new { Currency = token["currency"].ToStringInvariant(), Available = token["available"].ConvertInvariant<decimal>() };
             foreach (var kv in q)
@@ -184,12 +168,12 @@ namespace ExchangeSharp
                 throw new NotSupportedException("Order type " + order.OrderType + " not supported");
             }
 
-            string symbol = NormalizeSymbol(order.Symbol);
+            object nonce = await GenerateNonceAsync();
             Dictionary<string, object> payload = new Dictionary<string, object>
             {
-                { "nonce", GenerateNonce() },
-                { "client_order_id", "ExchangeSharp_" + DateTime.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
-                { "symbol", symbol },
+                { "nonce", nonce },
+                { "client_order_id", "ExchangeSharp_" + CryptoUtility.UtcNow.ToString("s", System.Globalization.CultureInfo.InvariantCulture) },
+                { "symbol", order.Symbol },
                 { "amount", order.RoundAmount().ToStringInvariant() },
                 { "price", order.Price.ToStringInvariant() },
                 { "side", (order.IsBuy ? "buy" : "sell") },
@@ -207,15 +191,16 @@ namespace ExchangeSharp
                 return null;
             }
 
-            JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", GenerateNonce() }, { "order_id", orderId } });
+            object nonce = await GenerateNonceAsync();
+            JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", nonce }, { "order_id", orderId } });
             return ParseOrder(result);
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            symbol = NormalizeSymbol(symbol);
-            JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", GenerateNonce() } });
+            object nonce = await GenerateNonceAsync();
+            JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, new Dictionary<string, object> { { "nonce", nonce } });
             if (result is JArray array)
             {
                 foreach (JToken token in array)
@@ -232,7 +217,10 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", GenerateNonce() }, { "order_id", orderId } });
+            object nonce = await GenerateNonceAsync();
+            await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", nonce }, { "order_id", orderId } });
         }
     }
+
+    public partial class ExchangeName { public const string Gemini = "Gemini"; }
 }

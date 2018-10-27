@@ -87,7 +87,7 @@ namespace ExchangeSharp
                 if (Symbol == "*")
                 {
                     // get all symbols
-                    Tickers = API.GetTickers().ToArray();
+                    Tickers = API.GetTickersAsync().Sync().ToArray();
                     tickerWriter.Write(Tickers.Count);
                     foreach (KeyValuePair<string, ExchangeTicker> ticker in Tickers)
                     {
@@ -98,14 +98,14 @@ namespace ExchangeSharp
                 else
                 {
                     // make API calls first, if they fail we will try again later
-                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(Symbol, API.GetTicker(Symbol)) };
-                    OrderBook = API.GetOrderBook(Symbol);
-                    Trades = API.GetRecentTrades(Symbol).OrderBy(t => t.Timestamp).ToArray();
+                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(Symbol, API.GetTickerAsync(Symbol).Sync()) };
+                    OrderBook = API.GetOrderBookAsync(Symbol).Sync();
+                    Trades = API.GetRecentTradesAsync(Symbol).Sync().OrderBy(t => t.Timestamp).ToArray();
 
                     // all API calls succeeded, we can write to files
 
                     // write system date / time
-                    sysTimeWriter.Write(DateTime.UtcNow.Ticks);
+                    sysTimeWriter.Write(CryptoUtility.UtcNow.Ticks);
 
                     // write ticker
                     Tickers.First().Value.ToBinary(tickerWriter);
@@ -214,7 +214,6 @@ namespace ExchangeSharp
             {
                 loggers.Add(new ExchangeLogger(ExchangeAPI.GetExchangeAPI(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path, compress));
             };
-            StreamWriter errorLog = File.CreateText(Path.Combine(path, "errors.txt"));
             foreach (ExchangeLogger logger in loggers)
             {
                 logger.Start();
@@ -229,8 +228,7 @@ namespace ExchangeSharp
                         }
                         errors[log] = ++errorCount;
                     }
-                    Console.WriteLine("Errors for {0}: {1}", log.API.Name, errorCount);
-                    errorLog.WriteLine("Errors for {0}: {1}", log.API.Name, errorCount);
+                    Logger.Info("Errors for {0}: {1}", log.API.Name, errorCount);
                 };
             }
             terminator = () =>
@@ -244,7 +242,6 @@ namespace ExchangeSharp
                         logger.Dispose();
                     }
                     loggers.Clear();
-                    errorLog.Close();
                 }
             };
             terminateAction = terminator;
@@ -258,9 +255,7 @@ namespace ExchangeSharp
             {
                 terminator();
             };
-
-            Console.WriteLine("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
-            errorLog.WriteLine("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
+            Logger.Info("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
         }
 
         /// <summary>

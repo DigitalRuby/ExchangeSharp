@@ -23,9 +23,8 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeAbucoinsAPI : ExchangeAPI
+    public sealed partial class ExchangeAbucoinsAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Abucoins;
         public override string BaseUrl { get; set; } = "https://api.abucoins.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://ws.abucoins.com";
 
@@ -36,20 +35,20 @@ namespace ExchangeSharp
 
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 payload.Remove("nonce");
                 string body = CryptoUtility.GetJsonForPayload(payload);
-                string timestamp = ((int)DateTime.UtcNow.UnixTimestampFromDateTimeSeconds()).ToStringInvariant();
+                string timestamp = ((int)CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds()).ToStringInvariant();
                 string msg = timestamp + request.Method + request.RequestUri.PathAndQuery + (request.Method.Equals("POST") ? body : string.Empty);
                 string sign = CryptoUtility.SHA256SignBase64(msg, CryptoUtility.ToBytesBase64Decode(PrivateApiKey));
 
-                request.Headers["AC-ACCESS-KEY"] = CryptoUtility.ToUnsecureString(PublicApiKey);
-                request.Headers["AC-ACCESS-SIGN"] = sign;
-                request.Headers["AC-ACCESS-TIMESTAMP"] = timestamp;
-                request.Headers["AC-ACCESS-PASSPHRASE"] = CryptoUtility.ToUnsecureString(Passphrase);
+                request.AddHeader("AC-ACCESS-KEY", CryptoUtility.ToUnsecureString(PublicApiKey));
+                request.AddHeader("AC-ACCESS-SIGN", sign);
+                request.AddHeader("AC-ACCESS-TIMESTAMP",  timestamp);
+                request.AddHeader("AC-ACCESS-PASSPHRASE", CryptoUtility.ToUnsecureString(Passphrase));
 
                 if (request.Method == "POST")
                 {
@@ -187,28 +186,16 @@ namespace ExchangeSharp
             //if (limit != null) throw new APIException("Limit parameter not supported");  Really? You want to throw an exception instead of ignoring the parm?
             List<MarketCandle> candles = new List<MarketCandle>();
 
-            endDate = endDate ?? DateTime.UtcNow;
+            endDate = endDate ?? CryptoUtility.UtcNow;
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
             //[time, low, high, open, close, volume], ["1505984400","14209.92500000","14209.92500000","14209.92500000","14209.92500000","0.001"]
-            JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/candles?granularity=" + periodSeconds + "&start=" + ((DateTime)startDate).ToString("o") + "&end=" + ((DateTime)endDate).ToString("o"));
+            JToken obj = await MakeJsonRequestAsync<JToken>("/products/" + symbol + "/candles?granularity=" + periodSeconds.ToStringInvariant() + "&start=" + ((DateTime)startDate).ToString("o") + "&end=" + ((DateTime)endDate).ToString("o"));
             if (obj.HasValues)
             {
-                foreach (JArray array in obj)
+                foreach (JToken token in obj)
                 {
-                    candles.Add(new MarketCandle()
-                    {
-                        ExchangeName = this.Name,
-                        Name = symbol,
-                        Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array[0].ConvertInvariant<long>()),
-                        PeriodSeconds = periodSeconds,
-                        LowPrice = array[1].ConvertInvariant<decimal>(),
-                        HighPrice = array[2].ConvertInvariant<decimal>(),
-                        OpenPrice = array[3].ConvertInvariant<decimal>(),
-                        ClosePrice = array[4].ConvertInvariant<decimal>(),
-                        ConvertedVolume = array[5].ConvertInvariant<double>(),
-                        BaseVolume = array[4].ConvertInvariant<double>()
-                    });
+                    candles.Add(this.ParseCandle(token, symbol, periodSeconds, 3, 2, 1, 4, 0, TimestampType.UnixSeconds, 5));
                 }
             }
             return candles;
@@ -221,7 +208,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["balance"].ConvertInvariant<decimal>();
@@ -233,7 +220,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/accounts", null, await GetNoncePayloadAsync());
             foreach (JToken token in array)
             {
                 decimal amount = token["available"].ConvertInvariant<decimal>();
@@ -244,7 +231,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
-            JToken token = await MakeJsonRequestAsync<JToken>("/orders?orderID", null, await OnGetNoncePayloadAsync());
+            JToken token = await MakeJsonRequestAsync<JToken>("/orders?orderID", null, await GetNoncePayloadAsync());
             ExchangeOrderResult eor = new ExchangeOrderResult()
             {
                 OrderId = token["id"].ToStringInvariant(),
@@ -269,7 +256,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> result = new List<ExchangeOrderResult>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=done", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=done", null, await GetNoncePayloadAsync());
             foreach (var token in array)
             {
                 ExchangeOrderResult eor = new ExchangeOrderResult()
@@ -298,7 +285,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
             List<ExchangeOrderResult> result = new List<ExchangeOrderResult>();
-            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=open", null, await OnGetNoncePayloadAsync());
+            JArray array = await MakeJsonRequestAsync<JArray>("/orders?status=open", null, await GetNoncePayloadAsync());
             foreach (var token in array)
             {
                 ExchangeOrderResult eor = new ExchangeOrderResult()
@@ -327,7 +314,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["priduct_id"] = order.Symbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
             payload["size"] = order.Amount;
@@ -352,7 +339,7 @@ namespace ExchangeSharp
                 result.AveragePrice = token["price"].ConvertInvariant<decimal>();
                 result.Fees = token["fill_fees"].ConvertInvariant<decimal>();
                 result.IsBuy = token["buy"].ToStringInvariant().Equals("buy");
-                result.OrderDate = ConvertDateTimeInvariant(token["created_at"]);
+                result.OrderDate = token["created_at"].ToDateTimeInvariant();
                 result.Price = token["price"].ConvertInvariant<decimal>();
                 result.Symbol = token["product_id"].ToStringInvariant();
                 result.Message = token["reject_reason"].ToStringInvariant();
@@ -372,14 +359,14 @@ namespace ExchangeSharp
         // This should have a return value for success
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            await MakeJsonRequestAsync<JArray>("/orders/" + orderId, null, await OnGetNoncePayloadAsync(), "DELETE");
+            await MakeJsonRequestAsync<JArray>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
         }
 
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload["limit"] = 1000;
 
             // History by symbol is not supported, so we'll get max and filter the results
@@ -391,7 +378,7 @@ namespace ExchangeSharp
                 {
                     Symbol = token["currency"].ToStringInvariant(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
-                    Timestamp = ConvertDateTimeInvariant(token["date"]),
+                    Timestamp = token["date"].ToDateTimeInvariant(),
                     PaymentId = token["deposit_id"].ToStringInvariant(),
                     TxFee = token["fee"].ConvertInvariant<decimal>()
                 };
@@ -408,14 +395,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            symbol = NormalizeSymbol(symbol);
-            var payload = await OnGetNoncePayloadAsync();
-            JArray array = MakeJsonRequest<JArray>("/payment-methods", null, await OnGetNoncePayloadAsync());
+            var payload = await GetNoncePayloadAsync();
+            JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
                 var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
-                payload = await OnGetNoncePayloadAsync();
-                payload["currency"] = NormalizeSymbol(symbol);
+                payload = await GetNoncePayloadAsync();
+                payload["currency"] = symbol;
                 payload["method"] = rc["id"].ToStringInvariant();
 
                 JToken token = await MakeJsonRequestAsync<JToken>("/deposits/make", null, payload, "POST");
@@ -433,20 +419,19 @@ namespace ExchangeSharp
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
             ExchangeWithdrawalResponse response = new ExchangeWithdrawalResponse { Success = false };
-            string symbol = NormalizeSymbol(withdrawalRequest.Symbol);
-            var payload = await OnGetNoncePayloadAsync();
-            JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await OnGetNoncePayloadAsync());
+            var payload = await GetNoncePayloadAsync();
+            JArray array = await MakeJsonRequestAsync<JArray>("/payment-methods", null, await GetNoncePayloadAsync());
             if (array != null)
             {
-                var rc = array.Where(t => t["currency"].ToStringInvariant() == symbol).FirstOrDefault();
+                var rc = array.Where(t => t["currency"].ToStringInvariant() == withdrawalRequest.Currency).FirstOrDefault();
 
-                payload = await OnGetNoncePayloadAsync();
+                payload = await GetNoncePayloadAsync();
                 payload["amount"] = withdrawalRequest.Amount;
-                payload["currency"] = symbol;
+                payload["currency"] = withdrawalRequest.Currency;
                 payload["method"] = rc["id"].ToStringInvariant();
                 if (!String.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["tag"] = withdrawalRequest.AddressTag;
                 // "status": 0,  "message": "Your transaction is pending. Please confirm it via email.",  "payoutId": "65",  "balance": []...
-                JToken token = MakeJsonRequest<JToken>("/withdrawals/make", null, payload, "POST");
+                JToken token = await MakeJsonRequestAsync<JToken>("/withdrawals/make", null, payload, "POST");
                 response.Id = token["payoutId"].ToStringInvariant();
                 response.Message = token["message"].ToStringInvariant();
                 response.Success = token["status"].ConvertInvariant<int>().Equals(0);
@@ -466,77 +451,53 @@ namespace ExchangeSharp
         /// <returns></returns>
         protected override IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
-            if (callback == null) return null;
-
-            var orders = GetOpenOrderDetails().Select(o => o.OrderId).ToList();
+            var orders = GetOpenOrderDetailsAsync().Sync().Select(o => o.OrderId).ToList();
             string ids = JsonConvert.SerializeObject(JArray.FromObject(orders));
 
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                //{"type":"done","time":"2018-02-20T14:59:45Z","product_id":"BTC-PLN","sequence":648771,"price":"39034.08000000","order_id":"277370262","reason":"canceled",  "side":"sell","remaining_size":0.503343}
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if ((string)token["type"] == "done")
                 {
-                    //{"type":"done","time":"2018-02-20T14:59:45Z","product_id":"BTC-PLN","sequence":648771,"price":"39034.08000000","order_id":"277370262","reason":"canceled",  "side":"sell","remaining_size":0.503343}
-                    JToken token = JToken.Parse(msg.UTF8String());
-                    if ((string)token["type"] == "done")
+                    callback.Invoke(new ExchangeOrderResult()
                     {
-                        callback.Invoke(new ExchangeOrderResult()
-                        {
-                            OrderId = token["order_id"].ToStringInvariant(),
-                            Symbol = token["product_id"].ToStringInvariant(),
-                            OrderDate = ConvertDateTimeInvariant(token["time"]),
-                            Message = token["reason"].ToStringInvariant(),
-                            IsBuy = token["side"].ToStringInvariant().Equals("buy"),
-                            Price = token["price"].ConvertInvariant<decimal>()
-                        });
-                    }
+                        OrderId = token["order_id"].ToStringInvariant(),
+                        Symbol = token["product_id"].ToStringInvariant(),
+                        OrderDate = token["time"].ToDateTimeInvariant(),
+                        Message = token["reason"].ToStringInvariant(),
+                        IsBuy = token["side"].ToStringInvariant().Equals("buy"),
+                        Price = token["price"].ConvertInvariant<decimal>()
+                    });
                 }
-                catch (Exception ex) { Debug.WriteLine(ex.Message); }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
                 // subscribe to done channel
-                _socket.SendMessage("{\"type\":\"subscribe\",\"channels\":[{ \"name\":\"done\",\"product_ids\":" + ids + "}]}");
+                await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "done", products_ids = ids } } });
             });
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] symbols)
         {
             if (tickers == null) return null;
-
-            var symbols = GetTickers().Select(t => t.Key).ToList();
-            string ids = JsonConvert.SerializeObject(JArray.FromObject(symbols));
-
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            symbols = symbols == null || symbols.Length == 0 ? GetTickersAsync().Sync().Select(t => t.Key).ToArray() : symbols;
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
-                try
+                //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token["type"].ToStringInvariant() == "ticker")
                 {
-                    //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
-                    JToken token = JToken.Parse(msg.UTF8String());
-                    if (token["type"].ToStringInvariant() == "ticker")
+                    string symbol = token["product_id"].ToStringInvariant();
+                    tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
                     {
-                        string symbol = token["product_id"].ToStringInvariant();
-                        tickers.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
-                        {
-                            new KeyValuePair<string, ExchangeTicker>(symbol, new ExchangeTicker
-                            {
-                                Id = token["trade_id"].ConvertInvariant<long>().ToStringInvariant(),
-                                Last = token["price"].ConvertInvariant<decimal>(),
-                                Ask = token["best_ask"].ConvertInvariant<decimal>(),
-                                Bid = token["best_bid"].ConvertInvariant<decimal>(),
-                                Volume = new ExchangeVolume()
-                                {
-                                    ConvertedSymbol = token["product_id"].ToStringInvariant(),
-                                    ConvertedVolume = token["last_size"].ConvertInvariant<decimal>(),
-                                    Timestamp = ConvertDateTimeInvariant(token["time"])
-                                }
-                            })
-                        });
-                    }
+                        new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(token, symbol, "best_ask", "best_bid", "price", "last_size", null, "time", TimestampType.Iso8601))
+                    });
                 }
-                catch (Exception ex) { Debug.WriteLine(ex.Message); }
-            }, (_socket) =>
+                return Task.CompletedTask;
+            }, async (_socket) =>
             {
-                // subscribe to ticker channel
-                _socket.SendMessage("{\"type\": \"subscribe\", \"channels\": [{ \"name\": \"ticker\", \"product_ids\": " + ids + " }] }");
+                await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "ticker", product_ids = symbols } } });
             });
         }
 
@@ -546,41 +507,16 @@ namespace ExchangeSharp
 
         private ExchangeTrade ParseExchangeTrade(JToken token)
         {
-            return new ExchangeTrade()
-            {
-                Id = token["trade_id"].ConvertInvariant<long>(),
-                Timestamp = ConvertDateTimeInvariant(token["time"]),
-                Amount = token["size"].ConvertInvariant<decimal>(),
-                Price = token["price"].ConvertInvariant<decimal>(),
-                IsBuy = token["buy"].ToStringLowerInvariant().Equals("buy")
-            };
+            return token.ParseTrade("size", "price", "buy", "time", TimestampType.Iso8601, "trade_id");
         }
 
         private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
-            if (!token.HasValues)
-            {
-                return null;
-            }
-            decimal size = token["size"].ConvertInvariant<decimal>();
-            decimal price = token["price"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].ConvertInvariant<decimal>(),
-                Bid = token["bid"].ConvertInvariant<decimal>(),
-                Last = price,
-                Volume = new ExchangeVolume()
-                {
-                    BaseVolume = size,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = size * price,
-                    ConvertedSymbol = symbol,
-                    Timestamp = DateTime.UtcNow
-                }
-            };
+            return this.ParseTicker(token, symbol, "ask", "bid", "price", "size");
         }
 
         #endregion
     }
-}
 
+    public partial class ExchangeName { public const string Abucoins = "Abucoins"; }
+}

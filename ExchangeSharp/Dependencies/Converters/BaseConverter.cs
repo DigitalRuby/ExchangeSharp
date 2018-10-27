@@ -46,7 +46,7 @@ namespace ExchangeSharp
             if (Mapping.ContainsValue(value))
                 return Mapping.Single(m => m.Value == value).Key;
 
-            var lowerResult = Mapping.SingleOrDefault(m => m.Value.ToLower() == value.ToLower());
+            var lowerResult = Mapping.SingleOrDefault(m => m.Value.ToLowerInvariant() == value.ToLowerInvariant());
             if (!lowerResult.Equals(default(KeyValuePair<T, string>)))
                 return lowerResult.Key;
 

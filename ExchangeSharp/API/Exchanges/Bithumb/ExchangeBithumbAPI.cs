@@ -18,38 +18,34 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeBithumbAPI : ExchangeAPI
+    public sealed partial class ExchangeBithumbAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
-        public override string Name => ExchangeName.Bithumb;
-
-        private static readonly char[] normalizeSeps = new char[] { '-', '_' };
 
         public ExchangeBithumbAPI()
         {
+            SymbolIsUppercase = true;
         }
 
         public override string NormalizeSymbol(string symbol)
         {
-            if (symbol != null)
+            symbol = base.NormalizeSymbol(symbol);
+            int pos = symbol.IndexOf(SymbolSeparator);
+            if (pos >= 0)
             {
-                int pos = symbol.IndexOfAny(normalizeSeps);
-                if (pos >= 0)
-                {
-                    symbol = symbol.Substring(0, pos).ToLowerInvariant();
-                }
+                symbol = symbol.Substring(0, pos);
             }
             return symbol;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
         {
-            return symbol + GlobalSymbolSeparator + "KRW";
+            return "KRW" + GlobalSymbolSeparator + symbol;
         }
 
         public override string GlobalSymbolToExchangeSymbol(string symbol)
         {
-            return symbol.Substring(0, symbol.IndexOf(GlobalSymbolSeparator));
+            return symbol.Substring(symbol.IndexOf(GlobalSymbolSeparator) + 1);
         }
 
         private string StatusToError(string status)
@@ -84,22 +80,9 @@ namespace ExchangeSharp
             return new Tuple<JToken, string>(obj, symbol);
         }
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data, DateTime? date)
+        private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
-            return new ExchangeTicker
-            {
-                Ask = data["sell_price"].ConvertInvariant<decimal>(),
-                Bid = data["buy_price"].ConvertInvariant<decimal>(),
-                Last = data["buy_price"].ConvertInvariant<decimal>(), // Silly Bithumb doesn't provide the last actual trade value in the ticker,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = data["average_price"].ConvertInvariant<decimal>(),
-                    BaseSymbol = "KRW",
-                    ConvertedVolume = data["units_traded"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(data, symbol, "sell_price", "buy_price", "buy_price", "average_price", "units_traded", "date", TimestampType.UnixMilliseconds);
         }
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
@@ -120,7 +103,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestBithumbAsync(symbol, "/public/ticker/$SYMBOL$");
-            return ParseTicker(data.Item2, data.Item1, null);
+            return ParseTicker(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -133,7 +116,9 @@ namespace ExchangeSharp
             {
                 if (token.Name != "date")
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ParseTicker(token.Name, token.Value, date)));
+                    ExchangeTicker ticker = ParseTicker(token.Name, token.Value);
+                    ticker.Volume.Timestamp = date;
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ticker));
                 }
             }
             return tickers;
@@ -161,4 +146,6 @@ namespace ExchangeSharp
             return books;
         }
     }
+
+    public partial class ExchangeName { public const string Bithumb = "Bithumb"; }
 }

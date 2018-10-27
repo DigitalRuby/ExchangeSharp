@@ -18,90 +18,59 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeZBcomAPI : ExchangeAPI
+    public sealed partial class ExchangeZBcomAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "http://api.zb.com/data/v1";
-        public override string Name => ExchangeName.ZBcom;
+        public override string BaseUrlWebSocket { get; set; } = "wss://api.zb.com:9999/websocket";
 
         public ExchangeZBcomAPI()
         {
             SymbolSeparator = "_";
+            SymbolIsUppercase = false;
         }
 
-        public override string NormalizeSymbol(string symbol)
+        private string NormalizeSymbolWebsocket(string symbol)
         {
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
-        }
+            if (symbol == null) return symbol;
 
-        public override string ExchangeSymbolToGlobalSymbol(string symbol)
-        {
-            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol, SymbolSeparator[0]);
-        }
-
-        public override string GlobalSymbolToExchangeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
+            return (symbol ?? string.Empty).ToLowerInvariant().Replace("-", string.Empty);
         }
 
         #region publicAPI
 
         private async Task<Tuple<JToken, string>> MakeRequestZBcomAsync(string symbol, string subUrl, string baseUrl = null)
         {
-            symbol = NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty), baseUrl);
             return new Tuple<JToken, string>(obj, symbol);
         }
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data, DateTime? date)
+        private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             // {{"ticker":{"vol":"18202.5979","last":"6698.2","sell":"6703.21","buy":"6693.2","high":"6757.69","low":"6512.69"},"date":"1531822098779"}}
-
-            JToken ticker = data["ticker"];
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["vol"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = date ?? CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", "date", TimestampType.UnixMilliseconds);
         }
 
-        private ExchangeTicker ParseTickerV2(string symbol, JToken data, DateTime date)
+        private ExchangeTicker ParseTickerV2(string symbol, JToken data)
         {
             //{"hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"}}
+            return this.ParseTicker(data.First, symbol, "sell", "buy", "last", "vol");
+        }
 
-            JToken ticker = data.First;
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["vol"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
+        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        {
+            var data = await MakeRequestZBcomAsync(string.Empty, "/markets");
+            List<string> symbols = new List<string>();
+            foreach (JProperty prop in data.Item1)
             {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = date
-                }
-            };
+                symbols.Add(prop.Name);
+            }
+            return symbols;
         }
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             var data = await MakeRequestZBcomAsync(symbol, "/ticker?market=$SYMBOL$");
-            return ParseTicker(data.Item2, data.Item1, null);
+            return ParseTicker(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -109,15 +78,54 @@ namespace ExchangeSharp
             //{ "hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"},"tvqc":{ "vol":"2125511.1",
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
-            var date = DateTime.Now; //ZB.com doesn't give a timestamp when asking all tickers
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             foreach (JToken token in data.Item1)
             {
                 symbol = token.Path;
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token, date)));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token)));
             }
             return tickers;
+        }
+
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        {
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            {
+                JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                if (token["dataType"].ToStringInvariant() == "trades")
+                {
+                    var channel = token["channel"].ToStringInvariant();
+                    var sArray = channel.Split('_');
+                    string symbol = sArray[0];
+                    var data = token["data"];
+                    var trades = ParseTradesWebsocket(data);
+                    foreach (var trade in trades)
+                    {
+                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                    }
+                }
+                return Task.CompletedTask;
+
+            }, async (_socket) =>
+            {
+                foreach (var symbol in symbols)
+                {
+                    string normalizedSymbol = NormalizeSymbolWebsocket(symbol);
+                    await _socket.SendMessageAsync(new { @event = "addChannel", channel = normalizedSymbol + "_trades" });
+                }
+            });
+        }
+
+        private IEnumerable<ExchangeTrade> ParseTradesWebsocket(JToken token)
+        {
+            //{ "amount":"0.0372","price": "7509.7","tid": 153806522,"date": 1532103901,"type": "sell","trade_type": "ask"},{"amount": "0.0076", ...
+            var trades = new List<ExchangeTrade>();
+            foreach (var t in token)
+            {
+                trades.Add(t.ParseTrade("amount", "price", "type", "date", TimestampType.UnixSeconds, "tid"));
+            }
+            return trades;
         }
 
         #endregion
@@ -162,4 +170,6 @@ namespace ExchangeSharp
 
         #endregion
     }
+
+    public partial class ExchangeName { public const string ZBcom = "ZBcom"; }
 }

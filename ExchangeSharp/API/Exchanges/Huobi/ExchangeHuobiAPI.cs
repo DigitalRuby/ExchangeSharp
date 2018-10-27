@@ -21,9 +21,8 @@ using System.Security.Cryptography;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeHuobiAPI : ExchangeAPI
+    public sealed partial class ExchangeHuobiAPI : ExchangeAPI
     {
-        public override string Name => ExchangeName.Huobi;
         public override string BaseUrl { get; set; } = "https://api.huobipro.com";
         public string BaseUrlV1 { get; set; } = "https://api.huobipro.com/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
@@ -37,10 +36,10 @@ namespace ExchangeSharp
         public ExchangeHuobiAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            NonceStyle = NonceStyle.UnixSecondsString;   // not used, see below
+            NonceStyle = NonceStyle.UnixMilliseconds;
             SymbolSeparator = string.Empty;
             SymbolIsUppercase = false;
-            SymbolIsReversed = true;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
         }
 
         public override string ExchangeSymbolToGlobalSymbol(string symbol)
@@ -56,16 +55,20 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(3) + GlobalSymbolSeparator + symbol.Substring(0, 3), GlobalSymbolSeparator);
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+            return CryptoUtility.SecondsToPeriodStringLong(seconds);
+        }
+
         #region ProcessRequest 
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
                 if (request.Method == "POST")
                 {
-                    request.ContentType = "application/json";
-
+                    request.AddHeader("content-type", "application/json");
                     payload.Remove("nonce");
                     var msg = CryptoUtility.GetJsonForPayload(payload);
                     await CryptoUtility.WriteToRequestAsync(request, msg);
@@ -77,61 +80,40 @@ namespace ExchangeSharp
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                if (!payload.ContainsKey("method"))
+                // must sort case sensitive
+                var dict = new SortedDictionary<string, object>(StringComparer.Ordinal)
                 {
-                    return url.Uri;
-                }
-                method = payload["method"].ToStringInvariant();
-                payload.Remove("method");
-
-                var dict = new Dictionary<string, object>
-                {
-                    ["Timestamp"] = DateTime.UtcNow.ToString("s"),
+                    ["Timestamp"] = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(payload["nonce"].ConvertInvariant<long>()).ToString("s"),
                     ["AccessKeyId"] = PublicApiKey.ToUnsecureString(),
                     ["SignatureMethod"] = "HmacSHA256",
                     ["SignatureVersion"] = "2"
                 };
 
-                string msg = null;
                 if (method == "GET")
                 {
-                    dict = dict.Concat(payload).ToDictionary(x => x.Key, x => x.Value);
+                    foreach (var kv in payload)
+                    {
+                        dict.Add(kv.Key, kv.Value);
+                    }
                 }
 
-                msg = CryptoUtility.GetFormForPayload(dict, false);
+                string msg = CryptoUtility.GetFormForPayload(dict, false, false, false);
+                string toSign = $"{method}\n{url.Host}\n{url.Path}\n{msg}";
 
-                // must sort case sensitive
-                msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
+                // calculate signature
+                var sign = CryptoUtility.SHA256SignBase64(toSign, PrivateApiKey.ToUnsecureBytesUTF8()).UrlEncode();
 
-                StringBuilder sb = new StringBuilder();
-                sb.Append(method).Append("\n")
-                    .Append(url.Host).Append("\n")
-                    .Append(url.Path).Append("\n")
-                    .Append(msg);
-
-                var sign = CryptoUtility.SHA256SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
-                var signUrl = Uri.EscapeDataString(sign);
-                msg += $"&Signature={signUrl}";
-
-                // https://github.com/huobiapi/API_Docs_en/wiki/Signing_API_Requests
-                // API Authentication Change
-                var privateSign = GetPrivateSignatureStr(Passphrase.ToUnsecureString(), sign);
-                var privateSignUrl = Uri.EscapeDataString(privateSign);
-                msg += $"&PrivateSignature={privateSignUrl}";
+                // append signature to end of message
+                msg += $"&Signature={sign}";
 
                 url.Query = msg;
             }
             return url.Uri;
         }
 
-#endregion
+        #endregion
 
-#region Public APIs
-
-        public override string NormalizeSymbol(string symbol)
-        {
-            return (symbol ?? string.Empty).Replace("-", "").Replace("/", "").Replace("_", "").ToLowerInvariant();
-        }
+        #region Public APIs
 
         protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
         {
@@ -162,12 +144,7 @@ namespace ExchangeSharp
                 }, 
              
              */
-            if (ReadCache("GetSymbolsMetadata", out List<ExchangeMarket> markets))
-            {
-                return markets;
-            }
-
-            markets = new List<ExchangeMarket>();
+            List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
             foreach (var symbol in allSymbols)
             {
@@ -193,9 +170,6 @@ namespace ExchangeSharp
 
                 markets.Add(market);
             }
-
-            WriteCache("GetSymbolsMetadata", TimeSpan.FromMinutes(60.0), markets);
-
             return markets;
         }
 
@@ -227,14 +201,9 @@ namespace ExchangeSharp
               }
             }}
              */
-            symbol = NormalizeSymbol(symbol);
-            JToken obj = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + symbol);
-            var tick = obj["tick"];
-            var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(obj["ts"].ConvertInvariant<double>());
-
-            return ParseTicker(symbol, ts, tick);
+            JToken ticker = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + symbol);
+            return this.ParseTicker(ticker["tick"], symbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
         }
-
 
         protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
@@ -243,12 +212,7 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 /*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
@@ -272,63 +236,51 @@ namespace ExchangeSharp
   }
 }}
                  */
-                try
+                var str = msg.ToStringFromUTF8Gzip();
+                JToken token = JToken.Parse(str);
+
+                if (token["status"] != null)
                 {
-                    var str = msg.UTF8StringFromGzip();
-                    JToken token = JToken.Parse(str);
-
-                    if (token["status"] != null)
-                    {
-                        return;
-                    }
-                    else if (token["ping"] != null)
-                    {
-                        _socket.SendMessage(str.Replace("ping", "pong"));
-                        return;
-                    }
-
-                    var ch = token["ch"].ToStringInvariant();
-                    var sArray = ch.Split('.');
-                    var symbol = sArray[1];
-
-                    var tick = token["tick"];
-                    var id = tick["id"].ConvertInvariant<long>();
-                    var trades = ParseTradesWebSocket(tick);
-                    foreach (var trade in trades)
-                    {
-                        trade.Id = id;
-                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                    }
+                    return;
                 }
-                catch
+                else if (token["ping"] != null)
                 {
+                    await _socket.SendMessageAsync(str.Replace("ping", "pong"));
+                    return;
                 }
-            }, (_socket) =>
+
+                var ch = token["ch"].ToStringInvariant();
+                var sArray = ch.Split('.');
+                var symbol = sArray[1];
+
+                var tick = token["tick"];
+                var id = tick["id"].ConvertInvariant<long>();
+
+                var data = tick["data"];
+                var trades = ParseTradesWebSocket(data);
+                foreach (var trade in trades)
+                {
+                    trade.Id = id;
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                }
+            }, async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (symbols == null || symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
-
                 foreach (string symbol in symbols)
                 {
-                    string normalizedSymbol = NormalizeSymbol(symbol);
                     long id = System.Threading.Interlocked.Increment(ref webSocketId);
-                    string channel = $"market.{normalizedSymbol}.trade.detail";
-                    string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
-                    _socket.SendMessage(msg);
+                    string channel = $"market.{symbol}.trade.detail";
+                    await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 /*
 {{
@@ -370,47 +322,36 @@ namespace ExchangeSharp
   }
 }}
                  */
-                try
-                {
-                    var str = msg.UTF8StringFromGzip();
-                    JToken token = JToken.Parse(str);
+                var str = msg.ToStringFromUTF8Gzip();
+                JToken token = JToken.Parse(str);
 
-                    if (token["status"] != null)
-                    {
-                        return;
-                    }
-                    else if (token["ping"] != null)
-                    {
-                        _socket.SendMessage(str.Replace("ping", "pong"));
-                        return;
-                    }
-                    var ch = token["ch"].ToStringInvariant();
-                    var sArray = ch.Split('.');
-                    var symbol = sArray[1].ToStringInvariant();
-                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
-                    book.Symbol = symbol;
-                    callback(book);
-                }
-                catch
+                if (token["status"] != null)
                 {
-                    // TODO: Handle exception
+                    return;
                 }
-            }, (_socket) =>
+                else if (token["ping"] != null)
+                {
+                    await _socket.SendMessageAsync(str.Replace("ping", "pong"));
+                    return;
+                }
+                var ch = token["ch"].ToStringInvariant();
+                var sArray = ch.Split('.');
+                var symbol = sArray[1].ToStringInvariant();
+                ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token["tick"], maxCount: maxCount);
+                book.Symbol = symbol;
+                callback(book);
+            }, async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (symbols == null || symbols.Length == 0)
                 {
-                    symbols = GetSymbols().ToArray();
+                    symbols = (await GetSymbolsAsync()).ToArray();
                 }
-
-                // request all symbols, this does not work sadly, only the first is pulled
                 foreach (string symbol in symbols)
                 {
                     long id = System.Threading.Interlocked.Increment(ref webSocketId);
-                    var normalizedSymbol = NormalizeSymbol(symbols[0]);
-                    // subscribe to order book and trades channel for given symbol
+                    var normalizedSymbol = NormalizeSymbol(symbol);
                     string channel = $"market.{normalizedSymbol}.depth.step0";
-                    string msg = $"{{\"sub\":\"{channel}\",\"id\":\"id{id}\"}}";
-                    _socket.SendMessage(msg);
+                    await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
         }
@@ -455,7 +396,6 @@ namespace ExchangeSharp
       [7990, 1.9970],
       [7995, 0.88],
              */
-            symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + symbol + "&type=step0", BaseUrl, null);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
@@ -482,43 +422,27 @@ namespace ExchangeSharp
              */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string url = "/market/history/kline?symbol=" + symbol;
             if (limit != null)
             {
                 // default is 150, max: 2000
                 url += "&size=" + (limit.Value.ToStringInvariant());
             }
-            string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
+            string periodString = PeriodSecondsToString(periodSeconds);
             url += "&period=" + periodString;
             JToken allCandles = await MakeJsonRequestAsync<JToken>(url, BaseUrl, null);
-            var ts = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(allCandles.Parent.Parent["ts"].ConvertInvariant<long>());
-            foreach (var array in allCandles)
+            foreach (var token in allCandles)
             {
-                candles.Add(new MarketCandle
-                {
-                    ClosePrice = array["close"].ConvertInvariant<decimal>(),
-                    ExchangeName = Name,
-                    HighPrice = array["high"].ConvertInvariant<decimal>(),
-                    LowPrice = array["low"].ConvertInvariant<decimal>(),
-                    Name = symbol,
-                    OpenPrice = array["open"].ConvertInvariant<decimal>(),
-                    PeriodSeconds = periodSeconds,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(array["id"].ConvertInvariant<long>()),
-                    BaseVolume = array["vol"].ConvertInvariant<double>() / array["close"].ConvertInvariant<double>(),
-                    ConvertedVolume = array["vol"].ConvertInvariant<double>(),
-                    WeightedAverage = 0m
-                });
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, "open", "high", "low", "close", "id", TimestampType.UnixSeconds, null, "vol"));
             }
 
             candles.Reverse();
-
             return candles;
         }
 
-#endregion
+        #endregion
 
-#region Private APIs
+        #region Private APIs
 
         private async Task<Dictionary<string, string>> OnGetAccountsAsync()
         {
@@ -550,29 +474,15 @@ namespace ExchangeSharp
   }
 ]}
  */
-            if (ReadCache("GetAccounts", out Dictionary<string, string> accounts))
-            {
-                return accounts;
-            }
-            accounts = new Dictionary<string, string>();
-            var payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, string> accounts = new Dictionary<string, string>();
+            var payload = await GetNoncePayloadAsync();
             JToken data = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, payload);
             foreach (var acc in data)
             {
                 string key = acc["type"].ToStringInvariant() + "_" + acc["subtype"].ToStringInvariant();
                 accounts.Add(key, acc["id"].ToStringInvariant());
             }
-
-            WriteCache("GetAccounts", TimeSpan.FromMinutes(60.0), accounts);
-
             return accounts;
-        }
-
-        protected override async Task<Dictionary<string, object>> OnGetNoncePayloadAsync()
-        {
-            var result = await base.OnGetNoncePayloadAsync();
-            result["method"] = "GET";
-            return result;
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
@@ -607,9 +517,8 @@ namespace ExchangeSharp
       },
              */
             var account_id = await GetAccountID();
-
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
             var list = token["list"];
             foreach (var item in list)
@@ -637,7 +546,7 @@ namespace ExchangeSharp
             var account_id = await GetAccountID();
 
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>($"/account/accounts/{account_id}/balance", PrivateUrlV1, payload);
             var list = token["list"];
             foreach (var item in list)
@@ -686,7 +595,7 @@ namespace ExchangeSharp
               }
             }}
              */
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload);
             return ParseOrder(data);
         }
@@ -696,7 +605,7 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("states", "partial-canceled,filled,canceled");
             if (afterDate != null)
@@ -716,7 +625,7 @@ namespace ExchangeSharp
             if (symbol == null) { throw new APIException("symbol cannot be null"); }
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("symbol", symbol);
             payload.Add("states", "pre-submitted,submitting,submitted,partial-filled");
             JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload);
@@ -729,19 +638,16 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
-
             var account_id = await GetAccountID(order.IsMargin, order.Symbol);
 
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             payload.Add("account-id", account_id);
-            payload.Add("symbol", symbol);
+            payload.Add("symbol", order.Symbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
             payload.Add("source", order.IsMargin ? "margin-api" : "api");
-            payload["method"] = "POST";
 
-            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
 
             payload["amount"] = outputQuantity.ToStringInvariant();
 
@@ -765,8 +671,7 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            var payload = await OnGetNoncePayloadAsync();
-            payload["method"] = "POST";
+            var payload = await GetNoncePayloadAsync();
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
@@ -803,7 +708,7 @@ namespace ExchangeSharp
 
 #endregion
 
-#region Private Functions
+        #region Private Functions
 
         protected override JToken CheckJsonResponse(JToken result)
         {
@@ -834,25 +739,6 @@ namespace ExchangeSharp
             result.Result = ExchangeAPIOrderResult.Pending;
 
             return result;
-        }
-
-        private ExchangeTicker ParseTicker(string symbol, DateTime ts, JToken token)
-        {
-            return new ExchangeTicker
-            {
-                Ask = token["ask"].First.ConvertInvariant<decimal>(),
-                Bid = token["bid"].First.ConvertInvariant<decimal>(),
-                Last = token["close"].ConvertInvariant<decimal>(),
-                Id = token["id"].ToStringInvariant(),
-                Volume = new ExchangeVolume
-                {
-                    ConvertedVolume = token["vol"].ConvertInvariant<decimal>(),
-                    BaseVolume = token["amount"].ConvertInvariant<decimal>(),
-                    ConvertedSymbol = symbol,
-                    BaseSymbol = symbol,
-                    Timestamp = ts,
-                }
-            };
         }
 
         private ExchangeAPIOrderResult ParseState(string state)
@@ -903,16 +789,7 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                var trade = new ExchangeTrade()
-                {
-                    Amount = t["amount"].ConvertInvariant<decimal>(),
-                    // System.OverflowException: Value was either too large or too small for an Int64.
-                    //Id = t["id"].ConvertInvariant<long>(),
-                    IsBuy = t["direction"].ToStringLowerInvariant().EqualsWithOption("buy"),
-                    Price = t["price"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(t["ts"].ConvertInvariant<long>())
-                };
-                trades.Add(trade);
+                trades.Add(t.ParseTrade("amount", "price", "direction", "ts", TimestampType.UnixMilliseconds, "id"));
             }
 
             return trades;
@@ -930,52 +807,7 @@ namespace ExchangeSharp
             return account_id;
         }
         #endregion
-
-
-        /// <summary>
-        /// Sign with ECDsa encryption method with the generated ECDsa private key
-        /// </summary>
-        /// <param name="privateKeyStr"></param>
-        /// <param name="signData"></param>
-        /// <returns></returns>
-        private String GetPrivateSignatureStr(string privateKeyStr, string signData)
-        {
-            var privateSignedData = string.Empty;
-
-#if NET471
-            // net core not support this
-            try
-            {
-                byte[] keyBytes = Convert.FromBase64String(privateKeyStr);
-                CngKey cng = CngKey.Import(keyBytes, CngKeyBlobFormat.Pkcs8PrivateBlob);
-
-                ECDsaCng dsa = new ECDsaCng(cng)
-                {
-                    HashAlgorithm = CngAlgorithm.Sha256
-                };
-
-                byte[] signDataBytes = Encoding.UTF8.GetBytes(signData);
-                privateSignedData = Convert.ToBase64String(dsa.SignData(signDataBytes));
-            }
-            catch (CryptographicException e)
-            {
-                Console.WriteLine("Private signature error because: " + e.Message);
-            }
-#endif
-
-            return privateSignedData;
-
-            // net core 
-
-            //var ecDsa = ECDsa.Create();
-            //var ecParameters = new ECParameters();
-            //ecParameters.Curve = null;
-            //ecParameters.D = null;
-            //ecParameters.Q = null;
-            //ecDsa.ImportParameters(ecParameters);
-
-            //byte[] signDataBytes = Encoding.UTF8.GetBytes(signData);
-            //privateSignedData = Convert.ToBase64String(ecDsa.SignData(signDataBytes, HashAlgorithmName.SHA256));
-        }
     }
+
+    public partial class ExchangeName { public const string Huobi = "Huobi"; }
 }

@@ -22,10 +22,15 @@ using System.Threading;
 
 using ExchangeSharp;
 
-namespace ExchangeSharpConsoleApp
+namespace ExchangeSharpConsole
 {
-    public static partial class ExchangeSharpConsole
+    public static partial class ExchangeSharpConsoleMain
     {
+        public static int Main(string[] args)
+        {
+            return ExchangeSharpConsoleMain.ConsoleMain(args);
+        }
+
         private static void RequireArgs(Dictionary<string, string> dict, params string[] args)
         {
             bool fail = false;
@@ -33,7 +38,7 @@ namespace ExchangeSharpConsoleApp
             {
                 if (!dict.ContainsKey(arg))
                 {
-                    Console.WriteLine("Argument {0} is required.", arg);
+                    Logger.Error("Argument {0} is required.", arg);
                     fail = true;
                 }
             }
@@ -58,14 +63,17 @@ namespace ExchangeSharpConsoleApp
 
         private static void TestMethod()
         {
-
         }
 
         public static int ConsoleMain(string[] args)
         {
             try
             {
-                // TestMethod(); // uncomment for ad-hoc code testing
+                Logger.Info("ExchangeSharp console started.");
+
+                // swap out to external web socket implementation for older Windows pre 8.1
+                // ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());
+                // TestMethod(); return 0; // uncomment for ad-hoc code testing
 
                 Dictionary<string, string> argsDictionary = ParseCommandLine(args);
                 if (argsDictionary.Count == 0 || argsDictionary.ContainsKey("help"))
@@ -116,17 +124,25 @@ namespace ExchangeSharpConsoleApp
                 {
                     RunGetHistoricalTrades(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("getOrderHistory"))
+                {
+                    RunGetOrderHistory(argsDictionary);
+                }
                 else
                 {
-                    Console.WriteLine("Unrecognized command line arguments.");
+                    Logger.Error("Unrecognized command line arguments.");
                     return -1;
                 }
                 return 0;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Fatal error: {0}", ex);
+                Logger.Error(ex);
                 return -99;
+            }
+            finally
+            {
+                Logger.Info("ExchangeSharp console finished.");
             }
         }
     }

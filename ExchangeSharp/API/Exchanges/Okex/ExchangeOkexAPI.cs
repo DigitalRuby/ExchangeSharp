@@ -19,21 +19,45 @@ using System.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeOkexAPI : ExchangeAPI
+    public sealed partial class ExchangeOkexAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
-        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
-        public override string Name => ExchangeName.Okex;
+        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket?compress=true";
 
+	/// <summary>
+	/// China time to utc, no DST correction needed
+	/// </summary>
+	private static readonly TimeSpan chinaTimeOffset = TimeSpan.FromHours(-8);
+		
         public ExchangeOkexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
+            SymbolSeparator = "_";
+            SymbolIsUppercase = false;
+            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
-        public override string NormalizeSymbol(string symbol)
+        public override string PeriodSecondsToString(int seconds)
         {
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace('-', '_');
+            return CryptoUtility.SecondsToPeriodStringLong(seconds);
+        }
+
+        private string GetPayloadForm(Dictionary<string, object> payload)
+        {
+            payload["api_key"] = PublicApiKey.ToUnsecureString();
+            string form = CryptoUtility.GetFormForPayload(payload, false);
+            string sign = form + "&secret_key=" + PrivateApiKey.ToUnsecureString();
+            sign = CryptoUtility.MD5Sign(sign);
+            return form + "&sign=" + sign;
+        }
+
+        private string GetAuthForWebSocket()
+        {
+            string apiKey = PublicApiKey.ToUnsecureString();
+            string param = "api_key=" + apiKey + "&secret_key=" + PrivateApiKey.ToUnsecureString();
+            string sign = CryptoUtility.MD5Sign(param);
+            return $"{{ \"event\": \"login\", \"parameters\": {{ \"api_key\": \"{apiKey}\", \"sign\": \"{sign}\" }} }}";
         }
 
         #region ProcessRequest
@@ -57,18 +81,11 @@ namespace ExchangeSharp
             return result["data"] ?? result;
         }
 
-        protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
+        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
-                payload.Remove("nonce");
-                payload["api_key"] = PublicApiKey.ToUnsecureString();
-                var msg = CryptoUtility.GetFormForPayload(payload, false);
-                msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
-                var sign = msg + "&secret_key=" + PrivateApiKey.ToUnsecureString();
-                sign = CryptoUtility.MD5Sign(sign);
-                msg += "&sign=" + sign;
-
+                string msg = GetPayloadForm(payload);
                 await CryptoUtility.WriteToRequestAsync(request, msg);
             }
         }
@@ -107,12 +124,7 @@ namespace ExchangeSharp
     "symbol": "ltc_btc"
 },
              */
-            if (ReadCache("GetSymbolsMetadata", out List<ExchangeMarket> markets))
-            {
-                return markets;
-            }
-
-            markets = new List<ExchangeMarket>();
+            List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/markets/products", BaseUrlV2);
             foreach (JToken symbol in allSymbols)
             {
@@ -142,9 +154,6 @@ namespace ExchangeSharp
 
                 markets.Add(market);
             }
-
-            WriteCache("GetSymbolsMetadata", TimeSpan.FromMinutes(60.0), markets);
-
             return markets;
         }
 
@@ -169,104 +178,68 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
+            /*
+            {[
+              {
+                "binary": 0,
+                "channel": "addChannel",
+                "data": {
+                  "result": true,
+                  "channel": "ok_sub_spot_btc_usdt_deals"
+                }
+              }
+            ]}
+
+
+            {[
+              {
+                "binary": 0,
+                "channel": "ok_sub_spot_btc_usdt_deals",
+                "data": [
+                  [
+                    "335599480",
+                    "7396",
+                    "0.0031002",
+                    "20:23:51",
+                    "bid"
+                  ],
+                  [
+                    "335599497",
+                    "7395.9153",
+                    "0.0031",
+                    "20:23:51",
+                    "bid"
+                  ],
+                  [
+                    "335599499",
+                    "7395.7889",
+                    "0.00409436",
+                    "20:23:51",
+                    "ask"
+                  ],
+
+                ]
+              }
+            ]}
+            */
+
+            return ConnectWebSocketOkex(async (_socket) =>
             {
-                return null;
-            }
-
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
+                symbols = await AddSymbolsToChannel(_socket, "ok_sub_spot_{0}_deals", symbols);
+            }, (_socket, symbol, sArray, token) =>
             {
-                /*
-{[
-  {
-    "binary": 0,
-    "channel": "addChannel",
-    "data": {
-      "result": true,
-      "channel": "ok_sub_spot_btc_usdt_deals"
-    }
-  }
-]}
-
-
-{[
-  {
-    "binary": 0,
-    "channel": "ok_sub_spot_btc_usdt_deals",
-    "data": [
-      [
-        "335599480",
-        "7396",
-        "0.0031002",
-        "20:23:51",
-        "bid"
-      ],
-      [
-        "335599497",
-        "7395.9153",
-        "0.0031",
-        "20:23:51",
-        "bid"
-      ],
-      [
-        "335599499",
-        "7395.7889",
-        "0.00409436",
-        "20:23:51",
-        "ask"
-      ],
-      
-    ]
-  }
-]}
-                 */
-                try
+                IEnumerable<ExchangeTrade> trades = ParseTradesWebSocket(token);
+                foreach (var trade in trades)
                 {
-                    JToken token = JToken.Parse(msg.UTF8String());
-                    token = token[0];
-                    var channel = token["channel"].ToStringInvariant();
-                    if (channel.EqualsWithOption("addChannel"))
-                    {
-                        return;
-                    }
-
-                    var sArray = channel.Split('_');
-                    var symbol = sArray[3] + "_" + sArray[4];
-                    var trades = ParseTradesWebSocket(token["data"]);
-                    foreach (var trade in trades)
-                    {
-                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                    }
+                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
                 }
-                catch
-                {
-                }
-            }, (_socket) =>
-            {
-                if (symbols.Length == 0)
-                {
-                    symbols = GetSymbols().ToArray();
-                }
-                foreach (string symbol in symbols)
-                {
-                    string normalizedSymbol = NormalizeSymbol(symbol);
-                    string channel = $"ok_sub_spot_{normalizedSymbol}_deals";
-                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                    _socket.SendMessage(msg);
-                }
+                return Task.CompletedTask;
             });
         }
 
-        protected override IWebSocket OnGetOrderBookDeltasWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
-            if (callback == null || symbols == null || symbols.Length == 0)
-            {
-                return null;
-            }
-
-            return ConnectWebSocket(string.Empty, (msg, _socket) =>
-            {
-                /*
+            /*
 {[
   {
     "binary": 0,
@@ -308,41 +281,16 @@ namespace ExchangeSharp
 ]}
                  
                  */
-                try
-                {
-                    JToken token = JToken.Parse(msg.UTF8String());
-                    token = token[0];
-                    var channel = token["channel"].ToStringInvariant();
-                    if (channel.EqualsWithOption("addChannel"))
-                    {
-                        return;
-                    }
 
-                    var sArray = channel.Split('_');
-                    var symbol = sArray[3] + "_" + sArray[4];
-                    var data = token["data"];
-                    ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(data, sequence: "timestamp", maxCount: maxCount);
-					book.Symbol = symbol;
-                    callback(book);
-                }
-                catch
-                {
-                    // TODO: Handle exception
-                }
-            }, (_socket) =>
+            return ConnectWebSocketOkex(async (_socket) =>
             {
-                if (symbols.Length == 0)
-                {
-                    symbols = GetSymbols().ToArray();
-                }
-                foreach (string symbol in symbols)
-                {
-                    // subscribe to order book and trades channel for given symbol
-                    string normalizedSymbol = NormalizeSymbol(symbol);
-                    string channel = $"ok_sub_spot_{normalizedSymbol}_depth_{maxCount}";
-                    string msg = $"{{\'event\':\'addChannel\',\'channel\':\'{channel}\'}}";
-                    _socket.SendMessage(msg);
-                }
+                symbols = await AddSymbolsToChannel(_socket, $"ok_sub_spot_{{0}}_depth_{maxCount}", symbols);
+            }, (_socket, symbol, sArray, token) =>
+            {
+                ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, sequence: "timestamp", maxCount: maxCount);
+                book.Symbol = symbol;
+                callback(book);
+                return Task.CompletedTask;
             });
         }
 
@@ -359,14 +307,7 @@ namespace ExchangeSharp
             foreach (JToken trade in trades.Item1)
             {
                 // [ { "date": "1367130137", "date_ms": "1367130137000", "price": 787.71, "amount": 0.003, "tid": "230433", "type": "sell" } ]
-                allTrades.Add(new ExchangeTrade
-                {
-                    Amount = trade["amount"].ConvertInvariant<decimal>(),
-                    Price = trade["price"].ConvertInvariant<decimal>(),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(trade["date_ms"].ConvertInvariant<long>()),
-                    Id = trade["tid"].ConvertInvariant<long>(),
-                    IsBuy = trade["type"].ToStringInvariant() == "buy"
-                });
+                allTrades.Add(trade.ParseTrade("amount", "price", "type", "date_ms", TimestampType.UnixMilliseconds, "tid"));
             }
             callback(allTrades);
         }
@@ -385,7 +326,6 @@ namespace ExchangeSharp
             */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            symbol = NormalizeSymbol(symbol);
             string url = "/kline.do?symbol=" + symbol;
             if (startDate != null)
             {
@@ -395,30 +335,16 @@ namespace ExchangeSharp
             {
                 url += "&size=" + (limit.Value.ToStringInvariant());
             }
-            string periodString = CryptoUtility.SecondsToPeriodStringLong(periodSeconds);
+            string periodString = PeriodSecondsToString(periodSeconds);
             url += "&type=" + periodString;
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
-            foreach (JArray array in obj)
+            foreach (JArray token in obj)
             {
-                decimal closePrice = array[4].ConvertInvariant<decimal>();
-                double baseVolume = array[5].ConvertInvariant<double>();
-                candles.Add(new MarketCandle
-                {
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(array[0].ConvertInvariant<long>()),
-                    OpenPrice = array[1].ConvertInvariant<decimal>(),
-                    HighPrice = array[2].ConvertInvariant<decimal>(),
-                    LowPrice = array[3].ConvertInvariant<decimal>(),
-                    ClosePrice = closePrice,
-                    BaseVolume = baseVolume,
-                    ConvertedVolume = ((double)closePrice * baseVolume),
-                    ExchangeName = Name,
-                    Name = symbol,
-                    PeriodSeconds = periodSeconds,
-                });
+                candles.Add(this.ParseCandle(token, symbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5));
             }
-
             return candles;
         }
+
         #endregion
 
         #region Private APIs
@@ -455,7 +381,7 @@ namespace ExchangeSharp
 }
              */
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>("/userinfo.do", BaseUrl, payload, "POST");
             var funds = token["info"]["funds"];
 
@@ -469,7 +395,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var payload = await OnGetNoncePayloadAsync();
+            var payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>("/userinfo.do", BaseUrl, payload, "POST");
             var funds = token["info"]["funds"];
             var free = funds["free"];
@@ -479,14 +405,13 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string symbol = NormalizeSymbol(order.Symbol);
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
-            payload["symbol"] = symbol;
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            payload["symbol"] = order.Symbol;
             payload["type"] = (order.IsBuy ? "buy" : "sell");
 
             // Okex has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
-            decimal outputQuantity = await ClampOrderQuantity(symbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
 
             if (order.OrderType == OrderType.Market)
             {
@@ -523,12 +448,12 @@ namespace ExchangeSharp
 
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
-            if (string.IsNullOrEmpty(symbol))
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            if (symbol.Length == 0)
             {
                 throw new InvalidOperationException("Okex cancel order request requires symbol");
             }
-            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["symbol"] = symbol;
             payload["order_id"] = orderId;
             await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
         }
@@ -536,12 +461,12 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
-            if (string.IsNullOrEmpty(symbol))
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            if (symbol.Length == 0)
             {
                 throw new InvalidOperationException("Okex single order details request requires symbol");
             }
-            payload["symbol"] = NormalizeSymbol(symbol);
+            payload["symbol"] = symbol;
             payload["order_id"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
             foreach (JToken order in token["orders"])
@@ -556,7 +481,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            Dictionary<string, object> payload = await OnGetNoncePayloadAsync();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
 
             payload["symbol"] = symbol;
             // if order_id is -1, then return all unfilled orders, otherwise return the order specified
@@ -576,46 +501,13 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             //{"date":"1518043621","ticker":{"high":"0.01878000","vol":"1911074.97335534","last":"0.01817627","low":"0.01813515","buy":"0.01817626","sell":"0.01823447"}}
-
-            JToken ticker = data["ticker"];
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["vol"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(data["date"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSeconds);
         }
 
         private ExchangeTicker ParseTickerV2(string symbol, JToken ticker)
         {
             // {"buy":"0.00001273","change":"-0.00000009","changePercentage":"-0.70%","close":"0.00001273","createdDate":1527355333053,"currencyId":535,"dayHigh":"0.00001410","dayLow":"0.00001174","high":"0.00001410","inflows":"19.52673814","last":"0.00001273","low":"0.00001174","marketFrom":635,"name":{},"open":"0.00001282","outflows":"52.53715678","productId":535,"sell":"0.00001284","symbol":"you_btc","volume":"5643177.15601228"}
-
-            decimal last = ticker["last"].ConvertInvariant<decimal>();
-            decimal vol = ticker["volume"].ConvertInvariant<decimal>();
-            return new ExchangeTicker
-            {
-                Ask = ticker["sell"].ConvertInvariant<decimal>(),
-                Bid = ticker["buy"].ConvertInvariant<decimal>(),
-                Last = last,
-                Volume = new ExchangeVolume
-                {
-                    BaseVolume = vol,
-                    BaseSymbol = symbol,
-                    ConvertedVolume = vol * last,
-                    ConvertedSymbol = symbol,
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["createdDate"].ConvertInvariant<long>())
-                }
-            };
+            return this.ParseTicker(ticker, symbol, "sell", "buy", "last", "volume", null, "createdDate", TimestampType.UnixMilliseconds);
         }
 
         private Dictionary<string, decimal> ParseAmounts(JToken token, Dictionary<string, decimal> amounts)
@@ -719,8 +611,9 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                var ts = TimeSpan.Parse(t[3].ToStringInvariant());
-                var dt = DateTime.Today.Add(ts).ToUniversalTime();
+                var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + chinaTimeOffset;
+                if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
+                var dt = CryptoUtility.UtcNow.Date.Add(ts);
                 var trade = new ExchangeTrade()
                 {
                     Id = t[0].ConvertInvariant<long>(),
@@ -734,6 +627,78 @@ namespace ExchangeSharp
 
             return trades;
         }
+
+        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        {
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            {
+                // https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
+                // All the messages returning from WebSocket API will be optimized by Deflate compression
+                JToken token = JToken.Parse(msg.ToStringFromUTF8Deflate());
+                token = token[0];
+                var channel = token["channel"].ToStringInvariant();
+                if (channel.EqualsWithOption("addChannel"))
+                {
+                    return;
+                }
+                else if (channel.EqualsWithOption("login"))
+                {
+                    if (token["data"] != null && token["data"]["result"] != null && token["data"]["result"].ConvertInvariant<bool>())
+                    {
+                        await callback(_socket, "login", null, null);
+                    }
+                }
+                else
+                {
+                    var sArray = channel.Split('_');
+                    string symbol = sArray[symbolArrayIndex] + SymbolSeparator + sArray[symbolArrayIndex + 1];
+                    await callback(_socket, symbol, sArray, token["data"]);
+                }
+            }, async (_socket) =>
+            {
+                await connected(_socket);
+            });
+        }
+
+        private IWebSocket ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        {
+            return ConnectWebSocketOkex(async (_socket) =>
+            {
+                await _socket.SendMessageAsync(GetAuthForWebSocket());
+            }, async (_socket, symbol, sArray, token) =>
+            {
+                if (symbol == "login")
+                {
+                    await connected(_socket);
+                }
+                else
+                {
+                    await callback(_socket, symbol, sArray, token);
+                }
+            }, 0);
+        }
+
+        private async Task<string[]> AddSymbolsToChannel(IWebSocket socket, string channelFormat, string[] symbols, bool useJustFirstSymbol = false)
+        {
+            if (symbols == null || symbols.Length == 0)
+            {
+                symbols = (await GetSymbolsAsync()).ToArray();
+            }
+            foreach (string symbol in symbols)
+            {
+                string normalizedSymbol = NormalizeSymbol(symbol);
+                if (useJustFirstSymbol)
+                {
+                    normalizedSymbol = normalizedSymbol.Substring(0, normalizedSymbol.IndexOf(SymbolSeparator[0]));
+                }
+                string channel = string.Format(channelFormat, normalizedSymbol);
+                await socket.SendMessageAsync(new { @event = "addChannel", channel });
+            }
+            return symbols;
+        }
+
         #endregion
     }
+
+    public partial class ExchangeName { public const string Okex = "Okex"; }
 }

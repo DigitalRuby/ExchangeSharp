@@ -158,14 +158,6 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="millisecondsTimeout">Number of milliseconds to wait, or -1 to wait indefinitely.</param>
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
-        public bool WaitToProceed(int millisecondsTimeout) => WaitToProceedAsync(millisecondsTimeout).GetAwaiter().GetResult();
-
-        /// <summary>
-        /// ASYNC - Blocks the current thread until allowed to proceed or until the
-        /// specified timeout elapses.
-        /// </summary>
-        /// <param name="millisecondsTimeout">Number of milliseconds to wait, or -1 to wait indefinitely.</param>
-        /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
         public async Task<bool> WaitToProceedAsync(int millisecondsTimeout)
         {
             await new SynchronizationContextRemover();
@@ -197,14 +189,6 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
-        public bool WaitToProceed(TimeSpan timeout) => WaitToProceedAsync(timeout).GetAwaiter().GetResult();
-
-        /// <summary>
-        /// ASYNC - Blocks the current thread until allowed to proceed or until the
-        /// specified timeout elapses.
-        /// </summary>
-        /// <param name="timeout"></param>
-        /// <returns>true if the thread is allowed to proceed, or false if timed out</returns>
         public async Task<bool> WaitToProceedAsync(TimeSpan timeout)
         {
             await new SynchronizationContextRemover();
@@ -214,11 +198,6 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Blocks the current thread indefinitely until allowed to proceed.
-        /// </summary>
-        public void WaitToProceed() => WaitToProceedAsync().GetAwaiter().GetResult();
-
-        /// <summary>
-        /// ASYNC - Blocks the current thread indefinitely until allowed to proceed.
         /// </summary>
         public async Task WaitToProceedAsync()
         {

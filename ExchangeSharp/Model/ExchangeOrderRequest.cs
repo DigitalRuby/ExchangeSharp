@@ -37,6 +37,11 @@ namespace ExchangeSharp
         public decimal Price { get; set; }
 
         /// <summary>
+        /// The price to trigger a stop
+        /// </summary>
+        public decimal StopPrice { get; set; }
+    
+        /// <summary>
         /// True if this is a buy, false if a sell
         /// </summary>
         public bool IsBuy { get; set; }
@@ -76,4 +81,26 @@ namespace ExchangeSharp
             return ShouldRoundAmount ? CryptoUtility.RoundAmount(Amount) : Amount;
         }
     }
+
+    /// <summary>
+    /// The type of order - default is limit. Please use market orders with caution. Not all exchanges support market orders.
+    /// Types of orders
+    /// </summary>
+    public enum OrderType
+    {
+        /// <summary>
+        /// A limit order, the order will not buy or sell beyond the price you specify
+        /// </summary>
+        Limit,
+
+        /// <summary>
+        /// A market order, you will buy or sell the full amount - use with caution as this will give you a terrible deal if the order book is thin
+        /// </summary>
+        Market,
+
+        /// <summary>
+        /// A stop order, you will sell if price reaches a low enough level down to a limit
+        /// </summary>
+        Stop
+  }
 }

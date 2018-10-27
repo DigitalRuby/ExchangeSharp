@@ -1,26 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netcoreapp2.0;netcoreapp2.1;net471</TargetFrameworks>
+    <TargetFrameworks>net472;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
-    <PackageVersion>0.5.3.0</PackageVersion>
+    <PackageVersion>0.5.8.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
-    <Summary>Supported exchanges: Abucoins, Binance, Bitfinex, Bithumb, Bitstamp, Bittrex, Bleutrade, Cryptopia, Gdax, Gemini, Gitbtc, Huobi, Kraken, Kucoin, Livecoin, Okex, Poloniex, TuxExchange, Yobit. Pull request welcome.</Summary>
+    <Summary>Supported exchanges: Abucoins, Binance, Bitfinex, Bithumb, Bitmex, Bitstamp, Bittrex, Bleutrade, Coinbase, Cryptopia, Gemini, Hitbtc, Huobi, Kraken, Kucoin, Livecoin, Okex, Poloniex, TuxExchange, Yobit, ZBcom. Pull request welcome.</Summary>
     <PackageIconUrl>https://github.com/jjxtra/ExchangeSharp/raw/master/icon.png</PackageIconUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Fix web socket memory leak.</PackageReleaseNotes>
+    <PackageReleaseNotes>Bug fixes</PackageReleaseNotes>
     <Copyright>Copyright 2017, Digital Ruby, LLC - www.digitalruby.com</Copyright>
     <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -42,20 +45,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\PoloniexWithdrawalFields.csv" />
+    <EmbeddedResource Include="Properties\Resources\PoloniexWithdrawalFields.csv" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNet.SignalR.Client" Version="2.3.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="NLog" Version="4.5.10" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Resources\ExchangeSharpResources.Designer.cs">
+    <Compile Update="Properties\Resources\ExchangeSharpResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ExchangeSharpResources.resx</DependentUpon>
@@ -63,7 +64,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources\ExchangeSharpResources.resx">
+    <EmbeddedResource Update="Properties\Resources\ExchangeSharpResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ExchangeSharpResources.Designer.cs</LastGenOutput>
       <CustomToolNamespace>ExchangeSharp</CustomToolNamespace>
@@ -79,10 +80,6 @@
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net471'">
     <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.1|AnyCPU'">
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
 </Project>
