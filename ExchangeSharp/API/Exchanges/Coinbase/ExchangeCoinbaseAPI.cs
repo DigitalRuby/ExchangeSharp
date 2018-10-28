@@ -217,6 +217,31 @@ namespace ExchangeSharp
             return this.ParseTicker(ticker, symbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
         }
 
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        {
+            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654 + using Fiddler 
+
+            // Get coinbase accounts
+            JArray accounts = await this.MakeJsonRequestAsync<JArray>("/coinbase-accounts", null, await GetNoncePayloadAsync(), "GET");
+
+            foreach (JToken token in accounts)
+            {
+                string currency = token["currency"].ConvertInvariant<string>();
+                if (currency.Equals(symbol, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    JToken accountWalletAddress = await this.MakeJsonRequestAsync<JToken>(
+                                                                                          $"/coinbase-accounts/{token["id"]}/addresses",
+                                                                                          null,
+                                                                                          await GetNoncePayloadAsync(),
+                                                                                          "POST");
+
+                    return new ExchangeDepositDetails { Address = accountWalletAddress["address"].ToStringInvariant(), Symbol = currency };
+                }
+
+            }
+            throw new APIException($"Address not found for {symbol}");
+        }
+
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
