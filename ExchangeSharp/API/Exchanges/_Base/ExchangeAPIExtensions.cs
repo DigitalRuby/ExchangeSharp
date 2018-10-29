@@ -81,7 +81,7 @@ namespace ExchangeSharp
                 // ideally all exchanges would send the full order book on first message, followed by delta order books
                 // but this is not the case
 
-                bool foundFullBook = fullBooks.TryGetValue(newOrderBook.Symbol, out ExchangeOrderBook fullOrderBook);
+                bool foundFullBook = fullBooks.TryGetValue(newOrderBook.MarketSymbol, out ExchangeOrderBook fullOrderBook);
                 switch (api.WebSocketOrderBookType)
                 {
                     case WebSocketOrderBookType.DeltasOnly:
@@ -95,10 +95,10 @@ namespace ExchangeSharp
                         // attempt to find the right queue to put the partial order book in to be processed later
                         lock (partialOrderBookQueues)
                         {
-                            if (!partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue))
+                            if (!partialOrderBookQueues.TryGetValue(newOrderBook.MarketSymbol, out partialOrderBookQueue))
                             {
                                 // no queue found, make a new one
-                                partialOrderBookQueues[newOrderBook.Symbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
+                                partialOrderBookQueues[newOrderBook.MarketSymbol] = partialOrderBookQueue = new Queue<ExchangeOrderBook>();
                                 requestFullOrderBook = !foundFullBook;
                             }
 
@@ -109,9 +109,9 @@ namespace ExchangeSharp
                         // request the entire order book if we need it
                         if (requestFullOrderBook)
                         {
-                            fullOrderBook = await api.GetOrderBookAsync(newOrderBook.Symbol, maxCount);
-                            fullOrderBook.Symbol = newOrderBook.Symbol;
-                            fullBooks[newOrderBook.Symbol] = fullOrderBook;
+                            fullOrderBook = await api.GetOrderBookAsync(newOrderBook.MarketSymbol, maxCount);
+                            fullOrderBook.MarketSymbol = newOrderBook.MarketSymbol;
+                            fullBooks[newOrderBook.MarketSymbol] = fullOrderBook;
                         }
                         else if (!foundFullBook)
                         {
@@ -125,7 +125,7 @@ namespace ExchangeSharp
                         // lock dictionary of queues for lookup only
                         lock (partialOrderBookQueues)
                         {
-                            partialOrderBookQueues.TryGetValue(newOrderBook.Symbol, out partialOrderBookQueue);
+                            partialOrderBookQueues.TryGetValue(newOrderBook.MarketSymbol, out partialOrderBookQueue);
                         }
 
                         if (partialOrderBookQueue != null)
@@ -147,7 +147,7 @@ namespace ExchangeSharp
                         // Subsequent updates will be deltas, at least some exchanges have their heads on straight
                         if (!foundFullBook)
                         {
-                            fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
+                            fullBooks[newOrderBook.MarketSymbol] = fullOrderBook = newOrderBook;
                         }
                         else
                         {
@@ -158,7 +158,7 @@ namespace ExchangeSharp
                     case WebSocketOrderBookType.FullBookAlways:
                     {
                         // Websocket always returns full order book, WTF...?
-                        fullBooks[newOrderBook.Symbol] = fullOrderBook = newOrderBook;
+                        fullBooks[newOrderBook.MarketSymbol] = fullOrderBook = newOrderBook;
                     } break;
                 }
 
@@ -269,7 +269,7 @@ namespace ExchangeSharp
                 OrderType = OrderType.Limit,
                 Price = CryptoUtility.RoundAmount((isBuy ? highPrice : lowPrice) * priceThreshold),
                 ShouldRoundAmount = true,
-                Symbol = symbol
+                MarketSymbol = symbol
             };
             ExchangeOrderResult result = await api.PlaceOrderAsync(request);
 
@@ -387,22 +387,22 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="api">ExchangeAPI</param>
         /// <param name="token">Token</param>
-        /// <param name="symbol">Symbol</param>
+        /// <param name="marketSymbol">Symbol</param>
         /// <param name="askKey">Ask key</param>
         /// <param name="bidKey">Bid key</param>
         /// <param name="lastKey">Last key</param>
-        /// <param name="baseVolumeKey">Base volume key</param>
-        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="baseVolumeKey">Base currency volume key</param>
+        /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="timestampKey">Timestamp key</param>
         /// <param name="timestampType">Timestamp type</param>
         /// <param name="baseCurrencyKey">Base currency key</param>
-        /// <param name="convertCurrencyKey">Convert currency key</param>
+        /// <param name="quoteCurrencyKey">Quote currency key</param>
         /// <param name="idKey">Id key</param>
         /// <returns>ExchangeTicker</returns>
-        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string symbol,
+        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string marketSymbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
-            object convertVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
-            object baseCurrencyKey = null, object convertCurrencyKey = null, object idKey = null)
+            object quoteVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
+            object baseCurrencyKey = null, object quoteCurrencyKey = null, object idKey = null)
         {
             if (token == null || !token.HasValues)
             {
@@ -411,36 +411,26 @@ namespace ExchangeSharp
             decimal last = token[lastKey].ConvertInvariant<decimal>();
 
             // parse out volumes, handle cases where one or both do not exist
-            token.ParseVolumes(baseVolumeKey, convertVolumeKey, last, out decimal baseVolume, out decimal convertVolume);
+            token.ParseVolumes(baseVolumeKey, quoteVolumeKey, last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume);
 
             // pull out timestamp
             DateTime timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
 
             // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
-            string baseSymbol;
-            string convertSymbol;
-            if (baseCurrencyKey != null && convertCurrencyKey != null)
+            string baseCurrency;
+            string quoteCurrency;
+            if (baseCurrencyKey != null && quoteCurrencyKey != null)
             {
-                baseSymbol = token[baseCurrencyKey].ToStringInvariant();
-                convertSymbol = token[convertCurrencyKey].ToStringInvariant();
+                baseCurrency = token[baseCurrencyKey].ToStringInvariant();
+                quoteCurrency = token[quoteCurrencyKey].ToStringInvariant();
             }
-            else if (string.IsNullOrWhiteSpace(symbol))
+            else if (string.IsNullOrWhiteSpace(marketSymbol))
             {
-                throw new ArgumentNullException(nameof(symbol));
-            }
-            else if (api.SymbolSeparator.Length != 0)
-            {
-                string[] pieces = symbol.Split(api.SymbolSeparator[0]);
-                if (pieces.Length != 2)
-                {
-                    throw new ArgumentException($"Symbol does not have the correct symbol separator of '{api.SymbolSeparator}'");
-                }
-                baseSymbol = pieces[0];
-                convertSymbol = pieces[1];
+                throw new ArgumentNullException(nameof(marketSymbol));
             }
             else
             {
-                baseSymbol = convertSymbol = symbol;
+                (baseCurrency, quoteCurrency) = api.ExchangeMarketSymbolToCurrencies(marketSymbol);
             }
 
             // create the ticker and return it
@@ -456,16 +446,17 @@ namespace ExchangeSharp
             }
             ExchangeTicker ticker = new ExchangeTicker
             {
+                MarketSymbol = marketSymbol,
                 Ask = askValue.ConvertInvariant<decimal>(),
                 Bid = bidValue.ConvertInvariant<decimal>(),
                 Id = (idKey == null ? null : token[idKey].ToStringInvariant()),
                 Last = last,
                 Volume = new ExchangeVolume
                 {
-                    BaseVolume = baseVolume,
-                    BaseSymbol = baseSymbol,
-                    ConvertedVolume = convertVolume,
-                    ConvertedSymbol = convertSymbol,
+                    BaseCurrencyVolume = baseCurrencyVolume,
+                    BaseCurrency = baseCurrency,
+                    QuoteCurrencyVolume = quoteCurrencyVolume,
+                    QuoteCurrency = quoteCurrency,
                     Timestamp = timestamp
                 }
             };
@@ -516,36 +507,36 @@ namespace ExchangeSharp
         /// Parse volume from JToken
         /// </summary>
         /// <param name="token">JToken</param>
-        /// <param name="baseVolumeKey">Base volume key</param>
-        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="baseVolumeKey">Base currency volume key</param>
+        /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="last">Last volume value</param>
-        /// <param name="baseVolume">Receive base volume</param>
-        /// <param name="convertVolume">Receive convert volume</param>
-        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object convertVolumeKey, decimal last, out decimal baseVolume, out decimal convertVolume)
+        /// <param name="baseCurrencyVolume">Receive base currency volume</param>
+        /// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
+        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
         {
             // parse out volumes, handle cases where one or both do not exist
             if (baseVolumeKey == null)
             {
-                if (convertVolumeKey == null)
+                if (quoteVolumeKey == null)
                 {
-                    baseVolume = convertVolume = 0m;
+                    baseCurrencyVolume = quoteCurrencyVolume = 0m;
                 }
                 else
                 {
-                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
-                    baseVolume = (last <= 0m ? 0m : convertVolume / last);
+                    quoteCurrencyVolume = token[quoteVolumeKey].ConvertInvariant<decimal>();
+                    baseCurrencyVolume = (last <= 0m ? 0m : quoteCurrencyVolume / last);
                 }
             }
             else
             {
-                baseVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
-                if (convertVolumeKey == null)
+                baseCurrencyVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
+                if (quoteVolumeKey == null)
                 {
-                    convertVolume = baseVolume * last;
+                    quoteCurrencyVolume = baseCurrencyVolume * last;
                 }
                 else
                 {
-                    convertVolume = token[convertVolumeKey].ConvertInvariant<decimal>();
+                    quoteCurrencyVolume = token[quoteVolumeKey].ConvertInvariant<decimal>();
                 }
             }
         }
@@ -555,7 +546,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="named">Named item</param>
         /// <param name="token">JToken</param>
-        /// <param name="symbol">Symbol</param>
+        /// <param name="marketSymbol">Symbol</param>
         /// <param name="periodSeconds">Period seconds</param>
         /// <param name="openKey">Open key</param>
         /// <param name="highKey">High key</param>
@@ -563,12 +554,12 @@ namespace ExchangeSharp
         /// <param name="closeKey">Close key</param>
         /// <param name="timestampKey">Timestamp key</param>
         /// <param name="timestampType">Timestamp type</param>
-        /// <param name="baseVolumeKey">Base volume key</param>
-        /// <param name="convertVolumeKey">Convert volume key</param>
+        /// <param name="baseVolumeKey">Base currency volume key</param>
+        /// <param name="quoteVolumeKey">Quote currency volume key</param>
         /// <param name="weightedAverageKey">Weighted average key</param>
         /// <returns>MarketCandle</returns>
-        internal static MarketCandle ParseCandle(this INamed named, JToken token, string symbol, int periodSeconds, object openKey, object highKey, object lowKey,
-            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object convertVolumeKey = null, object weightedAverageKey = null)
+        internal static MarketCandle ParseCandle(this INamed named, JToken token, string marketSymbol, int periodSeconds, object openKey, object highKey, object lowKey,
+            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object quoteVolumeKey = null, object weightedAverageKey = null)
         {
             MarketCandle candle = new MarketCandle
             {
@@ -576,15 +567,15 @@ namespace ExchangeSharp
                 ExchangeName = named.Name,
                 HighPrice = token[highKey].ConvertInvariant<decimal>(),
                 LowPrice = token[lowKey].ConvertInvariant<decimal>(),
-                Name = symbol,
+                Name = marketSymbol,
                 OpenPrice = token[openKey].ConvertInvariant<decimal>(),
                 PeriodSeconds = periodSeconds,
                 Timestamp = CryptoUtility.ParseTimestamp(token[timestampKey], timestampType)
             };
 
-            token.ParseVolumes(baseVolumeKey, convertVolumeKey, candle.ClosePrice, out decimal baseVolume, out decimal convertVolume);
-            candle.BaseVolume = (double)baseVolume;
-            candle.ConvertedVolume = (double)convertVolume;
+            token.ParseVolumes(baseVolumeKey, quoteVolumeKey, candle.ClosePrice, out decimal baseVolume, out decimal convertVolume);
+            candle.BaseCurrencyVolume = (double)baseVolume;
+            candle.QuoteCurrencyVolume = (double)convertVolume;
             if (weightedAverageKey != null)
             {
                 candle.WeightedAverage = token[weightedAverageKey].ConvertInvariant<decimal>();

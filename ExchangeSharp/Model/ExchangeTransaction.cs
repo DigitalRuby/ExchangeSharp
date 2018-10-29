@@ -44,13 +44,13 @@ namespace ExchangeSharp
         /// <summary>The fee on the transaction</summary>
         public decimal TxFee { get; set; }
 
-        /// <summary>The currency symbol (ex. BTC)</summary>
-        public string Symbol { get; set; }
+        /// <summary>The currency name (ex. BTC)</summary>
+        public string Currency { get; set; }
 
         public override string ToString()
         {
             return
-                $"{Amount} {Symbol} (fee: {TxFee}) sent to Address: {Address ?? "null"} with AddressTag: {AddressTag ?? "null"} BlockchainTxId: {BlockchainTxId ?? "null"} sent at {Timestamp} UTC. Status: {Status}. Exchange paymentId: {PaymentId ?? "null"}. Notes: {Notes ?? "null"}";
+                $"{Amount} {Currency} (fee: {TxFee}) sent to Address: {Address ?? "null"} with AddressTag: {AddressTag ?? "null"} BlockchainTxId: {BlockchainTxId ?? "null"} sent at {Timestamp} UTC. Status: {Status}. Exchange paymentId: {PaymentId ?? "null"}. Notes: {Notes ?? "null"}";
         }
     }
 }

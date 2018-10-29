@@ -74,10 +74,10 @@ namespace ExchangeSharp
         public long SequenceId { get; set; }
 
         /// <summary>
-        /// The symbol.
+        /// The market symbol.
         /// This property is not serialized using the ToBinary and FromBinary methods.
         /// </summary>
-        public string Symbol { get; set; }
+        public string MarketSymbol { get; set; }
 
         /// <summary>The last updated UTC</summary>
         public DateTime LastUpdatedUtc { get; set; } = DateTime.MinValue;

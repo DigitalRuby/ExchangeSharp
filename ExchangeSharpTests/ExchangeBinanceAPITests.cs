@@ -129,7 +129,7 @@ namespace ExchangeSharpTests
         {
             diff.EventType.Should().Be("depthUpdate");
             diff.EventTime.Should().Be(123456789);
-            diff.Symbol.Should().Be("BNBBTC");
+            diff.MarketSymbol.Should().Be("BNBBTC");
             diff.FirstUpdate.Should().Be(157);
             diff.FinalUpdate.Should().Be(160);
             diff.Bids[0][0].Should().Be("0.0024");

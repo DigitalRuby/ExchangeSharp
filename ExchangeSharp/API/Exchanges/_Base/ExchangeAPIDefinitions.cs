@@ -81,17 +81,17 @@ namespace ExchangeSharp
         /// <summary>
         /// Separator for exchange symbol. If not a hyphen, set in constructor.
         /// </summary>
-        public string SymbolSeparator { get; protected set; } = "-";
+        public string MarketSymbolSeparator { get; protected set; } = "-";
 
         /// <summary>
         /// Whether the symbol is reversed. Most exchanges do ETH-BTC, if your exchange does BTC-ETH, set to true in constructor.
         /// </summary>
-        public bool SymbolIsReversed { get; protected set; }
+        public bool MarketSymbolIsReversed { get; protected set; }
 
         /// <summary>
         /// Whether the symbol is uppercase. Most exchanges are true, but if your exchange is lowercase, set to false in constructor.
         /// </summary>
-        public bool SymbolIsUppercase { get; protected set; } = true;
+        public bool MarketSymbolIsUppercase { get; protected set; } = true;
 
         /// <summary>
         /// The type of web socket order book supported

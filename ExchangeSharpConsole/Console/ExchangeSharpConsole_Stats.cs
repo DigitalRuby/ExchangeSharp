@@ -22,8 +22,8 @@ namespace ExchangeSharpConsole
     {
         public static void RunShowExchangeStats(Dictionary<string, string> dict)
         {
-            string symbol = "BTC-USD";
-            string symbol2 = "XXBTZUSD";
+            string marketSymbol = "BTC-USD";
+            string marketSymbol2 = "XXBTZUSD";
             IExchangeAPI apiCoinbase = new ExchangeCoinbaseAPI();
             IExchangeAPI apiGemini = new ExchangeGeminiAPI();
             IExchangeAPI apiKraken = new ExchangeKrakenAPI();
@@ -31,39 +31,39 @@ namespace ExchangeSharpConsole
 
             while (true)
             {
-                ExchangeTicker ticker = apiCoinbase.GetTickerAsync(symbol).Sync();
-                ExchangeOrderBook orders = apiCoinbase.GetOrderBookAsync(symbol).Sync();
+                ExchangeTicker ticker = apiCoinbase.GetTickerAsync(marketSymbol).Sync();
+                ExchangeOrderBook orders = apiCoinbase.GetOrderBookAsync(marketSymbol).Sync();
                 decimal askAmountSum = orders.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum = orders.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum = orders.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum = orders.Bids.Values.Sum(o => o.Price);
 
-                ExchangeTicker ticker2 = apiGemini.GetTickerAsync(symbol).Sync();
-                ExchangeOrderBook orders2 = apiGemini.GetOrderBookAsync(symbol).Sync();
+                ExchangeTicker ticker2 = apiGemini.GetTickerAsync(marketSymbol).Sync();
+                ExchangeOrderBook orders2 = apiGemini.GetOrderBookAsync(marketSymbol).Sync();
                 decimal askAmountSum2 = orders2.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum2 = orders2.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum2 = orders2.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum2 = orders2.Bids.Values.Sum(o => o.Price);
 
-                ExchangeTicker ticker3 = apiKraken.GetTickerAsync(symbol2).Sync();
-                ExchangeOrderBook orders3 = apiKraken.GetOrderBookAsync(symbol2).Sync();
+                ExchangeTicker ticker3 = apiKraken.GetTickerAsync(marketSymbol2).Sync();
+                ExchangeOrderBook orders3 = apiKraken.GetOrderBookAsync(marketSymbol2).Sync();
                 decimal askAmountSum3 = orders3.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum3 = orders3.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum3 = orders3.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum3 = orders3.Bids.Values.Sum(o => o.Price);
 
-                ExchangeTicker ticker4 = apiBitfinex.GetTickerAsync(symbol).Sync();
-                ExchangeOrderBook orders4 = apiBitfinex.GetOrderBookAsync(symbol).Sync();
+                ExchangeTicker ticker4 = apiBitfinex.GetTickerAsync(marketSymbol).Sync();
+                ExchangeOrderBook orders4 = apiBitfinex.GetOrderBookAsync(marketSymbol).Sync();
                 decimal askAmountSum4 = orders4.Asks.Values.Sum(o => o.Amount);
                 decimal askPriceSum4 = orders4.Asks.Values.Sum(o => o.Price);
                 decimal bidAmountSum4 = orders4.Bids.Values.Sum(o => o.Amount);
                 decimal bidPriceSum4 = orders4.Bids.Values.Sum(o => o.Price);
 
                 Console.Clear();
-                Console.WriteLine("GDAX: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker.Last, ticker.Volume.BaseVolume, askAmountSum, askPriceSum, bidAmountSum, bidPriceSum);
-                Console.WriteLine("GEMI: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker2.Last, ticker2.Volume.BaseVolume, askAmountSum2, askPriceSum2, bidAmountSum2, bidPriceSum2);
-                Console.WriteLine("KRAK: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker3.Last, ticker3.Volume.BaseVolume, askAmountSum3, askPriceSum3, bidAmountSum3, bidPriceSum3);
-                Console.WriteLine("BITF: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker4.Last, ticker4.Volume.BaseVolume, askAmountSum4, askPriceSum4, bidAmountSum4, bidPriceSum4);
+                Console.WriteLine("GDAX: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker.Last, ticker.Volume.QuoteCurrencyVolume, askAmountSum, askPriceSum, bidAmountSum, bidPriceSum);
+                Console.WriteLine("GEMI: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker2.Last, ticker2.Volume.QuoteCurrencyVolume, askAmountSum2, askPriceSum2, bidAmountSum2, bidPriceSum2);
+                Console.WriteLine("KRAK: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker3.Last, ticker3.Volume.QuoteCurrencyVolume, askAmountSum3, askPriceSum3, bidAmountSum3, bidPriceSum3);
+                Console.WriteLine("BITF: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker4.Last, ticker4.Volume.QuoteCurrencyVolume, askAmountSum4, askPriceSum4, bidAmountSum4, bidPriceSum4);
                 Thread.Sleep(5000);
             }
         }

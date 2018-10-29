@@ -25,13 +25,13 @@ namespace ExchangeSharp
         /// Export exchange data to csv and then to optimized bin files
         /// </summary>
         /// <param name="api">Exchange api, null to just convert existing csv files</param>
-        /// <param name="symbol">Symbol to export</param>
+        /// <param name="marketSymbol">Market symbol to export</param>
         /// <param name="basePath">Base path to export to, should not contain symbol, symbol will be appended</param>
         /// <param name="sinceDateTime">Start date to begin export at</param>
         /// <param name="callback">Callback if api is not null to notify of progress</param>
-        public static void ExportExchangeTrades(IExchangeAPI api, string symbol, string basePath, DateTime sinceDateTime, Action<long> callback = null)
+        public static void ExportExchangeTrades(IExchangeAPI api, string marketSymbol, string basePath, DateTime sinceDateTime, Action<long> callback = null)
         {
-            basePath = Path.Combine(basePath, symbol);
+            basePath = Path.Combine(basePath, marketSymbol);
             Directory.CreateDirectory(basePath);
             sinceDateTime = sinceDateTime.ToUniversalTime();
             if (api != null)
@@ -62,7 +62,7 @@ namespace ExchangeSharp
                     }
                     return true;
                 }
-                api.GetHistoricalTradesAsync(innerCallback, symbol, sinceDateTime).Sync();
+                api.GetHistoricalTradesAsync(innerCallback, marketSymbol, sinceDateTime).Sync();
                 writer.Close();
                 callback?.Invoke(count);
             }

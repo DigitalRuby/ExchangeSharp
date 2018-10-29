@@ -6,7 +6,7 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 ### Features
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
-- Optional global symbol normalization, since each exchange has their own way of doing symbols
+- Optional global market symbol normalization, since each exchange has their own way of doing market symbols
 - Runs anywhere .NET core will run (Windows 8.1 or newer, MAC, Linux, iOS, Android, Unity 2018+, etc.)
 
 ### Exchanges
@@ -41,7 +41,7 @@ The following cryptocurrency services are supported:
 - Cryptowatch (partial)
 
 ### Notes
-ExchangeSharp uses 'symbol' to refer to markets, or pairs of currencies.
+ExchangeSharp uses 'marketSymbol' to refer to markets, or pairs of currencies.
 
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
@@ -82,7 +82,7 @@ ExchangeOrderResult result = api.PlaceOrderAsync(new ExchangeOrderRequest
     Amount = 0.01m,
     IsBuy = true,
     Price = ticker.Ask,
-    Symbol = "XXBTZUSD"
+    MarketSymbol = "XXBTZUSD"
 }).Sync();
 
 // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request

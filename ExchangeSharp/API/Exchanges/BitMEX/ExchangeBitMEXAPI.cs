@@ -42,19 +42,19 @@ namespace ExchangeSharp
             // this will give us an api-expires 60 seconds into the future
             NonceOffset = TimeSpan.FromSeconds(-60.0);
 
-            SymbolSeparator = string.Empty;
+            MarketSymbolSeparator = string.Empty;
             RequestContentType = "application/json";
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 
             RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
 
-        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
         {
             throw new NotImplementedException();
         }
 
-        public override string GlobalSymbolToExchangeSymbol(string symbol)
+        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
         {
             throw new NotImplementedException();
         }
@@ -78,14 +78,14 @@ namespace ExchangeSharp
             }
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
-            var m = await GetSymbolsMetadataAsync();
-            return m.Select(x => x.MarketName);
+            var m = await GetMarketSymbolsMetadataAsync();
+            return m.Select(x => x.MarketSymbol);
         }
 
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             /*
              {{
@@ -195,23 +195,23 @@ namespace ExchangeSharp
 
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("/instrument");
-            foreach (JToken symbol in allSymbols)
+            foreach (JToken marketSymbolToken in allSymbols)
             {
                 var market = new ExchangeMarket
                 {
-                    MarketName = symbol["symbol"].ToStringUpperInvariant(),
-                    IsActive = symbol["status"].ToStringInvariant().EqualsWithOption("Open"),
-                    BaseCurrency = symbol["quoteCurrency"].ToStringUpperInvariant(),
-                    MarketCurrency = symbol["underlying"].ToStringUpperInvariant(),
+                    MarketSymbol = marketSymbolToken["symbol"].ToStringUpperInvariant(),
+                    IsActive = marketSymbolToken["status"].ToStringInvariant().EqualsWithOption("Open"),
+                    QuoteCurrency = marketSymbolToken["quoteCurrency"].ToStringUpperInvariant(),
+                    BaseCurrency = marketSymbolToken["underlying"].ToStringUpperInvariant(),
                 };
 
                 try
                 {
-                    market.PriceStepSize = symbol["tickSize"].ConvertInvariant<decimal>();
-                    market.MaxPrice = symbol["maxPrice"].ConvertInvariant<decimal>();
+                    market.PriceStepSize = marketSymbolToken["tickSize"].ConvertInvariant<decimal>();
+                    market.MaxPrice = marketSymbolToken["maxPrice"].ConvertInvariant<decimal>();
                     //market.MinPrice = symbol["minPrice"].ConvertInvariant<decimal>();
 
-                    market.MaxTradeSize = symbol["maxOrderQty"].ConvertInvariant<decimal>();
+                    market.MaxTradeSize = marketSymbolToken["maxOrderQty"].ConvertInvariant<decimal>();
                     //market.MinTradeSize = symbol["minQty"].ConvertInvariant<decimal>();
                     //market.QuantityStepSize = symbol["stepSize"].ConvertInvariant<decimal>();
                 }
@@ -224,7 +224,7 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
             /*
 {"table":"trade","action":"partial","keys":[],
@@ -249,21 +249,21 @@ namespace ExchangeSharp
                 JArray data = token["data"] as JArray;
                 foreach (var t in data)
                 {
-                    var symbol = t["symbol"].ToStringInvariant();
-                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, t.ParseTrade("size", "price", "size", "timestamp", TimestampType.Iso8601, "trdMatchID")));
+                    var marketSymbol = t["symbol"].ToStringInvariant();
+                    callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "size", "timestamp", TimestampType.Iso8601, "trdMatchID")));
                 }
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                if (symbols == null || symbols.Length == 0)
+                if (marketSymbols == null || marketSymbols.Length == 0)
                 {
-                    symbols = (await GetSymbolsAsync()).ToArray();
+                    marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
                 }
-                await _socket.SendMessageAsync(new { op = "subscribe", args = symbols.Select(s => "\"trade:" + this.NormalizeSymbol(s) + "\"").ToArray() });
+                await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "\"trade:" + this.NormalizeMarketSymbol(s) + "\"").ToArray() });
             });
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             /*
 {"info":"Welcome to the BitMEX Realtime API.","version":"2018-06-29T18:05:14.000Z","timestamp":"2018-07-05T14:22:26.267Z","docs":"https://www.bitmex.com/app/wsAPI","limit":{"remaining":39}}
@@ -271,9 +271,9 @@ namespace ExchangeSharp
 {"table":"orderBookL2","action":"update","data":[{"symbol":"XBTUSD","id":8799343000,"side":"Buy","size":350544}]}
              */
 
-            if (symbols == null || symbols.Length == 0)
+            if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                symbols = GetSymbolsAsync().Sync().ToArray();
+                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
@@ -293,7 +293,7 @@ namespace ExchangeSharp
                 var size = 0m;
                 foreach (var d in data)
                 {
-                    var symbol = d["symbol"].ToStringInvariant();
+                    var marketSymbol = d["symbol"].ToStringInvariant();
                     var id = d["id"].ConvertInvariant<long>();
                     if (d["price"] == null)
                     {
@@ -330,25 +330,25 @@ namespace ExchangeSharp
                     {
                         book.Asks[depth.Price] = depth;
                     }
-                    book.Symbol = symbol;
+                    book.MarketSymbol = marketSymbol;
                 }
 
-                if (!string.IsNullOrEmpty(book.Symbol))
+                if (!string.IsNullOrEmpty(book.MarketSymbol))
                 {
                     callback(book);
                 }
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                if (symbols.Length == 0)
+                if (marketSymbols.Length == 0)
                 {
-                    symbols = (await GetSymbolsAsync()).ToArray();
+                    marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
                 }
-                await _socket.SendMessageAsync(new { op = "subscribe", args = symbols.Select(s => "\"orderBookL2:" + this.NormalizeSymbol(s) + "\"").ToArray() });
+                await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "\"orderBookL2:" + this.NormalizeMarketSymbol(s) + "\"").ToArray() });
             });
         }
 
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /*
              [
@@ -358,7 +358,7 @@ namespace ExchangeSharp
 
             List<MarketCandle> candles = new List<MarketCandle>();
             string periodString = PeriodSecondsToString(periodSeconds);
-            string url = $"/trade/bucketed?binSize={periodString}&partial=false&symbol={symbol}&reverse=true" + symbol;
+            string url = $"/trade/bucketed?binSize={periodString}&partial=false&symbol={marketSymbol}&reverse=true" + marketSymbol;
             if (startDate != null)
             {
                 url += "&startTime=" + startDate.Value.ToString("yyyy-MM-dd");
@@ -375,7 +375,7 @@ namespace ExchangeSharp
             var obj = await MakeJsonRequestAsync<JToken>(url);
             foreach (var t in obj)
             {
-                candles.Add(this.ParseCandle(t, symbol, periodSeconds, "open", "high", "low", "close", "timestamp", TimestampType.Iso8601, "volume", "turnover", "vwap"));
+                candles.Add(this.ParseCandle(t, marketSymbol, periodSeconds, "open", "high", "low", "close", "timestamp", TimestampType.Iso8601, "volume", "turnover", "vwap"));
             }
             candles.Reverse();
 
@@ -475,15 +475,15 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             //string query = "/order";
             string query = "/order?filter={\"open\": true}";
-            if (!string.IsNullOrWhiteSpace(symbol))
+            if (!string.IsNullOrWhiteSpace(marketSymbol))
             {
-                query += "&symbol=" + NormalizeSymbol(symbol);
+                query += "&symbol=" + NormalizeMarketSymbol(marketSymbol);
             }
             JToken token = await MakeJsonRequestAsync<JToken>(query, BaseUrl, payload, "GET");
             foreach (JToken order in token)
@@ -494,7 +494,7 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
@@ -508,7 +508,7 @@ namespace ExchangeSharp
             return orders[0];
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["orderID"] = orderId;
@@ -545,7 +545,7 @@ namespace ExchangeSharp
 
         private void AddOrderToPayload(ExchangeOrderRequest order, Dictionary<string, object> payload)
         {
-            payload["symbol"] = order.Symbol;
+            payload["symbol"] = order.MarketSymbol;
             payload["ordType"] = order.OrderType.ToStringInvariant();
             payload["side"] = order.IsBuy ? "Buy" : "Sell";
             payload["orderQty"] = order.Amount;
@@ -601,7 +601,7 @@ namespace ExchangeSharp
                 IsBuy = token["side"].ToStringInvariant().EqualsWithOption("Buy"),
                 OrderDate = token["transactTime"].ConvertInvariant<DateTime>(),
                 OrderId = token["orderID"].ToStringInvariant(),
-                Symbol = token["symbol"].ToStringInvariant()
+                MarketSymbol = token["symbol"].ToStringInvariant()
             };
 
             // http://www.onixs.biz/fix-dictionary/5.0.SP2/tagNum_39.html

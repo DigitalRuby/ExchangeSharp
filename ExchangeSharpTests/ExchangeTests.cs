@@ -37,7 +37,7 @@ namespace ExchangeSharpTests
             Dictionary<string, string[]> allSymbols = new Dictionary<string, string[]>();
             foreach (IExchangeAPI api in ExchangeAPI.GetExchangeAPIs())
             {
-                allSymbols[api.Name] = api.GetSymbolsAsync().Sync().ToArray();
+                allSymbols[api.Name] = api.GetMarketSymbolsAsync().Sync().ToArray();
             }
             return JsonConvert.SerializeObject(allSymbols);
         }
@@ -45,8 +45,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void GlobalSymbolTest()
         {
-            string globalSymbol = "BTC-ETH";
-            string globalSymbolAlt = "KRW-BTC"; // WTF Bitthumb...
+            string globalMarketSymbol = "BTC-ETH";
+            string globalMarketSymbolAlt = "KRW-BTC"; // WTF Bitthumb...
             Dictionary<string, string[]> allSymbols = JsonConvert.DeserializeObject<Dictionary<string, string[]>>(Resources.AllSymbolsJson);
 
             // sanity test that all exchanges return the same global symbol when converted back and forth
@@ -55,11 +55,11 @@ namespace ExchangeSharpTests
                 try
                 {
                     bool isBithumb = (api.Name == ExchangeName.Bithumb);
-                    string exchangeSymbol = api.GlobalSymbolToExchangeSymbol(isBithumb ? globalSymbolAlt : globalSymbol);
-                    string globalSymbol2 = api.ExchangeSymbolToGlobalSymbol(exchangeSymbol);
-                    if ((!isBithumb && globalSymbol2.EndsWith("-BTC")) ||
-                        globalSymbol2.EndsWith("-USD") ||
-                        globalSymbol2.EndsWith("-USDT"))
+                    string exchangeMarketSymbol = api.GlobalMarketSymbolToExchangeMarketSymbol(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);
+                    string globalMarketSymbol2 = api.ExchangeMarketSymbolToGlobalMarketSymbol(exchangeMarketSymbol);
+                    if ((!isBithumb && globalMarketSymbol2.EndsWith("-BTC")) ||
+                        globalMarketSymbol2.EndsWith("-USD") ||
+                        globalMarketSymbol2.EndsWith("-USDT"))
                     {
                         Assert.Fail($"Exchange {api.Name} has wrong SymbolIsReversed parameter");
                     }
@@ -71,13 +71,13 @@ namespace ExchangeSharpTests
                                 "then apply this new string to Resources.AllSymbolsJson");
                         }
                         string[] symbols = allSymbols[api.Name];
-                        Assert.IsTrue(symbols.Contains(exchangeSymbol), "Symbols does not contain exchange symbol");
+                        Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
                     }
                     catch
                     {
                         Assert.Fail("Error getting symbols");
                     }
-                    Assert.IsTrue(globalSymbol == globalSymbol2 || globalSymbolAlt == globalSymbol2);
+                    Assert.IsTrue(globalMarketSymbol == globalMarketSymbol2 || globalMarketSymbolAlt == globalMarketSymbol2);
                 }
                 catch (NotImplementedException)
                 {

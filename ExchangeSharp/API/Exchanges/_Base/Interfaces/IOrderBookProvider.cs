@@ -25,10 +25,10 @@ namespace ExchangeSharp
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
-        /// <param name="symbol">Symbol</param>
+        /// <param name="marketSymbol">Symbol</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Orders</returns>
-        Task<ExchangeOrderBook> GetOrderBookAsync(string symbol, int maxCount = 100);
+        Task<ExchangeOrderBook> GetOrderBookAsync(string marketSymbol, int maxCount = 100);
 
         /// <summary>
         /// Get exchange order book for all symbols. Not all exchanges support this. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
@@ -42,9 +42,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback with the full ExchangeOrderBook</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
-        /// <param name="symbol">Order book symbols or null/empty for all of them (if supported)</param>
+        /// <param name="marketSymbols">Market symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
+        IWebSocket GetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols);
 
         /// <summary>
         /// What type of web socket order book is provided

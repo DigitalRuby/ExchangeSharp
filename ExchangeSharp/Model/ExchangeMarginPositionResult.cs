@@ -18,9 +18,9 @@ namespace ExchangeSharp
     public class ExchangeMarginPositionResult
     {
         /// <summary>
-        /// Symbol
+        /// Market Symbol
         /// </summary>
-        public string Symbol { get; set; }
+        public string MarketSymbol { get; set; }
 
         /// <summary>
         /// Amount
