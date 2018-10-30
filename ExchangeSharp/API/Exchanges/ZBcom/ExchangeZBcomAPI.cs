@@ -68,7 +68,46 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		{
+			// GET http://api.zb.cn/data/v1/markets
+			// //# Response
+			// {
+			//     "btc_usdt": {
+			//         "amountScale": 4,
+			//         "priceScale": 2
+			//     },
+			//     "ltc_usdt": {
+			//         "amountScale": 3,
+			//         "priceScale": 2
+			//     }
+			//     ...
+			// }
+
+			var data = await MakeRequestZBcomAsync(string.Empty, "/markets");
+			List<ExchangeMarket> symbols = new List<ExchangeMarket>();
+			foreach (JProperty prop in data.Item1)
+			{
+				var split = prop.Name.Split('_');
+				var priceScale = prop.First.Value<Int16>("priceScale");
+				var priceScaleDecimals = (decimal)Math.Pow(0.1, priceScale);
+				var amountScale = prop.First.Value<Int16>("amountScale");
+				var amountScaleDecimals = (decimal)Math.Pow(0.1, amountScale);
+				symbols.Add(new ExchangeMarket()
+				{
+					MarketSymbol = prop.Name,
+					BaseCurrency = split[0],
+					QuoteCurrency = split[1],
+					MinPrice = priceScaleDecimals,
+					PriceStepSize = priceScaleDecimals,
+					MinTradeSize = amountScaleDecimals,
+					QuantityStepSize = amountScaleDecimals,
+				});
+			}
+			return symbols;
+		}
+
+		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             var data = await MakeRequestZBcomAsync(marketSymbol, "/ticker?market=$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1);

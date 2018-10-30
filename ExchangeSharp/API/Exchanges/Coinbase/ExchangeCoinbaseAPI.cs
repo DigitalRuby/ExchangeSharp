@@ -236,7 +236,7 @@ namespace ExchangeSharp
                                                                                           await GetNoncePayloadAsync(),
                                                                                           "POST");
 
-                    return new ExchangeDepositDetails { Address = accountWalletAddress["address"].ToStringInvariant(), Symbol = currency };
+                    return new ExchangeDepositDetails { Address = accountWalletAddress["address"].ToStringInvariant(), Currency = currency };
                 }
 
             }
