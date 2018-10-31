@@ -4,4 +4,4 @@ You can donate to get fast response time for questions and bug fixes.
 
 Thank you.
 
-- Jeff
+Jeff
