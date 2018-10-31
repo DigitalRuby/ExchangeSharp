@@ -32,6 +32,11 @@ namespace ExchangeSharp
         public string Id { get; set; }
 
         /// <summary>
+        /// The currency pair symbol that this ticker is in reference to
+        /// </summary>
+        public string MarketSymbol { get; set; }
+
+        /// <summary>
         /// The bid is the price to sell at
         /// </summary>
         public decimal Bid { get; set; }
@@ -97,28 +102,28 @@ namespace ExchangeSharp
         public DateTime Timestamp { get; set; }
 
         /// <summary>
-        /// Price symbol - will equal quantity symbol if exchange doesn't break it out by price unit and quantity unit
-        /// In BTC-USD, this would be BTC
-        /// </summary>
-        public string BaseSymbol { get; set; }
-
-        /// <summary>
-        /// Price amount - will equal QuantityAmount if exchange doesn't break it out by price unit and quantity unit
-        /// In BTC-USD, this would be BTC volume
-        /// </summary>
-        public decimal BaseVolume { get; set; }
-
-        /// <summary>
-        /// Quantity symbol (converted into this unit)
+        /// Quote / Price currency - will equal base currency if exchange doesn't break it out by price unit and quantity unit
         /// In BTC-USD, this would be USD
         /// </summary>
-        public string ConvertedSymbol { get; set; }
+        public string QuoteCurrency { get; set; }
 
         /// <summary>
-        /// Quantity amount (this many units total)
-        /// In BTC-USD this would be USD volume
+        /// Amount in units of the QuoteCurrency - will equal BaseCurrencyVolume if exchange doesn't break it out by price unit and quantity unit
+        /// In BTC-USD, this would be USD volume
         /// </summary>
-        public decimal ConvertedVolume { get; set; }
+        public decimal QuoteCurrencyVolume { get; set; }
+
+        /// <summary>
+        /// Base currency
+        /// In BTC-USD, this would be BTC
+        /// </summary>
+        public string BaseCurrency { get; set; }
+
+        /// <summary>
+        /// Base currency amount (this many units total)
+        /// In BTC-USD this would be BTC volume
+        /// </summary>
+        public decimal BaseCurrencyVolume { get; set; }
 
         /// <summary>
         /// Write to a binary writer
@@ -127,10 +132,10 @@ namespace ExchangeSharp
         public void ToBinary(BinaryWriter writer)
         {
             writer.Write(Timestamp.ToUniversalTime().Ticks);
-            writer.Write(BaseSymbol);
-            writer.Write((double)BaseVolume);
-            writer.Write(ConvertedSymbol);
-            writer.Write((double)ConvertedVolume);
+            writer.Write(QuoteCurrency);
+            writer.Write((double)QuoteCurrencyVolume);
+            writer.Write(BaseCurrency);
+            writer.Write((double)BaseCurrencyVolume);
         }
 
         /// <summary>
@@ -140,10 +145,10 @@ namespace ExchangeSharp
         public void FromBinary(BinaryReader reader)
         {
             Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
-            BaseSymbol = reader.ReadString();
-            BaseVolume = (decimal)reader.ReadDouble();
-            ConvertedSymbol = reader.ReadString();
-            ConvertedVolume = (decimal)reader.ReadDouble();
+            QuoteCurrency = reader.ReadString();
+            QuoteCurrencyVolume = (decimal)reader.ReadDouble();
+            BaseCurrency = reader.ReadString();
+            BaseCurrencyVolume = (decimal)reader.ReadDouble();
         }
     }
 }

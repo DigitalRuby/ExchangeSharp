@@ -22,9 +22,9 @@ namespace ExchangeSharp
     public class ExchangeOrderRequest
     {
         /// <summary>
-        /// Symbol or pair for the order, i.e. btcusd
+        /// Market symbol or pair for the order, i.e. btcusd
         /// </summary>
-        public string Symbol { get; set; }
+        public string MarketSymbol { get; set; }
 
         /// <summary>
         /// Amount to buy or sell

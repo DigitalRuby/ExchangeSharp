@@ -87,14 +87,14 @@ namespace ExchangeSharpConsole
                 // test all public API for each exchange
                 try
                 {
-                    string symbol = api.NormalizeSymbol(GetSymbol(api));
+                    string marketSymbol = api.NormalizeMarketSymbol(GetSymbol(api));
 
                     if (functionRegex == null || Regex.IsMatch("symbol", functionRegex, RegexOptions.IgnoreCase))
                     {
                         Console.Write("Test {0} GetSymbolsAsync... ", api.Name);
-                        IReadOnlyCollection<string> symbols = api.GetSymbolsAsync().Sync().ToArray();
-                        Assert(symbols != null && symbols.Count != 0 && symbols.Contains(symbol, StringComparer.OrdinalIgnoreCase));
-                        Console.WriteLine($"OK (default: {symbol}; {symbols.Count} symbols)");
+                        IReadOnlyCollection<string> symbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+                        Assert(symbols != null && symbols.Count != 0 && symbols.Contains(marketSymbol, StringComparer.OrdinalIgnoreCase));
+                        Console.WriteLine($"OK (default: {marketSymbol}; {symbols.Count} symbols)");
                     }
 
                     if (functionRegex == null || Regex.IsMatch("orderbook", functionRegex, RegexOptions.IgnoreCase))
@@ -102,7 +102,7 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetOrderBookAsync... ", api.Name);
-                            var book = api.GetOrderBookAsync(symbol).Sync();
+                            var book = api.GetOrderBookAsync(marketSymbol).Sync();
                             Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks.First().Value.Amount > 0m &&
                                 book.Asks.First().Value.Price > 0m && book.Bids.First().Value.Amount > 0m && book.Bids.First().Value.Price > 0m);
                             Console.WriteLine($"OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
@@ -118,9 +118,9 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetTickerAsync... ", api.Name);
-                            var ticker = api.GetTickerAsync(symbol).Sync();
+                            var ticker = api.GetTickerAsync(marketSymbol).Sync();
                             Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-                                ticker.Volume != null && ticker.Volume.BaseVolume > 0m && ticker.Volume.ConvertedVolume > 0m);
+                                ticker.Volume != null && ticker.Volume.QuoteCurrencyVolume > 0m && ticker.Volume.BaseCurrencyVolume > 0m);
                             Console.WriteLine($"OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
                         }
                         catch
@@ -134,12 +134,12 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetHistoricalTradesAsync... ", api.Name);
-                            api.GetHistoricalTradesAsync(histTradeCallback, symbol).Sync();
+                            api.GetHistoricalTradesAsync(histTradeCallback, marketSymbol).Sync();
                             Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                             Console.WriteLine($"OK ({trades.Length})");
 
                             Console.Write("Test {0} GetRecentTradesAsync... ", api.Name);
-                            trades = api.GetRecentTradesAsync(symbol).Sync().ToArray();
+                            trades = api.GetRecentTradesAsync(marketSymbol).Sync().ToArray();
                             Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                             Console.WriteLine($"OK ({trades.Length} trades)");
                         }
@@ -154,11 +154,11 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetCandlesAsync... ", api.Name);
-                            var candles = api.GetCandlesAsync(symbol, 86400, CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
+                            var candles = api.GetCandlesAsync(marketSymbol, 86400, CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
                             Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
                                 candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
-                                !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseVolume > 0.0 &&
-                                candles[0].ConvertedVolume > 0.0 && candles[0].WeightedAverage >= 0m);
+                                !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseCurrencyVolume > 0.0 &&
+                                candles[0].QuoteCurrencyVolume > 0.0 && candles[0].WeightedAverage >= 0m);
 
                             Console.WriteLine($"OK ({candles.Length})");
                         }

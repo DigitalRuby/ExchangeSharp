@@ -25,7 +25,7 @@ namespace ExchangeSharp.Binance
         public long EventTime { get; set; }
 
         [JsonProperty("s")]
-        public string Symbol { get; set; }
+        public string MarketSymbol { get; set; }
 
         [JsonProperty("U")]
         public int FirstUpdate { get; set; }

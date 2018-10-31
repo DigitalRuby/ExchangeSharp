@@ -102,12 +102,12 @@ namespace ExchangeSharp
             return summaries;
         }
 
-        public async Task<ExchangeOrderBook> GetOrderBookAsync(string exchange, string symbol, int maxCount = 100)
+        public async Task<ExchangeOrderBook> GetOrderBookAsync(string exchange, string marketSymbol, int maxCount = 100)
         {
             await new SynchronizationContextRemover();
 
             ExchangeOrderBook book = new ExchangeOrderBook();
-            JToken result = await MakeJsonRequestAsync<JToken>("/markets/" + exchange.ToLowerInvariant() + "/" + symbol + "/orderbook");
+            JToken result = await MakeJsonRequestAsync<JToken>("/markets/" + exchange.ToLowerInvariant() + "/" + marketSymbol + "/orderbook");
             int count = 0;
             foreach (JArray array in result["asks"])
             {

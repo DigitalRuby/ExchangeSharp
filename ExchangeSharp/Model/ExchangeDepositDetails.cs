@@ -15,8 +15,8 @@ namespace ExchangeSharp
     /// <summary>Class to encapsulate details required to make a deposit.</summary>
     public sealed class ExchangeDepositDetails
     {
-        /// <summary>The symbol of the currency. Ex. ETH</summary>
-        public string Symbol;
+        /// <summary>The name of the currency. Ex. ETH</summary>
+        public string Currency;
 
         /// <summary>The address to deposit to</summary>
         public string Address;
@@ -29,7 +29,7 @@ namespace ExchangeSharp
         /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
         public override string ToString()
         {
-            return $"{Symbol}: Address: {Address} AddressTag: {AddressTag}";
+            return $"{Currency}: Address: {Address} AddressTag: {AddressTag}";
         }
     }
 }

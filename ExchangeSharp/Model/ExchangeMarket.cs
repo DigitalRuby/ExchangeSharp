@@ -18,24 +18,34 @@ namespace ExchangeSharp
         /// <summary>Id of the market (specific to the exchange), null if none</summary>
         public string MarketId { get; set; }
 
-        /// <summary>Gets or sets the name of the market.</summary>
-        public string MarketName { get; set; }
+        /// <summary>Gets or sets the symbol representing the market's currency pair.</summary>
+        public string MarketSymbol { get; set; }
 
         /// <summary>A value indicating whether the market is active.</summary>
         public bool IsActive { get; set; }
 
-        /// <summary>In a pair like ZRX/BTC, BTC is the base currency.</summary>
+        /// <summary>In a pair like ZRX/BTC, BTC is the quote currency.</summary>
+        public string QuoteCurrency { get; set; }
+
+        /// <summary>In a pair like ZRX/BTC, ZRX is the base currency.</summary>
         public string BaseCurrency { get; set; }
 
-        /// <summary>In a pair like ZRX/BTC, ZRX is the market currency.</summary>
-        public string MarketCurrency { get; set; }
-
-        /// <summary>The minimum size of the trade in the unit of "MarketCurrency". For example, in
+        /// <summary>The minimum size of the trade in the unit of "BaseCurrency". For example, in
         /// DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE</summary>
         public decimal MinTradeSize { get; set; }
 
-        /// <summary>The maximum size of the trade in the unit of "MarketCurrency".</summary>
+        /// <summary>The maximum size of the trade in the unit of "BaseCurrency".</summary>
         public decimal MaxTradeSize { get; set; } = decimal.MaxValue;
+
+        /// <summary>The minimum size of the trade in the unit of "QuoteCurrency". To determine an order's
+        /// trade size in terms of the Quote Currency, you need to calculate: price * quantity
+        /// NOTE: Not all exchanges provide this information</summary>
+        public decimal? MinTradeSizeInQuoteCurrency { get; set; }
+
+        /// <summary>The maximum size of the trade in the unit of "QuoteCurrency". To determine an order's
+        /// trade size in terms of the Quote Currency, you need to calculate: price * quantity
+        /// NOTE: Not all exchanges provide this information</summary>
+        public decimal? MaxTradeSizeInQuoteCurrency { get; set; }
 
         /// <summary>The minimum price of the pair.</summary>
         public decimal MinPrice { get; set; }
@@ -52,9 +62,14 @@ namespace ExchangeSharp
         /// if unknown or not applicable.</summary>
         public decimal? QuantityStepSize { get; set; }
 
+        /// <summary>
+        /// Margin trading enabled for this market
+        /// </summary>
+        public bool MarginEnabled { get; set; }
+
         public override string ToString()
         {
-            return $"{MarketName}, {MarketCurrency}-{BaseCurrency}";
+            return $"{MarketSymbol}, {BaseCurrency}-{QuoteCurrency}";
         }
     }
 }

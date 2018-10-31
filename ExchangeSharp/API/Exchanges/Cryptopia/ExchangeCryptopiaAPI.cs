@@ -31,14 +31,14 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMillisecondsString;
-            SymbolSeparator = "/";
+            MarketSymbolSeparator = "/";
         }
 
         #region ProcessRequest 
 
         public string NormalizeSymbolForUrl(string symbol)
         {
-            return NormalizeSymbol(symbol).Replace(SymbolSeparator, "_");
+            return NormalizeMarketSymbol(symbol).Replace(MarketSymbolSeparator, "_");
         }
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -98,7 +98,7 @@ namespace ExchangeSharp
             return currencies;
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             JToken result = await MakeJsonRequestAsync<JToken>("/GetTradePairs");
@@ -109,7 +109,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             //[{ "Id":104, "Label":"LTC/BTC", "Currency":"Litecoin", "Symbol":"LTC", "BaseCurrency":"Bitcoin", "BaseSymbol":"BTC", "Status":"OK", "StatusMessage":"", "TradeFee":"0.20000000", "MinimumTrade":"0.00000001, "MaximumTrade":"1000000000.00000000", "MinimumBaseTrade":"0.00000500", "MaximumBaseTrade":"1000000000.00000000", "MinimumPrice":"0.00000001", "MaximumPrice":"1000000000.00000000" }, ... ]
@@ -118,12 +118,16 @@ namespace ExchangeSharp
             {
                 markets.Add(new ExchangeMarket()
                 {
-                    MarketName = token["Label"].ToStringInvariant(),
-                    BaseCurrency = token["BaseSymbol"].ToStringInvariant(),
-                    MarketCurrency = token["Symbol"].ToStringInvariant(),
+                    MarketId = token["Id"].ToStringInvariant(),
+                    MarketSymbol = token["Label"].ToStringInvariant(),
+                    //NOTE: Cryptopia is calls the QuoteCurrency the "BaseSymbol" and the BaseCurrency the "Symbol".. not confusing at all!
+                    QuoteCurrency = token["BaseSymbol"].ToStringInvariant(),
+                    BaseCurrency = token["Symbol"].ToStringInvariant(),
                     MaxTradeSize = token["MaximumTrade"].ConvertInvariant<decimal>(),
+                    MaxTradeSizeInQuoteCurrency = token["MaximumBaseTrade"].ConvertInvariant<decimal>(),
                     MaxPrice = token["MaximumPrice"].ConvertInvariant<decimal>(),
                     MinTradeSize = token["MinimumTrade"].ConvertInvariant<decimal>(),
+                    MinTradeSizeInQuoteCurrency = token["MinimumBaseTrade"].ConvertInvariant<decimal>(),
                     MinPrice = token["MinimumPrice"].ConvertInvariant<decimal>(),
                     IsActive = token["Status"].ToStringInvariant().Equals("OK")
                 });
@@ -131,9 +135,9 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            JToken result = await MakeJsonRequestAsync<JToken>("/GetMarket/" + NormalizeSymbolForUrl(symbol));
+            JToken result = await MakeJsonRequestAsync<JToken>("/GetMarket/" + NormalizeSymbolForUrl(marketSymbol));
             return ParseTicker(result);
         }
 
@@ -145,27 +149,27 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             // {"TradePairId":100,"Label":"DOT/BTC","Price":0.00000317,"Volume":333389.57231468,"Total":1.05684494}
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + NormalizeSymbolForUrl(symbol) + "/" + maxCount.ToStringInvariant());
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketOrders/" + NormalizeSymbolForUrl(marketSymbol) + "/" + maxCount.ToStringInvariant());
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "Sell", "Buy", "Price", "Volume", maxCount: maxCount);
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // [{ "TradePairId":100,"Label":"LTC/BTC","Type":"Sell","Price":0.00006000, "Amount":499.99640000,"Total":0.02999978,"Timestamp": 1418297368}, ...]
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbolForUrl(symbol));      // Default is last 24 hours
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbolForUrl(marketSymbol));      // Default is last 24 hours
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             string hours = startDate == null ? "24" : ((CryptoUtility.UtcNow - startDate.Value.ToUniversalTime()).TotalHours).ToStringInvariant();
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbolForUrl(symbol) + "/" + hours);
+            JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbolForUrl(marketSymbol) + "/" + hours);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
             var rc = callback?.Invoke(trades);
             // should we loop here to get additional more recent trades after a delay? 
@@ -176,13 +180,13 @@ namespace ExchangeSharp
         /// Cryptopia doesn't support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds 
         /// TODO: Aggregate Cryptopia Trades into Candles
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="marketSymbol"></param>
         /// <param name="periodSeconds"></param>
         /// <param name="startDate"></param>
         /// <param name="endDate"></param>
         /// <param name="limit"></param>
         /// <returns></returns>
-        protected override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             throw new NotImplementedException();
         }
@@ -231,14 +235,14 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
             var payload = await GetNoncePayloadAsync();
-            if (symbol.Length != 0)
+            if (marketSymbol.Length != 0)
             {
-                payload["Market"] = symbol;
+                payload["Market"] = marketSymbol;
             }
             else
             {
@@ -252,7 +256,7 @@ namespace ExchangeSharp
                 orders.Add(new ExchangeOrderResult()
                 {
                     OrderId = order["TradeId"].ConvertInvariant<int>().ToStringInvariant(),
-                    Symbol = order["Market"].ToStringInvariant(),
+                    MarketSymbol = order["Market"].ToStringInvariant(),
                     Amount = order["Amount"].ConvertInvariant<decimal>(),
                     AmountFilled = order["Amount"].ConvertInvariant<decimal>(),       // It doesn't look like partial fills are supplied on closed orders
                     Price = order["Rate"].ConvertInvariant<decimal>(),
@@ -266,12 +270,12 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
             var payload = await GetNoncePayloadAsync();
-            payload["Market"] = string.IsNullOrEmpty(symbol) ? string.Empty : NormalizeSymbol(symbol);
+            payload["Market"] = string.IsNullOrEmpty(marketSymbol) ? string.Empty : NormalizeMarketSymbol(marketSymbol);
 
             //[ {"OrderId": 23467,"TradePairId": 100,"Market": "DOT/BTC","Type": "Buy","Rate": 0.00000034,"Amount": 145.98000000, "Total": "0.00004963", "Remaining": "23.98760000", "TimeStamp":"2014-12-07T20:04:05.3947572" }, ... ]
             JToken token = await MakeJsonRequestAsync<JToken>("/GetOpenOrders", null, payload, "POST");
@@ -281,7 +285,7 @@ namespace ExchangeSharp
                 {
                     OrderId = data["OrderId"].ConvertInvariant<int>().ToStringInvariant(),
                     OrderDate = data["TimeStamp"].ToDateTimeInvariant(),
-                    Symbol = data["Market"].ToStringInvariant(),
+                    MarketSymbol = data["Market"].ToStringInvariant(),
                     Amount = data["Amount"].ConvertInvariant<decimal>(),
                     Price = data["Rate"].ConvertInvariant<decimal>(),
                     IsBuy = data["Type"].ToStringInvariant() == "Buy"
@@ -304,9 +308,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
         {
-            var orders = await GetCompletedOrderDetailsAsync(symbol);
+            var orders = await GetCompletedOrderDetailsAsync(marketSymbol);
             return orders.Where(o => o.OrderId == orderId).FirstOrDefault();
         }
 
@@ -315,7 +319,7 @@ namespace ExchangeSharp
             ExchangeOrderResult newOrder = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
 
             var payload = await GetNoncePayloadAsync();
-            payload["Market"] = order.Symbol;
+            payload["Market"] = order.MarketSymbol;
             payload["Type"] = order.IsBuy ? "Buy" : "Sell";
             payload["Rate"] = order.Price;
             payload["Amount"] = order.Amount;
@@ -332,7 +336,7 @@ namespace ExchangeSharp
         }
 
         // This should have a return value for success
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             var payload = await GetNoncePayloadAsync();
             payload["Type"] = "Trade";          // Cancel All by Market is supported. Here we're canceling by single Id
@@ -345,9 +349,9 @@ namespace ExchangeSharp
         /// Cryptopia does support filtering by Transaction Type (deposits and withdraws), but here we're returning both. The Tx Type will be returned in the Message field
         /// By Symbol isn't supported, so we'll filter. Also, the default limit is 100 transactions, we could possibly increase this to support the extra data we have to return for Symbol
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="currency"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
             var payload = await GetNoncePayloadAsync();
@@ -361,7 +365,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/GetTransactions", null, payload, "POST");
             foreach (JToken data in token)
             {
-                if (data["Currency"].ToStringInvariant().Equals(symbol))
+                if (data["Currency"].ToStringInvariant().Equals(currency))
                 {
                     ExchangeTransaction tx = new ExchangeTransaction()
                     {
@@ -371,7 +375,7 @@ namespace ExchangeSharp
                         Notes = data["Type"].ToStringInvariant(),
                         PaymentId = data["Id"].ToStringInvariant(),
                         Timestamp = data["TimeStamp"].ToDateTimeInvariant(),
-                        Symbol = data["Currency"].ToStringInvariant(),
+                        Currency = data["Currency"].ToStringInvariant(),
                         TxFee = data["Fee"].ConvertInvariant<decimal>()
                     };
                     // They may support more status types, but it's not documented
@@ -387,15 +391,15 @@ namespace ExchangeSharp
             return deposits;
         }
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
-            payload["Currency"] = symbol;
+            payload["Currency"] = currency;
             JToken token = await MakeJsonRequestAsync<JToken>("/GetDepositAddress", null, payload, "POST");
             if (token["Address"] == null) return null;
             return new ExchangeDepositDetails()
             {
-                Symbol = symbol,
+                Currency = currency,
                 Address = token["Address"].ToStringInvariant(),
                 AddressTag = token["BaseAddress"].ToStringInvariant()
             };
@@ -424,8 +428,8 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(JToken token)
         {
             // [{ "TradePairId":100,"Label":"LTC/BTC","AskPrice":0.00006000,"BidPrice":0.02000000,"Low":0.00006000,"High":0.00006000,"Volume":1000.05639978,"LastPrice":0.00006000,"BuyVolume":34455.678,"SellVolume":67003436.37658233,"Change":-400.00000000,"Open": 0.00000500,"Close": 0.00000600, "BaseVolume": 3.58675866,"BaseBuyVolume": 11.25364758, "BaseSellVolume": 3456.06746543 }, ... ]
-            string symbol = token["Label"].ToStringInvariant();
-            return this.ParseTicker(token, symbol, "AskPrice", "BidPrice", "LastPrice", "Volume", "BaseVolume");
+            string marketSymbol = token["Label"].ToStringInvariant();
+            return this.ParseTicker(token, marketSymbol, "AskPrice", "BidPrice", "LastPrice", "Volume", "BaseVolume");
         }
 
         private ExchangeTrade ParseTrade(JToken token)

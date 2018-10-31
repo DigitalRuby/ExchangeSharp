@@ -63,15 +63,15 @@ namespace ExchangeSharp
             /// Subscribe to order book updates
             /// </summary>
             /// <param name="callback">Callback</param>
-            /// <param name="symbols">The ticker to subscribe to</param>
+            /// <param name="marketSymbols">The market symbols to subscribe to</param>
             /// <returns>IDisposable to close the socket</returns>
-            public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] symbols)
+            public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] marketSymbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
                 List<object[]> paramList = new List<object[]>();
-                foreach (string symbol in symbols)
+                foreach (string marketSymbol in marketSymbols)
                 {
-                    paramList.Add(new object[] { symbol });
+                    paramList.Add(new object[] { marketSymbol });
                 }
                 Task.Run(async () => await conn.OpenAsync("uE", (s) =>
                 {
@@ -120,23 +120,25 @@ namespace ExchangeSharp
                 foreach (JToken ticker in token)
                 {
                     string marketName = ticker["M"].ToStringInvariant();
+                    var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(marketName);
                     decimal last = ticker["l"].ConvertInvariant<decimal>();
                     decimal ask = ticker["A"].ConvertInvariant<decimal>();
                     decimal bid = ticker["B"].ConvertInvariant<decimal>();
-                    decimal volume = ticker["V"].ConvertInvariant<decimal>();
-                    decimal baseVolume = ticker["m"].ConvertInvariant<decimal>();
+                    decimal baseCurrencyVolume = ticker["V"].ConvertInvariant<decimal>();
+                    decimal quoteCurrencyVolume = ticker["m"].ConvertInvariant<decimal>();//NOTE: Bittrex uses the term BaseVolume when referring to QuoteCurrencyVolume
                     DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["T"].ConvertInvariant<long>());
                     var t = new ExchangeTicker
                     {
+                        MarketSymbol = marketName,
                         Ask = ask,
                         Bid = bid,
                         Last = last,
                         Volume = new ExchangeVolume
                         {
-                            ConvertedVolume = volume,
-                            ConvertedSymbol = marketName,
-                            BaseVolume = baseVolume,
-                            BaseSymbol = marketName,
+                            BaseCurrencyVolume = baseCurrencyVolume,
+                            BaseCurrency = baseCurrency,
+                            QuoteCurrencyVolume = quoteCurrencyVolume,
+                            QuoteCurrency = quoteCurrency,
                             Timestamp = timestamp
                         }
                     };
@@ -152,12 +154,12 @@ namespace ExchangeSharp
         (
             Action<ExchangeOrderBook> callback,
             int maxCount = 20,
-            params string[] symbols
+            params string[] marketSymbols
         )
         {
-            if (symbols == null || symbols.Length == 0)
+            if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                symbols = GetSymbolsAsync().Sync().ToArray();
+                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
             void innerCallback(string json)
             {
@@ -210,19 +212,19 @@ namespace ExchangeSharp
                     book.Bids[depth.Price] = depth;
                 }
 
-                book.Symbol = ordersUpdates.MarketName;
+                book.MarketSymbol = ordersUpdates.MarketName;
                 book.SequenceId = ordersUpdates.Nonce;
                 callback(book);
             }
 
-            return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, symbols);
+            return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, marketSymbols);
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
 		{
-			if (symbols == null || symbols.Length == 0)
+			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				symbols = GetSymbolsAsync().Sync().ToArray();
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
 			void innerCallback(string json)
 			{
@@ -243,7 +245,7 @@ namespace ExchangeSharp
 				}
 			}
 
-			return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, symbols);
+			return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, marketSymbols);
 		}
 
 		/// <summary>

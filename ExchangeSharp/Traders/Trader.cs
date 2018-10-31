@@ -82,7 +82,7 @@ namespace ExchangeSharp
             if (ProductionMode)
             {
                 var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTradeAsync().Sync();
-                string[] tradeSymbols = TradeInfo.Symbol.Split('_');
+                string[] tradeSymbols = TradeInfo.MarketSymbol.Split('_');
                 dict.TryGetValue(tradeSymbols[1], out decimal itemCount);
                 dict.TryGetValue(tradeSymbols[0], out decimal cashFlow);
                 ItemCount = itemCount;
@@ -165,7 +165,7 @@ namespace ExchangeSharp
                         IsBuy = true,
                         Price = actualBuyPrice,
                         ShouldRoundAmount = false,
-                        Symbol = TradeInfo.Symbol
+                        MarketSymbol = TradeInfo.MarketSymbol
                     }).Sync();
                 }
                 else
@@ -199,7 +199,7 @@ namespace ExchangeSharp
                         IsBuy = false,
                         Price = actualSellPrice,
                         ShouldRoundAmount = false,
-                        Symbol = TradeInfo.Symbol
+                        MarketSymbol = TradeInfo.MarketSymbol
                     }).Sync();
                 }
                 else

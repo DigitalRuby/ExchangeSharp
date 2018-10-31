@@ -128,6 +128,26 @@ namespace ExchangeSharpConsole
                 {
                     RunGetOrderHistory(argsDictionary);
                 }
+                else if (argsDictionary.ContainsKey("getOrderDetails"))
+                {
+                    RunGetOrderDetails(argsDictionary);
+                }
+                else if (argsDictionary.ContainsKey("symbols-metadata"))
+                {
+                    RunGetSymbolsMetadata(argsDictionary);
+                }
+                else if (argsDictionary.ContainsKey("symbols"))
+                {
+                    RunGetMarketSymbols(argsDictionary);
+                }
+                else if (argsDictionary.ContainsKey("tickers"))
+                {
+                    RunGetTickers(argsDictionary);
+                }
+                else if (argsDictionary.ContainsKey("candles"))
+                {
+                    RunGetCandles(argsDictionary);
+                }
                 else
                 {
                     Logger.Error("Unrecognized command line arguments.");
