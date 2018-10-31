@@ -213,12 +213,6 @@ namespace ExchangeSharp
         /// </summary>
         /// <returns>The customer trading fees</returns>
         Task<Dictionary<string, decimal>> GetFeesAync();
-         
-        /// <summary>
-        /// Get fees
-        /// </summary>
-        /// <returns>The customer trading fees</returns>
-        Dictionary<string, decimal> GetFees();
 
         #endregion REST
 
