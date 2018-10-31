@@ -61,7 +61,7 @@ namespace ExchangeSharp
         /// If not set, this is probably the base currency</summary>
         public string FeesCurrency { get; set; }
 
-        /// <summary>The id of the trade.</summary>
+        /// <summary>The id of the trade if this is only one trade out of the order.</summary>
         public string TradeId { get; set; }
 
         /// <summary>Append another order to this order - order id and type must match</summary>
