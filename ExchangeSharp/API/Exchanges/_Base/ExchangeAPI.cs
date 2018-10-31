@@ -608,14 +608,6 @@ namespace ExchangeSharp
             return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetFeesAsync(), nameof(GetFeesAync));
         }
 
-
-        /// <summary>
-        ///  Get fees
-        /// </summary>
-        /// <returns>The customer trading fees</returns>
-        public Dictionary<string, decimal> GetFees() => GetFeesAync().GetAwaiter().GetResult();
-
-
         /// <summary>
         /// Get amounts available to trade, symbol / amount dictionary
         /// </summary>
