@@ -298,14 +298,94 @@ namespace ExchangeSharp
             }
             return orders;
         }
+        
+        public class BitstampTransaction
+        {
+            public BitstampTransaction(string id, DateTime dateTime, int type, string symbol, decimal fees, string orderId, decimal quantity, decimal price, bool isBuy)
+            {
+                Id = id;
+                DateTime = dateTime;
+                Type = type;
+                Symbol = symbol;
+                Fees = fees;
+                OrderId = orderId;
+                Quantity = quantity;
+                Price = price;
+                IsBuy = isBuy;
+            }
+
+            public string Id { get; }
+            public DateTime DateTime { get; }
+            public int Type { get; } //  Transaction type: 0 - deposit; 1 - withdrawal; 2 - market trade; 14 - sub account transfer.
+            public string Symbol { get; }
+            public decimal Fees { get; }
+            public string OrderId { get; }
+            public decimal Quantity { get; }
+            public decimal Price { get; }
+            public bool IsBuy { get; }
+        }
+
+        public async Task<IEnumerable<BitstampTransaction>> GetUserTransactionsAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            await new SynchronizationContextRemover();
+            return await OnGetUserTransactionsAsync(symbol, afterDate);
+        }
+
+        protected async Task<IEnumerable<BitstampTransaction>> OnGetUserTransactionsAsync(string symbol = null, DateTime? afterDate = null)
+        {
+            symbol = NormalizeSymbol(symbol);
+            // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
+            // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
+            string url = "/user_transactions/";
+            var payload = await GetNoncePayloadAsync();
+            payload["limit"] = 1000;
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
+
+            List<BitstampTransaction> transactions = new List<BitstampTransaction>();
+
+            foreach (var transaction in result as JArray)
+            {
+                int type = transaction["type"].ConvertInvariant<int>();
+                // only type 2 is order transaction type, so we discard all other transactions
+                if (type != 2) { continue; }
+
+                string tradingPair = ((JObject)transaction).Properties().FirstOrDefault(p =>
+                    !p.Name.Equals("order_id", StringComparison.InvariantCultureIgnoreCase)
+                    && p.Name.Contains("_"))?.Name.Replace("_", "-");
+                if (!string.IsNullOrWhiteSpace(tradingPair) && !string.IsNullOrWhiteSpace(symbol) && !NormalizeSymbol(tradingPair).Equals(symbol))
+                {
+                    continue;
+                }
+
+                var baseCurrency = tradingPair.Trim().Substring(tradingPair.Length - 3).ToLowerInvariant();
+                var marketCurrency = tradingPair.Trim().ToLowerInvariant().Replace(baseCurrency, "").Replace("-", "").Replace("_", "");
+              
+                decimal amount = transaction[baseCurrency].ConvertInvariant<decimal>();
+                decimal signedQuantity = transaction[marketCurrency].ConvertInvariant<decimal>();
+                decimal quantity = Math.Abs(signedQuantity);
+                decimal price = Math.Abs(amount / signedQuantity);
+                bool isBuy = signedQuantity > 0;
+                var id = transaction["id"].ToStringInvariant();
+                var datetime = transaction["datetime"].ToDateTimeInvariant();
+                var fee = transaction["fee"].ConvertInvariant<decimal>();
+                var orderId = transaction["order_id"].ToStringInvariant();
+
+                var bitstampTransaction = new BitstampTransaction(id, datetime, type, tradingPair, fee, orderId, quantity, price, isBuy);
+                transactions.Add(bitstampTransaction);
+            }
+
+            return transactions;
+        }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync(), "POST");
-            List<ExchangeOrderResult> transactions = new List<ExchangeOrderResult>();
+            var payload = await GetNoncePayloadAsync();
+            payload["limit"] = 1000;
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             foreach (var transaction in result as JArray)
             {
                 int type = transaction["type"].ConvertInvariant<int>();
