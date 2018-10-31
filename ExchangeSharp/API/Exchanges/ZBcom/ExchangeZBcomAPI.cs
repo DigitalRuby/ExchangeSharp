@@ -34,7 +34,7 @@ namespace ExchangeSharp
         {
             if (symbol == null) return symbol;
 
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace("-", string.Empty);
+            return (symbol ?? string.Empty).ToLowerInvariant().Replace(MarketSymbolSeparator, string.Empty);
         }
 
         #region publicAPI
