@@ -55,13 +55,12 @@ namespace ExchangeSharp
                 AveragePrice = price,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ToDateTimeInvariant(),
-                Symbol = symbol,
+                MarketSymbol = symbol,
                 OrderId = result["order_id"].ToStringInvariant(), 
             };
              
             return order;
         }
-
 
         private ExchangeOrderResult ParseOrder(JToken result)
         {
@@ -624,20 +623,17 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public async Task<IEnumerable<ExchangeOrderResult>> GetFillsAsync(string symbol = null, DateTime? afterDate = null)
+        public async Task<IEnumerable<ExchangeOrderResult>> GetFillsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
-           
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            symbol = NormalizeSymbol(symbol);
-            var productId = (string.IsNullOrWhiteSpace(symbol) ? string.Empty : "product_id=" + symbol);
-
+            marketSymbol = NormalizeMarketSymbol(marketSymbol);
+            var productId = (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "product_id=" + marketSymbol);
             do
             {
                 var after = cursorAfter == null ? string.Empty : $"after={cursorAfter}&";
                 await new SynchronizationContextRemover();
                 await MakeFillRequest(afterDate, productId, orders, after);
             } while (cursorAfter != null);
-
             return orders;
         }
 

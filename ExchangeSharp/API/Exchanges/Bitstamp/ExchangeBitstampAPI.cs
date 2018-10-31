@@ -325,15 +325,11 @@ namespace ExchangeSharp
             public bool IsBuy { get; }
         }
 
-        public async Task<IEnumerable<BitstampTransaction>> GetUserTransactionsAsync(string symbol = null, DateTime? afterDate = null)
+        public async Task<IEnumerable<BitstampTransaction>> GetUserTransactionsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetUserTransactionsAsync(symbol, afterDate);
-        }
 
-        protected async Task<IEnumerable<BitstampTransaction>> OnGetUserTransactionsAsync(string symbol = null, DateTime? afterDate = null)
-        {
-            symbol = NormalizeSymbol(symbol);
+            marketSymbol = NormalizeMarketSymbol(marketSymbol);
             // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/user_transactions/" : "/user_transactions/" + symbol;
             string url = "/user_transactions/";
@@ -352,14 +348,15 @@ namespace ExchangeSharp
                 string tradingPair = ((JObject)transaction).Properties().FirstOrDefault(p =>
                     !p.Name.Equals("order_id", StringComparison.InvariantCultureIgnoreCase)
                     && p.Name.Contains("_"))?.Name.Replace("_", "-");
-                if (!string.IsNullOrWhiteSpace(tradingPair) && !string.IsNullOrWhiteSpace(symbol) && !NormalizeSymbol(tradingPair).Equals(symbol))
+                tradingPair = NormalizeMarketSymbol(tradingPair);
+                if (!string.IsNullOrWhiteSpace(tradingPair) && !string.IsNullOrWhiteSpace(marketSymbol) && !tradingPair.Equals(marketSymbol))
                 {
                     continue;
                 }
 
                 var baseCurrency = tradingPair.Trim().Substring(tradingPair.Length - 3).ToLowerInvariant();
                 var marketCurrency = tradingPair.Trim().ToLowerInvariant().Replace(baseCurrency, "").Replace("-", "").Replace("_", "");
-              
+
                 decimal amount = transaction[baseCurrency].ConvertInvariant<decimal>();
                 decimal signedQuantity = transaction[marketCurrency].ConvertInvariant<decimal>();
                 decimal quantity = Math.Abs(signedQuantity);
@@ -415,12 +412,12 @@ namespace ExchangeSharp
                     AmountFilled = Math.Abs(resultBaseCurrency),
                     AveragePrice = transaction[$"{baseCurrency}_{quoteCurrency}"].ConvertInvariant<decimal>()
                 };
-                transactions.Add(order);
+                orders.Add(order);
             }
             // at this point one transaction transformed into one order, we need to consolidate parts into order
             // group by order id  
-            var groupings = transactions.GroupBy(o => o.OrderId);
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            var groupings = orders.GroupBy(o => o.OrderId);
+            List<ExchangeOrderResult> orders2 = new List<ExchangeOrderResult>();
             foreach (var group in groupings)
             {
                 decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice * o.AmountFilled);
@@ -428,10 +425,10 @@ namespace ExchangeSharp
                 order.AmountFilled = group.Sum(o => o.AmountFilled);
                 order.AveragePrice = spentQuoteCurrency / order.AmountFilled;
                 order.Price = order.AveragePrice;
-                orders.Add(order);
+                orders2.Add(order);
             }
 
-            return orders;
+            return orders2;
         }
 
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
