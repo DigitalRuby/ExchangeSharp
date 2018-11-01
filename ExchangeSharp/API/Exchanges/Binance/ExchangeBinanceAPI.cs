@@ -565,7 +565,7 @@ namespace ExchangeSharp
                 payload["symbol"] = marketSymbol;
                 if (afterDate != null)
                 {
-                    payload["startTime"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                    payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
                 foreach (JToken order in token)
