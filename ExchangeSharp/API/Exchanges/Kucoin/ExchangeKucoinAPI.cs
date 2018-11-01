@@ -425,11 +425,54 @@ namespace ExchangeSharp
                 );
         }
 
-        #endregion
+		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		{
+			// {{
+			//   "data": {
+			//     "price": 1.38E-06,
+			//     "count": 1769.0,
+			//     "oid": "5bda52817eab5a0e09e21398",
+			//     "time": 1541034625000,
+			//     "volValue": 0.00244122,
+			//     "direction": "BUY"
+			//   },
+			//   "topic": "/trade/CHSB-BTC_HISTORY",
+			//   "type": "message",
+			//   "seq": 32750070023237
+			// }}
+			var websocketUrlToken = GetWebsocketBulletToken();
+			return ConnectWebSocket(
+					$"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
+					{
+						JToken token = JToken.Parse(msg.ToStringFromUTF8());
+						if (token["type"].Value<string>() == "message")
+						{
+							var dataToken = token["data"];
+							var marketSymbol = token["topic"].ToStringInvariant().Split('_')[0]; // /trade/CHSB-BTC_HISTORY
+							var trade = dataToken.ParseTrade(amountKey: "count", priceKey: "price", typeKey: "direction",
+								timestampKey: "time", TimestampType.UnixMilliseconds, idKey: "oid");
+							callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+						}
+						return Task.CompletedTask;
+					}, async (_socket) =>
+					{
+						//need to subscribe to trade history one by one
+						marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
+						var id = DateTime.UtcNow.Ticks;
+						foreach (var marketSymbol in marketSymbols)
+						{
+							// subscribe to trade history topic
+							await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/trade/{marketSymbol}_HISTORY" });
+						}
+					}
+				);
+		}
 
-        #region Private Functions
+		#endregion
 
-        private ExchangeTicker ParseTicker(JToken token, string symbol)
+		#region Private Functions
+
+		private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
             return this.ParseTicker(token, symbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds, "coinType", "coinTypePair");
         }
