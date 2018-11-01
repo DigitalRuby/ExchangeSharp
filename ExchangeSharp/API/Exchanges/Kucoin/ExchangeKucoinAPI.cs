@@ -445,7 +445,7 @@ namespace ExchangeSharp
 					$"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
 					{
 						JToken token = JToken.Parse(msg.ToStringFromUTF8());
-						if (token["type"].Value<string>() == "message")
+						if (token["type"].ToStringInvariant() == "message")
 						{
 							var dataToken = token["data"];
 							var marketSymbol = token["topic"].ToStringInvariant().Split('_')[0]; // /trade/CHSB-BTC_HISTORY
