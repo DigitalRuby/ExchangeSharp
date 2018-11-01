@@ -448,9 +448,10 @@ namespace ExchangeSharp
 						if (token["type"].ToStringInvariant() == "message")
 						{
 							var dataToken = token["data"];
-							var marketSymbol = token["topic"].ToStringInvariant().Split('_')[0]; // /trade/CHSB-BTC_HISTORY
+							var marketSymbol = token["topic"].ToStringInvariant().Split('/','_')[2]; // /trade/CHSB-BTC_HISTORY
 							var trade = dataToken.ParseTrade(amountKey: "count", priceKey: "price", typeKey: "direction",
-								timestampKey: "time", TimestampType.UnixMilliseconds, idKey: "oid");
+								timestampKey: "time", TimestampType.UnixMilliseconds); // idKey: "oid");
+							// one day, if ExchangeTrade.Id is converted to string, then the above can be uncommented  
 							callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 						}
 						return Task.CompletedTask;
