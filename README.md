@@ -19,7 +19,7 @@ The following cryptocurrency exchanges are supported:
 | Binance          | x         | x           | TRB       |
 | Bitfinex         | x         | x           | TRO       |
 | Bithumb          | x         |             |           |
-| Bitmex           | x         | x           |           |
+| BitMEX           | x         | x           | RO        |
 | Bitstamp         | x         | x           |           |
 | Bittrex          | x         | x           | TR        |
 | Bleutrade        | x         | x           |           |
@@ -29,7 +29,7 @@ The following cryptocurrency exchanges are supported:
 | Hitbtc           | x         | x           |           |
 | Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
-| Kucoin           | x         | x           |           |
+| Kucoin           | x         | x           | TR        |
 | Livecoin         | x         | x           |           |
 | Okex             | x         | x           | RB        |
 | Poloniex         | x         | x           | TRB       |
