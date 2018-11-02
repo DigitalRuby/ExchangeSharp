@@ -185,7 +185,12 @@ namespace ExchangeSharp
                 {
                     apis[api.Name] = null;
                 }
-                ExchangeGlobalCurrencyReplacements[type] = new KeyValuePair<string, string>[0];
+
+                // in case derived class is accessed first, check for existance of key
+                if (!ExchangeGlobalCurrencyReplacements.ContainsKey(type))
+                {
+                    ExchangeGlobalCurrencyReplacements[type] = new KeyValuePair<string, string>[0];
+                }
             }
         }
 
