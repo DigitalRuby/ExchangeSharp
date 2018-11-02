@@ -306,12 +306,13 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/order", null, payload, "POST");
             ExchangeOrderResult result = new ExchangeOrderResult
             {
-                OrderId = token["clientOrderId"].ToStringInvariant(),
+                OrderId = token["id"].ToStringInvariant(),
                 MarketSymbol = token["symbol"].ToStringInvariant(),
                 OrderDate = token["createdAt"].ToDateTimeInvariant(),
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
-                AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>()
+                AmountFilled = token["cumQuantity"].ConvertInvariant<decimal>(),
+                Message = token["clientOrderId"].ToStringInvariant()
             };
             if (result.AmountFilled >= result.Amount)
             {
