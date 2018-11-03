@@ -475,10 +475,10 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] symbols)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
         {
             if (tickers == null) return null;
-            symbols = symbols == null || symbols.Length == 0 ? GetTickersAsync().Sync().Select(t => t.Key).ToArray() : symbols;
+            marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? GetTickersAsync().Sync().Select(t => t.Key).ToArray() : marketSymbols;
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 //{"type": "ticker","trade_id": 20153558,"sequence": 3262786978,"time": "2017-09-02T17:05:49.250000Z","product_id": "BTC-USD","price": "4388.01000000","last_size": "0.03000000","best_bid": "4388","best_ask": "4388.01"}
@@ -494,15 +494,47 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "ticker", product_ids = symbols } } });
+                await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "ticker", product_ids = marketSymbols } } });
             });
         }
 
-        #endregion
+		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		{
+			if (callback == null) return null;
+			marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? GetTickersAsync().Sync().Select(t => t.Key).ToArray() : marketSymbols;
+			return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			{
+				// {
+				//   "type":"match",
+				//   "time":"2018-02-20T15:36:15Z",
+				//   "product_id":"BTC-PLN",
+				//   "sequence":668529,
+				//   "trade_id":"1941271",
+				//   "maker_order_id":"277417306",
+				//   "taker_order_id":"277443754",
+				//   "size":0.00093456,
+				//   "price":38892.84,
+				//   "side":"buy"
+				// }
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["type"].ToStringInvariant() == "match")
+				{
+					string marketSymbol = token["product_id"].ToStringInvariant();
+					callback.Invoke(new KeyValuePair<string, ExchangeTrade>(
+						marketSymbol, token.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
+						timestampKey: "time", timestampType: TimestampType.Iso8601, idKey: "trade_id")));
+				}
+				return Task.CompletedTask;
+			}, async (_socket) =>
+			{
+				await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "matches", product_ids = marketSymbols } } });
+			});
+		}
+		#endregion
 
-        #region Private Functions
+		#region Private Functions
 
-        private ExchangeTrade ParseExchangeTrade(JToken token)
+		private ExchangeTrade ParseExchangeTrade(JToken token)
         {
             return token.ParseTrade("size", "price", "buy", "time", TimestampType.Iso8601, "trade_id");
         }
