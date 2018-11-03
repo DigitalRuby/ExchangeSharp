@@ -15,7 +15,7 @@ The following cryptocurrency exchanges are supported:
 
 |Exchange Name     |Public REST|Private REST |Web Socket |
 | ---------------- | --------- | ----------- | --------- |
-| Abucoins         | x         | x           | TO        |
+| Abucoins         | x         | x           | TRO       |
 | Binance          | x         | x           | TRB       |
 | Bitfinex         | x         | x           | TRO       |
 | Bithumb          | x         |             |           |
@@ -29,12 +29,12 @@ The following cryptocurrency exchanges are supported:
 | Hitbtc           | x         | x           |           |
 | Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
-| Kucoin           | x         | x           | TR        |
+| KuCoin           | x         | x           | TR        |
 | Livecoin         | x         | x           |           |
-| Okex             | x         | x           | RB        |
+| OKex             | x         | x           | RB        |
 | Poloniex         | x         | x           | TRB       |
 | TuxExchange      | x         | x           |           |
-| Yobit            | x         | x           |           |
+| YoBit            | x         | x           |           |
 | ZB.com           | wip       |             | R         |
 
 The following cryptocurrency services are supported:
