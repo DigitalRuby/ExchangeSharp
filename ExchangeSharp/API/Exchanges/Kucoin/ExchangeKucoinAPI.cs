@@ -418,7 +418,7 @@ namespace ExchangeSharp
                                          var id = DateTime.UtcNow.Ticks;
                                          foreach (var marketSymbol in marketSymbols)
                                          {
-                                             // subscribeToStringInvariant to tick topic
+                                             // subscribe to tick topic
                                              await _socket.SendMessageAsync(new {id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
                                          }
                                      }
