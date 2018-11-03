@@ -402,7 +402,7 @@ namespace ExchangeSharp
                     $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
                                   {
                                       JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                                      if (token["type"].Value<string>() == "message")
+                                      if (token["type"].ToStringInvariant() == "message")
                                       {
                                           var dataToken = token["data"];
                                           var marketSymbol = dataToken["symbol"].ToStringInvariant();
@@ -418,7 +418,7 @@ namespace ExchangeSharp
                                          var id = DateTime.UtcNow.Ticks;
                                          foreach (var marketSymbol in marketSymbols)
                                          {
-                                             // subscribe to tick topic
+                                             // subscribeToStringInvariant to tick topic
                                              await _socket.SendMessageAsync(new {id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
                                          }
                                      }
