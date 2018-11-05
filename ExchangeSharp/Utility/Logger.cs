@@ -109,10 +109,15 @@ namespace ExchangeSharp
         {
             try
             {
-                LogFactory factory = LogManager.LoadConfiguration(ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath);
-                if (factory.Configuration.AllTargets.Count == 0)
-                {
-                    if (File.Exists("nlog.config"))
+				LogFactory factory = null;
+				if (File.Exists(ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath))
+				{
+					factory = LogManager.LoadConfiguration(ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath);
+				}
+
+				if (factory == null || factory.Configuration.AllTargets.Count == 0)
+				{
+					if (File.Exists("nlog.config"))
                     {
                         factory = LogManager.LoadConfiguration("nlog.config");
                     }
