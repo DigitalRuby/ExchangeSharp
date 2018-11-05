@@ -240,7 +240,12 @@ namespace ExchangeSharp
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);
 
-                if (token["table"] == null)
+				if (token["error"] != null)
+				{
+					Logger.Info(token["error"].ToStringInvariant());
+					return Task.CompletedTask;
+				}
+				else if (token["table"] == null)
                 {
                     return Task.CompletedTask;
                 }
