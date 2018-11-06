@@ -251,6 +251,10 @@ namespace ExchangeSharp
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
             return ConnectWebSocket("/2", (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -290,7 +294,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                foreach (var marketSymbol in marketSymbols)
+				foreach (var marketSymbol in marketSymbols)
                 {
                     await _socket.SendMessageAsync(new { @event = "subscribe", channel = "trades", symbol = marketSymbol });
                 }

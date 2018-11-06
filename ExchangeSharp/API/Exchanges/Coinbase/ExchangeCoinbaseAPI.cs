@@ -405,6 +405,10 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
             return ConnectWebSocket("/", (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -416,7 +420,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             }, async (_socket) =>
             {
-                var subscribeRequest = new
+				var subscribeRequest = new
                 {
                     type = "subscribe",
                     product_ids = marketSymbols,
