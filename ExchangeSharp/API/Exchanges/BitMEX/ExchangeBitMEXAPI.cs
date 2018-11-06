@@ -262,9 +262,12 @@ namespace ExchangeSharp
             {
                 if (marketSymbols == null || marketSymbols.Length == 0)
                 {
-					await _socket.SendMessageAsync(new { op = "subscribe", args = "trade" });
-				}
-				else await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "trade:" + this.NormalizeMarketSymbol(s)).ToArray() });
+		    await _socket.SendMessageAsync(new { op = "subscribe", args = "trade" });
+		}
+		else
+		{
+		    await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "trade:" + this.NormalizeMarketSymbol(s)).ToArray() });
+		}
             });
         }
 
