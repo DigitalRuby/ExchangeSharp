@@ -200,7 +200,7 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     MarketSymbol = marketSymbolToken["symbol"].ToStringUpperInvariant(),
-                    IsActive = marketSymbolToken["status"].ToStringInvariant().EqualsWithOption("Open"),
+                    IsActive = marketSymbolToken["state"].ToStringInvariant().EqualsWithOption("Open"),
                     QuoteCurrency = marketSymbolToken["quoteCurrency"].ToStringUpperInvariant(),
                     BaseCurrency = marketSymbolToken["underlying"].ToStringUpperInvariant(),
                 };
@@ -262,9 +262,12 @@ namespace ExchangeSharp
             {
                 if (marketSymbols == null || marketSymbols.Length == 0)
                 {
-                    marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-                }
-                await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "\"trade:" + this.NormalizeMarketSymbol(s) + "\"").ToArray() });
+		    await _socket.SendMessageAsync(new { op = "subscribe", args = "trade" });
+		}
+		else
+		{
+		    await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "trade:" + this.NormalizeMarketSymbol(s)).ToArray() });
+		}
             });
         }
 
