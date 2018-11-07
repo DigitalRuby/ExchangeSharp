@@ -563,9 +563,11 @@ namespace ExchangeSharp
                     return ExchangeAPIOrderResult.FilledPartially;
                 case 2:
                     return ExchangeAPIOrderResult.Filled;
-                case 4:
+                case 3:
                     return ExchangeAPIOrderResult.PendingCancel;
-                default:
+				case 4:
+					return ExchangeAPIOrderResult.Error;
+				default:
                     return ExchangeAPIOrderResult.Unknown;
             }
         }
