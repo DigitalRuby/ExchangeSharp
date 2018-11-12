@@ -95,7 +95,34 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		{ // {"base_decimals": 8, "minimum_order": "5.0 USD", "name": "LTC/USD", "counter_decimals": 2, "trading": "Enabled", "url_symbol": "ltcusd", "description": "Litecoin / U.S. dollar"}
+			List<ExchangeMarket> symbols = new List<ExchangeMarket>();
+			foreach (JToken token in (await MakeBitstampRequestAsync("/trading-pairs-info")))
+			{
+				var split = token["name"].ToStringInvariant().Split('/');
+				var baseNumDecimals = token["base_decimals"].Value<byte>();
+				var baseDecimals = (decimal)Math.Pow(0.1, baseNumDecimals);
+				var counterNumDecimals = token["counter_decimals"].Value<byte>();
+				var counterDecimals = (decimal)Math.Pow(0.1, counterNumDecimals);
+				var minOrderString = token["minimum_order"].ToStringInvariant();
+				symbols.Add(new ExchangeMarket()
+				{
+					MarketSymbol = token["name"].ToStringInvariant(),
+					BaseCurrency = split[0],
+					QuoteCurrency = split[1],
+					MinTradeSize = baseDecimals, // will likely get overriden by MinTradeSizeInQuoteCurrency
+					QuantityStepSize = baseDecimals,
+					MinTradeSizeInQuoteCurrency = decimal.Parse(minOrderString.Split(' ')[0]),
+					MinPrice = counterDecimals,
+					PriceStepSize = counterDecimals,
+					IsActive = token["trading"].ToStringLowerInvariant() == "enabled",
+				});
+			}
+			return symbols;
+		}
+
+		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
             JToken token = await MakeBitstampRequestAsync("/ticker/" + marketSymbol);
