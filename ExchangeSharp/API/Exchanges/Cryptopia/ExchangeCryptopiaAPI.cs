@@ -255,7 +255,7 @@ namespace ExchangeSharp
             {
                 orders.Add(new ExchangeOrderResult()
                 {
-                    OrderId = order["TradeId"].ConvertInvariant<int>().ToStringInvariant(),
+                    OrderId = order["TradeId"].ToStringInvariant(),
                     MarketSymbol = order["Market"].ToStringInvariant(),
                     Amount = order["Amount"].ConvertInvariant<decimal>(),
                     AmountFilled = order["Amount"].ConvertInvariant<decimal>(),       // It doesn't look like partial fills are supplied on closed orders
@@ -283,7 +283,7 @@ namespace ExchangeSharp
             {
                 ExchangeOrderResult order = new ExchangeOrderResult()
                 {
-                    OrderId = data["OrderId"].ConvertInvariant<int>().ToStringInvariant(),
+                    OrderId = data["OrderId"].ToStringInvariant(),
                     OrderDate = data["TimeStamp"].ToDateTimeInvariant(),
                     MarketSymbol = data["Market"].ToStringInvariant(),
                     Amount = data["Amount"].ConvertInvariant<decimal>(),
@@ -329,7 +329,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/SubmitTrade", null, payload, "POST");
             if (token.HasValues && token["OrderId"] != null)
             {
-                newOrder.OrderId = token["OrderId"].ConvertInvariant<int>().ToStringInvariant();
+                newOrder.OrderId = token["OrderId"].ToStringInvariant();
                 newOrder.Result = ExchangeAPIOrderResult.Pending;           // Might we change this depending on what the filled orders are?
             }
             return newOrder;
@@ -340,7 +340,7 @@ namespace ExchangeSharp
         {
             var payload = await GetNoncePayloadAsync();
             payload["Type"] = "Trade";          // Cancel All by Market is supported. Here we're canceling by single Id
-            payload["OrderId"] = orderId.ConvertInvariant<int>();
+            payload["OrderId"] = orderId.ToStringInvariant();
             // { "Success":true, "Error":null, "Data": [44310,44311]  }
             await MakeJsonRequestAsync<JToken>("/CancelTrade", null, payload, "POST");
         }
