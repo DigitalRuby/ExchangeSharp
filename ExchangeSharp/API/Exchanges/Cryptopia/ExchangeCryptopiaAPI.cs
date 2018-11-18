@@ -34,7 +34,7 @@ namespace ExchangeSharp
             MarketSymbolSeparator = "/";
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         public string NormalizeSymbolForUrl(string symbol)
         {
@@ -69,7 +69,7 @@ namespace ExchangeSharp
             }
         }
 
-        #endregion
+        #endregion ProcessRequest
 
         #region Public APIs
 
@@ -86,7 +86,8 @@ namespace ExchangeSharp
                     FullName = token["Name"].ToStringInvariant(),
                     MinConfirmations = token["DepositConfirmations"].ConvertInvariant<int>(),
                     Notes = token["StatusMessage"].ToStringInvariant(),
-                    TxFee = token["WithdrawFee"].ConvertInvariant<decimal>()
+                    TxFee = token["WithdrawFee"].ConvertInvariant<decimal>(),
+                    MinWithdrawalSize = token["MinWithdraw"].ConvertInvariant<decimal>()
                 };
 
                 bool enabled = !token["Status"].ToStringInvariant().Equals("Maintenance") && token["ListingStatus"].ToStringInvariant().Equals("Active");
@@ -172,12 +173,11 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/GetMarketHistory/" + NormalizeSymbolForUrl(marketSymbol) + "/" + hours);
             foreach (JToken trade in token) trades.Add(ParseTrade(trade));
             var rc = callback?.Invoke(trades);
-            // should we loop here to get additional more recent trades after a delay? 
+            // should we loop here to get additional more recent trades after a delay?
         }
 
-
         /// <summary>
-        /// Cryptopia doesn't support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds 
+        /// Cryptopia doesn't support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds
         /// TODO: Aggregate Cryptopia Trades into Candles
         /// </summary>
         /// <param name="marketSymbol"></param>
@@ -191,7 +191,7 @@ namespace ExchangeSharp
             throw new NotImplementedException();
         }
 
-        #endregion
+        #endregion Public APIs
 
         #region Private APIs
 
@@ -301,7 +301,6 @@ namespace ExchangeSharp
             }
             return orders;
         }
-
 
         /// <summary>
         /// Not directly supported by Cryptopia, and this API call is ambiguous between open and closed orders, so we'll get all Closed orders and filter for OrderId
@@ -420,8 +419,7 @@ namespace ExchangeSharp
             return response;
         }
 
-
-        #endregion
+        #endregion Private APIs
 
         #region Private Functions
 
@@ -438,7 +436,7 @@ namespace ExchangeSharp
             return token.ParseTrade("Amount", "Price", "Type", "Timestamp", TimestampType.UnixSeconds);
         }
 
-        #endregion
+        #endregion Private Functions
     }
 
     public partial class ExchangeName { public const string Cryptopia = "Cryptopia"; }

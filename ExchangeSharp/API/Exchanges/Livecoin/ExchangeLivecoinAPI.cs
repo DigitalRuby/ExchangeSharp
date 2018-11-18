@@ -29,7 +29,7 @@ namespace ExchangeSharp
             MarketSymbolSeparator = "/";
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -42,7 +42,7 @@ namespace ExchangeSharp
             }
         }
 
-        #endregion
+        #endregion ProcessRequest
 
         #region Public APIs
 
@@ -63,7 +63,8 @@ namespace ExchangeSharp
                         FullName = currency["name"].ToStringInvariant(),
                         DepositEnabled = enabled,
                         WithdrawalEnabled = enabled,
-                        TxFee = currency["withdrawFee"].ConvertInvariant<decimal>()
+                        TxFee = currency["withdrawFee"].ConvertInvariant<decimal>(),
+                        MinWithdrawalSize = currency["minWithdrawAmount"].ConvertInvariant<decimal>()
                     });
                 }
             }
@@ -160,8 +161,8 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Yobit Livecoin support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds 
-        /// TODO: Aggregate Livecoin Trades into Candles. 
+        /// Yobit Livecoin support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds
+        /// TODO: Aggregate Livecoin Trades into Candles.
         /// </summary>
         /// <param name="marketSymbol"></param>
         /// <param name="periodSeconds"></param>
@@ -174,11 +175,12 @@ namespace ExchangeSharp
             throw new NotImplementedException();
         }
 
-        #endregion
+        #endregion Public APIs
 
         #region Private APIs
+
         // Livecoin has both a client_order and client_trades interface. The trades is page-based at 100 (default can be increased)
-        // The two calls seem redundant, but orders seem to include more data. 
+        // The two calls seem redundant, but orders seem to include more data.
         // The following uses the client oders call
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
@@ -246,7 +248,7 @@ namespace ExchangeSharp
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             var payload = await GetNoncePayloadAsync();
-            payload.Add("openClosed", "OPEM"); 
+            payload.Add("openClosed", "OPEM");
             if (marketSymbol != null) payload.Add("currencyPair", marketSymbol);
 
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/client_orders?" + CryptoUtility.GetFormForPayload(payload, false), null, await GetNoncePayloadAsync());
@@ -298,7 +300,7 @@ namespace ExchangeSharp
             var payload = await GetNoncePayloadAsync();
             payload.Add("start", CryptoUtility.UtcNow.AddYears(-1).UnixTimestampFromDateTimeMilliseconds());       // required. Arbitrarily going with 1 year
             payload.Add("end", CryptoUtility.UtcNow.UnixTimestampFromDateTimeMilliseconds());                      // also required
-            payload.Add("types", "DEPOSIT,WITHDRAWAL");  // opting to return both deposits and withdraws. 
+            payload.Add("types", "DEPOSIT,WITHDRAWAL");  // opting to return both deposits and withdraws.
 
             // We can also include trades and orders with this call (which makes 3 ways to return the same data)
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/payment/history/transactions?" + CryptoUtility.GetFormForPayload(payload, false), null, await GetNoncePayloadAsync());
@@ -312,7 +314,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/get/address?" + "currency=" + currency.UrlEncode(), BaseUrl, await GetNoncePayloadAsync());
             if (token != null && token.HasValues && token["currency"].ToStringInvariant() == currency && token["wallet"].ToStringInvariant().Length != 0)
             {
-                ExchangeDepositDetails address = new ExchangeDepositDetails() {Currency = currency };
+                ExchangeDepositDetails address = new ExchangeDepositDetails() { Currency = currency };
                 if (token["wallet"].ToStringInvariant().Contains("::"))
                 {
                     // address tags are separated with a '::'
@@ -337,8 +339,7 @@ namespace ExchangeSharp
             return response;
         }
 
-
-        #endregion
+        #endregion Private APIs
 
         #region Private Functions
 
@@ -361,7 +362,6 @@ namespace ExchangeSharp
             //{ "id": 88504958,"client_id": 1150,"status": "CANCELLED","symbol": "DASH/USD","price": 1.5,"quantity": 1.2,"remaining_quantity": 1.2,"blocked": 1.8018,"blocked_remain": 0,"commission_rate": 0.001,"trades": null}
             ExchangeOrderResult order = new ExchangeOrderResult()
             {
-
             };
             switch (token["status"].ToStringInvariant())
             {
@@ -375,13 +375,13 @@ namespace ExchangeSharp
             //  "data": [{"id": 4910,"currencyPair": "BTC/USD","goodUntilTime": 0,"type": "MARKET_SELL","orderStatus": "EXECUTED","issueTime": 1409920636701,"price": null,"quantity": 2.85714285,"remainingQuantity": 0,"commission": null,"commissionRate": 0.005, "lastModificationTime": 1409920636701 }, .. ]
             ExchangeOrderResult order = new ExchangeOrderResult()
             {
-                 OrderId = token["id"].ToStringInvariant(),
-                 MarketSymbol = token["currencyPair"].ToStringInvariant(),
-                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["issueTime"].ConvertInvariant<long>()),
-                 IsBuy = token["type"].ToStringInvariant().Contains("BUY"),
-                 Price = token["price"].ConvertInvariant<decimal>(),
-                 Amount = token["quantity"].ConvertInvariant<decimal>(),
-                 Fees = token["commission"].ConvertInvariant<decimal>(),
+                OrderId = token["id"].ToStringInvariant(),
+                MarketSymbol = token["currencyPair"].ToStringInvariant(),
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["issueTime"].ConvertInvariant<long>()),
+                IsBuy = token["type"].ToStringInvariant().Contains("BUY"),
+                Price = token["price"].ConvertInvariant<decimal>(),
+                Amount = token["quantity"].ConvertInvariant<decimal>(),
+                Fees = token["commission"].ConvertInvariant<decimal>(),
             };
 
             order.AmountFilled = order.Amount - token["remainingQuantity"].ConvertInvariant<decimal>();
@@ -389,9 +389,6 @@ namespace ExchangeSharp
             {
                 case "CANCELLED": order.Result = ExchangeAPIOrderResult.Canceled; break;
             }
-
-
-
 
             return order;
         }
@@ -401,12 +398,10 @@ namespace ExchangeSharp
             // [{"id": "OK521780496","type": "DEPOSIT","date": 1431882524782,"amount": 27190,"fee": 269.2079208,"fixedCurrency": "RUR", "taxCurrency": "RUR", "variableAmount": null, "variableCurrency": null, "external": "OkPay","login": null }, ... ]
             return new ExchangeTransaction()
             {
-
             };
         }
 
-
-        #endregion
+        #endregion Private Functions
     }
 
     public partial class ExchangeName { public const string Livecoin = "Livecoin"; }

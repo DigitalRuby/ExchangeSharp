@@ -52,7 +52,7 @@ namespace ExchangeSharp
             }
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -88,7 +88,7 @@ namespace ExchangeSharp
             }
         }
 
-        #endregion
+        #endregion ProcessRequest
 
         #region Public APIs
 
@@ -106,6 +106,7 @@ namespace ExchangeSharp
                 DepositEnabled = currency["enableDepost"].ConvertInvariant<bool>(),
                 TxFee = currency["withdrawFeeRate"].ConvertInvariant<decimal>(),
                 MinConfirmations = currency["confirmationCount"].ConvertInvariant<int>(),
+                MinWithdrawalSize = currency["withdrawMinAmount"].ConvertInvariant<decimal>(),
             });
             return currencies;
         }
@@ -211,7 +212,7 @@ namespace ExchangeSharp
             payload.Add("symbol", marketSymbol);
             payload.Add("resolution", periodString);
             payload.Add("from", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());        // the nonce is milliseconds, this is seconds without decimal
-            payload.Add("to", (long)endDate.Value.UnixTimestampFromDateTimeSeconds());            // the nonce is milliseconds, this is seconds without decimal  
+            payload.Add("to", (long)endDate.Value.UnixTimestampFromDateTimeSeconds());            // the nonce is milliseconds, this is seconds without decimal
             var addPayload = CryptoUtility.GetFormForPayload(payload, false);
 
             // The results of this Kucoin API call are also a mess. 6 different arrays (c,t,v,h,l,o) with the index of each shared for the candle values
@@ -240,7 +241,7 @@ namespace ExchangeSharp
             return candles;
         }
 
-        #endregion
+        #endregion Public APIs
 
         #region Private APIs
 
@@ -305,8 +306,6 @@ namespace ExchangeSharp
             }
             return orders;
         }
-
-
 
         /// <summary>
         /// Kucoin does not support retrieving Orders by ID. This uses the GetCompletedOrderDetails and GetOpenOrderDetails filtered by orderId
@@ -391,7 +390,7 @@ namespace ExchangeSharp
             return response;
         }
 
-        #endregion
+        #endregion Private APIs
 
         #region Websockets
 
@@ -407,7 +406,7 @@ namespace ExchangeSharp
                                           var dataToken = token["data"];
                                           var marketSymbol = dataToken["symbol"].ToStringInvariant();
                                           ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
-                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() {new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)});
+                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
                                       }
 
                                       return Task.CompletedTask;
@@ -419,61 +418,61 @@ namespace ExchangeSharp
                                          foreach (var marketSymbol in marketSymbols)
                                          {
                                              // subscribe to tick topic
-                                             await _socket.SendMessageAsync(new {id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
+                                             await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
                                          }
                                      }
                 );
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
-		{
-			// {{
-			//   "data": {
-			//     "price": 1.38E-06,
-			//     "count": 1769.0,
-			//     "oid": "5bda52817eab5a0e09e21398",
-			//     "time": 1541034625000,
-			//     "volValue": 0.00244122,
-			//     "direction": "BUY"
-			//   },
-			//   "topic": "/trade/CHSB-BTC_HISTORY",
-			//   "type": "message",
-			//   "seq": 32750070023237
-			// }}
-			var websocketUrlToken = GetWebsocketBulletToken();
-			return ConnectWebSocket(
-					$"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
-					{
-						JToken token = JToken.Parse(msg.ToStringFromUTF8());
-						if (token["type"].ToStringInvariant() == "message")
-						{
-							var dataToken = token["data"];
-							var marketSymbol = token["topic"].ToStringInvariant().Split('/','_')[2]; // /trade/CHSB-BTC_HISTORY
-							var trade = dataToken.ParseTrade(amountKey: "count", priceKey: "price", typeKey: "direction",
-								timestampKey: "time", TimestampType.UnixMilliseconds); // idKey: "oid");
-							// one day, if ExchangeTrade.Id is converted to string, then the above can be uncommented  
-							callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
-						}
-						return Task.CompletedTask;
-					}, async (_socket) =>
-					{
-						//need to subscribe to trade history one by one
-						marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-						var id = DateTime.UtcNow.Ticks;
-						foreach (var marketSymbol in marketSymbols)
-						{
-							// subscribe to trade history topic
-							await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/trade/{marketSymbol}_HISTORY" });
-						}
-					}
-				);
-		}
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        {
+            // {{
+            //   "data": {
+            //     "price": 1.38E-06,
+            //     "count": 1769.0,
+            //     "oid": "5bda52817eab5a0e09e21398",
+            //     "time": 1541034625000,
+            //     "volValue": 0.00244122,
+            //     "direction": "BUY"
+            //   },
+            //   "topic": "/trade/CHSB-BTC_HISTORY",
+            //   "type": "message",
+            //   "seq": 32750070023237
+            // }}
+            var websocketUrlToken = GetWebsocketBulletToken();
+            return ConnectWebSocket(
+                    $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
+                    {
+                        JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                        if (token["type"].ToStringInvariant() == "message")
+                        {
+                            var dataToken = token["data"];
+                            var marketSymbol = token["topic"].ToStringInvariant().Split('/', '_')[2]; // /trade/CHSB-BTC_HISTORY
+                            var trade = dataToken.ParseTrade(amountKey: "count", priceKey: "price", typeKey: "direction",
+                                timestampKey: "time", TimestampType.UnixMilliseconds); // idKey: "oid");
+                                                                                       // one day, if ExchangeTrade.Id is converted to string, then the above can be uncommented
+                            callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+                        }
+                        return Task.CompletedTask;
+                    }, async (_socket) =>
+                    {
+                        //need to subscribe to trade history one by one
+                        marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
+                        var id = DateTime.UtcNow.Ticks;
+                        foreach (var marketSymbol in marketSymbols)
+                        {
+                            // subscribe to trade history topic
+                            await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/trade/{marketSymbol}_HISTORY" });
+                        }
+                    }
+                );
+        }
 
-		#endregion
+        #endregion Websockets
 
-		#region Private Functions
+        #region Private Functions
 
-		private ExchangeTicker ParseTicker(JToken token, string symbol)
+        private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
             return this.ParseTicker(token, symbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds, "coinType", "coinTypePair");
         }
@@ -502,13 +501,12 @@ namespace ExchangeSharp
             return order;
         }
 
-    
         // {"createdAt": 1508219588000, "amount": 92.79323381, "dealValue": 0.00927932, "dealPrice": 0.0001, "fee": 1e-8,"feeRate": 0, "oid": "59e59ac49bd8d31d09f85fa8", "orderOid": "59e59ac39bd8d31d093d956a", "coinType": "KCS", "coinTypePair": "BTC", "direction": "BUY", "dealDirection": "BUY" }
         private ExchangeOrderResult ParseCompletedOrder(JToken token)
         {
             return new ExchangeOrderResult()
             {
-                OrderId = token["oid"].ToStringInvariant(),                                     
+                OrderId = token["oid"].ToStringInvariant(),
                 MarketSymbol = token["coinType"].ToStringInvariant() + "-" + token["coinTypePair"].ToStringInvariant(),
                 IsBuy = token["direction"].ToStringInvariant().Equals("BUY"),
                 Amount = token["amount"].ConvertInvariant<decimal>(),
@@ -560,7 +558,7 @@ namespace ExchangeSharp
             return result["bulletToken"].ToString();
         }
 
-        #endregion
+        #endregion Private Functions
     }
 
     public partial class ExchangeName { public const string Kucoin = "Kucoin"; }

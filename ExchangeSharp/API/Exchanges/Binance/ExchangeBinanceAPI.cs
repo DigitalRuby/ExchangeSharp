@@ -31,9 +31,10 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
         public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
-        
+
         // base address for APIs used by the Binance website and not published in the API docs
         public const string BaseWebUrl = "https://www.binance.com";
+
         public const string GetCurrenciesUrl = "/assetWithdraw/getAllAsset.html";
 
         static ExchangeBinanceAPI()
@@ -139,13 +140,13 @@ namespace ExchangeSharp
                         "minPrice": "0.00000100",
                         "maxPrice": "100000.00000000",
                         "tickSize": "0.00000100"
-                    }, 
+                    },
                     {
                         "filterType": "LOT_SIZE",
                         "minQty": "0.00100000",
                         "maxQty": "100000.00000000",
                         "stepSize": "0.00100000"
-                    }, 
+                    },
                     {
                         "filterType": "MIN_NOTIONAL",
                         "minNotional": "0.00100000"
@@ -214,7 +215,8 @@ namespace ExchangeSharp
                     MinConfirmations = coin.ConfirmTimes.ConvertInvariant<int>(),
                     Name = coin.AssetCode,
                     TxFee = coin.TransactionFee,
-                    WithdrawalEnabled = coin.EnableWithdraw
+                    WithdrawalEnabled = coin.EnableWithdraw,
+                    MinWithdrawalSize = coin.MinProductWithdraw.ConvertInvariant<decimal>(),
                 };
             }
 
@@ -699,7 +701,7 @@ namespace ExchangeSharp
                     case "TRADING":
                         isActive = true;
                         break;
-                        /* 
+                        /*
                             case "PRE_TRADING":
                             case "POST_TRADING":
                             case "END_OF_DAY":
@@ -912,7 +914,7 @@ namespace ExchangeSharp
         /// </returns>
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            /* 
+            /*
             * TODO: Binance does not offer a "regenerate" option in the API, but a second IOTA deposit to the same address will not be credited
             * How does Binance handle GetDepositAddress for IOTA after it's been used once?
             * Need to test calling this API after depositing IOTA.

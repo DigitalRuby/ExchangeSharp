@@ -97,6 +97,21 @@ namespace ExchangeSharpConsole
                         Console.WriteLine($"OK (default: {marketSymbol}; {symbols.Count} symbols)");
                     }
 
+                    if (functionRegex == null || Regex.IsMatch("currencies", functionRegex, RegexOptions.IgnoreCase))
+                    {
+                        try
+                        {
+                            Console.Write("Test {0} GetCurrenciesAsync... ", api.Name);
+                            var currencies = api.GetCurrenciesAsync().Sync();
+                            Assert(currencies.Count != 0);
+                            Console.WriteLine($"OK ({currencies.Count} currencies)");
+                        }
+                        catch (NotImplementedException)
+                        {
+                            Console.WriteLine($"Not implemented");
+                        }
+                    }
+
                     if (functionRegex == null || Regex.IsMatch("orderbook", functionRegex, RegexOptions.IgnoreCase))
                     {
                         try
@@ -191,4 +206,3 @@ namespace ExchangeSharpConsole
         }
     }
 }
-
