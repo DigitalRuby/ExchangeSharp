@@ -141,6 +141,7 @@ namespace ExchangeSharp
             { "XZECZEUR", "zeceur" },
             { "XZECZUSD", "zecusd" }
         };
+
         private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         protected override JToken CheckJsonResponse(JToken json)
@@ -191,7 +192,6 @@ namespace ExchangeSharp
                     }
                 }
             }
-           
 
             return orders;
         }
@@ -239,11 +239,11 @@ namespace ExchangeSharp
             foreach (JProperty token in array)
             {
                 var coin = new ExchangeCurrency
-                           {
-                               CoinType = token.Value["aclass"].ToStringInvariant(),
-                               Name = token.Name,
-                               FullName = token.Value["altname"].ToStringInvariant()
-                           };
+                {
+                    CoinType = token.Value["aclass"].ToStringInvariant(),
+                    Name = token.Name,
+                    FullName = token.Value["altname"].ToStringInvariant()
+                };
 
                 currencies[coin.Name] = coin;
             }
@@ -362,20 +362,18 @@ namespace ExchangeSharp
                 JToken pair = prop.Value;
                 var quantityStepSize = Math.Pow(0.1, pair["lot_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>();
                 var market = new ExchangeMarket
-                             {
-                                 IsActive = !prop.Name.Contains(".d"),
-                                 MarketSymbol = prop.Name,
-                                 MinTradeSize = quantityStepSize,
-                                 MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
-                                 BaseCurrency = pair["base"].ToStringInvariant(),
-                                 QuoteCurrency = pair["quote"].ToStringInvariant(),
-                                 QuantityStepSize = quantityStepSize,
-                                 PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
-                             };
+                {
+                    IsActive = !prop.Name.Contains(".d"),
+                    MarketSymbol = prop.Name,
+                    MinTradeSize = quantityStepSize,
+                    MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
+                    BaseCurrency = pair["base"].ToStringInvariant(),
+                    QuoteCurrency = pair["quote"].ToStringInvariant(),
+                    QuantityStepSize = quantityStepSize,
+                    PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
+                };
                 markets.Add(market);
             }
-
-
 
             return markets;
         }
@@ -531,7 +529,7 @@ namespace ExchangeSharp
             }
             return balances;
         }
-        
+
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             object nonce = await GenerateNonceAsync();
@@ -581,7 +579,7 @@ namespace ExchangeSharp
                 orderResult.Message = "Unknown Error";
                 return orderResult;
             }
-            
+
             return ParseOrder(orderId, result[orderId]); ;
         }
 
