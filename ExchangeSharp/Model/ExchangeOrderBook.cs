@@ -74,6 +74,11 @@ namespace ExchangeSharp
         public long SequenceId { get; set; }
 
         /// <summary>
+        /// ExchangeId
+        /// </summary>
+        public string ExchangeId { get; set; }
+
+        /// <summary>
         /// The market symbol.
         /// This property is not serialized using the ToBinary and FromBinary methods.
         /// </summary>

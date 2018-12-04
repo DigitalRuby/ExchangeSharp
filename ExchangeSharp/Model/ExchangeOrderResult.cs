@@ -20,6 +20,11 @@ namespace ExchangeSharp
         /// <summary>Order id</summary>
         public string OrderId { get; set; }
 
+        /// <summary>
+        /// ExchangeId
+        /// </summary>
+        public string ExchangeId { get; set; }
+
         /// <summary>Result of the order</summary>
         public ExchangeAPIOrderResult Result { get; set; }
 

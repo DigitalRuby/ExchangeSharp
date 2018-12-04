@@ -27,6 +27,11 @@ namespace ExchangeSharp
         public string MarketSymbol { get; set; }
 
         /// <summary>
+        /// ExchangeId
+        /// </summary>
+        public string ExchangeId { get; set; }
+
+        /// <summary>
         /// Amount to buy or sell
         /// </summary>
         public decimal Amount { get; set; }
