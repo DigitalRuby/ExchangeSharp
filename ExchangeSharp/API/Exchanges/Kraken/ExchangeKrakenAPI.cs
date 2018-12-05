@@ -80,6 +80,9 @@ namespace ExchangeSharp
         /// </summary>
         private static readonly IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            { "ADAUSD", "adausd" },
+            { "ADAEUR", "adaeur" },
+            { "ADAEXBT", "adabtc" },
             { "BCHEUR", "bcheur" },
             { "BCHUSD", "bchusd" },
             { "BCHXBT", "bchbtc" },
@@ -87,9 +90,14 @@ namespace ExchangeSharp
             { "DASHUSD", "dashusd" },
             { "DASHXBT", "dashbtc" },
             { "EOSETH", "eoseth" },
+            { "EOSEUR", "eoseur" },
+            { "EOSUSD", "eosusd" },
             { "EOSXBT", "eosbtc" },
             { "GNOETH", "gnoeth" },
             { "GNOXBT", "gnobtc" },
+            { "QTUMEUR", "qtumeur" },
+            { "QTUMUSD", "qtumusd" },
+            { "QTUMXBT", "qtumbtc" },
             { "USDTZUSD", "usdtusd" },
             { "XETCXETH", "etceth" },
             { "XETCXXBT", "etcbtc" },
