@@ -206,9 +206,7 @@ namespace ExchangeSharp
             endDate = endDate ?? CryptoUtility.UtcNow;
             startDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
 
-            // this is a little tricky. The call is private, but not a POST. We need the payload for the sig, but also for the uri
-            // so, we'll do both... This is the only ExchangeAPI public call (private on Kucoin) like this.
-            var payload = await GetNoncePayloadAsync();
+            var payload = new Dictionary<string, object>();
             payload.Add("symbol", marketSymbol);
             payload.Add("resolution", periodString);
             payload.Add("from", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());        // the nonce is milliseconds, this is seconds without decimal
