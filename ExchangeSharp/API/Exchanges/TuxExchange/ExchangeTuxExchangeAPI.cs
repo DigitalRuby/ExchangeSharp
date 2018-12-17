@@ -33,8 +33,8 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMillisecondsString;
-            SymbolSeparator = "_";
-            SymbolIsReversed = true;
+            MarketSymbolSeparator = "_";
+            MarketSymbolIsReversed = true;
         }
 
         #region ProcessRequest 
@@ -86,7 +86,7 @@ namespace ExchangeSharp
         /// Uses TuxExchange getticker method to return market names
         /// </summary>
         /// <returns></returns>
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             // {"BTC_LTC":{"id":"2","last":"0.0068","lowestAsk":0,"highestBid":0,"percentChange":"6.249999999999989","quoteVolume":"0.5550265","isFrozen":0,"baseVolume":0,"high24hr":"0.0068","low24hr":"0.0064"}, ...
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getticker");
@@ -97,7 +97,7 @@ namespace ExchangeSharp
         /// Uses TuxExchange getticker method to get as much Market info as provided
         /// </summary>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // {"BTC_LTC":{"id":"2","last":"0.0068","lowestAsk":0,"highestBid":0,"percentChange":"6.249999999999989","quoteVolume":"0.5550265","isFrozen":0,"baseVolume":0,"high24hr":"0.0068","low24hr":"0.0064"}, ...
@@ -107,10 +107,11 @@ namespace ExchangeSharp
                 var split = prop.Name.Split('_');
                 markets.Add(new ExchangeMarket()
                 {
-                    MarketName = prop.Name.ToStringInvariant(),
+                    MarketSymbol = prop.Name.ToStringInvariant(),
                     IsActive = prop.First["isFrozen"].ConvertInvariant<int>() == 0,
-                    BaseCurrency = split[0],
-                    MarketCurrency = split[1]
+                    //NOTE: they list the quote currency first which is unusual
+                    QuoteCurrency = split[0],
+                    BaseCurrency = split[1]
                 });
             }
             return markets;
@@ -131,22 +132,22 @@ namespace ExchangeSharp
         /// <summary>
         /// Uses TuxExchange getticker method and filters by symbol
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="marketSymbol"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             var tickers = await OnGetTickersAsync();
-            return tickers.Where(t => t.Key.Equals(symbol)).Select(t => t.Value).FirstOrDefault();
+            return tickers.Where(t => t.Key.Equals(marketSymbol)).Select(t => t.Value).FirstOrDefault();
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
-            var split = symbol.Split('_');
+            var split = marketSymbol.Split('_');
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getorders&coin=" + split[1] + "&market=" + split[0]);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
 
@@ -156,7 +157,7 @@ namespace ExchangeSharp
             long end = (long)CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds();
 
             // All TuxExchange Market Symbols begin with "BTC_" as a base-currency. They only support getting Trades for the Market Currency Symbol, so we split it for the call
-            string cur = symbol.Split(SymbolSeparator[0])[1];
+            string cur = marketSymbol.Split(MarketSymbolSeparator[0])[1];
 
             // [{"tradeid":"3375","date":"2016-08-26 18:53:38","type":"buy","rate":"0.00000041","amount":"420.00000000","total":"0.00017220"}, ... ]
             // https://tuxexchange.com/api?method=gettradehistory&coin=DOGE&start=1472237476&end=1472237618
@@ -170,12 +171,12 @@ namespace ExchangeSharp
             else return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             long start = startDate == null ? (long)CryptoUtility.UtcNow.AddDays(-1).UnixTimestampFromDateTimeSeconds() : new DateTimeOffset((DateTime)startDate).ToUnixTimeSeconds();
             long end = (long)CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds();
-            string coin = symbol.Split(SymbolSeparator[0])[1];
+            string coin = marketSymbol.Split(MarketSymbolSeparator[0])[1];
             string url = "/api?method=gettradehistory&coin=" + coin + "&start=" + start + "&end=" + end;
             JToken token = await MakeJsonRequestAsync<JToken>(url);
             foreach (JToken trade in token)
@@ -189,13 +190,13 @@ namespace ExchangeSharp
         /// TuxExchange doesn't support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds 
         /// TODO: Aggregate TuxExchange Trades into Candles
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="marketSymbol"></param>
         /// <param name="periodSeconds"></param>
         /// <param name="startDate"></param>
         /// <param name="endDate"></param>
         /// <param name="limit"></param>
         /// <returns></returns>
-        protected override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             throw new NotImplementedException();
         }
@@ -244,10 +245,10 @@ namespace ExchangeSharp
         /// <summary>
         /// TODO: Exchange API Documentation is missing the return values of this call
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="marketSymbol"></param>
         /// <param name="afterDate"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
@@ -265,9 +266,9 @@ namespace ExchangeSharp
         /// <summary>
         /// TODO: Exchange API Documentation is missing the return values of this call
         /// </summary>
-        /// <param name="symbol"></param>
+        /// <param name="marketSymbol"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 
@@ -279,7 +280,7 @@ namespace ExchangeSharp
             throw new NotImplementedException("API Interface Incomplete");
         }
 
-        protected override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
         {
             // see OnGetCompletedOrderDetailsAsync
             throw new NotImplementedException("API Interface Incomplete");
@@ -288,7 +289,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var split = order.Symbol.Split('_');
+            var split = order.MarketSymbol.Split('_');
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", order.IsBuy ? "buy" : "sell");
             payload.Add("market", split[0]);
@@ -314,7 +315,7 @@ namespace ExchangeSharp
         }
 
         // This should have a return value for success
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "cancelorder");
@@ -324,7 +325,7 @@ namespace ExchangeSharp
             // nothing is returned on this call
         }
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             List<ExchangeTransaction> deposits = new List<ExchangeTransaction>();
             var payload = await GetNoncePayloadAsync();
@@ -335,9 +336,9 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
             foreach (JToken deposit in token.First)
             {
-                if (deposit["symbol"].ToStringInvariant().Equals(symbol)) deposits.Add(new ExchangeTransaction()
+                if (deposit["symbol"].ToStringInvariant().Equals(currency)) deposits.Add(new ExchangeTransaction()
                 {
-                    Symbol = symbol,
+                    Currency = currency,
                     Timestamp = deposit["date"].ToDateTimeInvariant(),
                     Address = deposit["coin"].ToStringInvariant(),
                     BlockchainTxId = deposit["txid"].ToStringInvariant(),
@@ -349,19 +350,19 @@ namespace ExchangeSharp
         }
 
 
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getmyaddresses");
 
             // "addresses": { "BTC": "14iuWRBwB35HYG98vBxmVJoJZG73BZy4bZ", "LTC": "LXLWHFLpPbcKx69diMVEXVLAzSMXsyrQH2", "DOGE": "DGon17FjjTTVXaHeotm1gvw6ewUZ49WeZr",  }
             JToken token = await MakeJsonRequestAsync<JToken>("/api", null, payload, "POST");
-            if (token != null && token.HasValues && token["addresses"][symbol] != null)
+            if (token != null && token.HasValues && token["addresses"][currency] != null)
             {
                 return new ExchangeDepositDetails()
                 {
-                    Symbol = symbol,
-                    Address = token["addresses"][symbol].ToStringInvariant()
+                    Currency = currency,
+                    Address = token["addresses"][currency].ToStringInvariant()
                 };
             }
             return null;

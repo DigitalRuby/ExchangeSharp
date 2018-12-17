@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
@@ -25,23 +26,23 @@ namespace ExchangeSharp
 
         public ExchangeZBcomAPI()
         {
-            SymbolSeparator = "_";
-            SymbolIsUppercase = false;
+            MarketSymbolSeparator = "_";
+            MarketSymbolIsUppercase = false;
         }
 
         private string NormalizeSymbolWebsocket(string symbol)
         {
             if (symbol == null) return symbol;
 
-            return (symbol ?? string.Empty).ToLowerInvariant().Replace("-", string.Empty);
+            return (symbol ?? string.Empty).ToLowerInvariant().Replace(MarketSymbolSeparator, string.Empty);
         }
 
         #region publicAPI
 
-        private async Task<Tuple<JToken, string>> MakeRequestZBcomAsync(string symbol, string subUrl, string baseUrl = null)
+        private async Task<Tuple<JToken, string>> MakeRequestZBcomAsync(string marketSymbol, string subUrl, string baseUrl = null)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", symbol ?? string.Empty), baseUrl);
-            return new Tuple<JToken, string>(obj, symbol);
+            JToken obj = await MakeJsonRequestAsync<JToken>(subUrl.Replace("$SYMBOL$", marketSymbol ?? string.Empty), baseUrl);
+            return new Tuple<JToken, string>(obj, marketSymbol);
         }
 
         private ExchangeTicker ParseTicker(string symbol, JToken data)
@@ -56,7 +57,7 @@ namespace ExchangeSharp
             return this.ParseTicker(data.First, symbol, "sell", "buy", "last", "vol");
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             var data = await MakeRequestZBcomAsync(string.Empty, "/markets");
             List<string> symbols = new List<string>();
@@ -67,9 +68,48 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		{
+			// GET http://api.zb.cn/data/v1/markets
+			// //# Response
+			// {
+			//     "btc_usdt": {
+			//         "amountScale": 4,
+			//         "priceScale": 2
+			//     },
+			//     "ltc_usdt": {
+			//         "amountScale": 3,
+			//         "priceScale": 2
+			//     }
+			//     ...
+			// }
+
+			var data = await MakeRequestZBcomAsync(string.Empty, "/markets");
+			List<ExchangeMarket> symbols = new List<ExchangeMarket>();
+			foreach (JProperty prop in data.Item1)
+			{
+				var split = prop.Name.Split('_');
+				var priceScale = prop.First.Value<Int16>("priceScale");
+				var priceScaleDecimals = (decimal)Math.Pow(0.1, priceScale);
+				var amountScale = prop.First.Value<Int16>("amountScale");
+				var amountScaleDecimals = (decimal)Math.Pow(0.1, amountScale);
+				symbols.Add(new ExchangeMarket()
+				{
+					MarketSymbol = prop.Name,
+					BaseCurrency = split[0],
+					QuoteCurrency = split[1],
+					MinPrice = priceScaleDecimals,
+					PriceStepSize = priceScaleDecimals,
+					MinTradeSize = amountScaleDecimals,
+					QuantityStepSize = amountScaleDecimals,
+				});
+			}
+			return symbols;
+		}
+
+		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            var data = await MakeRequestZBcomAsync(symbol, "/ticker?market=$SYMBOL$");
+            var data = await MakeRequestZBcomAsync(marketSymbol, "/ticker?market=$SYMBOL$");
             return ParseTicker(data.Item2, data.Item1);
         }
 
@@ -79,39 +119,45 @@ namespace ExchangeSharp
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            string symbol;
+            var symbols = (await GetMarketSymbolsAsync()).ToArray();
+            string marketSymbol;
             foreach (JToken token in data.Item1)
             {
-                symbol = token.Path;
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerV2(symbol, token)));
+                //for some reason when returning tickers, the api doesn't include the symbol separator like it does everywhere else so we need to convert it to the correct format
+                marketSymbol = symbols.First(s => s.Replace(MarketSymbolSeparator, string.Empty).Equals(token.Path));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
             }
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
+			return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["dataType"].ToStringInvariant() == "trades")
                 {
                     var channel = token["channel"].ToStringInvariant();
                     var sArray = channel.Split('_');
-                    string symbol = sArray[0];
+                    string marketSymbol = sArray[0];
                     var data = token["data"];
                     var trades = ParseTradesWebsocket(data);
                     foreach (var trade in trades)
                     {
-                        callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                        callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                     }
                 }
                 return Task.CompletedTask;
 
             }, async (_socket) =>
             {
-                foreach (var symbol in symbols)
+                foreach (var marketSymbol in marketSymbols)
                 {
-                    string normalizedSymbol = NormalizeSymbolWebsocket(symbol);
+                    string normalizedSymbol = NormalizeSymbolWebsocket(marketSymbol);
                     await _socket.SendMessageAsync(new { @event = "addChannel", channel = normalizedSymbol + "_trades" });
                 }
             });

@@ -29,6 +29,11 @@ namespace ExchangeSharp
         /// <summary>A value indicating whether withdrawal is enabled.</summary>
         public bool WithdrawalEnabled { get; set; }
 
+        /// <summary>
+        /// The minimum size of a withdrawal request
+        /// </summary>
+        public decimal MinWithdrawalSize { get; set; }
+
         /// <summary>Extra information from the exchange.</summary>
         public string Notes { get; set; }
 

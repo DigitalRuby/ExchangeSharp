@@ -12,12 +12,55 @@ namespace ExchangeSharpConsole
     {
         public static void RunGetOrderHistory(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "exchangeName", "symbol");
+            RequireArgs(dict, "exchangeName", "marketSymbol");
 
             string exchangeName = dict["exchangeName"];
             IExchangeAPI api = ExchangeAPI.GetExchangeAPI(exchangeName);
-            string symbol = dict["symbol"];
+            string marketSymbol = dict["marketSymbol"];
 
+            Authenticate(api);
+
+            DateTime? startDate = null;
+            if (dict.ContainsKey("startDate"))
+            {
+                startDate = DateTime.Parse(dict["startDate"]).ToUniversalTime();
+            }
+
+            var completedOrders = api.GetCompletedOrderDetailsAsync(marketSymbol, startDate).Sync();
+            foreach (var completedOrder in completedOrders)
+            {
+                Console.WriteLine(completedOrder);
+            }
+
+            Console.Write("Press enter to exit..");
+            Console.ReadLine();
+        }
+
+        public static void RunGetOrderDetails(Dictionary<string, string> dict)
+        {
+            RequireArgs(dict, "exchangeName", "orderId");
+
+            string exchangeName = dict["exchangeName"];
+            IExchangeAPI api = ExchangeAPI.GetExchangeAPI(exchangeName);
+            string orderId = dict["orderId"];
+
+            Authenticate(api);
+
+            string marketSymbol = null;
+            if (dict.ContainsKey("marketSymbol"))
+            {
+                marketSymbol = dict["marketSymbol"];
+            }
+
+            var orderDetails = api.GetOrderDetailsAsync(orderId, marketSymbol).Sync();
+            Console.WriteLine(orderDetails);
+
+            Console.Write("Press enter to exit..");
+            Console.ReadLine();
+        }
+
+        private static void Authenticate(IExchangeAPI api)
+        {
             Console.Write("Enter Public Api Key: ");
             var publicApiKey = GetSecureInput();
             api.PublicApiKey = publicApiKey;
@@ -26,21 +69,10 @@ namespace ExchangeSharpConsole
             var privateApiKey = GetSecureInput();
             api.PrivateApiKey = privateApiKey;
             Console.WriteLine();
-
-            DateTime? startDate = null;
-            if (dict.ContainsKey("startDate"))
-            {
-                startDate = DateTime.Parse(dict["startDate"]).ToUniversalTime();
-            }
-
-            var completedOrders = api.GetCompletedOrderDetailsAsync(symbol, startDate).Sync();
-            foreach (var completedOrder in completedOrders)
-            {
-                Console.WriteLine(completedOrder);
-            }
-
-            Console.Write("Press enter to exit..");
-            Console.ReadLine();
+            Console.Write("Enter Passphrase: ");
+            var passphrase = GetSecureInput();
+            api.Passphrase = passphrase;
+            Console.WriteLine();
         }
 
         private static SecureString GetSecureInput()

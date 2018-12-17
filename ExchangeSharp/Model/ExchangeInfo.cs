@@ -27,12 +27,12 @@ namespace ExchangeSharp
         /// Constructor
         /// </summary>
         /// <param name="api">Exchange API</param>
-        /// <param name="symbol">The symbol to trade by default, can be null</param>
-        public ExchangeInfo(IExchangeAPI api, string symbol = null)
+        /// <param name="marketSymbol">The market symbol to trade by default, can be null</param>
+        public ExchangeInfo(IExchangeAPI api, string marketSymbol = null)
         {
             API = api;
-            Symbols = api.GetSymbolsAsync().Sync().ToArray();
-            TradeInfo = new ExchangeTradeInfo(this, symbol);
+            MarketSymbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+            TradeInfo = new ExchangeTradeInfo(this, marketSymbol);
         }
 
         /// <summary>
@@ -54,9 +54,9 @@ namespace ExchangeSharp
         public int Id { get; set; }
 
         /// <summary>
-        /// Symbols of the exchange
+        /// Market symbols of the exchange
         /// </summary>
-        public IReadOnlyCollection<string> Symbols { get; private set; }
+        public IReadOnlyCollection<string> MarketSymbols { get; private set; }
 
         /// <summary>
         /// Latest trade info for the exchange

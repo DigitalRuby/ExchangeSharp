@@ -171,10 +171,23 @@ namespace ExchangeSharp
         /// </summary>
         public TimeSpan ConnectInterval { get; set; } = TimeSpan.FromHours(1.0);
 
+        private TimeSpan _keepAlive = TimeSpan.FromSeconds(30.0);
         /// <summary>
         /// Keep alive interval (default is 30 seconds)
         /// </summary>
-        public TimeSpan KeepAlive { get; set; } = TimeSpan.FromSeconds(30.0);
+        public TimeSpan KeepAlive
+        {
+            get { return _keepAlive; }
+            set
+            {
+                _keepAlive = value;
+
+                if (this.webSocket != null)
+                {
+                    this.webSocket.KeepAliveInterval = value;
+                }
+            }
+        }
 
         /// <summary>
         /// Allows additional listeners for connect event
@@ -533,6 +546,16 @@ namespace ExchangeSharp
     /// </summary>
     public interface IWebSocket : IDisposable
     {
+        /// <summary>
+        /// Interval to call connect at regularly (default is 1 hour)
+        /// </summary>
+        TimeSpan ConnectInterval { get; set; }
+
+        /// <summary>
+        /// Keep alive interval (default varies by exchange)
+        /// </summary>
+        TimeSpan KeepAlive { get; set; }
+
         /// <summary>
         /// Connected event
         /// </summary>
