@@ -47,8 +47,8 @@ namespace ExchangeSharp
         /// <summary>Fill datetime in UTC</summary>
         public DateTime FillDate { get; set; }
     
-        /// <summary>Symbol. E.g. ADA/ETH</summary>
-        public string Symbol { get; set; }
+        /// <summary>Market Symbol. E.g. ADA/ETH</summary>
+        public string MarketSymbol { get; set; }
 
         /// <summary>Whether the order is a buy or sell</summary>
         public bool IsBuy { get; set; }
@@ -61,13 +61,16 @@ namespace ExchangeSharp
         /// If not set, this is probably the base currency</summary>
         public string FeesCurrency { get; set; }
 
+        /// <summary>The id of the trade if this is only one trade out of the order.</summary>
+        public string TradeId { get; set; }
+
         /// <summary>Append another order to this order - order id and type must match</summary>
         /// <param name="other">Order to append</param>
         public void AppendOrderWithOrder(ExchangeOrderResult other)
         {
-            if ((OrderId != null) && (Symbol != null) && ((OrderId != other.OrderId) || (IsBuy != other.IsBuy) || (Symbol != other.Symbol)))
+            if ((OrderId != null) && (MarketSymbol != null) && ((OrderId != other.OrderId) || (IsBuy != other.IsBuy) || (MarketSymbol != other.MarketSymbol)))
             {
-                throw new InvalidOperationException("Appending orders requires order id, symbol and is buy to match");
+                throw new InvalidOperationException("Appending orders requires order id, market symbol and is buy to match");
             }
 
             decimal tradeSum = Amount + other.Amount;
@@ -79,7 +82,7 @@ namespace ExchangeSharp
             AveragePrice = (AveragePrice * (baseAmount / tradeSum)) + (other.AveragePrice * (other.Amount / tradeSum));
             OrderId = other.OrderId;
             OrderDate = OrderDate == default ? other.OrderDate : OrderDate;
-            Symbol = other.Symbol;
+            MarketSymbol = other.MarketSymbol;
             IsBuy = other.IsBuy;
         }
 
@@ -87,7 +90,7 @@ namespace ExchangeSharp
         /// <returns>A string that represents this instance.</returns>
         public override string ToString()
         {
-            return $"[{OrderDate}], {(IsBuy ? "Buy" : "Sell")} {AmountFilled} of {Amount} {Symbol} {Result} at {AveragePrice}, fees paid {Fees} {FeesCurrency}";
+            return $"[{OrderDate}], {(IsBuy ? "Buy" : "Sell")} {AmountFilled} of {Amount} {MarketSymbol} {Result} at {AveragePrice}, fees paid {Fees} {FeesCurrency}";
         }
     }
 }

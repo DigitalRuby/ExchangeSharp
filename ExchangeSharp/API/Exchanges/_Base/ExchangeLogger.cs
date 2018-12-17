@@ -58,15 +58,15 @@ namespace ExchangeSharp
         /// Constructor
         /// </summary>
         /// <param name="api">API</param>
-        /// <param name="symbol">The symbol to log, i.e. btcusd</param>
+        /// <param name="marketSymbol">The symbol to log, i.e. btcusd</param>
         /// <param name="intervalSeconds">Interval in seconds between updates</param>
         /// <param name="path">The path to write the log files to</param>
         /// <param name="compress">Whether to compress the log files using gzip compression</param>
-        public ExchangeLogger(IExchangeAPI api, string symbol, float intervalSeconds, string path, bool compress = false)
+        public ExchangeLogger(IExchangeAPI api, string marketSymbol, float intervalSeconds, string path, bool compress = false)
         {
             string compressExtension = (compress ? ".gz" : string.Empty);
             API = api;
-            Symbol = symbol;
+            MarketSymbol = marketSymbol;
             Interval = TimeSpan.FromSeconds(intervalSeconds);
             sysTimeWriter = CreateLogWriter(Path.Combine(path, api.Name + "_time.bin" + compressExtension), compress);
             tickerWriter = CreateLogWriter(Path.Combine(path, api.Name + "_ticker.bin" + compressExtension), compress);
@@ -84,7 +84,7 @@ namespace ExchangeSharp
 
             try
             {
-                if (Symbol == "*")
+                if (MarketSymbol == "*")
                 {
                     // get all symbols
                     Tickers = API.GetTickersAsync().Sync().ToArray();
@@ -98,9 +98,9 @@ namespace ExchangeSharp
                 else
                 {
                     // make API calls first, if they fail we will try again later
-                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(Symbol, API.GetTickerAsync(Symbol).Sync()) };
-                    OrderBook = API.GetOrderBookAsync(Symbol).Sync();
-                    Trades = API.GetRecentTradesAsync(Symbol).Sync().OrderBy(t => t.Timestamp).ToArray();
+                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(MarketSymbol, API.GetTickerAsync(MarketSymbol).Sync()) };
+                    OrderBook = API.GetOrderBookAsync(MarketSymbol).Sync();
+                    Trades = API.GetRecentTradesAsync(MarketSymbol).Sync().OrderBy(t => t.Timestamp).ToArray();
 
                     // all API calls succeeded, we can write to files
 
@@ -303,7 +303,7 @@ namespace ExchangeSharp
         /// <summary>
         /// The symbol being logged
         /// </summary>
-        public string Symbol { get; private set; }
+        public string MarketSymbol { get; private set; }
 
         /// <summary>
         /// The interval in between log calls

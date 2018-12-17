@@ -20,11 +20,11 @@ namespace ExchangeSharpConsole
     {
         public static void RunGetHistoricalTrades(Dictionary<string, string> dict)
         {
-            RequireArgs(dict, "exchangeName", "symbol");
+            RequireArgs(dict, "exchangeName", "marketSymbol");
 
             string exchangeName = dict["exchangeName"];
             IExchangeAPI api = ExchangeAPI.GetExchangeAPI(exchangeName);
-            string symbol = dict["symbol"];
+            string marketSymbol = dict["marketSymbol"];
             Console.WriteLine("Showing historical trades for exchange {0}...", exchangeName);
             DateTime? startDate = null;
             DateTime? endDate = null;
@@ -43,7 +43,7 @@ namespace ExchangeSharpConsole
                     Console.WriteLine("Trade at timestamp {0}: {1}/{2}/{3}", trade.Timestamp.ToLocalTime(), trade.Id, trade.Price, trade.Amount);
                 }
                 return true;
-            }, symbol, startDate, endDate).Sync();
+            }, marketSymbol, startDate, endDate).Sync();
         }
 
         public static void RunExportData(Dictionary<string, string> dict)

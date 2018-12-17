@@ -31,9 +31,10 @@ namespace ExchangeSharp
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
         public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
         public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
-        
+
         // base address for APIs used by the Binance website and not published in the API docs
         public const string BaseWebUrl = "https://www.binance.com";
+
         public const string GetCurrenciesUrl = "/assetWithdraw/getAllAsset.html";
 
         static ExchangeBinanceAPI()
@@ -44,18 +45,18 @@ namespace ExchangeSharp
             };
         }
 
-        private string GetWebSocketStreamUrlForSymbols(string suffix, params string[] symbols)
+        private string GetWebSocketStreamUrlForSymbols(string suffix, params string[] marketSymbols)
         {
-            if (symbols == null || symbols.Length == 0)
+            if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                symbols = GetSymbolsAsync().Sync().ToArray();
+                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
 
             StringBuilder streams = new StringBuilder("/stream?streams=");
-            for (int i = 0; i < symbols.Length; i++)
+            for (int i = 0; i < marketSymbols.Length; i++)
             {
-                string symbol = NormalizeSymbol(symbols[i]).ToLowerInvariant();
-                streams.Append(symbol);
+                string marketSymbol = NormalizeMarketSymbol(marketSymbols[i]).ToLowerInvariant();
+                streams.Append(marketSymbol);
                 streams.Append(suffix);
                 streams.Append('/');
             }
@@ -70,39 +71,39 @@ namespace ExchangeSharp
             RequestWindow = TimeSpan.FromMinutes(15.0);
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(10.0);
-            SymbolSeparator = string.Empty;
+            MarketSymbolSeparator = string.Empty;
             WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
-        public override string ExchangeSymbolToGlobalSymbol(string symbol)
+        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
         {
             // All pairs in Binance end with BTC, ETH, BNB or USDT
-            if (symbol.EndsWith("BTC") || symbol.EndsWith("ETH") || symbol.EndsWith("BNB"))
+            if (marketSymbol.EndsWith("BTC") || marketSymbol.EndsWith("ETH") || marketSymbol.EndsWith("BNB"))
             {
-                string baseSymbol = symbol.Substring(symbol.Length - 3);
-                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Replace(baseSymbol, "") + GlobalSymbolSeparator + baseSymbol), GlobalSymbolSeparator);
+                string baseSymbol = marketSymbol.Substring(marketSymbol.Length - 3);
+                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator((marketSymbol.Replace(baseSymbol, "") + GlobalMarketSymbolSeparator + baseSymbol), GlobalMarketSymbolSeparator);
             }
-            if (symbol.EndsWith("USDT"))
+            if (marketSymbol.EndsWith("USDT"))
             {
-                string baseSymbol = symbol.Substring(symbol.Length - 4);
-                return ExchangeSymbolToGlobalSymbolWithSeparator((symbol.Replace(baseSymbol, "") + GlobalSymbolSeparator + baseSymbol), GlobalSymbolSeparator);
+                string baseSymbol = marketSymbol.Substring(marketSymbol.Length - 4);
+                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator((marketSymbol.Replace(baseSymbol, "") + GlobalMarketSymbolSeparator + baseSymbol), GlobalMarketSymbolSeparator);
             }
 
-            return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + (symbol.Substring(symbol.Length - 3, 3)), GlobalSymbolSeparator);
+            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(0, marketSymbol.Length - 3) + GlobalMarketSymbolSeparator + (marketSymbol.Substring(marketSymbol.Length - 3, 3)), GlobalMarketSymbolSeparator);
         }
 
         /// <summary>
         /// Get the details of all trades
         /// </summary>
-        /// <param name="symbol">Symbol to get trades for or null for all</param>
+        /// <param name="marketSymbol">Symbol to get trades for or null for all</param>
         /// <returns>All trades for the specified symbol, or all if null symbol</returns>
-        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        public async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             await new SynchronizationContextRemover();
-            return await OnGetMyTradesAsync(symbol, afterDate);
+            return await OnGetMyTradesAsync(marketSymbol, afterDate);
         }
 
-        protected override async Task<IEnumerable<string>> OnGetSymbolsAsync()
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             List<string> symbols = new List<string>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/allPrices");
@@ -113,60 +114,62 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
+        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             /*
              *         {
-            "symbol": "QTUMETH",
-            "status": "TRADING",
-            "baseAsset": "QTUM",
-            "baseAssetPrecision": 8,
-            "quoteAsset": "ETH",
-            "quotePrecision": 8,
-            "orderTypes": [
-                "LIMIT",
-                "LIMIT_MAKER",
-                "MARKET",
-                "STOP_LOSS_LIMIT",
-                "TAKE_PROFIT_LIMIT"
-            ],
-            "icebergAllowed": true,
-            "filters": [
-                {
-                    "filterType": "PRICE_FILTER",
-                    "minPrice": "0.00000100",
-                    "maxPrice": "100000.00000000",
-                    "tickSize": "0.00000100"
-                },
-                {
-                    "filterType": "LOT_SIZE",
-                    "minQty": "0.01000000",
-                    "maxQty": "90000000.00000000",
-                    "stepSize": "0.01000000"
-                },
-                {
-                    "filterType": "MIN_NOTIONAL",
-                    "minNotional": "0.01000000"
-                }
-            ]
+                "symbol": "ETHBTC",
+                "status": "TRADING",
+                "baseAsset": "ETH",
+                "baseAssetPrecision": 8,
+                "quoteAsset": "BTC",
+                "quotePrecision": 8,
+                "orderTypes": [
+                    "LIMIT",
+                    "MARKET",
+                    "STOP_LOSS",
+                    "STOP_LOSS_LIMIT",
+                    "TAKE_PROFIT",
+                    "TAKE_PROFIT_LIMIT",
+                    "LIMIT_MAKER"
+                ],
+                "icebergAllowed": false,
+                "filters": [
+                    {
+                        "filterType": "PRICE_FILTER",
+                        "minPrice": "0.00000100",
+                        "maxPrice": "100000.00000000",
+                        "tickSize": "0.00000100"
+                    },
+                    {
+                        "filterType": "LOT_SIZE",
+                        "minQty": "0.00100000",
+                        "maxQty": "100000.00000000",
+                        "stepSize": "0.00100000"
+                    },
+                    {
+                        "filterType": "MIN_NOTIONAL",
+                        "minNotional": "0.00100000"
+                    }
+                ]
         },
              */
 
             var markets = new List<ExchangeMarket>();
             JToken obj = await MakeJsonRequestAsync<JToken>("/exchangeInfo");
             JToken allSymbols = obj["symbols"];
-            foreach (JToken symbol in allSymbols)
+            foreach (JToken marketSymbolToken in allSymbols)
             {
                 var market = new ExchangeMarket
                 {
-                    MarketName = symbol["symbol"].ToStringUpperInvariant(),
-                    IsActive = ParseMarketStatus(symbol["status"].ToStringUpperInvariant()),
-                    BaseCurrency = symbol["quoteAsset"].ToStringUpperInvariant(),
-                    MarketCurrency = symbol["baseAsset"].ToStringUpperInvariant()
+                    MarketSymbol = marketSymbolToken["symbol"].ToStringUpperInvariant(),
+                    IsActive = ParseMarketStatus(marketSymbolToken["status"].ToStringUpperInvariant()),
+                    QuoteCurrency = marketSymbolToken["quoteAsset"].ToStringUpperInvariant(),
+                    BaseCurrency = marketSymbolToken["baseAsset"].ToStringUpperInvariant()
                 };
 
                 // "LOT_SIZE"
-                JToken filters = symbol["filters"];
+                JToken filters = marketSymbolToken["filters"];
                 JToken lotSizeFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "LOT_SIZE"));
                 if (lotSizeFilter != null)
                 {
@@ -182,6 +185,13 @@ namespace ExchangeSharp
                     market.MaxPrice = priceFilter["maxPrice"].ConvertInvariant<decimal>();
                     market.MinPrice = priceFilter["minPrice"].ConvertInvariant<decimal>();
                     market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
+                }
+
+                // MIN_NOTIONAL
+                JToken minNotionalFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "MIN_NOTIONAL"));
+                if (minNotionalFilter != null)
+                {
+                    market.MinTradeSizeInQuoteCurrency = minNotionalFilter["minNotional"].ConvertInvariant<decimal>();
                 }
                 markets.Add(market);
             }
@@ -205,34 +215,35 @@ namespace ExchangeSharp
                     MinConfirmations = coin.ConfirmTimes.ConvertInvariant<int>(),
                     Name = coin.AssetCode,
                     TxFee = coin.TransactionFee,
-                    WithdrawalEnabled = coin.EnableWithdraw
+                    WithdrawalEnabled = coin.EnableWithdraw,
+                    MinWithdrawalSize = coin.MinProductWithdraw.ConvertInvariant<decimal>(),
                 };
             }
 
             return allCoins;
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            NormalizeSymbol(symbol);
-            JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + symbol);
-            return ParseTicker(symbol, obj);
+            NormalizeMarketSymbol(marketSymbol);
+            JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol);
+            return ParseTicker(marketSymbol, obj);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            string symbol;
+            string marketSymbol;
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr");
             foreach (JToken child in obj)
             {
-                symbol = child["symbol"].ToStringInvariant();
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ParseTicker(symbol, child)));
+                marketSymbol = child["symbol"].ToStringInvariant();
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTicker(marketSymbol, child)));
             }
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             return ConnectWebSocket("/stream?streams=!ticker@arr", (_socket, msg) =>
             {
@@ -242,7 +253,7 @@ namespace ExchangeSharp
                 foreach (JToken childToken in token["data"])
                 {
                     ticker = ParseTickerWebSocket(childToken);
-                    tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.Volume.BaseSymbol, ticker));
+                    tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
                 }
                 if (tickerList.Count != 0)
                 {
@@ -252,7 +263,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols)
+        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
             /*
             {
@@ -270,38 +281,38 @@ namespace ExchangeSharp
             }
             */
 
-            if (symbols == null || symbols.Length == 0)
+            if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                symbols = GetSymbolsAsync().Sync().ToArray();
+                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            string url = GetWebSocketStreamUrlForSymbols("@trade", symbols);
+            string url = GetWebSocketStreamUrlForSymbols("@trade", marketSymbols);
             return ConnectWebSocket(url, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 string name = token["stream"].ToStringInvariant();
                 token = token["data"];
-                string symbol = NormalizeSymbol(name.Substring(0, name.IndexOf('@')));
+                string marketSymbol = NormalizeMarketSymbol(name.Substring(0, name.IndexOf('@')));
 
                 // buy=0 -> m = true (The buyer is maker, while the seller is taker).
                 // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                callback(new KeyValuePair<string, ExchangeTrade>(symbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "t", "false")));
+                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "t", "false")));
                 return Task.CompletedTask;
             });
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            if (symbols == null || symbols.Length == 0)
+            if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                symbols = GetSymbolsAsync().Sync().ToArray();
+                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            string combined = string.Join("/", symbols.Select(s => this.NormalizeSymbol(s).ToLowerInvariant() + "@depth"));
+            string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth"));
             return ConnectWebSocket($"/stream?streams={combined}", (_socket, msg) =>
             {
                 string json = msg.ToStringFromUTF8();
                 var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
-                string symbol = update.Data.Symbol;
-                ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, Symbol = symbol };
+                string marketSymbol = update.Data.MarketSymbol;
+                ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, MarketSymbol = marketSymbol };
                 foreach (List<object> ask in update.Data.Asks)
                 {
                     var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
@@ -317,13 +328,13 @@ namespace ExchangeSharp
             });
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + symbol + "&limit=" + maxCount);
+            JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + marketSymbol + "&limit=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "lastUpdateId", maxCount: maxCount);
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             /* [ {
             "a": 26129,         // Aggregate tradeId
@@ -342,14 +353,14 @@ namespace ExchangeSharp
                 EndDate = endDate,
                 ParseFunction = (JToken token) => token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false"),
                 StartDate = startDate,
-                Symbol = symbol,
+                MarketSymbol = marketSymbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
-                Url = "/aggTrades?symbol=[symbol]&startTime={0}&endTime={1}",
+                Url = "/aggTrades?symbol=[marketSymbol]&startTime={0}&endTime={1}",
             };
             await state.ProcessHistoricalTrades();
         }
 
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /* [
             [
@@ -368,7 +379,7 @@ namespace ExchangeSharp
 		    ]] */
 
             List<MarketCandle> candles = new List<MarketCandle>();
-            string url = "/klines?symbol=" + symbol;
+            string url = "/klines?symbol=" + marketSymbol;
             if (startDate != null)
             {
                 url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
@@ -382,7 +393,7 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
             foreach (JToken token in obj)
             {
-                candles.Add(this.ParseCandle(token, symbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 7));
+                candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 7));
             }
 
             return candles;
@@ -421,7 +432,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["symbol"] = order.Symbol;
+            payload["symbol"] = order.MarketSymbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
             if (order.OrderType == OrderType.Stop)
                 payload["type"] = "STOP_LOOSE";//if order type is stop loose/limit, then binance expect word 'STOP_LOOSE' inestead of 'STOP'
@@ -429,8 +440,8 @@ namespace ExchangeSharp
                 payload["type"] = order.OrderType.ToStringUpperInvariant();
 
             // Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
-            decimal outputQuantity = await ClampOrderQuantity(order.Symbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(order.Symbol, order.Price);
+            decimal outputQuantity = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
+            decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
 
             // Binance does not accept quantities with more than 20 decimal places.
             payload["quantity"] = Math.Round(outputQuantity, 20);
@@ -447,21 +458,21 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (string.IsNullOrEmpty(symbol))
+            if (string.IsNullOrEmpty(marketSymbol))
             {
                 throw new InvalidOperationException("Binance single order details request requires symbol");
             }
-            payload["symbol"] = symbol;
+            payload["symbol"] = marketSymbol;
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
             ExchangeOrderResult result = ParseOrder(token);
 
             // Add up the fees from each trade in the order
             Dictionary<string, object> feesPayload = await GetNoncePayloadAsync();
-            feesPayload["symbol"] = symbol;
+            feesPayload["symbol"] = marketSymbol;
             JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, feesPayload);
             ParseFees(feesToken, result);
 
@@ -489,13 +500,13 @@ namespace ExchangeSharp
             }
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (symbol.Length != 0)
+            if (marketSymbol.Length != 0)
             {
-                payload["symbol"] = symbol;
+                payload["symbol"] = marketSymbol;
             }
             JToken token = await MakeJsonRequestAsync<JToken>("/openOrders", BaseUrlPrivate, payload);
             foreach (JToken order in token)
@@ -512,7 +523,7 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Exception ex = null;
             string failedSymbol = null;
-            Parallel.ForEach((await GetSymbolsAsync()).Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), async (s) =>
+            Parallel.ForEach((await GetMarketSymbolsAsync()).Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), async (s) =>
             {
                 try
                 {
@@ -544,20 +555,20 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            if (symbol.Length == 0)
+            if (marketSymbol.Length == 0)
             {
                 orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
             }
             else
             {
                 Dictionary<string, object> payload = await GetNoncePayloadAsync();
-                payload["symbol"] = symbol;
+                payload["symbol"] = marketSymbol;
                 if (afterDate != null)
                 {
-                    payload["startTime"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+                    payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
                 }
                 JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
                 foreach (JToken order in token)
@@ -574,7 +585,7 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
             Exception ex = null;
             string failedSymbol = null;
-            Parallel.ForEach((await GetSymbolsAsync()).Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), async (s) =>
+            Parallel.ForEach((await GetMarketSymbolsAsync()).Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), async (s) =>
             {
                 try
                 {
@@ -606,17 +617,17 @@ namespace ExchangeSharp
             return trades;
         }
 
-        private async Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string symbol = null, DateTime? afterDate = null)
+        private async Task<IEnumerable<ExchangeOrderResult>> OnGetMyTradesAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
             List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
-            if (symbol.Length == 0)
+            if (marketSymbol.Length == 0)
             {
                 trades.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
             }
             else
             {
                 Dictionary<string, object> payload = await GetNoncePayloadAsync();
-                payload["symbol"] = symbol;
+                payload["symbol"] = marketSymbol;
                 if (afterDate != null)
                 {
                     payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
@@ -624,20 +635,20 @@ namespace ExchangeSharp
                 JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, payload);
                 foreach (JToken trade in token)
                 {
-                    trades.Add(ParseTrade(trade, symbol));
+                    trades.Add(ParseTrade(trade, marketSymbol));
                 }
             }
             return trades;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (symbol.Length == 0)
+            if (marketSymbol.Length == 0)
             {
                 throw new InvalidOperationException("Binance cancel order request requires symbol");
             }
-            payload["symbol"] = symbol;
+            payload["symbol"] = marketSymbol;
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
         }
@@ -689,11 +700,12 @@ namespace ExchangeSharp
                 switch (status)
                 {
                     case "TRADING":
-                    case "PRE_TRADING":
-                    case "POST_TRADING":
                         isActive = true;
                         break;
-                        /* case "END_OF_DAY":
+                        /*
+                            case "PRE_TRADING":
+                            case "POST_TRADING":
+                            case "END_OF_DAY":
                             case "HALT":
                             case "AUCTION_MATCH":
                             case "BREAK": */
@@ -711,8 +723,8 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTickerWebSocket(JToken token)
         {
-            string symbol = token["s"].ToStringInvariant();
-            return this.ParseTicker(token, symbol, "a", "b", "c", "v", "q", "E", TimestampType.UnixMilliseconds);
+            string marketSymbol = token["s"].ToStringInvariant();
+            return this.ParseTicker(token, marketSymbol, "a", "b", "c", "v", "q", "E", TimestampType.UnixMilliseconds);
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)
@@ -770,7 +782,7 @@ namespace ExchangeSharp
                 IsBuy = token["side"].ToStringInvariant() == "BUY",
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>(token["transactTime"].ConvertInvariant<long>())),
                 OrderId = token["orderId"].ToStringInvariant(),
-                Symbol = token["symbol"].ToStringInvariant()
+                MarketSymbol = token["symbol"].ToStringInvariant()
             };
 
             switch (token["status"].ToStringInvariant())
@@ -834,7 +846,7 @@ namespace ExchangeSharp
                 OrderId = token["orderId"].ToStringInvariant(),
                 Fees = token["commission"].ConvertInvariant<decimal>(),
                 FeesCurrency = token["commissionAsset"].ToStringInvariant(),
-                Symbol = symbol
+                MarketSymbol = symbol
             };
 
             return result;
@@ -896,26 +908,26 @@ namespace ExchangeSharp
         /// <summary>
         /// Gets the address to deposit to and applicable details.
         /// </summary>
-        /// <param name="symbol">Symbol to get address for</param>
+        /// <param name="currency">Currency to get address for</param>
         /// <param name="forceRegenerate">(ignored) Binance does not provide the ability to generate new addresses</param>
         /// <returns>
         /// Deposit address details (including tag if applicable, such as XRP)
         /// </returns>
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
+        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            /* 
+            /*
             * TODO: Binance does not offer a "regenerate" option in the API, but a second IOTA deposit to the same address will not be credited
             * How does Binance handle GetDepositAddress for IOTA after it's been used once?
             * Need to test calling this API after depositing IOTA.
             */
 
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["asset"] = symbol;
+            payload["asset"] = currency;
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
             ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
             {
-                Symbol = response["asset"].ToStringInvariant(),
+                Currency = response["asset"].ToStringInvariant(),
                 Address = response["address"].ToStringInvariant(),
                 AddressTag = response["addressTag"].ToStringInvariant()
             };
@@ -924,15 +936,15 @@ namespace ExchangeSharp
         }
 
         /// <summary>Gets the deposit history for a symbol</summary>
-        /// <param name="symbol">The symbol to check. Null for all symbols.</param>
+        /// <param name="currency">The currency to check. Null for all symbols.</param>
         /// <returns>Collection of ExchangeCoinTransfers</returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             // TODO: API supports searching on status, startTime, endTime
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (symbol.Length != 0)
+            if (currency.Length != 0)
             {
-                payload["asset"] = symbol;
+                payload["asset"] = currency;
             }
 
             JToken response = await MakeJsonRequestAsync<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);
@@ -943,7 +955,7 @@ namespace ExchangeSharp
                 {
                     Timestamp = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(),
                     Amount = token["amount"].ConvertInvariant<decimal>(),
-                    Symbol = token["asset"].ToStringUpperInvariant(),
+                    Currency = token["asset"].ToStringUpperInvariant(),
                     Address = token["address"].ToStringInvariant(),
                     AddressTag = token["addressTag"].ToStringInvariant(),
                     BlockchainTxId = token["txId"].ToStringInvariant()

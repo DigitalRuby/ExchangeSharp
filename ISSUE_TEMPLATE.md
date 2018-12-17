@@ -1,13 +1,7 @@
-I have a [BUG REPORT] or [FEATURE REQUEST]
+Be advised that I don't have time to personally answer all questions or fix every little bug at this point. Best way to get a fix is to fork the code, code up the bug fix and submit a pull request. The community is getting very active and is helpful with questions.
 
-Details:
+You can donate to get fast response time for questions and bug fixes.
 
-Error Logs (if any):
+Thank you.
 
-The more information you can provide, the better.
-
-For new features, please donate or do a pull request. When donating, email the feature request details, coin type and tx id to exchangesharp@digitalruby.com.
-
-Donations will help your bug to get fixed faster.
-
-Requests for new features without a donation or pull request will be ignored due to the high volume of emails and requests. I've done hundreds of hours for free on this project to get a great baseline. I obviously can't continue to spend my time on new features without donations.
+Jeff

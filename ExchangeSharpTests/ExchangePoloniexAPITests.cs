@@ -112,7 +112,7 @@ namespace ExchangeSharpTests
             order.OrderId.Should().BeNullOrEmpty();
             order.AveragePrice.Should().Be(0.0001716132563851949140701411m);
             order.Price.Should().Be(order.AveragePrice);
-            order.Symbol.Should().Be("BTC_VIA");
+            order.MarketSymbol.Should().Be("BTC_VIA");
         }
 
         [TestMethod]
@@ -128,7 +128,7 @@ namespace ExchangeSharpTests
             order.IsBuy.Should().BeTrue();
             order.Fees.Should().Be(28.64470495m);
             order.FeesCurrency.Should().Be("XEM");
-            order.Symbol.Should().Be("BTC_XEM");
+            order.MarketSymbol.Should().Be("BTC_XEM");
             order.Price.Should().Be(0.00005128m);
             order.AveragePrice.Should().Be(0.00005128m);
         }
@@ -241,7 +241,7 @@ namespace ExchangeSharpTests
             order.IsBuy.Should().BeTrue();
             order.Fees.Should().Be(28.64470495m);
             order.FeesCurrency.Should().Be("XEM");
-            order.Symbol.Should().Be("BTC_XEM");
+            order.MarketSymbol.Should().Be("BTC_XEM");
             order.Price.Should().Be(0.00005128m);
             order.AveragePrice.Should().Be(0.00005128m);
             order.Result.Should().Be(ExchangeAPIOrderResult.Filled);
@@ -293,7 +293,7 @@ namespace ExchangeSharpTests
             // {"BTC_MAID": [ { "globalTradeID": 29251512, "tradeID": "1385888", "date": "2016-05-03 01:29:55", "rate": "0.00014243", "amount": "353.74692925", "total": "0.05038417", "fee": "0.00200000", "orderNumber": "12603322113", "type": "buy", "category": "settlement" }, { "globalTradeID": 29251511, "tradeID": "1385887", "date": "2016-05-03 01:29:55", "rate": "0.00014111", "amount": "311.24262497", "total": "0.04391944", "fee": "0.00200000", "orderNumber": "12603319116", "type": "sell", "category": "marginTrade" }
             var polo = CreatePoloniexAPI(GetCompletedOrderDetails_AllSymbolsOrders);
             ExchangeOrderResult order = polo.GetCompletedOrderDetailsAsync().Sync().First();
-            order.Symbol.Should().Be("BTC_MAID");
+            order.MarketSymbol.Should().Be("BTC_MAID");
             order.OrderId.Should().Be("12603322113");
             order.OrderDate.Should().Be(new DateTime(2016, 5, 3, 1, 29, 55));
             order.AveragePrice.Should().Be(0.00014243m);
