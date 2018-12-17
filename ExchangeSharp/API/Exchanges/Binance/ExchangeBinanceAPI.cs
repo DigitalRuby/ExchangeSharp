@@ -225,14 +225,9 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-<<<<<<< HEAD
-            NormalizeSymbol(symbol);
-            JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + symbol);
-            return ParseTicker(symbol, obj);
-=======
+            NormalizeMarketSymbol(marketSymbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol);
             return ParseTicker(marketSymbol, obj);
->>>>>>> upstream/master
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()

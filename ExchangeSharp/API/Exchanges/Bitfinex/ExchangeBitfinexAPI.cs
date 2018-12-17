@@ -543,18 +543,12 @@ namespace ExchangeSharp
                 await _socket.SendMessageAsync(payloadJSON);
             });
         }
-
-<<<<<<< HEAD
-        
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
-=======
+ 
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
->>>>>>> upstream/master
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["order_id"] = orderId.ConvertInvariant<long>();
            var token= await MakeJsonRequestAsync<JToken>("/order/cancel", BaseUrlV1, payload);
-            
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
