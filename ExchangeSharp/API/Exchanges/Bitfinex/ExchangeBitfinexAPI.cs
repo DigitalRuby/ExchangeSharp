@@ -10,6 +10,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System.Runtime.InteropServices;
+
 namespace ExchangeSharp
 {
     using Newtonsoft.Json;
@@ -379,11 +381,16 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
+            return await OnGetAmountsAsync("exchange");
+        }
+        
+        public async Task<Dictionary<string, decimal>> OnGetAmountsAsync(string type)
+        {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, await GetNoncePayloadAsync());
+            JArray obj = await MakeJsonRequestAsync<JArray>("/balances", BaseUrlV1, await GetNoncePayloadAsync());
             foreach (JToken token in obj)
             {
-                if (token["type"].ToStringInvariant() == "exchange")
+                if (token["type"].ToStringInvariant() == type)
                 {
                     decimal amount = token["amount"].ConvertInvariant<decimal>();
                     if (amount > 0m)
@@ -394,11 +401,17 @@ namespace ExchangeSharp
             }
             return lookup;
         }
+        
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(
+            bool includeZeroBalances = false)
+        {
+            return await OnGetAmountsAsync("trading");
+        }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JArray obj = await MakeJsonRequestAsync<Newtonsoft.Json.Linq.JArray>("/balances", BaseUrlV1, await GetNoncePayloadAsync());
+            JArray obj = await MakeJsonRequestAsync<JArray>("/balances", BaseUrlV1, await GetNoncePayloadAsync());
             foreach (JToken token in obj)
             {
                 if (token["type"].ToStringInvariant() == "exchange")
@@ -412,6 +425,8 @@ namespace ExchangeSharp
             }
             return lookup;
         }
+        
+        
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
@@ -505,11 +520,13 @@ namespace ExchangeSharp
             });
         }
 
+        
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["order_id"] = orderId.ConvertInvariant<long>();
-            await MakeJsonRequestAsync<JToken>("/order/cancel", BaseUrlV1, payload);
+           var token= await MakeJsonRequestAsync<JToken>("/order/cancel", BaseUrlV1, payload);
+            
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
