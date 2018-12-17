@@ -71,7 +71,7 @@ namespace ExchangeSharp
             decimal stop_price = result["stop_price"].ConvertInvariant<decimal>();
             decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
             decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
-            string marketSymbol = result["id"].ToStringInvariant(result["product_id"].ToStringInvariant());
+            string marketSymbol = result["product_id"].ToStringInvariant(result["id"].ToStringInvariant());
 
             ExchangeOrderResult order = new ExchangeOrderResult
             {
