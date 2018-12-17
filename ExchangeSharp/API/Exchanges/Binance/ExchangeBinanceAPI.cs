@@ -214,6 +214,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
+            NormalizeSymbol(symbol);
             JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + symbol);
             return ParseTicker(symbol, obj);
         }
