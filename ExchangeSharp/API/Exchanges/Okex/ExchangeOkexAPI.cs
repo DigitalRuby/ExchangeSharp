@@ -23,6 +23,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
+        public string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket";
 
         public ExchangeOkexAPI()
@@ -291,7 +292,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            var token = await MakeRequestOkexAsync(symbol, "/depth.do?symbol=$SYMBOL$");
+            var token = await MakeRequestOkexAsync(symbol, $"/spot/v3/instruments/{symbol}/book", BaseUrlV3);
+            
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
