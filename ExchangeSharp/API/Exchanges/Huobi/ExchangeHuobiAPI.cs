@@ -787,6 +787,24 @@ namespace ExchangeSharp
             throw new NotImplementedException("Huobi does not provide a withdraw API");
         }
 
+        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        {
+            var payload = await GetNoncePayloadAsync();
+
+            payload["address"] = withdrawalRequest.Address;
+            payload["amount"] = withdrawalRequest.Amount;
+            payload["currency"] = withdrawalRequest.Currency;
+            if (withdrawalRequest.AddressTag != null)
+                payload["attr-tag"] = withdrawalRequest.AddressTag;
+
+            JToken result = await MakeJsonRequestAsync<JToken>("/dw/withdraw/api/create", PrivateUrlV1, payload, "POST");
+
+            return new ExchangeWithdrawalResponse
+            {
+                Id = result.Root["data"].ToStringInvariant(),
+                Message = result.Root["status"].ToStringInvariant()
+            };
+        }
 
         #endregion
 
