@@ -712,6 +712,51 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
+        {
+            var payload = await GetNoncePayloadAsync();
+            currency = currency.ToLowerInvariant();
+            payload["currency"] = currency;
+            payload["type"] = "deposit";
+            payload["from"] = 5;
+            payload["size"] = 12;
+
+            var deposits = await MakeJsonRequestAsync<JToken>($"/query/deposit-withdraw", PrivateUrlV1, payload);
+            var result = deposits
+                .Where(d => d["type"].Value<string>() == "deposit")
+                .Select(d => new ExchangeTransaction
+                {
+                    Address = d["address"].Value<string>(),
+                    AddressTag = d["address-tag"].Value<string>(),
+                    Amount = d["amount"].Value<long>(),
+                    BlockchainTxId = d["tx-hash"].Value<string>(),
+                    Currency = d["currency"].Value<string>(),
+                    PaymentId = d["id"].Value<long>().ToString(),
+                    Status = ToDepositStatus(d["state"].Value<string>()),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(d["created-at"].Value<long>()),
+                    TxFee = d["fee"].Value<long>()
+                });
+
+            return result;
+        }
+        private TransactionStatus ToDepositStatus(string status)
+        {
+            switch (status)
+            {
+                case "confirming":
+                    return TransactionStatus.AwaitingApproval;
+                case "safe":
+                case "confirmed":
+                    return TransactionStatus.Complete;
+                case "orphan":
+                    return TransactionStatus.Failure;
+                case "unknown":
+                    return TransactionStatus.Unknown;
+                default:
+                    throw new InvalidOperationException($"Unknown status: {status}"); 
+            }
+        }
+
         protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
