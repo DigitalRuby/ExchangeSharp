@@ -156,16 +156,16 @@ namespace ExchangeSharp
                 var quantityStepSize = Math.Pow(10, -amountPrecision).ConvertInvariant<decimal>();
 
                 var market = new ExchangeMarket
-                             {
-                                 BaseCurrency = baseCurrency,
-                                 QuoteCurrency = quoteCurrency,
-                                 MarketSymbol = baseCurrency + quoteCurrency,
-                                 IsActive = true,
-                                 PriceStepSize = priceStepSize,
-                                 QuantityStepSize = quantityStepSize,
-                                 MinPrice = priceStepSize,
-                                 MinTradeSize = quantityStepSize,
-                             };
+                {
+                    BaseCurrency = baseCurrency,
+                    QuoteCurrency = quoteCurrency,
+                    MarketSymbol = baseCurrency + quoteCurrency,
+                    IsActive = true,
+                    PriceStepSize = priceStepSize,
+                    QuantityStepSize = quantityStepSize,
+                    MinPrice = priceStepSize,
+                    MinTradeSize = quantityStepSize,
+                };
 
 
                 markets.Add(market);
@@ -364,6 +364,33 @@ namespace ExchangeSharp
                     await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
+        }
+
+        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        {
+            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+            JToken array = await MakeJsonRequestAsync<JToken>("/v1/hadax/common/currencys");
+
+            foreach (JToken token in array)
+            {
+                bool enabled = true;
+                var coin = new ExchangeCurrency
+                {
+                    BaseAddress = null,
+                    CoinType = null,
+                    FullName = null,
+                    DepositEnabled = enabled,
+                    WithdrawalEnabled = enabled,
+                    MinConfirmations = 0,
+                    Name = token.Value<string>(),
+                    Notes = null,
+                    TxFee = 0,
+                };
+
+                currencies[coin.Name] = coin;
+            }
+
+            return currencies;
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
@@ -716,7 +743,7 @@ namespace ExchangeSharp
         }
 
 
-#endregion
+        #endregion
 
         #region Private Functions
 
