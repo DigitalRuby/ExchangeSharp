@@ -556,6 +556,20 @@ namespace ExchangeSharp
 
             return depositDetails;
         }
+
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
+        {
+            Dictionary<string, decimal> marginAmounts = new Dictionary<string, decimal>();
+
+            string url = "/account/getbalances";
+            JToken response = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+
+            var result = response
+                .Where(i => includeZeroBalances || i["Available"].Value<decimal>() != 0)
+                .ToDictionary(i => i["Currency"].Value<string>(), i => i["Available"].Value<decimal>());
+
+            return result;
+        }
     }
 
     public partial class ExchangeName { public const string Bittrex = "Bittrex"; }
