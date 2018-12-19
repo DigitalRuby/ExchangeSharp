@@ -806,6 +806,24 @@ namespace ExchangeSharp
             };
         }
 
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
+        {
+            Dictionary<string, decimal> marginAmounts = new Dictionary<string, decimal>();
+
+            JToken resultAccounts = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, await GetNoncePayloadAsync());
+
+            // Take only first account?
+            JToken resultBalances = await MakeJsonRequestAsync<JToken>($"/account/accounts/{resultAccounts.First["id"].Value<int>()}/balance", PrivateUrlV1, await GetNoncePayloadAsync());
+
+            foreach (var balance in resultBalances["list"])
+            {
+                if (balance["type"].Value<string>() == "trade") // not frozen
+                    marginAmounts.Add(balance["currency"].Value<string>(), balance["balance"].Value<decimal>());
+            }
+
+            return marginAmounts;
+        }
+
         #endregion
 
         #region Private Functions
