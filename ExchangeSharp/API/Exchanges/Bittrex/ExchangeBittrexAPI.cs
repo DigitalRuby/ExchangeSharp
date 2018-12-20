@@ -526,16 +526,16 @@ namespace ExchangeSharp
         }
         private TransactionStatus ToStatus(JToken withdraw)
         {
-            if (withdraw["Canceled"].Value<bool>())
+            if (withdraw["Canceled"].ConvertInvariant<bool>())
                 return TransactionStatus.Rejected;
 
-            if (withdraw["InvalidAddress"].Value<bool>())
+            if (withdraw["InvalidAddress"].ConvertInvariant<bool>())
                 return TransactionStatus.Failure;
 
-            if (withdraw["PendingPayment"].Value<bool>())
+            if (withdraw["PendingPayment"].ConvertInvariant<bool>())
                 return TransactionStatus.AwaitingApproval;
 
-            if (withdraw["Authorized"].Value<bool>())
+            if (withdraw["Authorized"].ConvertInvariant<bool>())
                 return TransactionStatus.Complete;
 
             return TransactionStatus.Unknown;
@@ -601,8 +601,8 @@ namespace ExchangeSharp
             JToken response = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
 
             var result = response
-                .Where(i => includeZeroBalances || i["Available"].Value<decimal>() != 0)
-                .ToDictionary(i => i["Currency"].Value<string>(), i => i["Available"].Value<decimal>());
+                .Where(i => includeZeroBalances || i["Available"].ConvertInvariant<decimal>() != 0)
+                .ToDictionary(i => i["Currency"].ToStringInvariant(), i => i["Available"].ConvertInvariant<decimal>());
 
             return result;
         }

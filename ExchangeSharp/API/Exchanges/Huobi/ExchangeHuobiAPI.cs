@@ -382,7 +382,7 @@ namespace ExchangeSharp
                     DepositEnabled = enabled,
                     WithdrawalEnabled = enabled,
                     MinConfirmations = 0,
-                    Name = token.Value<string>(),
+                    Name = token.ToStringInvariant(),
                     Notes = null,
                     TxFee = 0,
                 };
@@ -723,18 +723,18 @@ namespace ExchangeSharp
 
             var deposits = await MakeJsonRequestAsync<JToken>($"/query/deposit-withdraw", PrivateUrlV1, payload);
             var result = deposits
-                .Where(d => d["type"].Value<string>() == "deposit")
+                .Where(d => d["type"].ToStringInvariant() == "deposit")
                 .Select(d => new ExchangeTransaction
                 {
-                    Address = d["address"].Value<string>(),
-                    AddressTag = d["address-tag"].Value<string>(),
-                    Amount = d["amount"].Value<long>(),
-                    BlockchainTxId = d["tx-hash"].Value<string>(),
-                    Currency = d["currency"].Value<string>(),
-                    PaymentId = d["id"].Value<long>().ToString(),
-                    Status = ToDepositStatus(d["state"].Value<string>()),
-                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(d["created-at"].Value<long>()),
-                    TxFee = d["fee"].Value<long>()
+                    Address = d["address"].ToStringInvariant(),
+                    AddressTag = d["address-tag"].ToStringInvariant(),
+                    Amount = d["amount"].ConvertInvariant<long>(),
+                    BlockchainTxId = d["tx-hash"].ToStringInvariant(),
+                    Currency = d["currency"].ToStringInvariant(),
+                    PaymentId = d["id"].ConvertInvariant<long>().ToString(),
+                    Status = ToDepositStatus(d["state"].ToStringInvariant()),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(d["created-at"].ConvertInvariant<long>()),
+                    TxFee = d["fee"].ConvertInvariant<long>()
                 });
 
             return result;
@@ -813,12 +813,12 @@ namespace ExchangeSharp
             JToken resultAccounts = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, await GetNoncePayloadAsync());
 
             // Take only first account?
-            JToken resultBalances = await MakeJsonRequestAsync<JToken>($"/account/accounts/{resultAccounts.First["id"].Value<int>()}/balance", PrivateUrlV1, await GetNoncePayloadAsync());
+            JToken resultBalances = await MakeJsonRequestAsync<JToken>($"/account/accounts/{resultAccounts.First["id"].ConvertInvariant<int>()}/balance", PrivateUrlV1, await GetNoncePayloadAsync());
 
             foreach (var balance in resultBalances["list"])
             {
-                if (balance["type"].Value<string>() == "trade") // not frozen
-                    marginAmounts.Add(balance["currency"].Value<string>(), balance["balance"].Value<decimal>());
+                if (balance["type"].ToStringInvariant() == "trade") // not frozen
+                    marginAmounts.Add(balance["currency"].ToStringInvariant(), balance["balance"].ConvertInvariant<decimal>());
             }
 
             return marginAmounts;
