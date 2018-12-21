@@ -99,6 +99,7 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
         protected virtual Task OnCancelOrderAsync(string orderId, string marketSymbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency) => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) => throw new NotImplementedException();
@@ -774,6 +775,15 @@ namespace ExchangeSharp
             await new SynchronizationContextRemover();
             withdrawalRequest.Currency = NormalizeMarketSymbol(withdrawalRequest.Currency);
             return await OnWithdrawAsync(withdrawalRequest);
+        }
+        
+        /// <summary>
+        /// Gets the withdraw history for a symbol
+        /// </summary>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        public virtual async Task<IEnumerable<ExchangeTransaction>> GetWithdrawHistoryAsync(string currency)
+        {
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetWithdrawHistoryAsync(currency), nameof(GetWithdrawHistoryAsync), nameof(currency), currency);
         }
 
         /// <summary>
