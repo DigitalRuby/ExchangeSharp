@@ -757,11 +757,6 @@ namespace ExchangeSharp
             }
         }
 
-        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
-        {
-            throw new NotImplementedException("Huobi does not provide a deposit API");
-        }
-
         protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
             throw new NotImplementedException("Huobi does not provide a deposit API");
@@ -780,11 +775,6 @@ namespace ExchangeSharp
                 Symbol = symbol
             };
             */
-        }
-
-        protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
-        {
-            throw new NotImplementedException("Huobi does not provide a withdraw API");
         }
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
