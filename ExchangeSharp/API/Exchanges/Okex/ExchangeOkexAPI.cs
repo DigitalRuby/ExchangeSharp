@@ -614,7 +614,11 @@ namespace ExchangeSharp
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
         {
             var trades = new List<ExchangeTrade>();
-            foreach (var t in token)
+			if (token.Count() > 1 && token["error_msg"] != null)
+			{
+				Logger.Warn(token["error_msg"].ToStringInvariant());
+			}
+            else foreach (var t in token)
             {
                 var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + chinaTimeOffset;
                 if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
@@ -687,7 +691,7 @@ namespace ExchangeSharp
         {
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+                marketSymbols = (await GetMarketSymbolsMetadataAsync()).Where(s => s.IsActive).Select(s => s.MarketSymbol).ToArray();
             }
             foreach (string marketSymbol in marketSymbols)
             {
