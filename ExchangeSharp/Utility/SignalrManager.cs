@@ -508,6 +508,7 @@ namespace ExchangeSharp
                     try
                     {
                         await StartAsync();
+                        connectCallback?.Invoke();
                     }
                     catch (Exception ex)
                     {
