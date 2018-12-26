@@ -70,7 +70,7 @@ namespace ExchangeSharp
         /// Not all exchanges will use this dictionary.
         /// These are added after all other parameters and will replace existing properties, such as order type.
         /// </summary>
-        public Dictionary<string, object> ExtraParameters { get; private set; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, object> ExtraParameters { get; set; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Return a rounded amount if needed
