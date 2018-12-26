@@ -135,8 +135,8 @@ namespace ExchangeSharp
                 {
                     MarketSymbol = marketName,
                     IsActive = marketSymbolToken["online"].ConvertInvariant<bool>(),
-                    QuoteCurrency = pieces[0],
-		    BaseCurrency = pieces[1],
+		    QuoteCurrency = pieces[1],
+                    BaseCurrency = pieces[0],
                     MarginEnabled = marketSymbolToken["isMarginOpen"].ConvertInvariant(false)
                 };
 
