@@ -156,16 +156,16 @@ namespace ExchangeSharp
                 var quantityStepSize = Math.Pow(10, -amountPrecision).ConvertInvariant<decimal>();
 
                 var market = new ExchangeMarket
-                             {
-                                 BaseCurrency = baseCurrency,
-                                 QuoteCurrency = quoteCurrency,
-                                 MarketSymbol = baseCurrency + quoteCurrency,
-                                 IsActive = true,
-                                 PriceStepSize = priceStepSize,
-                                 QuantityStepSize = quantityStepSize,
-                                 MinPrice = priceStepSize,
-                                 MinTradeSize = quantityStepSize,
-                             };
+                {
+                    BaseCurrency = baseCurrency,
+                    QuoteCurrency = quoteCurrency,
+                    MarketSymbol = baseCurrency + quoteCurrency,
+                    IsActive = true,
+                    PriceStepSize = priceStepSize,
+                    QuantityStepSize = quantityStepSize,
+                    MinPrice = priceStepSize,
+                    MinTradeSize = quantityStepSize,
+                };
 
 
                 markets.Add(market);
@@ -364,6 +364,33 @@ namespace ExchangeSharp
                     await _socket.SendMessageAsync(new { sub = channel, id = "id" + id.ToStringInvariant() });
                 }
             });
+        }
+
+        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+        {
+            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+            JToken array = await MakeJsonRequestAsync<JToken>("/v1/hadax/common/currencys");
+
+            foreach (JToken token in array)
+            {
+                bool enabled = true;
+                var coin = new ExchangeCurrency
+                {
+                    BaseAddress = null,
+                    CoinType = null,
+                    FullName = null,
+                    DepositEnabled = enabled,
+                    WithdrawalEnabled = enabled,
+                    MinConfirmations = 0,
+                    Name = token.ToStringInvariant(),
+                    Notes = null,
+                    TxFee = 0,
+                };
+
+                currencies[coin.Name] = coin;
+            }
+
+            return currencies;
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
@@ -685,9 +712,49 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
-        protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
-            throw new NotImplementedException("Huobi does not provide a deposit API");
+            var payload = await GetNoncePayloadAsync();
+            currency = currency.ToLowerInvariant();
+            payload["currency"] = currency;
+            payload["type"] = "deposit";
+            payload["from"] = 5;
+            payload["size"] = 12;
+
+            var deposits = await MakeJsonRequestAsync<JToken>($"/query/deposit-withdraw", PrivateUrlV1, payload);
+            var result = deposits
+                .Where(d => d["type"].ToStringInvariant() == "deposit")
+                .Select(d => new ExchangeTransaction
+                {
+                    Address = d["address"].ToStringInvariant(),
+                    AddressTag = d["address-tag"].ToStringInvariant(),
+                    Amount = d["amount"].ConvertInvariant<long>(),
+                    BlockchainTxId = d["tx-hash"].ToStringInvariant(),
+                    Currency = d["currency"].ToStringInvariant(),
+                    PaymentId = d["id"].ConvertInvariant<long>().ToString(),
+                    Status = ToDepositStatus(d["state"].ToStringInvariant()),
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(d["created-at"].ConvertInvariant<long>()),
+                    TxFee = d["fee"].ConvertInvariant<long>()
+                });
+
+            return result;
+        }
+        private TransactionStatus ToDepositStatus(string status)
+        {
+            switch (status)
+            {
+                case "confirming":
+                    return TransactionStatus.AwaitingApproval;
+                case "safe":
+                case "confirmed":
+                    return TransactionStatus.Complete;
+                case "orphan":
+                    return TransactionStatus.Failure;
+                case "unknown":
+                    return TransactionStatus.Unknown;
+                default:
+                    throw new InvalidOperationException($"Unknown status: {status}"); 
+            }
         }
 
         protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
@@ -710,13 +777,44 @@ namespace ExchangeSharp
             */
         }
 
-        protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            throw new NotImplementedException("Huobi does not provide a withdraw API");
+            var payload = await GetNoncePayloadAsync();
+
+            payload["address"] = withdrawalRequest.Address;
+            payload["amount"] = withdrawalRequest.Amount;
+            payload["currency"] = withdrawalRequest.Currency;
+            if (withdrawalRequest.AddressTag != null)
+                payload["attr-tag"] = withdrawalRequest.AddressTag;
+
+            JToken result = await MakeJsonRequestAsync<JToken>("/dw/withdraw/api/create", PrivateUrlV1, payload, "POST");
+
+            return new ExchangeWithdrawalResponse
+            {
+                Id = result.Root["data"].ToStringInvariant(),
+                Message = result.Root["status"].ToStringInvariant()
+            };
         }
 
+        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
+        {
+            Dictionary<string, decimal> marginAmounts = new Dictionary<string, decimal>();
 
-#endregion
+            JToken resultAccounts = await MakeJsonRequestAsync<JToken>("/account/accounts", PrivateUrlV1, await GetNoncePayloadAsync());
+
+            // Take only first account?
+            JToken resultBalances = await MakeJsonRequestAsync<JToken>($"/account/accounts/{resultAccounts.First["id"].ConvertInvariant<int>()}/balance", PrivateUrlV1, await GetNoncePayloadAsync());
+
+            foreach (var balance in resultBalances["list"])
+            {
+                if (balance["type"].ToStringInvariant() == "trade") // not frozen
+                    marginAmounts.Add(balance["currency"].ToStringInvariant(), balance["balance"].ConvertInvariant<decimal>());
+            }
+
+            return marginAmounts;
+        }
+
+        #endregion
 
         #region Private Functions
 

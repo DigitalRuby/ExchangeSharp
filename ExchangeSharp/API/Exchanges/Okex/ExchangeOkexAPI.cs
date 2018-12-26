@@ -23,6 +23,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
+        public string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket?compress=true";
 
 	/// <summary>
@@ -297,7 +298,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
-            var token = await MakeRequestOkexAsync(marketSymbol, "/depth.do?symbol=$SYMBOL$");
+            var token = await MakeRequestOkexAsync(marketSymbol, $"/spot/v3/instruments/{marketSymbol}/book", BaseUrlV3);
+            
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
@@ -612,7 +614,11 @@ namespace ExchangeSharp
         private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
         {
             var trades = new List<ExchangeTrade>();
-            foreach (var t in token)
+			if (token.Count() > 1 && token["error_msg"] != null)
+			{
+				Logger.Warn(token["error_msg"].ToStringInvariant());
+			}
+            else foreach (var t in token)
             {
                 var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + chinaTimeOffset;
                 if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
@@ -685,7 +691,7 @@ namespace ExchangeSharp
         {
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+                marketSymbols = (await GetMarketSymbolsMetadataAsync()).Where(s => s.IsActive).Select(s => s.MarketSymbol).ToArray();
             }
             foreach (string marketSymbol in marketSymbols)
             {

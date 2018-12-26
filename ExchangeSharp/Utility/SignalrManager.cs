@@ -46,6 +46,7 @@ namespace ExchangeSharp
             private Func<string, Task> callback;
             private string functionFullName;
             private bool disposed;
+            private bool initialConnectFired;
 
 			private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
 			/// <summary>
@@ -167,6 +168,13 @@ namespace ExchangeSharp
                     lock (_manager.sockets)
                     {
                         _manager.sockets.Add(this);
+                    }
+                    if (!initialConnectFired)
+                    {
+                        initialConnectFired = true;
+
+                        // kick off a connect event if this is the first time, the connect even can only get set after the open request is sent
+                        Task.Delay(1000).ContinueWith(async (t) => { await InvokeConnected(); }).ConfigureAwait(false).GetAwaiter();
                     }
                     return;
                 }

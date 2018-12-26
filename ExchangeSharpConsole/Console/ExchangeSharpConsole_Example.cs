@@ -159,8 +159,8 @@ namespace ExchangeSharpConsole
                 {
                    //print the top bid and ask with amount
                    var topBid = message.Bids.FirstOrDefault();
-                    var topAsk = message.Asks.FirstOrDefault();
-                    Console.WriteLine($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                   var topAsk = message.Asks.FirstOrDefault();
+                   Console.WriteLine($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
                 }, symbols: symbols);
             });
         }
