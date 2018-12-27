@@ -576,7 +576,7 @@ namespace ExchangeSharp
                 case OrderType.Limit:
                     // set payload["post_only"] to true for default scenario when order.ExtraParameters["post_only"] is not specified
                     // to place non-post-only limit order one can set and pass order.ExtraParameters["post_only"]="false"
-                    payload["post_only"] = (order.ExtraParameters["post_only"] == null) ? "true" : order.ExtraParameters["post_only"];
+                    payload["post_only"] = order.ExtraParameters.TryGetValueOrDefault("post_only", "true");
                     break;
                     
                 case OrderType.Stop:
