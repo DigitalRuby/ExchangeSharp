@@ -660,7 +660,7 @@ namespace ExchangeSharp
             {
                 request.AddHeader("content-length", "0");
             }
-            else if (!string.IsNullOrEmpty(form) && request.Method != "GET")
+            else if (!string.IsNullOrEmpty(form))
             {
                 byte[] bytes = form.ToBytesUTF8();
                 request.AddHeader("content-length", bytes.Length.ToStringInvariant());
