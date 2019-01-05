@@ -352,7 +352,7 @@ namespace ExchangeSharp
                 {
                     marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
                 }
-                await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "\"orderBookL2:" + this.NormalizeMarketSymbol(s) + "\"").ToArray() });
+                await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "orderBookL2:" + this.NormalizeMarketSymbol(s)).ToArray() });
             });
         }
 
