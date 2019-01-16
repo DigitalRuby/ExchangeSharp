@@ -319,7 +319,8 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             ExchangeOrderBook orders = new ExchangeOrderBook();
-            decimal[][] books = await MakeJsonRequestAsync<decimal[][]>("/book/t" + marketSymbol + "/P0?len=" + maxCount);
+            decimal[][] books = await MakeJsonRequestAsync<decimal[][]>("/book/t" + marketSymbol +
+	        "/P0?limit_bids=" + maxCount.ToStringInvariant() + "limit_asks=" + maxCount.ToStringInvariant());
             foreach (decimal[] book in books)
             {
                 if (book[2] > 0m)
