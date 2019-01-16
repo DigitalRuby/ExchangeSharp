@@ -165,7 +165,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>($"/api?method=gettradehistory&coin={cur}&start={start}&end={end}");
             foreach (JToken trade in token)
             {
-                trades.Add(token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "tradeid"));
+                trades.Add(trade.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "tradeid"));
             }
             if (trades.Count > 0) return trades.OrderByDescending(t => t.Timestamp).Take(10);
             else return trades;
