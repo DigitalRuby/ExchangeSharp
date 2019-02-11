@@ -558,6 +558,10 @@ namespace ExchangeSharp
             payload["side"] = order.IsBuy ? "Buy" : "Sell";
             payload["orderQty"] = order.Amount;
             payload["price"] = order.Price;
+            if (order.ExtraParameters.TryGetValue("execInst", out var execInst))
+            {
+                payload["execInst"] = execInst;
+            }
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)
