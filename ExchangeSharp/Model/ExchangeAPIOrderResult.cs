@@ -33,6 +33,9 @@ namespace ExchangeSharp
         /// <summary>Order was cancelled</summary>
         Canceled,
 
+        /// <summary>Order cancelled after partially filled</summary>
+        FilledPartiallyAndCancelled,
+
         /// <summary>Order is pending cancel</summary>
         PendingCancel,
     }
