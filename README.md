@@ -17,6 +17,7 @@ The following cryptocurrency exchanges are supported:
 | ---------------- | --------- | ----------- | --------- |
 | Abucoins         | x         | x           | TRO       |
 | Binance          | x         | x           | TRB       |
+| Bitbank          | x         | x           |           |
 | Bitfinex         | x         | x           | TRO       |
 | Bithumb          | x         |             |           |
 | BitMEX           | x         | x           | RO        |
