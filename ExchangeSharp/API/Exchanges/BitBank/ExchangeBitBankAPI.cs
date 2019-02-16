@@ -98,33 +98,7 @@ namespace ExchangeSharp
             => await OnGetAmountsAsyncCore("onhand_amount");
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
-            /*
-            {
-                trade_id: number;
-                pair: string;
-                order_id: number;
-                side: string;
-                type: string;
-                amount: string;
-                price: string;
-                maker_taker: string;
-                fee_amount_base: string;
-                fee_amount_quote: string;
-                executed_at: number;
-            }
-             */
-
-            ExchangeHistoricalTradeHelper helper = new ExchangeHistoricalTradeHelper(this)
-            {
-                Callback = callback,
-                EndDate = endDate,
-                ParseFunction = (JToken t) => t["trades"].ParseTrade("amount", "price", "type", "executed_at", TimestampType.UnixMilliseconds, "trade_id", "false"),
-                StartDate = startDate,
-                MarketSymbol = marketSymbol,
-                TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
-                Url = "/user/spot/trade_history",
-            };
-            await helper.ProcessHistoricalTrades();
+            throw new NotImplementedException();
         }
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
@@ -373,6 +347,15 @@ namespace ExchangeSharp
                     balances[assets["assets"].ToStringInvariant()] = amount;
             }
             return balances;
+        }
+        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        {
+            throw new NotImplementedException();
         }
     }
 }

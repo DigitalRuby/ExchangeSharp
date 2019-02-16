@@ -215,57 +215,7 @@ namespace ExchangeSharpTests
             order.IsBuy.Should().BeFalse();
         }
 
-
-        [TestMethod]
-        public async Task ShouldGetTradeHistory()
-        {
-            var data = @"
-            {
-                success: 1,
-                data: {
-                    trades: [
-                        {
-                            trade_id: 58077954,
-                            order_id: 558167037,
-                            pair: 'btc_jpy',
-                            side: 'sell',
-                            type: 'limit',
-                            amount: '0.00400000',
-                            price: '395254.0000',
-                            maker_taker: 'taker',
-                            fee_amount_base: '0.00000000',
-                            fee_amount_quote: '2.3715',
-                            executed_at: 1550096081545
-                        }
-                    ]
-                }
-            }
-            ";
-            var api = makeMockRequestMaker(data);
-            await api.GetHistoricalTradesAsync((resp) => {
-                ExchangeTrade trade = resp.First();
-                trade.Id.Should().Equals(58077954L);
-                trade.Amount.Should().Equals(0.004m);
-                trade.Price.Should().Equals(495254m);
-                trade.IsBuy.Should().BeFalse();
-                trade.Timestamp.Should().Equals(DateTimeOffset.FromUnixTimeMilliseconds(1550096081545).DateTime);
-                return true;
-            }, "BTC-JPY");
-        }
         # endregion
 
-        [TestMethod]
-        public async Task Base()
-        {
-            var data = @"
-            {
-                success: 1,
-                data: {
-
-                }
-            }
-            ";
-            var api = makeMockRequestMaker(data);
-        }
     }
 }
