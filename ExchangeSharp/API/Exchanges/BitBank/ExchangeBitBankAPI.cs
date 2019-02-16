@@ -13,7 +13,6 @@ namespace ExchangeSharp
         public string BaseUrlPrivate { get; set; } = "https://api.bitbank.cc/v1";
         public string ErrorCodeDescriptionURl { get; set; } = "https://docs.bitbank.cc/error_code/";
 
-        public partial class ExchangeName { public const string BitBank = "BitBank"; }
 
         // bitbank trade fees are fixed
         private const decimal MakerFee = -0.0005m;
@@ -72,22 +71,29 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             var period = FormatPeriod(periodSeconds);
-            JToken token = await MakeJsonRequestAsync<JToken>($"/{marketSymbol}/candlestick/{period}/{startDate.ToStringInvariant()}");
+            var url = $"/{marketSymbol}/candlestick/{period}/{startDate?.ToString("yyyyMMdd")}";
+            JToken token = await MakeJsonRequestAsync<JToken>(url);
             List <MarketCandle> result = new List<MarketCandle>();
             // since it is impossible to convert by `CryptoUtility.ToDateTimeInvariant()`
             foreach (var c in token["candlestick"])
             {
-                var candle = new MarketCandle()
+                foreach (var data in c["ohlcv"])
                 {
-                    ExchangeName = "BitBank",
-                    OpenPrice = c["ohlcv"][0].ConvertInvariant<decimal>(),
-                    HighPrice = c["ohlcv"][1].ConvertInvariant<decimal>(),
-                    LowPrice = c["ohlcv"][2].ConvertInvariant<decimal>(),
-                    ClosePrice = c["ohlcv"][3].ConvertInvariant<decimal>(),
-                    BaseCurrencyVolume = c["ohlcv"][4].ConvertInvariant<double>(),
-                    Timestamp = DateTime.SpecifyKind(c["ohlcv"][5].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(), DateTimeKind.Utc)
-            };
-                result.Add(candle);
+                    var open = data[0].ConvertInvariant<decimal>();
+                    var timestamp = DateTime.SpecifyKind(data[5].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(), DateTimeKind.Utc);
+                    var candle = new MarketCandle()
+                    {
+                        ExchangeName = "BitBank",
+                        Name = url,
+                        OpenPrice = open,
+                        HighPrice = data[1].ConvertInvariant<decimal>(),
+                        LowPrice = data[2].ConvertInvariant<decimal>(),
+                        ClosePrice = data[3].ConvertInvariant<decimal>(),
+                        BaseCurrencyVolume = data[4].ConvertInvariant<double>(),
+                        Timestamp = timestamp,
+                    };
+                    result.Add(candle);
+                }
             }
             return result;
         }
@@ -185,9 +191,26 @@ namespace ExchangeSharp
 
         # endregion
 
+        /// <summary>
+        /// BitBank does not support API for this one. So hard-code it.
+        /// </summary>
+        /// <returns></returns>
+        protected override Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
+        {
+            return Task.FromResult(new List<string> {
+                "BTC_JPY",
+                "XRP_JPY",
+                "LTC_BTC",
+                "ETH_BTC",
+                "MONA_JPY",
+                "MONA_BTC",
+                "BCC_JPY",
+                "BCC_BTC"
+                }.AsEnumerable());
+        }
 
         // protected override Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync() => throw new NotImplementedException();
-        // protected override Task<IEnumerable<string>> OnGetMarketSymbolsAsync() => throw new NotImplementedException();
+
         // protected override Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync() => throw new NotImplementedException();
         // protected override Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false) => throw new NotImplementedException();
         // protected override Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency) => throw new NotImplementedException();
@@ -262,19 +285,18 @@ namespace ExchangeSharp
                 return "15min";
             if (ps < 1800)
                 return "30min";
-            if (ps < 3600)
+            else
                 return "1hour";
+            /* These are not working
             if (ps < 3600 * 4)
                 return "4hour";
             if (ps < 3600 * 8)
                 return "8hour";
             if (ps < 3600 * 12)
                 return "12hour";
-            if (ps < 3600 * 24)
+            else
                 return "1day";
-            if (ps < 3600 * 24 * 7)
-                return "1week";
-            throw new APIException($"Can not specify period longer than {(3600 * 24 * 7).ToStringInvariant()} seconds! (i.e. one week.)");
+            */
         }
         
         private ExchangeOrderResult ParseOrder(JToken token)
@@ -358,4 +380,5 @@ namespace ExchangeSharp
             throw new NotImplementedException();
         }
     }
+    public partial class ExchangeName { public const string BitBank = "BitBank"; }
 }
