@@ -102,9 +102,9 @@ namespace ExchangeSharp
 
         # region Private APIs
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
-            => await OnGetAmountsAsyncCore("onhand_amount");
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync() => await OnGetAmountsAsyncCore("onhand_amount");
+
+        protected override Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             throw new NotImplementedException();
         }
