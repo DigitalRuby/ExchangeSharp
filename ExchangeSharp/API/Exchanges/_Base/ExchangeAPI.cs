@@ -557,7 +557,7 @@ namespace ExchangeSharp
         /// <returns>Ticker</returns>
         public virtual async Task<ExchangeTicker> GetTickerAsync(string marketSymbol)
         {
-            NormalizeMarketSymbol(marketSymbol);
+            marketSymbol = NormalizeMarketSymbol(marketSymbol);
             return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetTickerAsync(marketSymbol), nameof(GetTickerAsync), nameof(marketSymbol), marketSymbol);
         }
 
