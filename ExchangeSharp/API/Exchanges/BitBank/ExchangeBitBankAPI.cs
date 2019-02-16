@@ -14,7 +14,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://public.bitbank.cc";
         public string BaseUrlPrivate { get; set; } = "https://api.bitbank.cc/v1";
-        public string ErrorCodeDescriptionURl { get; set; } = "https://docs.bitbank.cc/error_code/";
+        public string ErrorCodeDescriptionUrl { get; set; } = "https://docs.bitbank.cc/error_code/";
 
 
         // bitbank trade fees are fixed
