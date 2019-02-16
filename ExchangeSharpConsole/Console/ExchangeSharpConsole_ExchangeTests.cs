@@ -54,7 +54,7 @@ namespace ExchangeSharpConsole
                 {
                     return "ETH-BTC";
                 }
-                else if (api is ExchangeYobitAPI)
+                else if (api is ExchangeYobitAPI || api is ExchangeBitBankAPI)
                 {
                     return "LTC-BTC";
                 }
