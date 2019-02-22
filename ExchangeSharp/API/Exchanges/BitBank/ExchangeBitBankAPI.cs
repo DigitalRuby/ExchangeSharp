@@ -7,9 +7,6 @@ using static ExchangeSharp.CryptoUtility;
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// PublicApiKey is API Secret
-    /// </summary>
     public sealed partial class ExchangeBitBankAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://public.bitbank.cc";
@@ -276,10 +273,10 @@ namespace ExchangeSharp
                 {
                     throw new APIException($"BitBank does not support {request.Method} as its HTTP method!");
                 }
-                string signature = CryptoUtility.SHA256Sign(stringToCommit, CryptoUtility.ToUnsecureBytesUTF8(PublicApiKey));
+                string signature = CryptoUtility.SHA256Sign(stringToCommit, CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey));
 
                 request.AddHeader("ACCESS-NONCE", nonce.ToStringInvariant());
-                request.AddHeader("ACCESS-KEY", PrivateApiKey.ToUnsecureString());
+                request.AddHeader("ACCESS-KEY", PublicApiKey.ToUnsecureString());
                 request.AddHeader("ACCESS-SIGNATURE", signature);
             }
             return;
