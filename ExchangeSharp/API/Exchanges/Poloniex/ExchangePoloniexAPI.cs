@@ -333,8 +333,8 @@ namespace ExchangeSharp
                 string[] pairs = kvp.Key.Split('_');
                 if (pairs.Length == 2)
                 {
-                    market.BaseCurrency = pairs[0];
-                    market.QuoteCurrency = pairs[1];
+                    market.QuoteCurrency = pairs[0];
+                    market.BaseCurrency = pairs[1];
                     market.PriceStepSize = StepSize;
                     market.QuantityStepSize = StepSize;
                     market.MinPrice = StepSize;
