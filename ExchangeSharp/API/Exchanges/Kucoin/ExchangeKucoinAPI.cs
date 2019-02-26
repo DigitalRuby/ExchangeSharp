@@ -26,8 +26,8 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeKucoinAPI : ExchangeAPI
     {
-        public override string BaseUrl { get; set; } = "https://api.kucoin.com/v1";
-        public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
+		public override string BaseUrl { get; set; } = "https://api.kucoin.com/api/v1";
+		public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
         public ExchangeKucoinAPI()
         {
@@ -114,25 +114,31 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             List<string> symbols = new List<string>();
-            // [ { "coinType": "KCS", "trading": true, "lastDealPrice": 4500,"buy": 4120, "sell": 4500, "coinTypePair": "BTC", "sort": 0,"feeRate": 0.001,"volValue": 324866889, "high": 6890, "datetime": 1506051488000, "vol": 5363831663913, "low": 4500, "changeRate": -0.3431 }, ... ]
-            JToken marketSymbolTokens = await MakeJsonRequestAsync<JToken>("/market/open/symbols");
-            foreach (JToken marketSymbolToken in marketSymbolTokens) symbols.Add(marketSymbolToken["coinType"].ToStringInvariant() + "-" + marketSymbolToken["coinTypePair"].ToStringInvariant());        // they don't put it together for ya...
+			// [{"symbol":"REQ-ETH","quoteMaxSize":"99999999","enableTrading":true,"priceIncrement":"0.0000001","baseMaxSize":"1000000","baseCurrency":"REQ","quoteCurrency":"ETH","market":"ETH","quoteIncrement":"0.0000001","baseMinSize":"1","quoteMinSize":"0.00001","name":"REQ-ETH","baseIncrement":"0.0001"}, ... ]
+			JToken marketSymbolTokens = await MakeJsonRequestAsync<JToken>("/symbols");
+			foreach (JToken marketSymbolToken in marketSymbolTokens) symbols.Add(marketSymbolToken["symbol"].ToStringInvariant());
             return symbols;
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
-            // [ { "coinType": "ETH", "trading": true, "symbol": "ETH-BTC", "lastDealPrice": 0.03169122, "buy": 0.03165041, "sell": 0.03168714, "change": -0.00004678, "coinTypePair": "BTC", "sort": 100, "feeRate": 0.001, "volValue": 121.99939218, "plus": true, "high": 0.03203444, "datetime": 1539730948000, "vol": 3847.9028281, "low": 0.03153312, "changeRate": -0.0015 }, ... ]
-            JToken marketSymbolTokens = await MakeJsonRequestAsync<JToken>("/market/open/symbols");
-            foreach (JToken marketSymbolToken in marketSymbolTokens)
+			// [{"symbol":"REQ-ETH","quoteMaxSize":"99999999","enableTrading":true,"priceIncrement":"0.0000001","baseMaxSize":"1000000","baseCurrency":"REQ","quoteCurrency":"ETH","market":"ETH","quoteIncrement":"0.0000001","baseMinSize":"1","quoteMinSize":"0.00001","name":"REQ-ETH","baseIncrement":"0.0001"}, ... ]
+			JToken marketSymbolTokens = await MakeJsonRequestAsync<JToken>("/symbols");
+			foreach (JToken marketSymbolToken in marketSymbolTokens)
             {
                 ExchangeMarket market = new ExchangeMarket()
                 {
-                    IsActive = marketSymbolToken["trading"].ConvertInvariant<bool>(),
-                    BaseCurrency = marketSymbolToken["coinType"].ToStringInvariant(),
-                    QuoteCurrency = marketSymbolToken["coinTypePair"].ToStringInvariant(),
-                    MarketSymbol = marketSymbolToken["symbol"].ToStringInvariant()
+                    MarketSymbol = marketSymbolToken["symbol"].ToStringInvariant(),
+                    BaseCurrency = marketSymbolToken["baseCurrency"].ToStringInvariant(),
+                    QuoteCurrency = marketSymbolToken["quoteCurrency"].ToStringInvariant(),
+					MinTradeSize = marketSymbolToken["baseMinSize"].ConvertInvariant<decimal>(),
+					MinTradeSizeInQuoteCurrency = marketSymbolToken["quoteMinSize"].ConvertInvariant<decimal>(),
+					MaxTradeSize = marketSymbolToken["baseMaxSize"].ConvertInvariant<decimal>(),
+					MaxTradeSizeInQuoteCurrency = marketSymbolToken["quoteMaxSize"].ConvertInvariant<decimal>(),
+					QuantityStepSize = marketSymbolToken["baseIncrement"].ConvertInvariant<decimal>(),
+					PriceStepSize = marketSymbolToken["priceIncrement"].ConvertInvariant<decimal>(),
+					IsActive = marketSymbolToken["enableTrading"].ConvertInvariant<bool>(),
                 };
                 markets.Add(market);
             }
