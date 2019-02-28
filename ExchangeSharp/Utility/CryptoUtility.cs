@@ -649,6 +649,16 @@ namespace ExchangeSharp
             return string.Empty;
         }
 
+        public static string GetJsonForPayload(this Dictionary<string, object> payload, bool includeNonce = true)
+        {
+            if (includeNonce == false)
+            {
+                payload.Remove("nonce");
+            }
+            return (GetJsonForPayload(payload));
+        }
+
+
         /// <summary>
         /// Write a form to a request
         /// </summary>
@@ -788,6 +798,11 @@ namespace ExchangeSharp
             return new HMACSHA256(key.ToBytesUTF8()).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
+        public static string SHA256Sign(string message, string key, bool UseASCII)
+        {
+            var encoding = new ASCIIEncoding();
+            return Convert.ToBase64String(new HMACSHA256(encoding.GetBytes(key)).ComputeHash(encoding.GetBytes(message)));
+        }
         /// <summary>
         /// Sign a message with SHA256 hash
         /// </summary>
