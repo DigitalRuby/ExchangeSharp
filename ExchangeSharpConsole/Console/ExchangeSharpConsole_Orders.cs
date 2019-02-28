@@ -61,21 +61,18 @@ namespace ExchangeSharpConsole
 
         private static void Authenticate(IExchangeAPI api)
         {
-            //Console.Write("Enter Public Api Key: ");
-            //var publicApiKey = GetSecureInput();
-            //api.PublicApiKey = publicApiKey;
-
-            //Console.WriteLine();
-            //Console.Write("Enter Private Api Key: ");
-            //var privateApiKey = GetSecureInput();
-            //api.PrivateApiKey = privateApiKey;
-            //Console.WriteLine();
-            //Console.Write("Enter Passphrase: ");
-            //var passphrase = GetSecureInput();
-            //api.Passphrase = passphrase;
-            //Console.WriteLine();
-            api.LoadAPIKeysUnsecure("5c767817134ab774ae3bc2a7", "ff1d8b2f-768c-431c-b1bc-b3e2b94c7133", "KerwinDev");
-
+            Console.Write("Enter Public Api Key: ");
+            var publicApiKey = GetSecureInput();
+            api.PublicApiKey = publicApiKey;
+            Console.WriteLine();
+            Console.Write("Enter Private Api Key: ");
+            var privateApiKey = GetSecureInput();
+            api.PrivateApiKey = privateApiKey;
+            Console.WriteLine();
+            Console.Write("Enter Passphrase: ");
+            var passphrase = GetSecureInput();
+            api.Passphrase = passphrase;
+            Console.WriteLine();
         }
 
         private static SecureString GetSecureInput()
