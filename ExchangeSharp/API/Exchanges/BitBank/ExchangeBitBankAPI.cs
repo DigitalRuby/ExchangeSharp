@@ -31,6 +31,7 @@ namespace ExchangeSharp
             NonceOffset = TimeSpan.FromSeconds(0.1);
             MarketSymbolIsUppercase = false;
             MarketSymbolSeparator = "_";
+            MarketSymbolIsReversed = true;
             WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
@@ -38,8 +39,31 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>($"/{marketSymbol}/ticker");
-            return ParseTicker(marketSymbol, obj);
+            JToken token = await MakeJsonRequestAsync<JToken>($"/{marketSymbol}/ticker");
+            return ParseTicker(marketSymbol, token);
+        }
+
+        // Bitbank supports endpoint for getting all rates in one request, Using this endpoint is faster then ExchangeAPI's default implementation
+        // (which interate `OnGetTickerAsync` for each marketSymbols)
+        // Note: This doesn't give you a volume. if you want it, please specify marketSymbol.
+        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+        {
+            JToken token = await MakeJsonRequestAsync<JToken>($"/prices");
+            var symbols = await OnGetMarketSymbolsAsync();
+            var result = new List<KeyValuePair<string, ExchangeTicker>>();
+            foreach (var symbol in symbols)
+            {
+                var data = token[GlobalMarketSymbolToExchangeMarketSymbol(symbol)];
+                var ticker = new ExchangeTicker()
+                {
+                    Ask = data["sell"].ConvertInvariant<decimal>(),
+                    Bid = data["buy"].ConvertInvariant<decimal>(),
+                    Last = data["last"].ConvertInvariant<decimal>(),
+                    MarketSymbol = symbol
+                };
+                result.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
+            }
+            return result;
         }
 
         # endregion
@@ -200,14 +224,14 @@ namespace ExchangeSharp
         protected override Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             return Task.FromResult(new List<string> {
-                "BTC_JPY",
-                "XRP_JPY",
-                "LTC_BTC",
-                "ETH_BTC",
-                "MONA_JPY",
-                "MONA_BTC",
-                "BCC_JPY",
-                "BCC_BTC"
+                "BTC-JPY",
+                "XRP-JPY",
+                "LTC-BTC",
+                "ETH-BTC",
+                "MONA-JPY",
+                "MONA-BTC",
+                "BCC-JPY",
+                "BCC-BTC"
                 }.AsEnumerable());
         }
 
@@ -380,15 +404,6 @@ namespace ExchangeSharp
                     balances[assets["assets"].ToStringInvariant()] = amount;
             }
             return balances;
-        }
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
-        {
-            throw new NotImplementedException();
         }
     }
     public partial class ExchangeName { public const string BitBank = "BitBank"; }
