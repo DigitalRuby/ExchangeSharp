@@ -542,7 +542,7 @@ namespace ExchangeSharp
                 AddOrderToPayload(order, subPayload);
                 orderRequests.Add(subPayload);
             }
-            payload[CryptoUtility.PayloadKeyArray] = orderRequests;
+            payload["orders"] = orderRequests;
             JToken token = await MakeJsonRequestAsync<JToken>("/order/bulk", BaseUrl, payload, "POST");
             foreach (JToken orderResultToken in token)
             {
