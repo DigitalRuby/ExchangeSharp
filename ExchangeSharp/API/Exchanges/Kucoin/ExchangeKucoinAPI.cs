@@ -27,8 +27,8 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeKucoinAPI : ExchangeAPI
     {
-		public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
-		public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
+        public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
+        public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
         public ExchangeKucoinAPI()
         {
@@ -173,7 +173,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            // { "coinType": "KCS","trading": true,"lastDealPrice": 5040,"buy": 5000,"sell": 5040, "coinTypePair": "BTC","sort": 0,"feeRate": 0.001,"volValue": 308140577,"high": 6890, "datetime": 1506050394000, "vol": 5028739175025, "low": 5040, "changeRate": -0.2642 }
+            //{ "code":"200000","data":{ "sequence":"1550467754497","bestAsk":"0.000277","size":"107.3627934","price":"0.000276","bestBidSize":"2062.7337015","time":1551735305135,"bestBid":"0.0002741","bestAskSize":"223.177"} }
             JToken token = await MakeJsonRequestAsync<JToken>("/market/orderbook/level1?symbol=" + marketSymbol);
             return this.ParseTicker(token, marketSymbol);
         }
@@ -186,7 +186,7 @@ namespace ExchangeSharp
             foreach (JToken tick in token)
             {
                 string marketSymbol = tick["symbol"].ToStringInvariant();
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTicker(tick, marketSymbol)));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickers(tick, marketSymbol)));
             }
             return tickers;
         }
@@ -420,28 +420,28 @@ namespace ExchangeSharp
             var websocketUrlToken = GetWebsocketBulletToken();
             return ConnectWebSocket(
                     $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
-                                  {
-                                      JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                                      if (token["type"].ToStringInvariant() == "message")
-                                      {
-                                          var dataToken = token["data"];
-                                          var marketSymbol = dataToken["symbol"].ToStringInvariant();
-                                          ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
-                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
-                                      }
+		  {
+		      JToken token = JToken.Parse(msg.ToStringFromUTF8());
+		      if (token["type"].ToStringInvariant() == "message")
+		      {
+			  var dataToken = token["data"];
+			  var marketSymbol = dataToken["symbol"].ToStringInvariant();
+			  ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
+			  callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
+		      }
 
-                                      return Task.CompletedTask;
-                                  }, async (_socket) =>
-                                     {
-                                         //need to subscribe to tickers one by one
-                                         marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                                         var id = DateTime.UtcNow.Ticks;
-                                         foreach (var marketSymbol in marketSymbols)
-                                         {
-                                             // subscribe to tick topic
-                                             await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
-                                         }
-                                     }
+		      return Task.CompletedTask;
+		  }, async (_socket) =>
+		     {
+			 //need to subscribe to tickers one by one
+			 marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
+			 var id = DateTime.UtcNow.Ticks;
+			 foreach (var marketSymbol in marketSymbols)
+			 {
+			     // subscribe to tick topic
+			     await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
+			 }
+		     }
                 );
         }
 
@@ -495,7 +495,34 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
-            return this.ParseTicker(token, symbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds, "coinType", "coinTypePair");
+//            //Get Ticker
+//            {
+//                "sequence": "1550467636704",
+//    "bestAsk": "0.03715004",
+//    "size": "0.17",
+//    "price": "0.03715005",
+//    "bestBidSize": "3.803",
+//    "bestBid": "0.03710768",
+//    "bestAskSize": "1.788",
+//    "time": 1550653727731
+            
+//}
+            return this.ParseTicker(token, symbol, "bestAsk", "bestBid", "price", "bestAskSize");
+}
+        private ExchangeTicker ParseTickers(JToken token, string symbol)
+        {
+      //      {
+      //          "symbol": "LOOM-BTC",
+      //  "buy": "0.00001191",
+      //  "sell": "0.00001206",
+      //  "changeRate": "0.057",
+      //  "changePrice": "0.00000065",
+      //  "high": "0.0000123",
+      //  "low": "0.00001109",
+      //  "vol": "45161.5073",
+      //  "last": "0.00001204"
+      //},
+ return this.ParseTicker(token, symbol, "sell", "buy", "last", "vol");
         }
 
         // { "oid": "59e59b279bd8d31d093d956e", "type": "SELL", "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "SELL","price": 0.1,"dealAmount": 0,"pendingAmount": 100, "createdAt": 1508219688000, "updatedAt": 1508219688000 }
@@ -552,29 +579,32 @@ namespace ExchangeSharp
 
         private async Task<Dictionary<string, decimal>> OnGetAmountsInternalAsync(bool includeFreezeBalance)
         {
-            // {"success":true,"code":"OK","msg":"Operation succeeded.","timestamp":1538680663395,"data":{"total":201,"datas":[{"coinType":"KCS","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"VET","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"AXPR","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"EPRX","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"ETH","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"NEO","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"IHT","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"TMT","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"FOTA","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"NANO","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"ABT","balanceStr":"0.0","freezeBalance":0.0,"balance":0.0,"freezeBalanceStr":"0.0"},{"coinType":"BTC","balanceStr":"3.364E-5","freezeBalance":0.0,"balance":3.364E-5,"freezeBalanceStr":"0.0"}],"currPageNo":1,"limit":12,"pageNos":17}}
-            // Kucoin API docs are wrong, these are wrapped in datas element maybe with total counter
+            //            {
+            //                "id": "5bd6e9216d99522a52e458d6",
+            //    "currency": "BTC",
+            //    "type": "trade",
+            //    "balance": "1234356",
+            //    "available": "1234356",
+            //    "holds": "0"
+            //}]
+
+            ///api/v1/accounts
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             bool foundOne = true;
             for (int i = 1; foundOne; i++)
             {
                 foundOne = false;
-                JToken obj = await MakeJsonRequestAsync<JToken>($"/account/balances?page=${i.ToStringInvariant()}&limit=20", null, await GetNoncePayloadAsync());
-                foreach (JToken child in obj["datas"])
+                JToken obj = await MakeJsonRequestAsync<JToken>("/accounts", null, await GetNoncePayloadAsync());
+                foreach (var ob in obj)
                 {
-                    foundOne = true;
-                    decimal amount = child["balance"].ConvertInvariant<decimal>() + (includeFreezeBalance ? child["freezeBalance"].ConvertInvariant<decimal>() : 0);
-                    if (amount > 0m)
+                    if (ob["type"].ToStringInvariant().ToLower() == "trade")
                     {
-                        amounts.Add(child["coinType"].ToStringInvariant(), amount);
+                        amounts.Add(ob["currency"].ToStringInvariant(), ob["available"].ConvertInvariant<decimal>());
                     }
                 }
 
-                // check if we have hit max count
-                if (obj["total"] != null && obj["total"].ConvertInvariant<int>() <= amounts.Count)
-                {
-                    break;
-                }
+                //amounts.Add(obj["currency"].ToStringInvariant(), obj["available"].ConvertInvariant<decimal>());
+                //amounts.Add(obj["type"].ToStringInvariant(), obj["trade"].ToStringInvariant());
             }
             return amounts;
         }
