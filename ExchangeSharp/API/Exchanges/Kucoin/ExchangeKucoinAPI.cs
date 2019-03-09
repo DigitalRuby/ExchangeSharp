@@ -27,8 +27,8 @@ namespace ExchangeSharp
 {
     public sealed partial class ExchangeKucoinAPI : ExchangeAPI
     {
-		public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
-		public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
+        public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
+        public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
         public ExchangeKucoinAPI()
         {
@@ -173,8 +173,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-//{ "code":"200000","data":{ "sequence":"1550467754497","bestAsk":"0.000277","size":"107.3627934","price":"0.000276","bestBidSize":"2062.7337015","time":1551735305135,"bestBid":"0.0002741","bestAskSize":"223.177"} }
- JToken token = await MakeJsonRequestAsync<JToken>("/market/orderbook/level1?symbol=" + marketSymbol);
+            //{ "code":"200000","data":{ "sequence":"1550467754497","bestAsk":"0.000277","size":"107.3627934","price":"0.000276","bestBidSize":"2062.7337015","time":1551735305135,"bestBid":"0.0002741","bestAskSize":"223.177"} }
+            JToken token = await MakeJsonRequestAsync<JToken>("/market/orderbook/level1?symbol=" + marketSymbol);
             return this.ParseTicker(token, marketSymbol);
         }
 
@@ -420,28 +420,28 @@ namespace ExchangeSharp
             var websocketUrlToken = GetWebsocketBulletToken();
             return ConnectWebSocket(
                     $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
-                                  {
-                                      JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                                      if (token["type"].ToStringInvariant() == "message")
-                                      {
-                                          var dataToken = token["data"];
-                                          var marketSymbol = dataToken["symbol"].ToStringInvariant();
-                                          ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
-                                          callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
-                                      }
+		  {
+		      JToken token = JToken.Parse(msg.ToStringFromUTF8());
+		      if (token["type"].ToStringInvariant() == "message")
+		      {
+			  var dataToken = token["data"];
+			  var marketSymbol = dataToken["symbol"].ToStringInvariant();
+			  ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
+			  callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
+		      }
 
-                                      return Task.CompletedTask;
-                                  }, async (_socket) =>
-                                     {
-                                         //need to subscribe to tickers one by one
-                                         marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                                         var id = DateTime.UtcNow.Ticks;
-                                         foreach (var marketSymbol in marketSymbols)
-                                         {
-                                             // subscribe to tick topic
-                                             await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
-                                         }
-                                     }
+		      return Task.CompletedTask;
+		  }, async (_socket) =>
+		     {
+			 //need to subscribe to tickers one by one
+			 marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
+			 var id = DateTime.UtcNow.Ticks;
+			 foreach (var marketSymbol in marketSymbols)
+			 {
+			     // subscribe to tick topic
+			     await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
+			 }
+		     }
                 );
         }
 
@@ -594,26 +594,17 @@ namespace ExchangeSharp
             for (int i = 1; foundOne; i++)
             {
                 foundOne = false;
-
                 JToken obj = await MakeJsonRequestAsync<JToken>("/accounts", null, await GetNoncePayloadAsync());
-
-
                 foreach (var ob in obj)
                 {
                     if (ob["type"].ToStringInvariant().ToLower() == "trade")
                     {
-
                         amounts.Add(ob["currency"].ToStringInvariant(), ob["available"].ConvertInvariant<decimal>());
-
                     }
                 }
 
                 //amounts.Add(obj["currency"].ToStringInvariant(), obj["available"].ConvertInvariant<decimal>());
                 //amounts.Add(obj["type"].ToStringInvariant(), obj["trade"].ToStringInvariant());
-
-              
-                
-                
             }
             return amounts;
         }
