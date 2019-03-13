@@ -167,7 +167,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a DateTime and set the kind using the DateTimeKind property.
+        /// Convert a DateTime and set the kind to UTC using the DateTimeKind property.
         /// </summary>
         /// <param name="obj">Object to convert</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
@@ -184,8 +184,7 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-            dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-            return dt;
+            return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
         }
 
         /// <summary>
