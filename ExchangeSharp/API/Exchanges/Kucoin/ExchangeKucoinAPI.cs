@@ -86,13 +86,13 @@ namespace ExchangeSharp
                     sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
                 }
                 request.AddHeader("KC-API-SIGN", sig);
+            }
 
-                if (request.Method == "POST")
-                {
-                    string msg = CryptoUtility.GetJsonForPayload(payload, true);
-                    byte[] content = msg.ToBytesUTF8();
-                    await request.WriteAllAsync(content, 0, content.Length);
-                }
+            if (request.Method == "POST")
+            {
+                string msg = CryptoUtility.GetJsonForPayload(payload, true);
+                byte[] content = msg.ToBytesUTF8();
+                await request.WriteAllAsync(content, 0, content.Length);
             }
         }
 
@@ -447,44 +447,78 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
-            // {{
-            //   "data": {
-            //     "price": 1.38E-06,
-            //     "count": 1769.0,
-            //     "oid": "5bda52817eab5a0e09e21398",
-            //     "time": 1541034625000,
-            //     "volValue": 0.00244122,
-            //     "direction": "BUY"
-            //   },
-            //   "topic": "/trade/CHSB-BTC_HISTORY",
-            //   "type": "message",
-            //   "seq": 32750070023237
-            // }}
+			//{
+			//  "id":"5c24c5da03aa673885cd67aa",
+			//  "type":"message",
+			//  "topic":"/market/match:BTC-USDT",
+			//  "subject":"trade.l3match",
+			//  "sn":1545896669145,
+			//  "data":{
+			//    "sequence":"1545896669145",
+			//    "symbol":"BTC-USDT",
+			//    "side":"buy",
+			//    "size":"0.01022222000000000000",
+			//    "price":"0.08200000000000000000",
+			//    "takerOrderId":"5c24c5d903aa6772d55b371e",
+			//    "time":"1545913818099033203",
+			//    "type":"match",
+			//    "makerOrderId":"5c2187d003aa677bd09d5c93",
+			//    "tradeId":"5c24c5da03aa673885cd67aa"
+			//  }
+			//}
             var websocketUrlToken = GetWebsocketBulletToken();
-            return ConnectWebSocket(
-                    $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
-                    {
+			return ConnectWebSocket(
+                    $"?token={websocketUrlToken}", (_socket, msg) =>
+
+					{
                         JToken token = JToken.Parse(msg.ToStringFromUTF8());
                         if (token["type"].ToStringInvariant() == "message")
                         {
                             var dataToken = token["data"];
-                            var marketSymbol = token["topic"].ToStringInvariant().Split('/', '_')[2]; // /trade/CHSB-BTC_HISTORY
-                            var trade = dataToken.ParseTrade(amountKey: "count", priceKey: "price", typeKey: "direction",
-                                timestampKey: "time", TimestampType.UnixMilliseconds); // idKey: "oid");
-                                                                                       // one day, if ExchangeTrade.Id is converted to string, then the above can be uncommented
-                            callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+							var marketSymbol = token["data"]["symbol"].ToStringInvariant();
+                            var trade = dataToken.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
+                                timestampKey: "time", TimestampType.UnixNanoseconds); // idKey: "tradeId");
+																					   // one day, if ExchangeTrade.Id is converted to string, then the above can be uncommented
+							callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                         }
-                        return Task.CompletedTask;
+						else if (token["type"].ToStringInvariant() == "error")
+						{
+							Logger.Info(token["data"].ToStringInvariant());
+						}
+						return Task.CompletedTask;
                     }, async (_socket) =>
                     {
-                        //need to subscribe to trade history one by one
-                        marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                        var id = DateTime.UtcNow.Ticks;
-                        foreach (var marketSymbol in marketSymbols)
-                        {
-                            // subscribe to trade history topic
-                            await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/trade/{marketSymbol}_HISTORY" });
-                        }
+						List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ? 
+							await GetMarketSymbolsAsync() : marketSymbols);
+						StringBuilder symbolsSB = new StringBuilder();
+						var id = DateTime.UtcNow.Ticks; // just needs to be a "Unique string to mark the request"
+						int tunnelInt = 0;
+						while (marketSymbolsList.Count > 0)
+						{ // can only subscribe to 100 symbols per session (started w/ API 2.0)
+							var nextBatch = marketSymbolsList.GetRange(index: 0, count: 100);
+							marketSymbolsList.RemoveRange(index: 0, count: 100);
+							// create a new tunnel
+							await _socket.SendMessageAsync(new
+							{
+								id = id++,
+								type = "openTunnel",
+								newTunnelId = $"bt{tunnelInt}",
+								response = "true",
+							});
+							// wait for tunnel to be created
+							await Task.Delay(millisecondsDelay: 1000);
+							// subscribe to Match Execution Data
+							await _socket.SendMessageAsync(new
+							{
+								id = id++,
+								type = "subscribe",
+								topic = $"/market/match:{ string.Join(",", nextBatch)}",
+								tunnelId = $"bt{tunnelInt}",
+								privateChannel = "false", //Adopted the private channel or not. Set as false by default.
+								response = "true",
+							});
+							tunnelInt++;
+						}
                     }
                 );
         }
@@ -606,11 +640,25 @@ namespace ExchangeSharp
 
         private string GetWebsocketBulletToken()
         {
-            var jsonRequestTask = MakeJsonRequestAsync<JToken>("/bullet/usercenter/loginUser?protocol=websocket&encrypt=true", BaseUrl);
-            //wait for one second before timing out so we don't hold up the thread
+			Dictionary<string, object> payload = new Dictionary<string, object>()
+			{
+				["code"] = "200000",
+				["data"] = new { instanceServers = new[] { new Dictionary<string, object>()
+				  { ["pingInterval"] = 50000,
+					["endpoint"] = "wss://push1-v2.kucoin.net/endpoint",
+					["protocol"] = "websocket",
+					["encrypt"] = "true",
+					["pingTimeout"] = 10000, } } },
+				//["token"] = "vYNlCtbz4XNJ1QncwWilJnBtmmfe4geLQDUA62kKJsDChc6I4bRDQc73JfIrlFaVYIAE0Gv2",
+			};
+			var jsonRequestTask = MakeJsonRequestAsync<JToken>("/bullet-public", 
+				baseUrl: BaseUrl, payload: payload, requestMethod: "POST");
+            // wait for one second before timing out so we don't hold up the thread
             jsonRequestTask.Wait(TimeSpan.FromSeconds(1));
             var result = jsonRequestTask.Result;
-            return result["bulletToken"].ToString();
+			// in the future, they may introduce new server endpoints, possibly for load balancing
+			this.BaseUrlWebSocket = result["instanceServers"][0]["endpoint"].ToStringInvariant();
+			return result["token"].ToStringInvariant();
         }
 
         #endregion Private Functions
