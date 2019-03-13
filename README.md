@@ -31,6 +31,7 @@ The following cryptocurrency exchanges are supported:
 | Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
 | KuCoin           | x         | x           | TR        |
+| LBank            | x         | x           |           |
 | Livecoin         | x         | x           |           |
 | OKex             | x         | x           | RB        |
 | Poloniex         | x         | x           | TRB       |
