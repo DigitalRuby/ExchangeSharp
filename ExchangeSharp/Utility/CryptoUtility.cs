@@ -489,12 +489,12 @@ namespace ExchangeSharp
                 decimal mod = value % stepSize.Value;
                 value -= mod;
             }
-           
+
             if (maxValue > 0)
             {
                 value = Math.Min(maxValue, value);
             }
-                
+
             value = Math.Max(minValue, value);
 
             return value.Normalize();
@@ -518,22 +518,22 @@ namespace ExchangeSharp
             return unixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
-		/// <summary>
-		/// Get a UTC date time from a unix epoch in nanoseconds
-		/// </summary>
-		/// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
-		/// <returns>UTC DateTime</returns>
-		public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
-		{
-			return unixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
-		}
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
+        {
+            return unixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
+        }
 
-		/// <summary>
-		/// Get a UTC date time from a unix epoch in milliseconds
-		/// </summary>
-		/// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
-		/// <returns>UTC DateTime</returns>
-		public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
             return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
@@ -604,10 +604,10 @@ namespace ExchangeSharp
                 case TimestampType.Iso8601:
                     return value.ToDateTimeInvariant();
 
-				case TimestampType.UnixNanoseconds:
-					return UnixTimeStampToDateTimeNanoseconds(value.ConvertInvariant<long>());
+                case TimestampType.UnixNanoseconds:
+                    return UnixTimeStampToDateTimeNanoseconds(value.ConvertInvariant<long>());
 
-				case TimestampType.UnixMillisecondsDouble:
+                case TimestampType.UnixMillisecondsDouble:
                     return UnixTimeStampToDateTimeMilliseconds(value.ConvertInvariant<double>());
 
                 case TimestampType.UnixMilliseconds:
@@ -1336,10 +1336,10 @@ namespace ExchangeSharp
         /// </summary>
         None,
 
-		/// <summary>
-		/// Unix nanoseconds (long)
-		/// </summary>
-		UnixNanoseconds,
+        /// <summary>
+        /// Unix nanoseconds (long)
+        /// </summary>
+        UnixNanoseconds,
 
         /// <summary>
         /// Unix milliseconds (double)
