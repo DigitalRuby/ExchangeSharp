@@ -82,7 +82,7 @@ namespace ExchangeSharp
     {
         private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
         private readonly Timer cacheTimer;
-        private readonly ReaderWriterLockAsync cacheTimerLock = new ReaderWriterLockAsync();
+        private readonly ReaderWriterLockSlim cacheTimerLock = new ReaderWriterLockSlim();
 
 #if DEBUG
 
@@ -104,7 +104,10 @@ namespace ExchangeSharp
 #endif
 
             DateTime now = CryptoUtility.UtcNow;
-            using (var lockerWrite = cacheTimerLock.LockWrite())
+
+            // obtain write lock, should be very fast to run the foreach
+            cacheTimerLock.EnterWriteLock();
+            try
             {
                 foreach (var item in cache.ToArray())
                 {
@@ -113,6 +116,10 @@ namespace ExchangeSharp
                         cache.Remove(item.Key);
                     }
                 }
+            }
+            finally
+            {
+                cacheTimerLock.ExitWriteLock();
             }
 
 #if DEBUG
@@ -171,24 +178,35 @@ namespace ExchangeSharp
         /// <param name="notFound">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
         public async Task<CachedItem<T>> Get<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class
         {
-            using (var lockRead = cacheTimerLock.LockRead())
+            CachedItem<T> newItem = default;
+            cacheTimerLock.EnterReadLock();
+            try
             {
                 if (cache.TryGetValue(key, out KeyValuePair<DateTime, object> cacheValue))
                 {
                     return new CachedItem<T>((T)cacheValue.Value, cacheValue.Key);
                 }
             }
+            finally
+            {
+                cacheTimerLock.ExitReadLock();
+            }
 
             // most likely the callback needs to make a network request, so don't do it in a lock
             // it's ok if multiple calls stack on the same cache key, the last one to finish will win
-            CachedItem<T> newItem = await notFound();
+            newItem = await notFound();
 
             // don't add null values to the cache
             if (newItem.Value != null)
             {
-                using (var lockWrite = cacheTimerLock.LockWrite())
+                cacheTimerLock.EnterWriteLock();
+                try
                 {
                     cache[key] = new KeyValuePair<DateTime, object>(newItem.Expiration, newItem.Value);
+                }
+                finally
+                {
+                    cacheTimerLock.ExitWriteLock();
                 }
             }
 
@@ -202,9 +220,14 @@ namespace ExchangeSharp
         /// <returns>True if removed, false if not found</returns>
         public bool Remove(string key)
         {
-            using (var lockWrite = cacheTimerLock.LockWrite())
+            cacheTimerLock.EnterWriteLock();
+            try
             {
                 return cache.Remove(key);
+            }
+            finally
+            {
+                cacheTimerLock.ExitWriteLock();
             }
         }
     }
