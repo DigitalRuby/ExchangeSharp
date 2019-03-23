@@ -47,7 +47,16 @@ namespace ExchangeSharp
         /// <summary>
         /// True if buy, false if sell - for some exchanges (Binance) the meaning can be different, i.e. is the buyer the maker
         /// </summary>
-        public bool IsBuy { get; set; }
+        public bool IsBuy
+        {
+            get { return ((Flags & ExchangeTradeFlags.IsBuy) == ExchangeTradeFlags.IsBuy); }
+            set { Flags = (value ? Flags | ExchangeTradeFlags.IsBuy : Flags & (~ExchangeTradeFlags.IsBuy)); }
+        }
+
+        /// <summary>
+        /// Flags - note that only the IsBuy bit of flags is persisted in the ToBinary and FromBinary methods.
+        /// </summary>
+        public ExchangeTradeFlags Flags { get; set; }
 
         /// <summary>
         /// ToString
@@ -83,5 +92,27 @@ namespace ExchangeSharp
             Amount = (decimal)reader.ReadDouble();
             IsBuy = reader.ReadBoolean();
         }
+    }
+
+    /// <summary>
+    /// Exchange trade flags
+    /// </summary>
+    [Flags]
+    public enum ExchangeTradeFlags
+    {
+        /// <summary>
+        /// Whether the trade is a buy, if not it is a sell
+        /// </summary>
+        IsBuy = 1,
+
+        /// <summary>
+        /// Whether the trade is from a snapshot
+        /// </summary>
+        IsFromSnapshot = 2,
+
+        /// <summary>
+        /// Whether the trade is the last trade from a snapshot
+        /// </summary>
+        IsLastFromSnapshot = 4
     }
 }
