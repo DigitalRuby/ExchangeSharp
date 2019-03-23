@@ -294,6 +294,11 @@ namespace ExchangeSharp
 									ExchangeTrade trade = ParseTradeWebSocket(subarray[i]);
 									if (trade != null)
 									{
+										trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
+										if (i == subarray.Count - 1)
+										{
+											trade.Flags |= ExchangeTradeFlags.IsLastFromSnapshot;
+										}
 										callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 									}
 								}
