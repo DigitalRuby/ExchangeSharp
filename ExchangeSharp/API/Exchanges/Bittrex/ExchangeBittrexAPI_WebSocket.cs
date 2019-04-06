@@ -35,6 +35,9 @@ namespace ExchangeSharp
 
 #if HAS_SIGNALR
 
+        /// <summary>
+        /// Ideally this would be one instance per exchange instance, but Bittrex simply does not work if you request multiple end points over a single hub connection, sigh...
+        /// </summary>
         public sealed class BittrexWebSocketManager : SignalrManager
         {
             public BittrexWebSocketManager() : base("https://socket.bittrex.com/signalr", "c2")
@@ -146,8 +149,7 @@ namespace ExchangeSharp
                 }
                 callback(freshTickers);
             }
-            var client = SocketManager;
-            return client.SubscribeToSummaryDeltas(innerCallback);
+            return new BittrexWebSocketManager().SubscribeToSummaryDeltas(innerCallback);
         }
 
         protected override IWebSocket OnGetOrderBookWebSocket
@@ -217,7 +219,7 @@ namespace ExchangeSharp
                 callback(book);
             }
 
-            return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, marketSymbols);
+            return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
         }
 
 		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
@@ -245,29 +247,8 @@ namespace ExchangeSharp
 				}
 			}
 
-			return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, marketSymbols);
+			return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
 		}
-
-		/// <summary>
-		/// Gets the BittrexSocketClient for this API
-		/// </summary>
-		private BittrexWebSocketManager SocketManager
-        {
-            get
-            {
-                if (webSocket == null)
-                {
-                    lock (this)
-                    {
-                        if (webSocket == null)
-                        {
-                            webSocket = new BittrexWebSocketManager();
-                        }
-                    }
-                }
-                return webSocket;
-            }
-        }
 
 #endif
 
