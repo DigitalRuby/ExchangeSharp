@@ -687,7 +687,7 @@ namespace ExchangeSharp
             }, 0);
         }
 
-        private async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat, string[] marketSymbols, bool useJustFirstSymbol = false)
+        private async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat, string[] marketSymbols)
         {
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
@@ -696,10 +696,6 @@ namespace ExchangeSharp
             foreach (string marketSymbol in marketSymbols)
             {
                 string normalizedSymbol = NormalizeMarketSymbol(marketSymbol);
-                if (useJustFirstSymbol)
-                {
-                    normalizedSymbol = normalizedSymbol.Substring(0, normalizedSymbol.IndexOf(MarketSymbolSeparator[0]));
-                }
                 string channel = string.Format(channelFormat, normalizedSymbol);
                 await socket.SendMessageAsync(new { @event = "addChannel", channel });
             }
