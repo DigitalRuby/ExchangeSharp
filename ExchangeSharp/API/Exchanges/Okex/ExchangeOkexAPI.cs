@@ -24,7 +24,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
         public string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
-        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket?compress=true";
+        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10442/ws/v3";
 
 	/// <summary>
 	/// China time to utc, no DST correction needed
@@ -34,8 +34,8 @@ namespace ExchangeSharp
         public ExchangeOkexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
-            MarketSymbolSeparator = "_";
-            MarketSymbolIsUppercase = false;
+            MarketSymbolSeparator = "-";
+            MarketSymbolIsUppercase = true;
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
@@ -180,116 +180,66 @@ namespace ExchangeSharp
 
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
-            /*
-            {[
-              {
-                "binary": 0,
-                "channel": "addChannel",
-                "data": {
-                  "result": true,
-                  "channel": "ok_sub_spot_btc_usdt_deals"
-                }
-              }
-            ]}
+			/*
+			 request:
+			{"op": "subscribe", "args": ["swap/trade:BTC-USD-SWAP"]}
+			*/
 
-
-            {[
-              {
-                "binary": 0,
-                "channel": "ok_sub_spot_btc_usdt_deals",
-                "data": [
-                  [
-                    "335599480",
-                    "7396",
-                    "0.0031002",
-                    "20:23:51",
-                    "bid"
-                  ],
-                  [
-                    "335599497",
-                    "7395.9153",
-                    "0.0031",
-                    "20:23:51",
-                    "bid"
-                  ],
-                  [
-                    "335599499",
-                    "7395.7889",
-                    "0.00409436",
-                    "20:23:51",
-                    "ask"
-                  ],
-
-                ]
-              }
-            ]}
-            */
-
-            return ConnectWebSocketOkex(async (_socket) =>
-            {
-                marketSymbols = await AddMarketSymbolsToChannel(_socket, "ok_sub_spot_{0}_deals", marketSymbols);
-            }, (_socket, symbol, sArray, token) =>
-            {
-                IEnumerable<ExchangeTrade> trades = ParseTradesWebSocket(token);
-                foreach (var trade in trades)
-                {
-                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-                }
-                return Task.CompletedTask;
-            });
+			return ConnectWebSocketOkex(async (_socket) =>
+				{
+					marketSymbols = await AddMarketSymbolsToChannel(_socket, "swap/trade:{0}-SWAP", marketSymbols);
+				}, (_socket, symbol, sArray, token) =>
+				{
+					ExchangeTrade trade = ParseTradeWebSocket(token);
+					callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+					return Task.CompletedTask;
+				});
         }
 
         protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            /*
-{[
-  {
-    "binary": 0,
-    "channel": "addChannel",
-    "data": {
-      "result": true,
-      "channel": "ok_sub_spot_bch_btc_depth_5"
-    }
-  }
-]}
+			/*
+			 request:
+			{"op": "subscribe", "args": ["swap/depth:BTC-USD-SWAP"]}
+			
+			 response-snapshot:
+			 {
+			    "table": "swap/depth",
+			    "action": "partial",
+			    "data": [{
+			        "instrument_id": "BTC-USD-SWAP",
+			        "asks": [["3983", "888", 10, 3],....],
+			        "bids": [
+			            ["3983", "789", 0, 3],....
+			        ],
+			        "timestamp": "2018-12-04T09:38:36.300Z",
+			        "checksum": 200119424
+			    }]
+			}
 
+			response-update:
+			{
+			    "table": "swap/depth",
+			    "action": "update",
+			    "data": [{
+			        "instrument_id": "BTC-USD-SWAP",
+			        "asks": [],
+			        "bids": [
+			            ["3983", "789", 0, 3]
+			        ],
+			        "timestamp": "2018-12-04T09:38:36.300Z",
+			        "checksum": -1200119424
+			    }]
+			}
+			 
+			 */
 
-
-{[
-  {
-    "data": {
-      "asks": [
-        [
-          "8364.1163",
-          "0.005"
-        ],
-  
-      ],
-      "bids": [
-        [
-          "8335.99",
-          "0.01837999"
-        ],
-        [
-          "8335.9899",
-          "0.06"
-        ],
-      ],
-      "timestamp": 1526734386064
-    },
-    "binary": 0,
-    "channel": "ok_sub_spot_btc_usdt_depth_20"
-  }
-]}
-                 
-                 */
-
-            return ConnectWebSocketOkex(async (_socket) =>
+			return ConnectWebSocketOkex(async (_socket) =>
             {
-                marketSymbols = await AddMarketSymbolsToChannel(_socket, $"ok_sub_spot_{{0}}_depth_{maxCount}", marketSymbols);
+                marketSymbols = await AddMarketSymbolsToChannel(_socket, "swap/depth:{0}-SWAP", marketSymbols);
             }, (_socket, symbol, sArray, token) =>
             {
-                ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, sequence: "timestamp", maxCount: maxCount);
+					 ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
                 book.MarketSymbol = symbol;
                 callback(book);
                 return Task.CompletedTask;
@@ -611,30 +561,31 @@ namespace ExchangeSharp
             return result;
         }
 
-        private IEnumerable<ExchangeTrade> ParseTradesWebSocket(JToken token)
+        private ExchangeTrade ParseTradeWebSocket(JToken token)
         {
-            var trades = new List<ExchangeTrade>();
-			if (token.Count() > 1 && token["error_msg"] != null)
-			{
-				Logger.Warn(token["error_msg"].ToStringInvariant());
-			}
-            else foreach (var t in token)
-            {
-                var ts = TimeSpan.Parse(t[3].ToStringInvariant()) + chinaTimeOffset;
-                if (ts < TimeSpan.FromHours(0)) ts += TimeSpan.FromHours(24);
-                var dt = CryptoUtility.UtcNow.Date.Add(ts);
-                var trade = new ExchangeTrade()
-                {
-                    Id = t[0].ConvertInvariant<long>(),
-                    Price = t[1].ConvertInvariant<decimal>(),
-                    Amount = t[2].ConvertInvariant<decimal>(),
-                    Timestamp = dt,
-                    IsBuy = t[4].ToStringInvariant().EqualsWithOption("bid"),
-                };
-                trades.Add(trade);
-            }
+			/*
+				 response:
+				 {
+					  "table": "swap/trade",
+					  "data": [{
+							"instrument_id": "BTC-USD-SWAP",
+							"price": "3250",
+							"side": "sell",
+							"size": "1",
+							"timestamp": "2018-12-17T09:48:41.903Z",
+							"trade_id": "126518511769403393"
+					  }]
+				 } 
+			 */
 
-            return trades;
+			return new ExchangeTrade
+			  {
+				  Id = token["trade_id"].ConvertInvariant<long>(),
+				  Price = token["price"].ConvertInvariant<decimal>(),
+				  Amount = token["size"].ConvertInvariant<decimal>(),
+				  Timestamp = DateTime.Parse(token["timestamp"].ToStringInvariant()),
+				  IsBuy = token["side"].ToStringInvariant().EqualsWithOption("buy"),
+			  };
         }
 
         private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
@@ -644,24 +595,29 @@ namespace ExchangeSharp
                 // https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
                 // All the messages returning from WebSocket API will be optimized by Deflate compression
                 JToken token = JToken.Parse(msg.ToStringFromUTF8Deflate());
-                token = token[0];
-                var channel = token["channel"].ToStringInvariant();
-                if (channel.EqualsWithOption("addChannel"))
+
+                var eventProperty = token["event"]?.ToStringInvariant();
+                if (eventProperty != null)
                 {
-                    return;
-                }
-                else if (channel.EqualsWithOption("login"))
+	                if (eventProperty == "error")
+	                {
+							throw new APIException(token["message"]?.ToStringInvariant());
+	                }
+
+	                if (eventProperty == "subscribe" && token["channel"] != null)
+	                {
+		                return;
+	                }
+					 }
+
+                if (token["table"] != null)
                 {
-                    if (token["data"] != null && token["data"]["result"] != null && token["data"]["result"].ConvertInvariant<bool>())
-                    {
-                        await callback(_socket, "login", null, null);
-                    }
-                }
-                else
-                {
-                    var sArray = channel.Split('_');
-                    string marketSymbol = sArray[symbolArrayIndex] + MarketSymbolSeparator + sArray[symbolArrayIndex + 1];
-                    await callback(_socket, marketSymbol, sArray, token["data"]);
+	                var data = token["data"];
+	                foreach (var dataRow in data)
+	                {
+		                var marketSymbol = dataRow["instrument_id"].ToStringInvariant().Replace("-SWAP", string.Empty);
+		                await callback(_socket, marketSymbol, null, dataRow);
+						 }
                 }
             }, async (_socket) =>
             {
@@ -687,22 +643,18 @@ namespace ExchangeSharp
             }, 0);
         }
 
-        private async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat, string[] marketSymbols, bool useJustFirstSymbol = false)
+        private async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat, string[] marketSymbols)
         {
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
                 marketSymbols = (await GetMarketSymbolsMetadataAsync()).Where(s => s.IsActive).Select(s => s.MarketSymbol).ToArray();
             }
-            foreach (string marketSymbol in marketSymbols)
-            {
-                string normalizedSymbol = NormalizeMarketSymbol(marketSymbol);
-                if (useJustFirstSymbol)
-                {
-                    normalizedSymbol = normalizedSymbol.Substring(0, normalizedSymbol.IndexOf(MarketSymbolSeparator[0]));
-                }
-                string channel = string.Format(channelFormat, normalizedSymbol);
-                await socket.SendMessageAsync(new { @event = "addChannel", channel });
-            }
+
+				var channels = marketSymbols
+					.Select(marketSymbol => string.Format(channelFormat, NormalizeMarketSymbol(marketSymbol)))
+					.ToArray();
+
+				await socket.SendMessageAsync(new { op = "subscribe", args = channels });
             return marketSymbols;
         }
 
