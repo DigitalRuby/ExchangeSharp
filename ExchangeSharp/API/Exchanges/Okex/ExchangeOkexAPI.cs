@@ -24,7 +24,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
         public string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
-        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10441/websocket?compress=true";
+        public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10442/ws/v3";
 
 	/// <summary>
 	/// China time to utc, no DST correction needed
@@ -239,7 +239,7 @@ namespace ExchangeSharp
                 marketSymbols = await AddMarketSymbolsToChannel(_socket, "swap/depth:{0}-SWAP", marketSymbols);
             }, (_socket, symbol, sArray, token) =>
             {
-                ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, sequence: "timestamp", maxCount: maxCount);
+					 ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
                 book.MarketSymbol = symbol;
                 callback(book);
                 return Task.CompletedTask;
