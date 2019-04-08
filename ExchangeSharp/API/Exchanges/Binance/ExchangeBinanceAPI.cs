@@ -556,10 +556,11 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            //new way
+            List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
             if (string.IsNullOrWhiteSpace(marketSymbol))
             {
-                orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
+                trades.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
             }
             else
             {
@@ -567,15 +568,38 @@ namespace ExchangeSharp
                 payload["symbol"] = marketSymbol;
                 if (afterDate != null)
                 {
-                    payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
+                    payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
                 }
-                JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
-                foreach (JToken order in token)
+                JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, payload);
+                foreach (JToken trade in token)
                 {
-                    orders.Add(ParseOrder(order));
+                    trades.Add(ParseTrade(trade, marketSymbol));
                 }
             }
-            return orders;
+            return trades;
+
+            //old way
+
+            //List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            //if (string.IsNullOrWhiteSpace(marketSymbol))
+            //{
+            //    orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
+            //}
+            //else
+            //{
+            //    Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            //    payload["symbol"] = marketSymbol;
+            //    if (afterDate != null)
+            //    {
+            //        payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            //    }
+            //    JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
+            //    foreach (JToken order in token)
+            //    {
+            //        orders.Add(ParseOrder(order));
+            //    }
+            //}
+            //return orders;
         }
 
         private async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
