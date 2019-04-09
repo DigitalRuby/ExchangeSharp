@@ -79,7 +79,12 @@ namespace ExchangeSharpConsole
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIs();
             foreach (IExchangeAPI api in apis)
             {
-                if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
+                // WIP exchanges...
+                if (api is ExchangeUfoDexAPI)
+                {
+                    continue;
+                }
+                else if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
                 {
                     continue;
                 }
