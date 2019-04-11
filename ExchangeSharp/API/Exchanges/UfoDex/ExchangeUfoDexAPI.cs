@@ -26,27 +26,23 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(JToken token)
         {
+            string[] symbols = token["Label"].ToStringInvariant().Split('/');
             return new ExchangeTicker
             {
                 // TODO: Parse out fields...
                 // Ticker JSON { "GenTime":12345678901234 "Label":"UFO/BTC", "Ask":0.00000005, "Bid":0.00000003, "Open":0.00000006, "High":0.00000007, "Low":0.00000004, "Close":0.00000003, "Volume":3240956.04453450, "BaseVolume":455533325.98457433 }
-
-                var symbols = token["Label"].ToStringInvariant().Split('/');
-
-                Id      = token["GenTime"].ConvertInvariant<Timestamp>(), // ????
+                Id      = token["GenTime"].ConvertInvariant<string>(), // ????
                 Ask     = token["Ask"].ConvertInvariant<decimal>(),
                 Bid     = token["Bid"].ConvertInvariant<decimal>(),
                 Last    = token["Close"].ConvertInvariant<decimal>(),
-
-                Volume = new ExchangeVolume() 
+                Volume = new ExchangeVolume 
                 {
-                    PriceSymbol     = symbols[0],
-                    QuantitySymbol  = symbols[1],
-                    PriceAmount     = token["Volume"].ConvertInvariant<decimal>(),
-                    QuantityAmount  = token["BaseVolume"].ConvertInvariant<decimal>(),
-                    Timestamp       = token["GenTime"].ConvertInvariant<Timestamp>()
+                    QuoteCurrency       = symbols[0],
+                    BaseCurrency        = symbols[1],
+                    QuoteCurrencyVolume = token["Volume"].ConvertInvariant<decimal>(),
+                    BaseCurrencyVolume  = token["BaseVolume"].ConvertInvariant<decimal>(),
+                    Timestamp           = token["GenTime"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds()
                 }
-
             };
         }
 

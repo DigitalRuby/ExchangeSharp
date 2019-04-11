@@ -72,6 +72,9 @@ namespace ExchangeSharpConsole
                 // swap out to external web socket implementation for older Windows pre 8.1
                 // ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());
                 // TestMethod(); return 0; // uncomment for ad-hoc code testing
+                ExchangeUfoDexAPI d = new ExchangeUfoDexAPI();
+                var t = d.GetTickersAsync().Sync();
+                return 0;
 
                 Logger.Info("ExchangeSharp console started.");
                 Dictionary<string, string> argsDictionary = ParseCommandLine(args);
