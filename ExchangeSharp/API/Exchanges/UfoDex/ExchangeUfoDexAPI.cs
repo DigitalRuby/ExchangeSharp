@@ -26,15 +26,17 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(JToken token)
         {
-            string[] symbols = token["Label"].ToStringInvariant().Split('/');
+            string pair = token["Label"].ToStringInvariant();
+            string[] symbols = pair.Split('/');
             return new ExchangeTicker
             {
                 // TODO: Parse out fields...
                 // Ticker JSON { "GenTime":12345678901234 "Label":"UFO/BTC", "Ask":0.00000005, "Bid":0.00000003, "Open":0.00000006, "High":0.00000007, "Low":0.00000004, "Close":0.00000003, "Volume":3240956.04453450, "BaseVolume":455533325.98457433 }
-                Id      = token["GenTime"].ConvertInvariant<string>(), // ????
-                Ask     = token["Ask"].ConvertInvariant<decimal>(),
-                Bid     = token["Bid"].ConvertInvariant<decimal>(),
-                Last    = token["Close"].ConvertInvariant<decimal>(),
+                Id = token["GenTime"].ConvertInvariant<string>(), // ????
+                Ask = token["Ask"].ConvertInvariant<decimal>(),
+                Bid = token["Bid"].ConvertInvariant<decimal>(),
+                Last = token["Close"].ConvertInvariant<decimal>(),
+                MarketSymbol = pair,
                 Volume = new ExchangeVolume 
                 {
                     QuoteCurrency       = symbols[0],
@@ -58,9 +60,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
-            // TODO: Fix url
             // marketSymbol like "UFO/BTC"
-            JToken result = await MakeJsonRequestAsync<JToken>("/GetTicker/" + marketSymbol);
+            JToken result = await MakeJsonRequestAsync<JToken>("/getticker/" + marketSymbol);
             return ParseTicker(result);
         }
 
@@ -68,13 +69,11 @@ namespace ExchangeSharp
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
 
-            // TODO: Fix url
-            JToken result = await MakeJsonRequestAsync<JToken>("/GetTickers");
-            foreach (JToken token in result)
+            JToken result = await MakeJsonRequestAsync<JToken>("/gettickers");
+            foreach (JProperty token in result)
             {
-                // TODO: Get symbol from correct property name
                 // {"UFO/BTC":{Ticker JSON}, "UFO/LTC":{Ticker JSON}, ...}
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["Symbol"].ToStringInvariant(), ParseTicker(token)));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ParseTicker(token.Value)));
             }
             return tickers;
         }
