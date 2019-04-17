@@ -1,7 +1,7 @@
 ﻿language: csharp
 solution: ExchangeSharp.sln
 mono: none
-dotnet: 2.2.203
+dotnet: 2.2.102
 script:
   - dotnet restore
   - dotnet test
