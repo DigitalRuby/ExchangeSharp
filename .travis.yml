@@ -1,6 +1,7 @@
 ﻿language: csharp
 solution: ExchangeSharp.sln
 mono: none
+dist: xenial
 dotnet: 2.2.102
 script:
   - dotnet restore
