@@ -1,6 +1,6 @@
 ﻿language: csharp
 solution: ExchangeSharp.sln
-mono: none
+mono: latest
 dist: xenial
 dotnet: 2.2.102
 script:
