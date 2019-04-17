@@ -25,14 +25,14 @@ namespace ExchangeSharp
                 new KeyValuePair<string, string>("BCC", "BCH")
             };
         }
+
         public ExchangeBitBankAPI()
         {
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(0.1);
-            MarketSymbolIsUppercase = false;
-            MarketSymbolSeparator = "_";
-            MarketSymbolIsReversed = true;
             WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+            MarketSymbolSeparator = "_";
+            MarketSymbolIsUppercase = false;
         }
 
         # region Public APIs
@@ -66,7 +66,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        # endregion
+        #endregion
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
@@ -224,14 +224,14 @@ namespace ExchangeSharp
         protected override Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             return Task.FromResult(new List<string> {
-                "BTC-JPY",
-                "XRP-JPY",
-                "LTC-BTC",
-                "ETH-BTC",
-                "MONA-JPY",
-                "MONA-BTC",
-                "BCC-JPY",
-                "BCC-BTC"
+                "btc_jpy",
+                "xrp_jpy",
+                "ltc_btc",
+                "eth_btc",
+                "mona_jpy",
+                "mona_btc",
+                "bcc_jpy",
+                "bcc_btc"
                 }.AsEnumerable());
         }
 

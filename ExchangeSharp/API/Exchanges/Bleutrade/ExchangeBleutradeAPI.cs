@@ -20,6 +20,8 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
+    // this exchange dropped v2 api, needs to be entirely re-coded
+#if HAS_FIXED_BLEUTRADE_API
 
     public sealed partial class ExchangeBleutradeAPI : ExchangeAPI
     {
@@ -39,7 +41,7 @@ namespace ExchangeSharp
             MarketSymbolSeparator = "_";
         }
 
-        #region ProcessRequest 
+#region ProcessRequest 
 
         protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -61,9 +63,9 @@ namespace ExchangeSharp
             return url.Uri;
         }
 
-        #endregion
+#endregion
 
-        #region Public APIs
+#region Public APIs
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
@@ -197,183 +199,186 @@ namespace ExchangeSharp
 
         #endregion
 
-        # region Private APIs
+        #region Private APIs
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
-        {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await GetNoncePayloadAsync());
-            foreach (JToken token in result)
-            {
-                decimal amount = result["Balance"].ConvertInvariant<decimal>();
-                if (amount > 0) amounts[token["Currency"].ToStringInvariant()] = amount;
-            }
-            return amounts;
-        }
-
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
-        {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await GetNoncePayloadAsync());
-            foreach (JToken token in result)
-            {
-                decimal amount = result["Available"].ConvertInvariant<decimal>();
-                if (amount > 0) amounts[token["Currency"].ToStringInvariant()] = amount;
-            }
-            return amounts;
-        }
-
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            // "result" : { "OrderId" : "65489","Exchange" : "LTC_BTC", "Type" : "BUY", "Quantity" : 20.00000000, "QuantityRemaining" : 5.00000000, "QuantityBaseTraded" : "0.16549400", "Price" : 0.01268311, "Status" : "OPEN", "Created" : "2014-08-03 13:55:20", "Comments" : "My optional comment, eg function id #123"  }
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId, null, await GetNoncePayloadAsync());
-            return ParseOrder(result);
-        }
-
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
-        {
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getorders?market=" + (string.IsNullOrEmpty(marketSymbol) ? "ALL" : marketSymbol) + "&orderstatus=OK&ordertype=ALL", null, await GetNoncePayloadAsync());
-            foreach (JToken token in result)
-            {
-                ExchangeOrderResult order = ParseOrder(token);
-                if (afterDate != null) { if (order.OrderDate > afterDate) orders.Add(order); }
-                else orders.Add(order);
-            }
-            return orders;
-        }
-
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
-        {
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            JToken result = await MakeJsonRequestAsync<JToken>("/market/getopenorders", null, await GetNoncePayloadAsync());
-            foreach (JToken token in result) orders.Add(ParseOrder(token));
-            return orders;
-        }
-
-        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
-        {
-            ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
-            var payload = await GetNoncePayloadAsync();
-            order.ExtraParameters.CopyTo(payload);
-
-            // Only limit order is supported - no indication on how it is filled
-            JToken token = await MakeJsonRequestAsync<JToken>((order.IsBuy ? "/market/buylimit?" : "market/selllimit?") + "market=" + order.MarketSymbol +
-                "&rate=" + order.Price.ToStringInvariant() + "&quantity=" + order.RoundAmount().ToStringInvariant(), null, payload);
-            if (token.HasValues)
-            {
-                // Only the orderid is returned on success
-                result.OrderId = token["orderid"].ToStringInvariant();
-                result.Result = ExchangeAPIOrderResult.Filled;
-            }
-            return result;
-        }
-
-        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
-        {
-            await MakeJsonRequestAsync<JToken>("/market/cancel?orderid=" + orderId, null, await GetNoncePayloadAsync());
-        }
-
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
-        {
-            JToken token = await MakeJsonRequestAsync<JToken>("/account/getdepositaddress?" + "currency=" + NormalizeMarketSymbol(currency), BaseUrl, await GetNoncePayloadAsync());
-            if (token["Currency"].ToStringInvariant().Equals(currency) && token["Address"] != null)
-            {
-                // At this time, according to Bleutrade support, they don't support any currency requiring an Address Tag, but they will add this feature in the future
-                return new ExchangeDepositDetails()
+                protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
                 {
-                    Currency = token["Currency"].ToStringInvariant(),
-                    Address = token["Address"].ToStringInvariant()
-                };
-            }
-            return null;
-        }
+                    Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+                    // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
+                    JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await GetNoncePayloadAsync());
+                    foreach (JToken token in result)
+                    {
+                        decimal amount = result["Balance"].ConvertInvariant<decimal>();
+                        if (amount > 0) amounts[token["Currency"].ToStringInvariant()] = amount;
+                    }
+                    return amounts;
+                }
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
-        {
-            List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
-
-            // "result" : [{"Id" : "44933431","TimeStamp" : "2015-05-13 07:15:23","Coin" : "LTC","Amount" : -0.10000000,"Label" : "Withdraw: 0.99000000 to address Anotheraddress; fee 0.01000000","TransactionId" : "c396228895f8976e3810286c1537bddd4a45bb37d214c0e2b29496a4dee9a09b" }
-            JToken result = await MakeJsonRequestAsync<JToken>("/account/getdeposithistory", BaseUrl, await GetNoncePayloadAsync());
-            foreach (JToken token in result)
-            {
-                transactions.Add(new ExchangeTransaction()
+                protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
                 {
-                    PaymentId = token["Id"].ToStringInvariant(),
-                    BlockchainTxId = token["TransactionId"].ToStringInvariant(),
-                    Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
-                    Currency = token["Coin"].ToStringInvariant(),
-                    Amount = token["Amount"].ConvertInvariant<decimal>(),
-                    Notes = token["Label"].ToStringInvariant(),
-                    TxFee = token["fee"].ConvertInvariant<decimal>(),
-                    Status = TransactionStatus.Unknown
-                });
-            }
-            return transactions;
-        }
+                    Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+                    // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
+                    JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await GetNoncePayloadAsync());
+                    foreach (JToken token in result)
+                    {
+                        decimal amount = result["Available"].ConvertInvariant<decimal>();
+                        if (amount > 0) amounts[token["Currency"].ToStringInvariant()] = amount;
+                    }
+                    return amounts;
+                }
 
-        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
-        {
-            var payload = await GetNoncePayloadAsync();
-            payload["currency"] = withdrawalRequest.Currency;
-            payload["quantity"] = withdrawalRequest.Amount;
-            payload["address"] = withdrawalRequest.Address;
-            if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["comments"] = withdrawalRequest.AddressTag;
+                protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+                {
+                    // "result" : { "OrderId" : "65489","Exchange" : "LTC_BTC", "Type" : "BUY", "Quantity" : 20.00000000, "QuantityRemaining" : 5.00000000, "QuantityBaseTraded" : "0.16549400", "Price" : 0.01268311, "Status" : "OPEN", "Created" : "2014-08-03 13:55:20", "Comments" : "My optional comment, eg function id #123"  }
+                    JToken result = await MakeJsonRequestAsync<JToken>("/account/getorder?orderid=" + orderId, null, await GetNoncePayloadAsync());
+                    return ParseOrder(result);
+                }
 
-            await MakeJsonRequestAsync<JToken>("/account/withdraw", BaseUrl, payload);
+                protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+                {
+                    List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+                    JToken result = await MakeJsonRequestAsync<JToken>("/account/getorders?market=" + (string.IsNullOrEmpty(marketSymbol) ? "ALL" : marketSymbol) + "&orderstatus=OK&ordertype=ALL", null, await GetNoncePayloadAsync());
+                    foreach (JToken token in result)
+                    {
+                        ExchangeOrderResult order = ParseOrder(token);
+                        if (afterDate != null) { if (order.OrderDate > afterDate) orders.Add(order); }
+                        else orders.Add(order);
+                    }
+                    return orders;
+                }
 
-            // Bleutrade doesn't return any info, just an empty string on success. The MakeJsonRequestAsync will throw an exception if there's an error
-            return new ExchangeWithdrawalResponse() { Success = true };
-        }
+                protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+                {
+                    List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+                    JToken result = await MakeJsonRequestAsync<JToken>("/market/getopenorders", null, await GetNoncePayloadAsync());
+                    foreach (JToken token in result) orders.Add(ParseOrder(token));
+                    return orders;
+                }
+
+                protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+                {
+                    ExchangeOrderResult result = new ExchangeOrderResult() { Result = ExchangeAPIOrderResult.Error };
+                    var payload = await GetNoncePayloadAsync();
+                    order.ExtraParameters.CopyTo(payload);
+
+                    // Only limit order is supported - no indication on how it is filled
+                    JToken token = await MakeJsonRequestAsync<JToken>((order.IsBuy ? "/market/buylimit?" : "market/selllimit?") + "market=" + order.MarketSymbol +
+                        "&rate=" + order.Price.ToStringInvariant() + "&quantity=" + order.RoundAmount().ToStringInvariant(), null, payload);
+                    if (token.HasValues)
+                    {
+                        // Only the orderid is returned on success
+                        result.OrderId = token["orderid"].ToStringInvariant();
+                        result.Result = ExchangeAPIOrderResult.Filled;
+                    }
+                    return result;
+                }
+
+                protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+                {
+                    await MakeJsonRequestAsync<JToken>("/market/cancel?orderid=" + orderId, null, await GetNoncePayloadAsync());
+                }
+
+                protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
+                {
+                    JToken token = await MakeJsonRequestAsync<JToken>("/account/getdepositaddress?" + "currency=" + NormalizeMarketSymbol(currency), BaseUrl, await GetNoncePayloadAsync());
+                    if (token["Currency"].ToStringInvariant().Equals(currency) && token["Address"] != null)
+                    {
+                        // At this time, according to Bleutrade support, they don't support any currency requiring an Address Tag, but they will add this feature in the future
+                        return new ExchangeDepositDetails()
+                        {
+                            Currency = token["Currency"].ToStringInvariant(),
+                            Address = token["Address"].ToStringInvariant()
+                        };
+                    }
+                    return null;
+                }
+
+                protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
+                {
+                    List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
+
+                    // "result" : [{"Id" : "44933431","TimeStamp" : "2015-05-13 07:15:23","Coin" : "LTC","Amount" : -0.10000000,"Label" : "Withdraw: 0.99000000 to address Anotheraddress; fee 0.01000000","TransactionId" : "c396228895f8976e3810286c1537bddd4a45bb37d214c0e2b29496a4dee9a09b" }
+                    JToken result = await MakeJsonRequestAsync<JToken>("/account/getdeposithistory", BaseUrl, await GetNoncePayloadAsync());
+                    foreach (JToken token in result)
+                    {
+                        transactions.Add(new ExchangeTransaction()
+                        {
+                            PaymentId = token["Id"].ToStringInvariant(),
+                            BlockchainTxId = token["TransactionId"].ToStringInvariant(),
+                            Timestamp = token["TimeStamp"].ToDateTimeInvariant(),
+                            Currency = token["Coin"].ToStringInvariant(),
+                            Amount = token["Amount"].ConvertInvariant<decimal>(),
+                            Notes = token["Label"].ToStringInvariant(),
+                            TxFee = token["fee"].ConvertInvariant<decimal>(),
+                            Status = TransactionStatus.Unknown
+                        });
+                    }
+                    return transactions;
+                }
+
+                protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+                {
+                    var payload = await GetNoncePayloadAsync();
+                    payload["currency"] = withdrawalRequest.Currency;
+                    payload["quantity"] = withdrawalRequest.Amount;
+                    payload["address"] = withdrawalRequest.Address;
+                    if (!string.IsNullOrEmpty(withdrawalRequest.AddressTag)) payload["comments"] = withdrawalRequest.AddressTag;
+
+                    await MakeJsonRequestAsync<JToken>("/account/withdraw", BaseUrl, payload);
+
+                    // Bleutrade doesn't return any info, just an empty string on success. The MakeJsonRequestAsync will throw an exception if there's an error
+                    return new ExchangeWithdrawalResponse() { Success = true };
+                }
 
 
         #endregion
 
         #region Private Functions
 
-        private ExchangeTrade ParseTrade(JToken token)
-        {
-            return token.ParseTrade("Quantity", "Price", "OrderType", "TimeStamp", TimestampType.Iso8601);
-        }
+                private ExchangeTrade ParseTrade(JToken token)
+                {
+                    return token.ParseTrade("Quantity", "Price", "OrderType", "TimeStamp", TimestampType.Iso8601);
+                }
 
-        private ExchangeOrderResult ParseOrder(JToken token)
-        {
-            var order = new ExchangeOrderResult()
-            {
-                OrderId = token["OrderId"].ToStringInvariant(),
-                IsBuy = token["Type"].ToStringInvariant().Equals("BUY"),
-                MarketSymbol = token["Exchange"].ToStringInvariant(),
-                Amount = token["Quantity"].ConvertInvariant<decimal>(),
-                OrderDate = token["Created"].ToDateTimeInvariant(),
-                AveragePrice = token["Price"].ConvertInvariant<decimal>(),
-                AmountFilled = token["QuantityBaseTraded"].ConvertInvariant<decimal>(),
-                Message = token["Comments"].ToStringInvariant(),
-            };
+                private ExchangeOrderResult ParseOrder(JToken token)
+                {
+                    var order = new ExchangeOrderResult()
+                    {
+                        OrderId = token["OrderId"].ToStringInvariant(),
+                        IsBuy = token["Type"].ToStringInvariant().Equals("BUY"),
+                        MarketSymbol = token["Exchange"].ToStringInvariant(),
+                        Amount = token["Quantity"].ConvertInvariant<decimal>(),
+                        OrderDate = token["Created"].ToDateTimeInvariant(),
+                        AveragePrice = token["Price"].ConvertInvariant<decimal>(),
+                        AmountFilled = token["QuantityBaseTraded"].ConvertInvariant<decimal>(),
+                        Message = token["Comments"].ToStringInvariant(),
+                    };
 
-            switch (token["status"].ToStringInvariant())
-            {
-                case "OPEN":
-                    order.Result = ExchangeAPIOrderResult.Pending;
-                    break;
-                case "OK":
-                    if (order.Amount == order.AmountFilled) order.Result = ExchangeAPIOrderResult.Filled;
-                    else order.Result = ExchangeAPIOrderResult.FilledPartially;
-                    break;
-                case "CANCELED":
-                    order.Result = ExchangeAPIOrderResult.Canceled;
-                    break;
-                default:
-                    order.Result = ExchangeAPIOrderResult.Unknown;
-                    break;
-            }
-            return order;
-        }
+                    switch (token["status"].ToStringInvariant())
+                    {
+                        case "OPEN":
+                            order.Result = ExchangeAPIOrderResult.Pending;
+                            break;
+                        case "OK":
+                            if (order.Amount == order.AmountFilled) order.Result = ExchangeAPIOrderResult.Filled;
+                            else order.Result = ExchangeAPIOrderResult.FilledPartially;
+                            break;
+                        case "CANCELED":
+                            order.Result = ExchangeAPIOrderResult.Canceled;
+                            break;
+                        default:
+                            order.Result = ExchangeAPIOrderResult.Unknown;
+                            break;
+                    }
+                    return order;
+                }
 
         #endregion
 
     }
 
     public partial class ExchangeName { public const string Bleutrade = "Bleutrade"; }
+
+#endif
+
 }
