@@ -1,6 +1,6 @@
 <img src='logo.png' width='600' />
 
-![Build Status](https://jjxtra.visualstudio.com/Digital%20Ruby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)
+[![Build Status](https://jjxtra.visualstudio.com/Digital%20Ruby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://jjxtra.visualstudio.com/Digital%20Ruby/_build/latest?definitionId=5&branchName=master)
 
 ## Overview
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
