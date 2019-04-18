@@ -16,5 +16,5 @@ steps:
 
 - script: dotnet build --configuration $(buildConfiguration)
   displayName: Build
-- script: sudo dotnet test --configuration $(buildConfiguration)
+- script: dotnet test --configuration $(buildConfiguration)
   displayName: Test
