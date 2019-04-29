@@ -63,6 +63,7 @@ namespace ExchangeSharp
             };
 
             MarketSymbolSeparator = string.Empty;
+            MarketSymbolIsUppercase = false;
         }
 
         public string NormalizeMarketSymbolV1(string marketSymbol)

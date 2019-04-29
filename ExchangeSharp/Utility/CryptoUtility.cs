@@ -518,23 +518,13 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// Get a UTC date time from a unix epoch in seconds
         /// </summary>
-        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <param name="unixTimeStampSeconds">Unix epoch in seconds</param>
         /// <returns>UTC DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
+        public static DateTime UnixTimeStampToDateTimeSeconds(this long unixTimeStampSeconds)
         {
-            return unixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
-        }
-
-        /// <summary>
-        /// Get a UTC date time from a unix epoch in milliseconds
-        /// </summary>
-        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
-        /// <returns>UTC DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
-        {
-            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+            return unixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
         /// <summary>
@@ -548,6 +538,26 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Get a UTC date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
+        {
+            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+        }
+
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
+        {
+            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+        }
+
+        /// <summary>
         /// Get a utc date time from a local unix epoch in milliseconds
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
@@ -555,6 +565,36 @@ namespace ExchangeSharp
         public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
             return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Get a utc date time from a local unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>Local DateTime</returns>
+        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
+        {
+            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(this double unixTimeStampNanoseconds)
+        {
+            return unixEpoch.AddTicks((long)unixTimeStampNanoseconds / 100);
+        }
+
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
+        {
+            return unixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
         }
 
         /// <summary>

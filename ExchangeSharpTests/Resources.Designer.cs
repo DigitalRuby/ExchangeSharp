@@ -61,15 +61,6 @@ namespace ExchangeSharpTests {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {&quot;Abucoins&quot;:[&quot;ETH-BTC&quot;,&quot;LTC-BTC&quot;,&quot;ETC-BTC&quot;,&quot;ZEC-BTC&quot;,&quot;STRAT-BTC&quot;,&quot;DASH-BTC&quot;,&quot;XMR-BTC&quot;,&quot;SC-BTC&quot;,&quot;XEM-BTC&quot;,&quot;WAVES-BTC&quot;,&quot;XLM-BTC&quot;,&quot;GNT-BTC&quot;,&quot;REP-BTC&quot;,&quot;XRP-BTC&quot;,&quot;BCH-BTC&quot;,&quot;BTC-PLN&quot;,&quot;BTC-USD&quot;,&quot;BTC-EUR&quot;,&quot;ETH-PLN&quot;,&quot;BTG-BTC&quot;,&quot;BCH-PLN&quot;,&quot;BCH-USD&quot;,&quot;BCH-EUR&quot;,&quot;ETH-USD&quot;,&quot;ETH-EUR&quot;,&quot;BTG-PLN&quot;,&quot;BTG-USD&quot;,&quot;BTG-EUR&quot;,&quot;LSK-BTC&quot;,&quot;LSK-PLN&quot;,&quot;LSK-USD&quot;,&quot;LSK-EUR&quot;,&quot;HSR-BTC&quot;,&quot;QTUM-BTC&quot;,&quot;ADA-BTC&quot;,&quot;TRX-BTC&quot;,&quot;ARK-BTC&quot;,&quot;EOS-BTC&quot;,&quot;PIVX-BTC&quot;,&quot;DOGE-BTC&quot;,&quot;BLOCK-BTC&quot;,&quot;NEO-BTC&quot;,&quot;OMG-BTC&quot;,&quot;VEN-BTC&quot;,&quot;PPT-BTC&quot;,&quot;ONT-BTC&quot;,&quot;DGD-BTC&quot;,&quot;BTM-BTC&quot;,&quot;RHOC-BTC&quot; [rest of....
-        /// </summary>
-        internal static string AllSymbolsJson {
-            get {
-                return ResourceManager.GetString("AllSymbolsJson", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to [
         ///{
         ///&quot;id&quot;: &quot;10&quot;,
