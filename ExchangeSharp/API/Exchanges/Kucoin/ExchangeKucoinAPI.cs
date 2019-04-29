@@ -562,12 +562,12 @@ namespace ExchangeSharp
         // { "oid": "59e59b279bd8d31d093d956e", "type": "SELL", "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "SELL","price": 0.1,"dealAmount": 0,"pendingAmount": 100, "createdAt": 1508219688000, "updatedAt": 1508219688000 }
         private ExchangeOrderResult ParseOpenOrder(JToken token)
         {
-            ExchangeOrderResult order = new ExchangeOrderResult()
+          ExchangeOrderResult order = new ExchangeOrderResult()
             {
                 OrderId = token["id"].ToStringInvariant(),
                 MarketSymbol = token["symbol"].ToStringInvariant(),
-                IsBuy = token["side"].ToStringInvariant().Equals("BUY"),
-                Price = token["price"].ConvertInvariant<decimal>(),
+                IsBuy = token["side"].ToStringInvariant().Equals("buy"), //changed to lower
+              Price = token["price"].ConvertInvariant<decimal>(),
                 AveragePrice = token["price"].ConvertInvariant<decimal>(),
                 OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).DateTime
             };
@@ -590,7 +590,7 @@ namespace ExchangeSharp
             {
                 OrderId = token["id"].ToStringInvariant(),
                 MarketSymbol = token["symbol"].ToStringInvariant(),
-                IsBuy = token["side"].ToStringInvariant().Equals("BUY"),
+                IsBuy = token["side"].ToStringInvariant().Equals("buy"), //changed to lower
                 Amount = token["size"].ConvertInvariant<decimal>(),
                 AmountFilled = token["dealSize"].ConvertInvariant<decimal>(),
                 Price = token["price"].ConvertInvariant<decimal>(),
