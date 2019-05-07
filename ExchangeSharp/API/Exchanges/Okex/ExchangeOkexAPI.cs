@@ -144,8 +144,8 @@ namespace ExchangeSharp
                 var quantityStepSize = Math.Pow(10, -quotePrecision);
                 market.QuantityStepSize = quantityStepSize.ConvertInvariant<decimal>();
                 var maxSizeDigit = marketSymbolToken["maxSizeDigit"].ConvertInvariant<double>();
-                var maxTradeSize = Math.Pow(10, maxSizeDigit);
-                market.MaxTradeSize = maxTradeSize.ConvertInvariant<decimal>() - 1.0m;
+                var maxTradeSize = (decimal)Math.Pow(10, maxSizeDigit);
+                market.MaxTradeSize = maxTradeSize - 1.0m;
                 market.MinTradeSize = marketSymbolToken["minTradeSize"].ConvertInvariant<decimal>();
 
                 market.PriceStepSize = marketSymbolToken["quoteIncrement"].ConvertInvariant<decimal>();
