@@ -265,26 +265,26 @@ namespace ExchangeSharp
         protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
         {
             /*
-            {
-              "e": "trade",     // Event type
-              "E": 123456789,   // Event time
-              "s": "BNBBTC",    // Symbol
-              "t": 12345,       // Trade ID
-              "p": "0.001",     // Price
-              "q": "100",       // Quantity
-              "b": 88,          // Buyer order Id
-              "a": 50,          // Seller order Id
-              "T": 123456785,   // Trade time
-              "m": true,        // Is the buyer the market maker?
-              "M": true         // Ignore.
-            }
+	    {
+	      "e": "aggTrade",  // Event type
+	      "E": 123456789,   // Event time
+	      "s": "BNBBTC",    // Symbol
+	      "a": 12345,       // Aggregate trade ID
+	      "p": "0.001",     // Price
+	      "q": "100",       // Quantity
+	      "f": 100,         // First trade ID
+	      "l": 105,         // Last trade ID
+	      "T": 123456785,   // Trade time
+	      "m": true,        // Is the buyer the market maker?
+	      "M": true         // Ignore
+	    }
             */
 
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
                 marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            string url = GetWebSocketStreamUrlForSymbols("@trade", marketSymbols);
+            string url = GetWebSocketStreamUrlForSymbols("@aggTrade", marketSymbols);
             return ConnectWebSocket(url, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -294,7 +294,7 @@ namespace ExchangeSharp
 
                 // buy=0 -> m = true (The buyer is maker, while the seller is taker).
                 // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "t", "false")));
+                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
                 return Task.CompletedTask;
             });
         }
