@@ -85,6 +85,7 @@ namespace ExchangeSharp
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100) => throw new NotImplementedException();
+        protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null) => throw new NotImplementedException();
         protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency) => throw new NotImplementedException();
@@ -604,6 +605,20 @@ namespace ExchangeSharp
             // *NOTE*: Do not wrap in CacheMethodCall, uses a callback with custom queries, not easy to cache
             await new SynchronizationContextRemover();
             await OnGetHistoricalTradesAsync(callback, NormalizeMarketSymbol(marketSymbol), startDate, endDate);
+        }
+
+        /// <summary>
+        /// Get historical trades for the exchange. TODO: Change to async enumerator when available.
+        /// </summary>
+        /// <param name="callback">Callback for each set of trades. Return false to stop getting trades immediately.</param>
+        /// <param name="marketSymbol">Symbol to get historical data for</param>
+        /// <param name="startId">Start Id to start getting the historical data at. Not all exchanges support this.</param>
+        /// <param name="endId">End Id to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
+        public virtual async Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId , long? endId = null)
+        {
+            // *NOTE*: Do not wrap in CacheMethodCall, uses a callback with custom queries, not easy to cache
+            await new SynchronizationContextRemover();
+            await OnGetHistoricalTradesAsync(callback, NormalizeMarketSymbol(marketSymbol), startId, endId);
         }
 
         /// <summary>
