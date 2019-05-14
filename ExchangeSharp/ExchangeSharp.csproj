@@ -8,7 +8,7 @@
     <LangVersion>latest</LangVersion>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
-    <PackageVersion>0.6.0.0</PackageVersion>
+    <PackageVersion>0.6.0.1</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
     <Summary>Supported exchanges: Abucoins, Binance, Bitfinex, Bithumb, Bitmex, Bitstamp, Bittrex, Bleutrade, Coinbase, Cryptopia, Gemini, Hitbtc, Huobi, Kraken, Kucoin, Livecoin, Okex, Poloniex, TuxExchange, Yobit, ZBcom. Pull request welcome.</Summary>
@@ -16,7 +16,7 @@
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Latest Github as of 2019-03-22</PackageReleaseNotes>
+    <PackageReleaseNotes>Latest Github as of 2019-05-10</PackageReleaseNotes>
     <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
     <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
