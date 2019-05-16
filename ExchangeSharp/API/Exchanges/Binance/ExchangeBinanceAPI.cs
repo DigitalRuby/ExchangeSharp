@@ -359,6 +359,50 @@ namespace ExchangeSharp
             await state.ProcessHistoricalTrades();
         }
 
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
+        {
+            /* [ {
+            "a": 26129,         // Aggregate tradeId
+		    "p": "0.01633102",  // Price
+		    "q": "4.70443515",  // Quantity
+		    "f": 27781,         // First tradeId
+		    "l": 27781,         // Last tradeId
+		    "T": 1498793709153, // Timestamp
+		    "m": true,          // Was the buyer the maker?
+		    "M": true           // Was the trade the best price match?
+            } ] */
+
+            // TODO : Refactor into a common layer once more Exchanges implement this pattern
+
+            var fromId = startId;
+            var maxRequestLimit = 1000;
+            var trades = new List<ExchangeTrade>();
+            var processedIds = new HashSet<long>();
+            marketSymbol = NormalizeMarketSymbol(marketSymbol);
+
+            do
+            {
+                if (fromId > endId) break;
+
+                trades.Clear();
+                var limit = Math.Min(endId - fromId ?? maxRequestLimit, maxRequestLimit);
+                var obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&fromId={fromId}&limit={limit}");
+
+                foreach (var token in obj)
+                {
+                    var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
+                    if (trade.Id < fromId) continue;
+                    if (trade.Id > endId) continue;
+                    if (!processedIds.Add(trade.Id)) continue;
+
+                    trades.Add(trade);
+                    fromId = trade.Id;
+                }
+
+                fromId++;
+            } while (callback(trades) && trades.Count > 0);
+        }
+
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /* [
