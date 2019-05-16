@@ -33,6 +33,9 @@ namespace ExchangeSharp
 
         public ExchangeBittrexAPI()
         {
+            // https://bittrex.github.io/api/v1-1#call-limits (Same counts for the V3 API)
+            RateLimit = new RateGate(60, TimeSpan.FromSeconds(60));
+
             TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "BITSHAREX",
