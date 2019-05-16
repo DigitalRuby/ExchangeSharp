@@ -574,7 +574,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            if (currency.Length == 0)
+            if (string.IsNullOrWhiteSpace(currency))
             {
                 throw new ArgumentNullException(nameof(currency));
             }
