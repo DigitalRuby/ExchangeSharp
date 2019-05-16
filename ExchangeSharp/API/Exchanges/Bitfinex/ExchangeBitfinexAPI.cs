@@ -671,6 +671,63 @@ namespace ExchangeSharp
             return transactions;
         }
 
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="currency">The symbol to check. Must be specified.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
+        {
+            if (currency.Length == 0)
+            {
+                throw new ArgumentNullException(nameof(currency));
+            }
+
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            payload["currency"] = currency;
+
+            JToken result = await MakeJsonRequestAsync<JToken>("/history/movements", BaseUrlV1, payload, "POST");
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in result)
+            {
+                if (!string.Equals(token["type"].ToStringUpperInvariant(), "WITHDRAWAL"))
+                {
+                    continue;
+                }
+
+                var transaction = new ExchangeTransaction
+                {
+                    PaymentId = token["id"].ToStringInvariant(),
+                    BlockchainTxId = token["txid"].ToStringInvariant(),
+                    Currency = token["currency"].ToStringUpperInvariant(),
+                    Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    Address = token["address"].ToStringInvariant()
+                };
+
+                string status = token["status"].ToStringUpperInvariant();
+                switch (status)
+                {
+                    case "COMPLETED":
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    case "UNCONFIRMED":
+                        transaction.Status = TransactionStatus.Processing;
+                        break;
+                    default:
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes += ", Unknown transaction status " + status;
+                        break;
+                }
+
+                double unixTimestamp = token["timestamp"].ConvertInvariant<double>();
+                transaction.Timestamp = unixTimestamp.UnixTimeStampToDateTimeSeconds();
+                transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
+        }
+
         /// <summary>A withdrawal request.</summary>
         /// <param name="withdrawalRequest">The withdrawal request.
         /// NOTE: Network fee must be subtracted from amount or withdrawal will fail</param>
