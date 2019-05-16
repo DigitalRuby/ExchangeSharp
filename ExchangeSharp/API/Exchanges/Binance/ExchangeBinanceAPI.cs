@@ -359,7 +359,7 @@ namespace ExchangeSharp
             await state.ProcessHistoricalTrades();
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
+        public async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
         {
             /* [ {
             "a": 26129,         // Aggregate tradeId
