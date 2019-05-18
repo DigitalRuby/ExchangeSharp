@@ -1,5 +1,7 @@
 <img src='logo.png' width='600' />
 
+[![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master)
+
 ## Overview
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
@@ -17,6 +19,7 @@ The following cryptocurrency exchanges are supported:
 | ---------------- | --------- | ----------- | --------- |
 | Abucoins         | x         | x           | TRO       |
 | Binance          | x         | x           | TRB       |
+| Bitbank          | x         | x           |           |
 | Bitfinex         | x         | x           | TRO       |
 | Bithumb          | x         |             |           |
 | BitMEX           | x         | x           | RO        |
@@ -30,6 +33,7 @@ The following cryptocurrency exchanges are supported:
 | Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
 | KuCoin           | x         | x           | TR        |
+| LBank            | x         | x           |           |
 | Livecoin         | x         | x           |           |
 | OKex             | x         | x           | RB        |
 | Poloniex         | x         | x           | TRB       |
@@ -46,7 +50,7 @@ ExchangeSharp uses 'marketSymbol' to refer to markets, or pairs of currencies.
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
 ### Building
-Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.0+ is required.
+Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.2+ is required.
 If running on Windows, you should use Windows 8.1 or newer.
 
 If you must use an older Windows, you'll need to use the Websocket4Net nuget package, and override the web socket implementation by calling
@@ -64,7 +68,7 @@ You can also publish from Visual Studio (right click project, select publish), w
 
 ### Nuget
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.5.8 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.0 ```  
 </a> 
 
 ### Simple Example
@@ -141,7 +145,7 @@ Believe it or not, donations are quite rare. I've posted publicly the total dona
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
 Donation totals:
-0.02350084 BTC, 0.25 LTC
+0.02350084 BTC, 10.25 LTC
 
 Thanks for visiting!
 

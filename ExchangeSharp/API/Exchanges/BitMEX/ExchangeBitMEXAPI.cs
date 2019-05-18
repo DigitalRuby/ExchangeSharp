@@ -255,7 +255,7 @@ namespace ExchangeSharp
                 foreach (var t in data)
                 {
                     var marketSymbol = t["symbol"].ToStringInvariant();
-                    callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "size", "timestamp", TimestampType.Iso8601, "trdMatchID")));
+                    callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601, "trdMatchID")));
                 }
                 return Task.CompletedTask;
             }, async (_socket) =>
@@ -369,11 +369,11 @@ namespace ExchangeSharp
             string url = $"/trade/bucketed?binSize={periodString}&partial=false&symbol={marketSymbol}&reverse=true" + marketSymbol;
             if (startDate != null)
             {
-                url += "&startTime=" + startDate.Value.ToString("yyyy-MM-dd");
+                url += "&startTime=" + startDate.Value.ToString("yyyy-MM-ddTHH:mm:ss");
             }
             if (endDate != null)
             {
-                url += "&endTime=" + endDate.Value.ToString("yyyy-MM-dd");
+                url += "&endTime=" + endDate.Value.ToString("yyyy-MM-ddTHH:mm:ss");
             }
             if (limit != null)
             {
@@ -542,7 +542,7 @@ namespace ExchangeSharp
                 AddOrderToPayload(order, subPayload);
                 orderRequests.Add(subPayload);
             }
-            payload[CryptoUtility.PayloadKeyArray] = orderRequests;
+            payload["orders"] = orderRequests;
             JToken token = await MakeJsonRequestAsync<JToken>("/order/bulk", BaseUrl, payload, "POST");
             foreach (JToken orderResultToken in token)
             {
@@ -558,6 +558,10 @@ namespace ExchangeSharp
             payload["side"] = order.IsBuy ? "Buy" : "Sell";
             payload["orderQty"] = order.Amount;
             payload["price"] = order.Price;
+            if (order.ExtraParameters.TryGetValue("execInst", out var execInst))
+            {
+                payload["execInst"] = execInst;
+            }
         }
 
         private ExchangeOrderResult ParseOrder(JToken token)

@@ -63,6 +63,7 @@ namespace ExchangeSharp
             };
 
             MarketSymbolSeparator = string.Empty;
+            MarketSymbolIsUppercase = false;
         }
 
         public string NormalizeMarketSymbolV1(string marketSymbol)
@@ -284,9 +285,28 @@ namespace ExchangeSharp
                     }
                     else
                     {
-                        //parse snapshot here if needed
-                    }
-                }
+						//parse snapshot here if needed
+						if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
+						{
+							if (array[1] is JArray subarray)
+							{
+								for (int i = 0; i < subarray.Count - 1; i++)
+								{
+									ExchangeTrade trade = ParseTradeWebSocket(subarray[i]);
+									if (trade != null)
+									{
+										trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
+										if (i == subarray.Count - 1)
+										{
+											trade.Flags |= ExchangeTradeFlags.IsLastFromSnapshot;
+										}
+										callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+									}
+								}
+							}
+						}
+					}
+				}
                 else if (token["event"].ToStringInvariant() == "subscribed" && token["channel"].ToStringInvariant() == "trades")
                 {
                     //{"event": "subscribed","channel": "trades","chanId": 29654,"symbol": "tBTCUSD","pair": "BTCUSD"}
@@ -554,7 +574,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            if (currency.Length == 0)
+            if (string.IsNullOrWhiteSpace(currency))
             {
                 throw new ArgumentNullException(nameof(currency));
             }
@@ -599,7 +619,7 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeCoinTransfers</returns>
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
-            if (currency.Length == 0)
+            if (string.IsNullOrWhiteSpace(currency))
             {
                 throw new ArgumentNullException(nameof(currency));
             }
@@ -612,6 +632,63 @@ namespace ExchangeSharp
             foreach (JToken token in result)
             {
                 if (!string.Equals(token["type"].ToStringUpperInvariant(), "DEPOSIT"))
+                {
+                    continue;
+                }
+
+                var transaction = new ExchangeTransaction
+                {
+                    PaymentId = token["id"].ToStringInvariant(),
+                    BlockchainTxId = token["txid"].ToStringInvariant(),
+                    Currency = token["currency"].ToStringUpperInvariant(),
+                    Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    Address = token["address"].ToStringInvariant()
+                };
+
+                string status = token["status"].ToStringUpperInvariant();
+                switch (status)
+                {
+                    case "COMPLETED":
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    case "UNCONFIRMED":
+                        transaction.Status = TransactionStatus.Processing;
+                        break;
+                    default:
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes += ", Unknown transaction status " + status;
+                        break;
+                }
+
+                double unixTimestamp = token["timestamp"].ConvertInvariant<double>();
+                transaction.Timestamp = unixTimestamp.UnixTimeStampToDateTimeSeconds();
+                transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
+        }
+
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="currency">The symbol to check. Must be specified.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
+        {
+            if (string.IsNullOrWhiteSpace(currency))
+            {
+                throw new ArgumentNullException(nameof(currency));
+            }
+
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            payload["currency"] = currency;
+
+            JToken result = await MakeJsonRequestAsync<JToken>("/history/movements", BaseUrlV1, payload, "POST");
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in result)
+            {
+                if (!string.Equals(token["type"].ToStringUpperInvariant(), "WITHDRAWAL"))
                 {
                     continue;
                 }

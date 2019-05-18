@@ -115,9 +115,15 @@ namespace ExchangeSharp
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
 
-                while (true)
+                while (!_manager.disposed)
                 {
                     await _manager.AddListener(functionName, callback, param);
+
+                    if (_manager.hubConnection.State != ConnectionState.Connected)
+                    {
+                        await Task.Delay(100);
+                        continue;
+                    }
 
                     try
                     {
@@ -615,19 +621,15 @@ namespace ExchangeSharp
                 {
                     Logger.Info(ex.ToString());
                 }
-                // start a task to tear down the hub connection
-                await Task.Run(() =>
+                try
                 {
-                    try
-                    {
-                        // tear down the hub connection, we must re-create it whenever a web socket disconnects
-                        hubConnection?.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Info(ex.ToString());
-                    }
-                });
+                    // tear down the hub connection, we must re-create it whenever a web socket disconnects
+                    hubConnection?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Info(ex.ToString());
+                }
             };
             await hubConnection.Start(autoTransport);
 

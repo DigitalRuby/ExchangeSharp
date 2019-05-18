@@ -80,75 +80,91 @@ namespace ExchangeSharp
         /// </summary>
         private static readonly IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "ADAUSD", "adausd" },
-            { "ADAEUR", "adaeur" },
-            { "ADAEXBT", "adabtc" },
-            { "BCHEUR", "bcheur" },
-            { "BCHUSD", "bchusd" },
-            { "BCHXBT", "bchbtc" },
-            { "DASHEUR", "dasheur" },
-            { "DASHUSD", "dashusd" },
-            { "DASHXBT", "dashbtc" },
-            { "EOSETH", "eoseth" },
-            { "EOSEUR", "eoseur" },
-            { "EOSUSD", "eosusd" },
-            { "EOSXBT", "eosbtc" },
-            { "GNOETH", "gnoeth" },
-            { "GNOXBT", "gnobtc" },
-            { "QTUMEUR", "qtumeur" },
-            { "QTUMUSD", "qtumusd" },
-            { "QTUMXBT", "qtumbtc" },
-            { "USDTZUSD", "usdtusd" },
-            { "XETCXETH", "etceth" },
-            { "XETCXXBT", "etcbtc" },
-            { "XETCZEUR", "etceur" },
-            { "XETCZUSD", "etcusd" },
-            { "XETHXXBT", "ethbtc" },
-            { "XETHXXBT.d", "ethbtc" },
-            { "XETHZCAD", "ethcad" },
-            { "XETHZCAD.d", "ethcad" },
-            { "XETHZEUR", "etheur" },
-            { "XETHZEUR.d", "etheur" },
-            { "XETHZGBP", "ethgbp" },
-            { "XETHZGBP.d", "ethgbp" },
-            { "XETHZJPY", "ethjpy" },
-            { "XETHZJPY.d", "ethjpy" },
-            { "XETHZUSD", "ethusd" },
-            { "XETHZUSD.d", "ethusd" },
-            { "XICNXETH", "icneth" },
-            { "XICNXXBT", "icnbtc" },
-            { "XLTCXXBT", "ltcbtc" },
-            { "XLTCZEUR", "ltceur" },
-            { "XLTCZUSD", "ltcusd" },
-            { "XMLNXETH", "mlneth" },
-            { "XMLNXXBT", "mlnbtc" },
-            { "XREPXETH", "repeth" },
-            { "XREPXXBT", "repbtc" },
-            { "XREPZEUR", "repeur" },
-            { "XXBTZCAD", "btccad" },
-            { "XXBTZCAD.d", "btccad" },
-            { "XXBTZEUR", "btceur" },
-            { "XXBTZEUR.d", "btceur" },
-            { "XXBTZGBP", "btcgbp" },
-            { "XXBTZGBP.d", "btcgpb" },
-            { "XXBTZJPY", "btcjpy" },
-            { "XXBTZJPY.d", "btcjpy" },
-            { "XXBTZUSD", "btcusd" },
-            { "XXBTZUSD.d", "btcusd" },
-            { "XXDGXXBT", "dogebtc" },
-            { "XXLMXXBT", "xlmbtc" },
-            { "XXLMZUSD", "xlmusd" },
-            { "XXLMZEUR", "xlmeur" },
-            { "XXMRXXBT", "xmrbtc" },
-            { "XXMRZEUR", "xmreur" },
-            { "XXMRZUSD", "xmrusd" },
-            { "XXRPXXBT", "xrpbtc" },
-            { "XXRPZEUR", "xrpeur" },
-            { "XXRPZUSD", "xrpusd" },
-            { "XZECXXBT", "zecbtc" },
-            { "XZECZEUR", "zeceur" },
-            { "XZECZUSD", "zecusd" }
-        };
+		   { "ADACAD" , "adacad" },
+			{ "ADAETH" , "adaeth" },
+			{ "ADAEUR" , "adaeur" },
+			{ "ADAUSD" , "adausd" },
+			{ "ADAXBT" , "adaxbt" },
+			{ "BCHEUR" , "bcheur" },
+			{ "BCHUSD" , "bchusd" },
+			{ "BCHXBT" , "bchxbt" },
+			{ "BSVEUR" , "bsveur" },
+			{ "BSVUSD" , "bsvusd" },
+			{ "BSVXBT" , "bsvxbt" },
+			{ "DASHEUR" , "dasheur" },
+			{ "DASHUSD" , "dashusd" },
+			{ "DASHXBT" , "dashxbt" },
+			{ "EOSETH" , "eoseth" },
+			{ "EOSEUR" , "eoseur" },
+			{ "EOSUSD" , "eosusd" },
+			{ "EOSXBT" , "eosxbt" },
+			{ "GNOETH" , "gnoeth" },
+			{ "GNOEUR" , "gnoeur" },
+			{ "GNOUSD" , "gnousd" },
+			{ "GNOXBT" , "gnoxbt" },
+			{ "QTUMCAD" , "qtumcad" },
+			{ "QTUMETH" , "qtumeth" },
+			{ "QTUMEUR" , "qtumeur" },
+			{ "QTUMUSD" , "qtumusd" },
+			{ "QTUMXBT" , "qtumxbt" },
+			{ "USDTZUSD" , "usdtusd" },
+			{ "XETCXETH" , "etceth" },
+			{ "XETCXXBT" , "etcxbt" },
+			{ "XETCZEUR" , "etceur" },
+			{ "XETCZUSD" , "etcusd" },
+			{ "XETHXXBT" , "ethxbt" },
+			{ "XETHXXBT.d" , "ethxbtd" },
+			{ "XETHZCAD" , "ethcad" },
+			{ "XETHZCAD.d" , "ethcadd" },
+			{ "XETHZEUR" , "etheur" },
+			{ "XETHZEUR.d" , "etheurd" },
+			{ "XETHZGBP" , "ethgbp" },
+			{ "XETHZGBP.d" , "ethgbpd" },
+			{ "XETHZJPY" , "ethjpy" },
+			{ "XETHZJPY.d" , "ethjpyd" },
+			{ "XETHZUSD" , "ethusd" },
+			{ "XETHZUSD.d" , "ethusdd" },
+			{ "XLTCXXBT" , "ltcxbt" },
+			{ "XLTCZEUR" , "ltceur" },
+			{ "XLTCZUSD" , "ltcusd" },
+			{ "XMLNXETH" , "mlneth" },
+			{ "XMLNXXBT" , "mlnxbt" },
+			{ "XREPXETH" , "repeth" },
+			{ "XREPXXBT" , "repxbt" },
+			{ "XREPZEUR" , "repeur" },
+			{ "XREPZUSD" , "repusd" },
+			{ "XTZCAD" , "xtzcad" },
+			{ "XTZETH" , "xtzeth" },
+			{ "XTZEUR" , "xtzeur" },
+			{ "XTZUSD" , "xtzusd" },
+			{ "XTZXBT" , "xtzxbt" },
+			{ "XXBTZCAD" , "xbtcad" },
+			{ "XXBTZCAD.d" , "xbtcadd" },
+			{ "XXBTZEUR" , "xbteur" },
+			{ "XXBTZEUR.d" , "xbteurd" },
+			{ "XXBTZGBP" , "xbtgbp" },
+			{ "XXBTZGBP.d" , "xbtgbpd" },
+			{ "XXBTZJPY" , "xbtjpy" },
+			{ "XXBTZJPY.d" , "xbtjpyd" },
+			{ "XXBTZUSD" , "xbtusd" },
+			{ "XXBTZUSD.d" , "xbtusdd" },
+			{ "XXDGXXBT" , "xdgxbt" },
+			{ "XXLMXXBT" , "xlmxbt" },
+			{ "XXLMZEUR" , "xlmeur" },
+			{ "XXLMZUSD" , "xlmusd" },
+			{ "XXMRXXBT" , "xmrxbt" },
+			{ "XXMRZEUR" , "xmreur" },
+			{ "XXMRZUSD" , "xmrusd" },
+			{ "XXRPXXBT" , "xrpxbt" },
+			{ "XXRPZCAD" , "xrpcad" },
+			{ "XXRPZEUR" , "xrpeur" },
+			{ "XXRPZJPY" , "xrpjpy" },
+			{ "XXRPZUSD" , "xrpusd" },
+			{ "XZECXXBT" , "zecxbt" },
+			{ "XZECZEUR" , "zeceur" },
+			{ "XZECZJPY" , "zecjpy" },
+			{ "XZECZUSD" , "zecusd" }
+		};
 
         private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -185,6 +201,47 @@ namespace ExchangeSharp
             return orderResult;
         }
 
+        private ExchangeOrderResult ParseHistoryOrder(string orderId, JToken order)
+        {
+//            //{{
+//            "ordertxid": "ONKWWN-3LWZ7-4SDZVJ",
+//  "postxid": "TKH2SE-M7IF5-CFI7LT",
+//  "pair": "XXRPZUSD",
+//  "time": 1537779676.7525,
+//  "type": "buy",
+//  "ordertype": "limit",
+//  "price": "0.54160000",
+//  "cost": "16.22210000",
+//  "fee": "0.02595536",
+//  "vol": "29.95217873",
+//  "margin": "0.00000000",
+//  "misc": ""
+//}
+//    }
+
+    ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
+           
+
+            orderResult.Result = ExchangeAPIOrderResult.Filled;
+            orderResult.Message = "";
+            orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
+            orderResult.MarketSymbol = order["pair"].ToStringInvariant();
+            orderResult.IsBuy = (order["type"].ToStringInvariant() == "buy");
+            orderResult.Amount = order["vol"].ConvertInvariant<decimal>();
+            orderResult.Fees = order["fee"].ConvertInvariant<decimal>();
+            orderResult.Price = order["price"].ConvertInvariant<decimal>();
+            orderResult.AveragePrice = order["price"].ConvertInvariant<decimal>();
+            orderResult.TradeId = order["postxid"].ToStringInvariant(); //verify which is orderid & tradeid
+            orderResult.OrderId = order["ordertxid"].ToStringInvariant();  //verify which is orderid & tradeid
+            orderResult.AmountFilled = order["vol"].ConvertInvariant<decimal>();
+            orderResult.FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
+
+            string[] pairs = ExchangeMarketSymbolToGlobalMarketSymbol(order["pair"].ToStringInvariant()).Split('-');
+            orderResult.FeesCurrency = pairs[1];
+
+            return orderResult;
+        }
+
         private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
@@ -203,6 +260,84 @@ namespace ExchangeSharp
 
             return orders;
         }
+
+        private async Task<IEnumerable<ExchangeOrderResult>> QueryClosedOrdersAsync(string symbol, string path)
+        {
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
+            result = result["closed"];
+            if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
+            {
+                foreach (JProperty order in result)
+                {
+                    if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpperInvariant())
+                    {
+                        orders.Add(ParseOrder(order.Name, order.Value));
+                    }
+                }
+            }
+            else
+            {
+                foreach (JProperty order in result)
+                {
+                    orders.Add(ParseOrder(order.Name, order.Value));
+                }
+            }
+           
+            return orders;
+        }
+
+        private async Task<IEnumerable<ExchangeOrderResult>> QueryHistoryOrdersAsync(string symbol, string path)
+        {
+            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
+            result = result["trades"];
+            if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
+            {
+                foreach (JProperty order in result)
+                {
+                    if (normalizedSymbol == null || order.Value["pair"].ToStringInvariant() == symbol.ToUpperInvariant())
+                    {
+                        orders.Add(ParseHistoryOrder(order.Name, order.Value));
+                    }
+                }
+            }
+            else
+            {
+                foreach (JProperty order in result)
+                {
+                    orders.Add(ParseHistoryOrder(order.Name, order.Value));
+                }
+            }
+
+            return orders;
+        }
+
+        //private async Task<IEnumerable<ExchangeOrderResult>> QueryClosedOrdersAsync(string symbol, string path)
+        //{
+        //    List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+        //    JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
+        //    //result = result["closed"];
+        //    foreach (JProperty order in result)
+        //    {
+        //        orders.Add(ParseOrder(order.Name, order.Value));
+        //    }
+
+
+        //    //if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
+        //    //{
+        //    //    foreach (JProperty order in result)
+        //    //    {
+        //    //        if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpperInvariant())
+        //    //        {
+        //    //            orders.Add(ParseOrder(order.Name, order.Value));
+        //    //        }
+        //    //    }
+        //    //}
+
+        //    return orders;
+        //}
+
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -596,15 +731,37 @@ namespace ExchangeSharp
             return await QueryOrdersAsync(marketSymbol, "/0/private/OpenOrders");
         }
 
+        //protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+        //{
+        //    string path = "/0/private/ClosedOrders";
+        //    if (afterDate != null)
+        //    {
+        //        path += "?start=" + ((long)afterDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
+        //    }
+        //    return await QueryClosedOrdersAsync(marketSymbol, path);
+        //}
+
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
-            string path = "/0/private/ClosedOrders";
+            string path = "/0/private/TradesHistory";
             if (afterDate != null)
             {
                 path += "?start=" + ((long)afterDate.Value.UnixTimestampFromDateTimeMilliseconds()).ToStringInvariant();
             }
-            return await QueryOrdersAsync(marketSymbol, path);
+            return await QueryHistoryOrdersAsync(marketSymbol, path);
         }
+
+        //protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+        //{
+        //    var payload = await GetNoncePayloadAsync();
+        //    if (marketSymbol == null)
+        //        throw new APIException("BitBank requires marketSymbol when getting completed orders");
+        //    payload.Add("pair", NormalizeMarketSymbol(marketSymbol));
+        //    if (afterDate != null)
+        //        payload.Add("since", afterDate.ConvertInvariant<double>());
+        //    JToken token = await MakeJsonRequestAsync<JToken>($"/user/spot/trade_history", baseUrl: BaseUrlPrivate, payload: payload);
+        //    return token["trades"].Select(t => TradeHistoryToExchangeOrderResult(t));
+        //}
 
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {

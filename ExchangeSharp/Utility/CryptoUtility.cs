@@ -167,7 +167,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a DateTime and set the kind using the DateTimeKind property.
+        /// Convert a DateTime and set the kind to UTC using the DateTimeKind property.
         /// </summary>
         /// <param name="obj">Object to convert</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
@@ -184,8 +184,7 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-            dt = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-            return dt;
+            return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
         }
 
         /// <summary>
@@ -489,12 +488,12 @@ namespace ExchangeSharp
                 decimal mod = value % stepSize.Value;
                 value -= mod;
             }
-           
+
             if (maxValue > 0)
             {
                 value = Math.Min(maxValue, value);
             }
-                
+
             value = Math.Max(minValue, value);
 
             return value.Normalize();
@@ -519,13 +518,13 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Get a UTC date time from a unix epoch in milliseconds
+        /// Get a UTC date time from a unix epoch in seconds
         /// </summary>
-        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <param name="unixTimeStampSeconds">Unix epoch in seconds</param>
         /// <returns>UTC DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampToDateTimeSeconds(this long unixTimeStampSeconds)
         {
-            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+            return unixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
         /// <summary>
@@ -539,6 +538,26 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Get a UTC date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
+        {
+            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+        }
+
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
+        {
+            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+        }
+
+        /// <summary>
         /// Get a utc date time from a local unix epoch in milliseconds
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
@@ -546,6 +565,36 @@ namespace ExchangeSharp
         public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
             return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Get a utc date time from a local unix epoch in milliseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>Local DateTime</returns>
+        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
+        {
+            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
+        }
+
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(this double unixTimeStampNanoseconds)
+        {
+            return unixEpoch.AddTicks((long)unixTimeStampNanoseconds / 100);
+        }
+
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
+        {
+            return unixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
         }
 
         /// <summary>
@@ -593,6 +642,9 @@ namespace ExchangeSharp
             {
                 case TimestampType.Iso8601:
                     return value.ToDateTimeInvariant();
+
+                case TimestampType.UnixNanoseconds:
+                    return UnixTimeStampToDateTimeNanoseconds(value.ConvertInvariant<long>());
 
                 case TimestampType.UnixMillisecondsDouble:
                     return UnixTimeStampToDateTimeMilliseconds(value.ConvertInvariant<double>());
@@ -648,6 +700,16 @@ namespace ExchangeSharp
             }
             return string.Empty;
         }
+
+        public static string GetJsonForPayload(this Dictionary<string, object> payload, bool includeNonce = true)
+        {
+            if (includeNonce == false)
+            {
+                payload.Remove("nonce");
+            }
+            return (GetJsonForPayload(payload));
+        }
+
 
         /// <summary>
         /// Write a form to a request
@@ -788,6 +850,11 @@ namespace ExchangeSharp
             return new HMACSHA256(key.ToBytesUTF8()).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
         }
 
+        public static string SHA256Sign(string message, string key, bool UseASCII)
+        {
+            var encoding = new ASCIIEncoding();
+            return Convert.ToBase64String(new HMACSHA256(encoding.GetBytes(key)).ComputeHash(encoding.GetBytes(message)));
+        }
         /// <summary>
         /// Sign a message with SHA256 hash
         /// </summary>
@@ -1307,6 +1374,11 @@ namespace ExchangeSharp
         /// No timestamp type
         /// </summary>
         None,
+
+        /// <summary>
+        /// Unix nanoseconds (long)
+        /// </summary>
+        UnixNanoseconds,
 
         /// <summary>
         /// Unix milliseconds (double)
