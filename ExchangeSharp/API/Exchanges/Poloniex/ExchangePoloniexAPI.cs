@@ -434,8 +434,9 @@ namespace ExchangeSharp
 					{
 						if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
 						{   //   0        1                 2                  3         4          5
-							// ["t", "<trade id>", <1 for buy 0 for sell>, "<size>", "<price>", <timestamp>]
-							ExchangeTrade trade = data.ParseTrade(3, 4, 2, 5, TimestampType.UnixSeconds, 1, "1");
+							// ["t", "<trade id>", <1 for buy 0 for sell>, "<price>", "<size>", <timestamp>]
+							ExchangeTrade trade = data.ParseTrade(amountKey: 4, priceKey: 3, typeKey: 2, timestampKey: 5,
+								timestampType: TimestampType.UnixSeconds, idKey: 1, typeKeyIsBuyValue: "1");
 							callback(new KeyValuePair<string, ExchangeTrade>(symbol.Item1, trade));
 						}
 					}
