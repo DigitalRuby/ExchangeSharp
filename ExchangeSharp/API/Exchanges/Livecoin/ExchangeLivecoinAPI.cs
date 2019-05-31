@@ -206,7 +206,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/payment/balances", null, await GetNoncePayloadAsync());
             foreach (JToken child in token)
             {
-                if (child["type"].ToStringInvariant() == "trade")
+                if (child["type"].ToStringInvariant() == "available")
                 {
                     decimal amount = child["value"].ConvertInvariant<decimal>();
                     if (amount > 0m) amounts.Add(child["currency"].ToStringInvariant(), amount);
