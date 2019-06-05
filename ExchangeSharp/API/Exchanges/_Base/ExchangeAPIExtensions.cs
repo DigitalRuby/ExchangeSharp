@@ -313,6 +313,7 @@ namespace ExchangeSharp
             int maxCount = 100
         )
         {
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var book = new ExchangeOrderBook { SequenceId = token[sequence].ConvertInvariant<long>() };
             foreach (JArray array in token[asks])
             {
