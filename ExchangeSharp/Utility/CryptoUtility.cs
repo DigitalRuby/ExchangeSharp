@@ -449,7 +449,10 @@ namespace ExchangeSharp
                 .Replace("=", "%3D")
                 .Replace("\r", "%0D")
                 .Replace("\n", "%0A")
-                .Replace(":", "%3A");
+                .Replace(":", "%3A")
+                .Replace("/", "%2F")
+                .Replace("@", "%40")
+                .Replace(";", "%3B");
         }
 
         /// <summary>
