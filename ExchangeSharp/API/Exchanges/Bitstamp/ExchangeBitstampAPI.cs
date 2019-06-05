@@ -113,7 +113,7 @@ namespace ExchangeSharp
 					QuoteCurrency = split[1],
 					MinTradeSize = baseDecimals, // will likely get overriden by MinTradeSizeInQuoteCurrency
 					QuantityStepSize = baseDecimals,
-					MinTradeSizeInQuoteCurrency = decimal.Parse(minOrderString.Split(' ')[0]),
+					MinTradeSizeInQuoteCurrency = minOrderString.Split(' ')[0].ConvertInvariant<decimal>(),
 					MinPrice = counterDecimals,
 					PriceStepSize = counterDecimals,
 					IsActive = token["trading"].ToStringLowerInvariant() == "enabled",

@@ -596,7 +596,7 @@ namespace ExchangeSharp
                 Price = token["price"].ConvertInvariant<decimal>(),
                 AveragePrice = token["price"].ConvertInvariant<decimal>(),
                 //Message = string.Format("Original Order ID: {0}", token["orderOid"].ToStringInvariant()),           // each new order is given an order ID. As it is filled, possibly across multipl orders, a new oid is created. Here we put the orginal orderid
-                Fees = decimal.Parse(token["fee"].ToStringInvariant(), System.Globalization.NumberStyles.Float),     // returned with exponent so have to parse
+                Fees = token["fee"].ConvertInvariant<decimal>(), // ConvertInvariant handles exponent now
                 OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>()).DateTime
 
             };

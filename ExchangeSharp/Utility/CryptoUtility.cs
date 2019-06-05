@@ -226,7 +226,7 @@ namespace ExchangeSharp
                     // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
                     string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
                     if (string.IsNullOrWhiteSpace(stringValue)) return defaultValue;
-                    decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float);
+                    decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture);
                     return (T)Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
                 }
             }

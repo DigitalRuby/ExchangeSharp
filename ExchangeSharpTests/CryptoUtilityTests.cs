@@ -11,11 +11,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 using ExchangeSharp;
+
 using FluentAssertions;
+
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExchangeSharpTests
@@ -193,6 +197,32 @@ namespace ExchangeSharpTests
 
             Assert.AreEqual(privateKeyRead, privateKey);
             Assert.AreEqual(publicKeyRead, publicKey);
+        }
+
+        [TestMethod]
+        public void ConvertInvariantTest()
+        {
+            CultureInfo info = Thread.CurrentThread.CurrentCulture;
+            try
+            {
+                CultureInfo info2 = new CultureInfo("fr-FR");
+                string[] decimals = new string[] { "7800.07", "0.00172", "155975495", "7.93E+3", "0.00018984", "155975362" };
+                foreach (string doubleString in decimals)
+                {
+                    Thread.CurrentThread.CurrentCulture = info;
+                    decimal value = doubleString.ConvertInvariant<decimal>();
+                    Thread.CurrentThread.CurrentCulture = info2;
+                    decimal value2 = doubleString.ConvertInvariant<decimal>();
+                    Assert.AreEqual(value, value2);
+                    Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+                    decimal value3 = doubleString.ConvertInvariant<decimal>();
+                    Assert.AreEqual(value2, value3);
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = info;
+            }
         }
 
         [TestMethod]
