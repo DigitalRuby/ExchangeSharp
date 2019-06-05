@@ -36,6 +36,7 @@ namespace ExchangeSharp
             if (CanMakeAuthenticatedRequest(payload))
             {
                 string payloadForm = CryptoUtility.GetFormForPayload(payload, false);
+                payloadForm = http_build_query(payloadForm);
                 request.AddHeader("API-Key", PublicApiKey.ToUnsecureString());
                 request.AddHeader("Sign", CryptoUtility.SHA256Sign(payloadForm, PrivateApiKey.ToUnsecureBytesUTF8()).ToUpperInvariant());
                 await request.WriteToRequestAsync(payloadForm);
@@ -401,6 +402,15 @@ namespace ExchangeSharp
             };
         }
 
+        private string http_build_query(String payloadForm)
+        {
+            // Replace "/", "@" and ";"
+            // source: https://www.livecoin.net/api/examples#c_sharp
+            string str = payloadForm.Replace("/", "%2F");
+            str = str.Replace("@", "%40");
+            str = str.Replace(";", "%3B");
+            return str;
+        }
         #endregion Private Functions
     }
 
