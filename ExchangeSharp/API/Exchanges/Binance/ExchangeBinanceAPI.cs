@@ -478,7 +478,7 @@ namespace ExchangeSharp
             payload["symbol"] = order.MarketSymbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
             if (order.OrderType == OrderType.Stop)
-                payload["type"] = "STOP_LOOSE";//if order type is stop loose/limit, then binance expect word 'STOP_LOOSE' inestead of 'STOP'
+                payload["type"] = "STOP_LOSS";//if order type is stop loss/limit, then binance expect word 'STOP_LOSS' inestead of 'STOP'
             else
                 payload["type"] = order.OrderType.ToStringUpperInvariant();
 
