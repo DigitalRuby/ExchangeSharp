@@ -182,12 +182,12 @@ namespace ExchangeSharp
         {
 			/*
 			 request:
-			{"op": "subscribe", "args": ["swap/trade:BTC-USD-SWAP"]}
+			{"op": "subscribe", "args": ["spot/trade:BTC-USD"]}
 			*/
 
 			return ConnectWebSocketOkex(async (_socket) =>
 				{
-					marketSymbols = await AddMarketSymbolsToChannel(_socket, "swap/trade:{0}-SWAP", marketSymbols);
+					marketSymbols = await AddMarketSymbolsToChannel(_socket, "spot/trade:{0}", marketSymbols);
 				}, (_socket, symbol, sArray, token) =>
 				{
 					ExchangeTrade trade = ParseTradeWebSocket(token);
@@ -608,7 +608,7 @@ namespace ExchangeSharp
 	                {
 		                return;
 	                }
-					 }
+				}
 
                 if (token["table"] != null)
                 {
@@ -617,7 +617,7 @@ namespace ExchangeSharp
 	                {
 		                var marketSymbol = dataRow["instrument_id"].ToStringInvariant().Replace("-SWAP", string.Empty);
 		                await callback(_socket, marketSymbol, null, dataRow);
-						 }
+					}
                 }
             }, async (_socket) =>
             {
