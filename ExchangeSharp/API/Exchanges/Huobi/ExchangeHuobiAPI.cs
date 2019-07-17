@@ -270,7 +270,6 @@ namespace ExchangeSharp
                 var trades = ParseTradesWebSocket(data);
                 foreach (var trade in trades)
                 {
-                    trade.Id = id;
                     callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                 }
             }, async (_socket) =>

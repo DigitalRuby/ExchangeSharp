@@ -178,7 +178,6 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            long? lastTradeID = null;
             // TODO: Can't get Hitbtc to return other than the last 50 trades even though their API says it should (by orderid or timestamp). When passing either of these parms, it still returns the last 50
             // So until there is an update, that's what we'll go with
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol);
@@ -187,7 +186,6 @@ namespace ExchangeSharp
                 foreach (JToken token in obj)
                 {
                     ExchangeTrade trade = ParseExchangeTrade(token);
-                    lastTradeID = trade.Id;
                     if (startDate == null || trade.Timestamp >= startDate)
                     {
                         trades.Add(trade);

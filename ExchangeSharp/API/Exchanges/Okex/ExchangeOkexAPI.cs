@@ -580,7 +580,7 @@ namespace ExchangeSharp
 
 			return new ExchangeTrade
 			  {
-				  Id = token["trade_id"].ConvertInvariant<long>(),
+				  Id = token["trade_id"].ToStringInvariant(),
 				  Price = token["price"].ConvertInvariant<decimal>(),
 				  Amount = token["size"].ConvertInvariant<decimal>(),
 				  Timestamp = DateTime.Parse(token["timestamp"].ToStringInvariant()),

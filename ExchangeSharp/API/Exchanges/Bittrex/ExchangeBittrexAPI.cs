@@ -323,8 +323,8 @@ namespace ExchangeSharp
                         Amount = trade["V"].ConvertInvariant<decimal>(),
                         Price = trade["C"].ConvertInvariant<decimal>(),
                         Timestamp = trade["T"].ToDateTimeInvariant(),
-                        Id = -1,
-                        IsBuy = true
+                        Id = trade["T"].ToStringInvariant(),
+						IsBuy = true
                     });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));

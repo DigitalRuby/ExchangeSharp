@@ -391,12 +391,13 @@ namespace ExchangeSharp
                 foreach (var token in obj)
                 {
                     var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
-                    if (trade.Id < fromId) continue;
-                    if (trade.Id > endId) continue;
-                    if (!processedIds.Add(trade.Id)) continue;
+					long tradeId = (long)trade.Id.ConvertInvariant<ulong>();
+					if (tradeId < fromId) continue;
+                    if (tradeId > endId) continue;
+                    if (!processedIds.Add(tradeId)) continue;
 
                     trades.Add(trade);
-                    fromId = trade.Id;
+                    fromId = tradeId;
                 }
 
                 fromId++;

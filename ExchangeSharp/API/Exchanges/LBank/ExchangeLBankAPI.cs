@@ -212,7 +212,7 @@ namespace ExchangeSharp
                 exTradeList.Add(
                     new ExchangeTrade
                     {
-                        Id = token["tid"].ConvertInvariant<long>(),
+                        Id = token["tid"].ToStringInvariant(),
                         Timestamp = timestamp,
                         Price = token["price"].ConvertInvariant<decimal>(),
                         Amount = token["amount"].ConvertInvariant<decimal>(),
