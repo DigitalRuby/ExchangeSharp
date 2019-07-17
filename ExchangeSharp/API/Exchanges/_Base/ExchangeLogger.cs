@@ -31,8 +31,8 @@ namespace ExchangeSharp
         private BinaryWriter bookWriter;
         private BinaryWriter tradeWriter;
 
-        HashSet<long> tradeIds = new HashSet<long>();
-        HashSet<long> tradeIds2 = new HashSet<long>();
+        HashSet<string> tradeIds = new HashSet<string>();
+        HashSet<string> tradeIds2 = new HashSet<string>();
 
         private void LoggerThread()
         {
@@ -80,7 +80,7 @@ namespace ExchangeSharp
         public void Update()
         {
             ExchangeTrade[] newTrades;
-            HashSet<long> tmpTradeIds;
+            HashSet<string> tmpTradeIds;
 
             try
             {

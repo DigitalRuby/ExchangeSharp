@@ -32,7 +32,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Trade id
         /// </summary>
-        public long Id { get; set; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Price
@@ -87,7 +87,7 @@ namespace ExchangeSharp
         public void FromBinary(BinaryReader reader)
         {
             Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
-            Id = reader.ReadInt64();
+            Id = reader.ReadString();
             Price = (decimal)reader.ReadDouble();
             Amount = (decimal)reader.ReadDouble();
             IsBuy = reader.ReadBoolean();

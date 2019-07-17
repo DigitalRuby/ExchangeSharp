@@ -122,7 +122,7 @@ namespace ExchangeSharp
                 Callback = callback,
                 DirectionIsBackwards = false,
                 EndDate = endDate,
-                ParseFunction = (JToken token) => token.ParseTrade("amount", "price", "type", "timestampms", TimestampType.UnixMilliseconds),
+                ParseFunction = (JToken token) => token.ParseTrade("amount", "price", "type", "timestampms", TimestampType.UnixMilliseconds, idKey: "tid"),
                 StartDate = startDate,
                 MarketSymbol = marketSymbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),

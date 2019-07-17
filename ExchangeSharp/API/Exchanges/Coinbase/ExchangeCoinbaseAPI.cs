@@ -439,7 +439,7 @@ namespace ExchangeSharp
 
         private ExchangeTrade ParseTradeWebSocket(JToken token)
         {
-            return token.ParseTrade("last_size", "price", "side", "time", TimestampType.Iso8601, "sequence");
+            return token.ParseTrade("last_size", "price", "side", "time", TimestampType.Iso8601, "trade_id");
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)

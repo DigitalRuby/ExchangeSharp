@@ -239,7 +239,7 @@ namespace ExchangeSharp
 						// Bittrex doesn't currently send out FillId on socket.bittrex.com, only beta.bittrex.com, but this will be ready when they start
 						// https://github.com/Bittrex/beta/issues/2, https://github.com/Bittrex/bittrex.github.io/issues/3
 						// You can always change the URL on the top of the file to beta.bittrex.com to start getting FillIds now
-						Id = fill.FillId,
+						Id = fill.FillId.ToStringInvariant(),
 						IsBuy = fill.OrderSide == OrderSide.Buy,
 						Price = fill.Rate,
 						Timestamp = fill.Timestamp

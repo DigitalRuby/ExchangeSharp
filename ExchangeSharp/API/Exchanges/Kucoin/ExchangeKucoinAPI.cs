@@ -199,8 +199,9 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/orders?status=active&symbol=" + marketSymbol);
             foreach (JToken trade in token)
             {
-                trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds));
-            }
+                trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds, idKey: "tradeId"));
+
+			}
             return trades;
         }
 
@@ -210,7 +211,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/market/histories?symbol=" + marketSymbol + (startDate == null ? string.Empty : "&since=" + startDate.Value.UnixTimestampFromDateTimeMilliseconds()));
             foreach (JObject trade in token)
             {
-                trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds));
+                trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds, idKey: "tradeId"));
             }
             var rc = callback?.Invoke(trades);
         }
@@ -477,8 +478,7 @@ namespace ExchangeSharp
                             var dataToken = token["data"];
 							var marketSymbol = token["data"]["symbol"].ToStringInvariant();
                             var trade = dataToken.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
-                                timestampKey: "time", TimestampType.UnixNanoseconds); // idKey: "tradeId");
-																					   // one day, if ExchangeTrade.Id is converted to string, then the above can be uncommented
+                                timestampKey: "time", TimestampType.UnixNanoseconds, idKey: "tradeId");
 							callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                         }
 						else if (token["type"].ToStringInvariant() == "error")

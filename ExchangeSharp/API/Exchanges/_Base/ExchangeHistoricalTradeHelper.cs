@@ -71,9 +71,9 @@ namespace ExchangeSharp
                 StartDate = (StartDate ?? EndDate.Value.Subtract(BlockTime));
                 string startTimestamp;
                 string endTimestamp;
-                HashSet<long> previousTrades = new HashSet<long>();
-                HashSet<long> tempTradeIds = new HashSet<long>();
-                HashSet<long> tmpIds;
+                HashSet<string> previousTrades = new HashSet<string>();
+                HashSet<string> tempTradeIds = new HashSet<string>();
+                HashSet<string> tmpIds;
                 SetDates(out DateTime startDateMoving, out DateTime endDateMoving);
 
                 while (true)
@@ -104,7 +104,7 @@ namespace ExchangeSharp
                         {
                             trades.Add(trade);
                         }
-                        if (trade.Id != 0)
+                        if (trade.Id != null)
                         {
                             tempTradeIds.Add(trade.Id);
                         }

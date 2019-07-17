@@ -476,25 +476,25 @@ namespace ExchangeSharp
         /// <param name="typeKeyIsBuyValue">Type key buy value</param>
         /// <returns>Trade</returns>
         internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
-            object timestampKey, TimestampType timestampType, object idKey = null, string typeKeyIsBuyValue = "buy")
+            object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
         {
             ExchangeTrade trade = new ExchangeTrade
             {
                 Amount = token[amountKey].ConvertInvariant<decimal>(),
                 Price = token[priceKey].ConvertInvariant<decimal>(),
-                IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue))
-            };
+                IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue)),
+			};
             trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
             if (idKey == null)
             {
-                trade.Id = trade.Timestamp.Ticks;
+                trade.Id = trade.Timestamp.Ticks.ToStringInvariant();
             }
             else
             {
                 try
                 {
-                    trade.Id = (long)token[idKey].ConvertInvariant<ulong>();
-                }
+					trade.Id = token[idKey].ToStringInvariant();
+				}
                 catch
                 {
                     // dont care
