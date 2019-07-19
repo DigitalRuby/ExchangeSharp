@@ -28,7 +28,7 @@ The following cryptocurrency exchanges are supported:
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | TR        |
 | Cryptopia        | x         | x           |           |
-| Gemini           | x         | x           |           |
+| Gemini           | x         | x           | R         |
 | Hitbtc           | x         | x           |           |
 | Huobi            | x         | x           | RB        |
 | Kraken           | x         | x           |           |
