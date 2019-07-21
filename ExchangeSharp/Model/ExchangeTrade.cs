@@ -64,7 +64,9 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0:s},{1},{2},{3}", Timestamp, Price, Amount, IsBuy ? "Buy" : "Sell");
+            return string.Format("{0:s},p:{1},a:{2},{3},id:{4},{5}", 
+				Timestamp, Price, Amount, IsBuy ? "Buy" : "Sell",
+				Id, (Flags & ExchangeTradeFlags.IsFromSnapshot) == ExchangeTradeFlags.IsFromSnapshot ? "snap" : "");
         }
 
         /// <summary>
