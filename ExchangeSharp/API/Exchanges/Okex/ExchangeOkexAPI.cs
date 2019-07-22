@@ -178,7 +178,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			/*
 			 request:
@@ -188,11 +188,10 @@ namespace ExchangeSharp
 			return ConnectWebSocketOkex(async (_socket) =>
 				{
 					marketSymbols = await AddMarketSymbolsToChannel(_socket, "spot/trade:{0}", marketSymbols);
-				}, (_socket, symbol, sArray, token) =>
+				}, async (_socket, symbol, sArray, token) =>
 				{
 					ExchangeTrade trade = ParseTradeWebSocket(token);
-					callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-					return Task.CompletedTask;
+					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 				});
         }
 

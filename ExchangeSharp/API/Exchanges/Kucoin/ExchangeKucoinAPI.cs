@@ -446,7 +446,7 @@ namespace ExchangeSharp
                 );
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			//{
 			//  "id":"5c24c5da03aa673885cd67aa",
@@ -469,7 +469,7 @@ namespace ExchangeSharp
 			//}
             var websocketUrlToken = GetWebsocketBulletToken();
 			return ConnectWebSocket(
-                    $"?token={websocketUrlToken}", (_socket, msg) =>
+                    $"?token={websocketUrlToken}", async (_socket, msg) =>
 
 					{
                         JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -479,13 +479,12 @@ namespace ExchangeSharp
 							var marketSymbol = token["data"]["symbol"].ToStringInvariant();
                             var trade = dataToken.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
                                 timestampKey: "time", TimestampType.UnixNanoseconds, idKey: "tradeId");
-							callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+							await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                         }
 						else if (token["type"].ToStringInvariant() == "error")
 						{
 							Logger.Info(token["data"].ToStringInvariant());
 						}
-						return Task.CompletedTask;
                     }, async (_socket) =>
                     {
 						List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ? 

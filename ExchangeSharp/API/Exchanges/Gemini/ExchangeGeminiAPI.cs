@@ -223,7 +223,7 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", nonce }, { "order_id", orderId } });
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			//{
 			//  "type": "l2_updates",
@@ -297,7 +297,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			return ConnectWebSocket(BaseUrlWebSocket, messageCallback: (_socket, msg) =>
+			return ConnectWebSocket(BaseUrlWebSocket, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["result"].ToStringInvariant() == "error")
@@ -314,7 +314,7 @@ namespace ExchangeSharp
 								typeKey: "side", timestampKey: "timestamp",
 								TimestampType.UnixMilliseconds, idKey: "event_id");
 						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
-						callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 					}
 				}
 				else if (token["type"].ToStringInvariant() == "trade")
@@ -323,9 +323,8 @@ namespace ExchangeSharp
 					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price",
 							typeKey: "side", timestampKey: "timestamp",
 							TimestampType.UnixMilliseconds, idKey: "event_id");
-					callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 				}
-				return Task.CompletedTask;
 			}, connectCallback: async (_socket) =>
 			{
 				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}

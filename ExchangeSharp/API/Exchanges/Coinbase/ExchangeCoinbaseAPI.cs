@@ -403,21 +403,20 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-            return ConnectWebSocket("/", (_socket, msg) =>
+            return ConnectWebSocket("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                if (token["type"].ToStringInvariant() != "ticker") return Task.CompletedTask; //the ticker channel provides the trade information as well
-                if (token["time"] == null) return Task.CompletedTask;
+                if (token["type"].ToStringInvariant() != "ticker") return; //the ticker channel provides the trade information as well
+				if (token["time"] == null) return;
                 ExchangeTrade trade = ParseTradeWebSocket(token);
                 string marketSymbol = token["product_id"].ToStringInvariant();
-                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
-                return Task.CompletedTask;
+                await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
             }, async (_socket) =>
             {
 				var subscribeRequest = new

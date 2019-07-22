@@ -507,13 +507,13 @@ namespace ExchangeSharp
             };
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			return ConnectWebSocket(null, messageCallback: (_socket, msg) =>
+			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["event"].ToStringInvariant() == "bts:error")
@@ -546,14 +546,13 @@ namespace ExchangeSharp
 							typeKey: "type", timestampKey: "microtimestamp",
 							TimestampType.UnixMicroeconds, idKey: "id",
 							typeKeyIsBuyValue: "0");
-					callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 				}
 				else if (token["event"].ToStringInvariant() == "bts:subscription_succeeded")
 				{   // {{	"event": "bts:subscription_succeeded",
 					//"channel": "live_trades_btcusd",
 					//"data": { } }}
 				}
-				return Task.CompletedTask;
 			}, connectCallback: async (_socket) =>
 			{
 				//{

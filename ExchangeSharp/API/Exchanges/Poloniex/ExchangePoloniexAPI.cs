@@ -406,17 +406,17 @@ namespace ExchangeSharp
             });
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-			return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				int msgId = token[0].ConvertInvariant<int>();
 
 				if (msgId == 1010 || token.Count() == 2) // "[7,2]"
 				{ // this is a heartbeat message
-					return Task.CompletedTask;
+					return;
 				}
 
 				var seq = token[1].ConvertInvariant<long>();
@@ -437,7 +437,7 @@ namespace ExchangeSharp
 							// ["t", "<trade id>", <1 for buy 0 for sell>, "<price>", "<size>", <timestamp>]
 							ExchangeTrade trade = data.ParseTrade(amountKey: 4, priceKey: 3, typeKey: 2, timestampKey: 5,
 								timestampType: TimestampType.UnixSeconds, idKey: 1, typeKeyIsBuyValue: "1");
-							callback(new KeyValuePair<string, ExchangeTrade>(symbol.Item1, trade));
+							await callback(new KeyValuePair<string, ExchangeTrade>(symbol.Item1, trade));
 						}
 					}
 					else if (dataType == "o")
@@ -449,7 +449,6 @@ namespace ExchangeSharp
 						continue;
 					}
 				}
-				return Task.CompletedTask;
 			}, async (_socket) =>
 			{
 				if (marketSymbols == null || marketSymbols.Length == 0)

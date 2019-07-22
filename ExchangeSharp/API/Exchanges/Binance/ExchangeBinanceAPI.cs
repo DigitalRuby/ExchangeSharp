@@ -262,7 +262,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             /*
 	    {
@@ -285,7 +285,7 @@ namespace ExchangeSharp
                 marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
             string url = GetWebSocketStreamUrlForSymbols("@aggTrade", marketSymbols);
-            return ConnectWebSocket(url, (_socket, msg) =>
+            return ConnectWebSocket(url, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 string name = token["stream"].ToStringInvariant();
@@ -294,8 +294,7 @@ namespace ExchangeSharp
 
                 // buy=0 -> m = true (The buyer is maker, while the seller is taker).
                 // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
-                return Task.CompletedTask;
+                await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
             });
         }
 
