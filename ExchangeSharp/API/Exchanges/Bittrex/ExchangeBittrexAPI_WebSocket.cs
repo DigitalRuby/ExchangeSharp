@@ -68,7 +68,7 @@ namespace ExchangeSharp
             /// <param name="callback">Callback</param>
             /// <param name="marketSymbols">The market symbols to subscribe to</param>
             /// <returns>IDisposable to close the socket</returns>
-            public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] marketSymbols)
+            public IWebSocket SubscribeToExchangeDeltas(Func<string, Task> callback, params string[] marketSymbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
                 List<object[]> paramList = new List<object[]>();
@@ -76,10 +76,9 @@ namespace ExchangeSharp
                 {
                     paramList.Add(new object[] { marketSymbol });
                 }
-                Task.Run(async () => await conn.OpenAsync("uE", (s) =>
+                Task.Run(async () => await conn.OpenAsync("uE", async (s) =>
                 {
-                    callback(s);
-                    return Task.CompletedTask;
+                    await callback(s);
                 }, 0, paramList.ToArray()));
                 return conn;
             }
@@ -163,7 +162,7 @@ namespace ExchangeSharp
             {
                 marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            void innerCallback(string json)
+            async Task innerCallback(string json)
             {
                 #region sample json
                 /*
@@ -222,18 +221,18 @@ namespace ExchangeSharp
             return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			void innerCallback(string json)
+			async Task innerCallback(string json)
 			{
 				var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
 				foreach (var fill in ordersUpdates.Fills)
 				{
-					callback(new KeyValuePair<string, ExchangeTrade>(ordersUpdates.MarketName, new ExchangeTrade()
+					await callback(new KeyValuePair<string, ExchangeTrade>(ordersUpdates.MarketName, new ExchangeTrade()
 					{
 						Amount = fill.Quantity,
 						// Bittrex doesn't currently send out FillId on socket.bittrex.com, only beta.bittrex.com, but this will be ready when they start
@@ -246,7 +245,6 @@ namespace ExchangeSharp
 					}));
 				}
 			}
-
 			return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
 		}
 

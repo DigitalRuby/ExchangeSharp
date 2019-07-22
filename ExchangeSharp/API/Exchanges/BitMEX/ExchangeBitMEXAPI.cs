@@ -224,7 +224,7 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             /*
 {"table":"trade","action":"partial","keys":[],
@@ -235,7 +235,7 @@ namespace ExchangeSharp
 "data":[{"timestamp":"2018-07-06T08:31:53.333Z","symbol":"XBTUSD","side":"Buy","size":10000,"price":6520,"tickDirection":"PlusTick","trdMatchID":"a296312f-c9a4-e066-2f9e-7f4cf2751f0a","grossValue":153370000,"homeNotional":1.5337,"foreignNotional":10000}]}
              */
 
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);
@@ -243,11 +243,11 @@ namespace ExchangeSharp
 				if (token["error"] != null)
 				{
 					Logger.Info(token["error"].ToStringInvariant());
-					return Task.CompletedTask;
+					return;
 				}
 				else if (token["table"] == null)
                 {
-                    return Task.CompletedTask;
+					return;
                 }
 
                 var action = token["action"].ToStringInvariant();
@@ -255,19 +255,18 @@ namespace ExchangeSharp
                 foreach (var t in data)
                 {
                     var marketSymbol = t["symbol"].ToStringInvariant();
-                    callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601, "trdMatchID")));
+                    await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601, "trdMatchID")));
                 }
-                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 if (marketSymbols == null || marketSymbols.Length == 0)
                 {
-		    await _socket.SendMessageAsync(new { op = "subscribe", args = "trade" });
-		}
-		else
-		{
-		    await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "trade:" + this.NormalizeMarketSymbol(s)).ToArray() });
-		}
+					await _socket.SendMessageAsync(new { op = "subscribe", args = "trade" });
+				}
+				else
+				{
+					await _socket.SendMessageAsync(new { op = "subscribe", args = marketSymbols.Select(s => "trade:" + this.NormalizeMarketSymbol(s)).ToArray() });
+				}
             });
         }
 

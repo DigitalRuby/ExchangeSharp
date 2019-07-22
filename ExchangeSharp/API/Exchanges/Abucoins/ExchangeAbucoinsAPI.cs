@@ -498,11 +498,11 @@ namespace ExchangeSharp
             });
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (callback == null) return null;
 			marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? GetTickersAsync().Sync().Select(t => t.Key).ToArray() : marketSymbols;
-			return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
 			{
 				// {
 				//   "type":"match",
@@ -520,11 +520,10 @@ namespace ExchangeSharp
 				if (token["type"].ToStringInvariant() == "match")
 				{
 					string marketSymbol = token["product_id"].ToStringInvariant();
-					callback.Invoke(new KeyValuePair<string, ExchangeTrade>(
+					await callback.Invoke(new KeyValuePair<string, ExchangeTrade>(
 						marketSymbol, token.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
 						timestampKey: "time", timestampType: TimestampType.Iso8601, idKey: "trade_id")));
 				}
-				return Task.CompletedTask;
 			}, async (_socket) =>
 			{
 				await _socket.SendMessageAsync(new { type = "subscribe", channels = new object[] { new { name = "matches", product_ids = marketSymbols } } });

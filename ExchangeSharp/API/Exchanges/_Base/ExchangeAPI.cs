@@ -105,7 +105,7 @@ namespace ExchangeSharp
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) => throw new NotImplementedException();
 
         protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
@@ -842,7 +842,7 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="marketSymbols">Market Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        public virtual IWebSocket GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetTradesWebSocket(callback, marketSymbols);
