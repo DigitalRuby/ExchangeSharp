@@ -142,7 +142,7 @@ namespace ExchangeSharpConsole
             RunWebSocket(dict, (api) =>
             {
                 symbols = ValidateMarketSymbols(api, symbols);
-                return api.GetTradesWebSocket(message =>
+                return api.GetTradesWebSocket(async message =>
                 {
                     Console.WriteLine($"{message.Key}: {message.Value}");
                 }, symbols);
