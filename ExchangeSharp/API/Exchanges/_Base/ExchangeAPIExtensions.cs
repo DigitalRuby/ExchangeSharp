@@ -478,24 +478,53 @@ namespace ExchangeSharp
         internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
             object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
         {
-            ExchangeTrade trade = new ExchangeTrade
-            {
-                Amount = token[amountKey].ConvertInvariant<decimal>(),
-                Price = token[priceKey].ConvertInvariant<decimal>(),
-                IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue)),
+			return ParseTradeComponents<ExchangeTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+
+		}
+
+		internal static ExchangeTrade ParseTradeCoinbase(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<CoinbaseTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.MakerOrderId = (Guid)token["maker_order_id"];
+			trade.TakerOrderId = (Guid)token["taker_order_id"];
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBinance(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BinanceAggregateTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
+			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+			where T : ExchangeTrade, new()
+		{
+			T trade = new T
+			{
+				Amount = token[amountKey].ConvertInvariant<decimal>(),
+				Price = token[priceKey].ConvertInvariant<decimal>(),
+				IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue)),
 			};
-            trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
-            if (idKey == null)
-            {
-                trade.Id = trade.Timestamp.Ticks.ToStringInvariant();
-            }
-            else
-            {
-                try
-                {
+			trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+			if (idKey == null)
+			{
+				trade.Id = trade.Timestamp.Ticks.ToStringInvariant();
+			}
+			else
+			{
+				try
+				{
 					trade.Id = token[idKey].ToStringInvariant();
 				}
-                catch
+				catch
                 {
                     // dont care
                 }
@@ -582,5 +611,5 @@ namespace ExchangeSharp
             }
             return candle;
         }
-    }
+	}
 }

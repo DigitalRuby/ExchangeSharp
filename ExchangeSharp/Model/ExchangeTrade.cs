@@ -22,7 +22,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Details of an exchangetrade
     /// </summary>
-    public sealed class ExchangeTrade
+    public class ExchangeTrade
     {
         /// <summary>
         /// Timestamp
@@ -117,4 +117,24 @@ namespace ExchangeSharp
         /// </summary>
         IsLastFromSnapshot = 4
     }
+
+	public class CoinbaseTrade : ExchangeTrade
+	{
+		public Guid MakerOrderId { get; set; }
+		public Guid TakerOrderId { get; set; }
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2}", base.ToString(), MakerOrderId, TakerOrderId);
+		}
+	}
+
+	public class BinanceAggregateTrade : ExchangeTrade
+	{
+		public long FirstTradeId { get; set; }
+		public long LastTradeId { get; set; }
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2}", base.ToString(), FirstTradeId, LastTradeId);
+		}
+	}
 }
