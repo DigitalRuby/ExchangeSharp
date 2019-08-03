@@ -556,7 +556,10 @@ namespace ExchangeSharp
             payload["ordType"] = order.OrderType.ToStringInvariant();
             payload["side"] = order.IsBuy ? "Buy" : "Sell";
             payload["orderQty"] = order.Amount;
+            
+            if(order.OrderType!=OrderType.Market)
             payload["price"] = order.Price;
+            
             if (order.ExtraParameters.TryGetValue("execInst", out var execInst))
             {
                 payload["execInst"] = execInst;
