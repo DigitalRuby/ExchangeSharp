@@ -22,7 +22,7 @@ namespace ExchangeSharp
     /// <summary>
     /// Details of an exchangetrade
     /// </summary>
-    public sealed class ExchangeTrade
+    public class ExchangeTrade
     {
         /// <summary>
         /// Timestamp

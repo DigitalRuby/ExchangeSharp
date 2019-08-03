@@ -294,7 +294,7 @@ namespace ExchangeSharp
 
                 // buy=0 -> m = true (The buyer is maker, while the seller is taker).
                 // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
+                await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTradeBinance("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
             });
         }
 
