@@ -15,6 +15,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ExchangeSharp.Binance;
+using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
 using Newtonsoft.Json.Linq;
 
@@ -484,16 +485,6 @@ namespace ExchangeSharp
 
 		}
 
-		internal static ExchangeTrade ParseTradeCoinbase(this JToken token, object amountKey, object priceKey, object typeKey,
-			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
-		{
-			var trade = ParseTradeComponents<CoinbaseTrade>(token, amountKey, priceKey, typeKey,
-				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
-			trade.MakerOrderId = (Guid)token["maker_order_id"];
-			trade.TakerOrderId = (Guid)token["taker_order_id"];
-			return trade;
-		}
-
 		internal static ExchangeTrade ParseTradeBinance(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
 		{
@@ -501,6 +492,26 @@ namespace ExchangeSharp
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
 			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBitstamp(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BitstampTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.BuyOrderId = token["buy_order_id"].ConvertInvariant<long>();
+			trade.SellOrderId = token["sell_order_id"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeCoinbase(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<CoinbaseTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.MakerOrderId = (Guid)token["maker_order_id"];
+			trade.TakerOrderId = (Guid)token["taker_order_id"];
 			return trade;
 		}
 
