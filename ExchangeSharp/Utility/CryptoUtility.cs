@@ -232,13 +232,26 @@ namespace ExchangeSharp
             }
             return result;
         }
+		
+		/// <summary>
+		/// Converts a hex string to a byte array
+		/// </summary>
+		/// <param name="hex">hex string</param>
+		/// <returns>byte array representation of the same string</returns>
+		public static byte[] StringToByteArray(this string hex)
+		{ // https://stackoverflow.com/questions/321370/how-can-i-convert-a-hex-string-to-a-byte-array
+			return Enumerable.Range(0, hex.Length / 2)
+				.Select(x => Convert
+				.ToByte(hex.Substring(x * 2, 2), 16))
+				.ToArray();
+		}
 
-        /// <summary>
-        /// Covnert a secure string to a non-secure string
-        /// </summary>
-        /// <param name="s">SecureString</param>
-        /// <returns>Non-secure string</returns>
-        public static string ToUnsecureString(this SecureString s)
+		/// <summary>
+		/// Covnert a secure string to a non-secure string
+		/// </summary>
+		/// <param name="s">SecureString</param>
+		/// <returns>Non-secure string</returns>
+		public static string ToUnsecureString(this SecureString s)
         {
             if (s == null)
             {

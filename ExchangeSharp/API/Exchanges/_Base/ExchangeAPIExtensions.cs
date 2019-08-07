@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using ExchangeSharp.Binance;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
+using ExchangeSharp.Kucoin;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -465,21 +466,22 @@ namespace ExchangeSharp
             return ticker;
         }
 
-        /// <summary>
-        /// Parse a trade
-        /// </summary>
-        /// <param name="token">Token</param>
-        /// <param name="amountKey">Amount key</param>
-        /// <param name="priceKey">Price key</param>
-        /// <param name="typeKey">Type key</param>
-        /// <param name="timestampKey">Timestamp key</param>
-        /// <param name="timestampType">Timestamp type</param>
-        /// <param name="idKey">Id key</param>
-        /// <param name="typeKeyIsBuyValue">Type key buy value</param>
-        /// <returns>Trade</returns>
-        internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
-            object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
-        {
+		#region ParseTrade() methods
+		/// <summary>
+		/// Parse a trade
+		/// </summary>
+		/// <param name="token">Token</param>
+		/// <param name="amountKey">Amount key</param>
+		/// <param name="priceKey">Price key</param>
+		/// <param name="typeKey">Type key</param>
+		/// <param name="timestampKey">Timestamp key</param>
+		/// <param name="timestampType">Timestamp type</param>
+		/// <param name="idKey">Id key</param>
+		/// <param name="typeKeyIsBuyValue">Type key buy value</param>
+		/// <returns>Trade</returns>
+		internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
 			return ParseTradeComponents<ExchangeTrade>(token, amountKey, priceKey, typeKey,
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 
@@ -515,6 +517,16 @@ namespace ExchangeSharp
 			return trade;
 		}
 
+		internal static ExchangeTrade ParseTradeKucoin(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<KucoinTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant().StringToByteArray();
+			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant().StringToByteArray();
+			return trade;
+		}
+
 		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
 			where T : ExchangeTrade, new()
@@ -537,23 +549,24 @@ namespace ExchangeSharp
 					trade.Id = token[idKey].ToStringInvariant();
 				}
 				catch
-                {
-                    // dont care
-                }
-            }
-            return trade;
-        }
+				{
+					// dont care
+				}
+			}
+			return trade;
+		}
+		#endregion
 
-        /// <summary>
-        /// Parse volume from JToken
-        /// </summary>
-        /// <param name="token">JToken</param>
-        /// <param name="baseVolumeKey">Base currency volume key</param>
-        /// <param name="quoteVolumeKey">Quote currency volume key</param>
-        /// <param name="last">Last volume value</param>
-        /// <param name="baseCurrencyVolume">Receive base currency volume</param>
-        /// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
-        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
+		/// <summary>
+		/// Parse volume from JToken
+		/// </summary>
+		/// <param name="token">JToken</param>
+		/// <param name="baseVolumeKey">Base currency volume key</param>
+		/// <param name="quoteVolumeKey">Quote currency volume key</param>
+		/// <param name="last">Last volume value</param>
+		/// <param name="baseCurrencyVolume">Receive base currency volume</param>
+		/// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
+		internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
         {
             // parse out volumes, handle cases where one or both do not exist
             if (baseVolumeKey == null)
