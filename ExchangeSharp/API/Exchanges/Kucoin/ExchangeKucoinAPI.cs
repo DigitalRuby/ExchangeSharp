@@ -477,7 +477,7 @@ namespace ExchangeSharp
                         {
                             var dataToken = token["data"];
 							var marketSymbol = token["data"]["symbol"].ToStringInvariant();
-                            var trade = dataToken.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
+                            var trade = dataToken.ParseTradeKucoin(amountKey: "size", priceKey: "price", typeKey: "side",
                                 timestampKey: "time", TimestampType.UnixNanoseconds, idKey: "tradeId");
 							await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                         }
