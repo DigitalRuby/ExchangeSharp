@@ -542,7 +542,7 @@ namespace ExchangeSharp
 					//	"channel": "live_trades_btcusd"
 					//}}
 					string marketSymbol = token["channel"].ToStringInvariant().Split('_')[2];
-					var trade = token["data"].ParseTrade(amountKey: "amount", priceKey: "price",
+					var trade = token["data"].ParseTradeBitstamp(amountKey: "amount", priceKey: "price",
 							typeKey: "type", timestampKey: "microtimestamp",
 							TimestampType.UnixMicroeconds, idKey: "id",
 							typeKeyIsBuyValue: "0");
