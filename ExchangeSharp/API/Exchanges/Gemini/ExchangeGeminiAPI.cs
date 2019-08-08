@@ -329,7 +329,7 @@ namespace ExchangeSharp
 			{
 				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}
 				await _socket.SendMessageAsync(new {
-						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = new string[] { "BTCUSD", "ETHUSD", "ETHBTC" } } } });
+						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = marketSymbols } } });
 			});
 		}
 	}
