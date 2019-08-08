@@ -26,8 +26,8 @@ namespace ExchangeSharp
     public sealed partial class ExchangeKrakenAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
-
-        static ExchangeKrakenAPI()
+		public override string BaseUrlWebSocket { get; set; } = "wss://ws.kraken.com";
+		static ExchangeKrakenAPI()
         {
             Dictionary<string, string> d = normalizedSymbolToExchangeSymbol as Dictionary<string, string>;
             foreach (KeyValuePair<string, string> kv in exchangeSymbolToNormalizedSymbol)
@@ -397,106 +397,106 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
-            return (from prop in result.Children<JProperty>() where !prop.Name.Contains(".d") select prop.Name).ToArray();
+            return (from prop in result.Children<JProperty>()
+					where !prop.Name.Contains(".d")
+					select prop.Value["wsname"].ToStringInvariant()).ToArray();
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
-        {
-            //  {
-            //  "BCHEUR": {
-            //  "altname": "BCHEUR",
-            //  "aclass_base": "currency",
-            //  "base": "BCH",
-            //  "aclass_quote": "currency",
-            //  "quote": "ZEUR",
-            //  "lot": "unit",
-            //  "pair_decimals": 1,
-            //  "lot_decimals": 8,
-            //  "lot_multiplier": 1,
-            //  "leverage_buy": [],
-            //  "leverage_sell": [],
-            //  "fees": [
-            //    [
-            //      0,
-            //      0.26
-            //    ],
-            //    [
-            //      50000,
-            //      0.24
-            //    ],
-            //    [
-            //      100000,
-            //      0.22
-            //    ],
-            //    [
-            //      250000,
-            //      0.2
-            //    ],
-            //    [
-            //      500000,
-            //      0.18
-            //    ],
-            //    [
-            //      1000000,
-            //      0.16
-            //    ],
-            //    [
-            //      2500000,
-            //      0.14
-            //    ],
-            //    [
-            //      5000000,
-            //      0.12
-            //    ],
-            //    [
-            //      10000000,
-            //      0.1
-            //    ]
-            //  ],
-            //  "fees_maker": [
-            //    [
-            //      0,
-            //      0.16
-            //    ],
-            //    [
-            //      50000,
-            //      0.14
-            //    ],
-            //    [
-            //      100000,
-            //      0.12
-            //    ],
-            //    [
-            //      250000,
-            //      0.1
-            //    ],
-            //    [
-            //      500000,
-            //      0.08
-            //    ],
-            //    [
-            //      1000000,
-            //      0.06
-            //    ],
-            //    [
-            //      2500000,
-            //      0.04
-            //    ],
-            //    [
-            //      5000000,
-            //      0.02
-            //    ],
-            //    [
-            //      10000000,
-            //      0
-            //    ]
-            //  ],
-            //  "fee_volume_currency": "ZUSD",
-            //  "margin_call": 80,
-            //  "margin_stop": 40
-            //}
-            //}
-            var markets = new List<ExchangeMarket>();
+        {   //{"ADACAD": {
+			//  "altname": "ADACAD",
+			//  "wsname": "ADA/CAD",
+			//  "aclass_base": "currency",
+			//  "base": "ADA",
+			//  "aclass_quote": "currency",
+			//  "quote": "ZCAD",
+			//  "lot": "unit",
+			//  "pair_decimals": 6,
+			//  "lot_decimals": 8,
+			//  "lot_multiplier": 1,
+			//  "leverage_buy": [],
+			//  "leverage_sell": [],
+			//  "fees": [
+			//    [
+			//      0,
+			//      0.26
+			//    ],
+			//    [
+			//      50000,
+			//      0.24
+			//    ],
+			//    [
+			//      100000,
+			//      0.22
+			//    ],
+			//    [
+			//      250000,
+			//      0.2
+			//    ],
+			//    [
+			//      500000,
+			//      0.18
+			//    ],
+			//    [
+			//      1000000,
+			//      0.16
+			//    ],
+			//    [
+			//      2500000,
+			//      0.14
+			//    ],
+			//    [
+			//      5000000,
+			//      0.12
+			//    ],
+			//    [
+			//      10000000,
+			//      0.1
+			//    ]
+			//  ],
+			//  "fees_maker": [
+			//    [
+			//      0,
+			//      0.16
+			//    ],
+			//    [
+			//      50000,
+			//      0.14
+			//    ],
+			//    [
+			//      100000,
+			//      0.12
+			//    ],
+			//    [
+			//      250000,
+			//      0.1
+			//    ],
+			//    [
+			//      500000,
+			//      0.08
+			//    ],
+			//    [
+			//      1000000,
+			//      0.06
+			//    ],
+			//    [
+			//      2500000,
+			//      0.04
+			//    ],
+			//    [
+			//      5000000,
+			//      0.02
+			//    ],
+			//    [
+			//      10000000,
+			//      0
+			//    ]
+			//  ],
+			//  "fee_volume_currency": "ZUSD",
+			//  "margin_call": 80,
+			//  "margin_stop": 40
+			//}}
+			var markets = new List<ExchangeMarket>();
             JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
             var res = (from prop in allPairs.Children<JProperty>() select prop).ToArray();
 
@@ -507,7 +507,7 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     IsActive = !prop.Name.Contains(".d"),
-                    MarketSymbol = prop.Name,
+                    MarketSymbol = pair["wsname"].ToStringInvariant(),
                     MinTradeSize = quantityStepSize,
                     MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
                     BaseCurrency = pair["base"].ToStringInvariant(),
@@ -773,7 +773,93 @@ namespace ExchangeSharp
             };
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
-    }
+
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
+			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token.Type == JTokenType.Array && token[2].ToStringInvariant() == "trade")
+				{   //[
+					//  0,
+					//  [
+
+					//	[
+					//	  "5541.20000",
+					//	  "0.15850568",
+					//	  "1534614057.321597",
+					//	  "s",
+					//	  "l",
+					//	  ""
+					//	],
+
+					//	[
+					//	  "6060.00000",
+					//	  "0.02455000",
+					//	  "1534614057.324998",
+					//	  "b",
+					//	  "l",
+					//	  ""
+					//	]
+					//  ],
+					//  "trade",
+					//  "XBT/USD"
+					//]
+					string marketSymbol = token[3].ToStringInvariant();
+					foreach (var tradesToken in token[1])
+					{
+						var trade = tradesToken.ParseTradeKraken(amountKey: 1, priceKey: 0,
+								typeKey: 3, timestampKey: 2,
+								TimestampType.UnixSecondsDouble, idKey: null,
+								typeKeyIsBuyValue: "b");
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					}
+				}
+				else if (token["event"].ToStringInvariant() == "heartbeat") { }
+				else if (token["status"].ToStringInvariant() == "error")
+				{   //{{
+					//  "errorMessage": "Currency pair not in ISO 4217-A3 format ADACAD",
+					//  "event": "subscriptionStatus",
+					//  "pair": "ADACAD",
+					//  "status": "error",
+					//  "subscription": {
+					//    "name": "trade"
+					//  }
+					//}}
+					Logger.Info(token["errorMessage"].ToStringInvariant());
+				}
+				else if (token["status"].ToStringInvariant() == "online")
+				{   //{{
+					//  "connectionID": 9077277725533272053,
+					//  "event": "systemStatus",
+					//  "status": "online",
+					//  "version": "0.2.0"
+					//}}
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				//{
+				//  "event": "subscribe",
+				//  "pair": [
+				//    "XBT/USD","XBT/EUR"
+				//  ],
+				//  "subscription": {
+				//    "name": "ticker"
+				//  }
+				//}
+				await _socket.SendMessageAsync(new
+				{
+					@event = "subscribe",
+					pair = marketSymbols,
+					subscription = new { name = "trade" },
+				});
+			});
+		}
+	}
 
     public partial class ExchangeName { public const string Kraken = "Kraken"; }
 }

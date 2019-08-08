@@ -14,6 +14,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ExchangeSharp.API.Exchanges.Kraken.Models;
 using ExchangeSharp.Binance;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
@@ -517,6 +518,23 @@ namespace ExchangeSharp
 			return trade;
 		}
 
+		internal static ExchangeTrade ParseTradeKraken(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<KrakenTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			if (token[4].ToStringInvariant() == "l")
+			{
+				trade.OrderType = OrderType.Limit;
+			}
+			else if (token[4].ToStringInvariant() == "m")
+			{
+				trade.OrderType = OrderType.Market;
+			}
+			else Logger.Info("error parsing orderType: " + token.ToStringInvariant());
+			return trade;
+		}
+
 		internal static ExchangeTrade ParseTradeKucoin(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
 		{
@@ -550,7 +568,7 @@ namespace ExchangeSharp
 				}
 				catch
 				{
-					// dont care
+					Logger.Info("error parsing trade ID: " + token.ToStringInvariant());
 				}
 			}
 			return trade;
