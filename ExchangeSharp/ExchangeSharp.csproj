@@ -17,7 +17,7 @@
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>Latest Github as of 2019-05-10</PackageReleaseNotes>
-    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure APIAbucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
+    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Abucoins Binance Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin Okex Poloniex TuxExchange Yobit</PackageTags>
     <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
