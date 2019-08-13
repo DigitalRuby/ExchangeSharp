@@ -434,35 +434,35 @@ namespace ExchangeSharp
             return withdraw;
         }
 
-        #endregion
+		#endregion
 
-        #region WebSocket APIs
+		#region WebSocket APIs
 
-        // working on it. Hitbtc has extensive support for sockets, including trading
+		// working on it. Hitbtc has extensive support for sockets, including trading
 
-        #endregion
+		#endregion
 
-        #region Hitbtc Public Functions outside the ExchangeAPI
-        // HitBTC has two accounts per client: the main bank and trading 
-        // Coins deposited from this API go into the bank, and must be withdrawn from there as well
-        // Trading only takes place from the trading account.
-        // You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
-        // These functions aid in that process
+		#region Hitbtc Public Functions outside the ExchangeAPI
+		// HitBTC has two accounts per client: the main bank and trading 
+		// Coins deposited from this API go into the bank, and must be withdrawn from there as well
+		// Trading only takes place from the trading account.
+		// You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
+		// These functions aid in that process
 
-        public async Task<Dictionary<string, decimal>> GetBankAmountsAsync()
-        {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/account/balance", null, await GetNoncePayloadAsync());
-            foreach (JToken token in obj["balance"])
-            {
-                decimal amount = token["available"].ConvertInvariant<decimal>();
-                if (amount > 0m) amounts[token["currency"].ToStringInvariant()] = amount;
-            }
-            return amounts;
-        }
+		public async Task<Dictionary<string, decimal>> GetBankAmountsAsync()
+		{
+			Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+			JToken obj = await MakeJsonRequestAsync<JToken>("/account/balance", null, await GetNoncePayloadAsync());
+			foreach (JToken token in obj)
 
+			{
+				decimal amount = token["available"].ConvertInvariant<decimal>();
+				if (amount > 0m) amounts[token["currency"].ToStringInvariant()] = amount;
+			}
+			return amounts;
+		}
 
-        public async Task<bool> AccountTransfer(string Symbol, decimal Amount, bool ToBank)
+		public async Task<bool> AccountTransfer(string Symbol, decimal Amount, bool ToBank)
         {
             var payload = await GetNoncePayloadAsync();
             payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
