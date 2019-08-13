@@ -463,20 +463,20 @@ namespace ExchangeSharp
 		}
 
 		public async Task<bool> AccountTransfer(string Symbol, decimal Amount, bool ToBank)
-        {
-            var payload = await GetNoncePayloadAsync();
-            payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
-            payload["currency"] = Symbol;
-            payload["amount"] = Amount;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/account/transfer", null, payload);
-            return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
-        }
+		{
+			var payload = await GetNoncePayloadAsync();
+			payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
+			payload["currency"] = Symbol;
+			payload["amount"] = Amount;
+			JToken obj = await MakeJsonRequestAsync<JToken>("/account/transfer", null, payload, "POST");
+			return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
+		}
 
-        #endregion
+		#endregion
 
-        #region Private Functions
+		#region Private Functions
 
-        private ExchangeTicker ParseTicker(JToken token, string symbol)
+		private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
             return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
