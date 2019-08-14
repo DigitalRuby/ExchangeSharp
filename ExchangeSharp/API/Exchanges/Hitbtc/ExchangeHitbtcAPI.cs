@@ -23,12 +23,12 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed partial class ExchangeHitbtcAPI : ExchangeAPI
+    public sealed partial class ExchangeHitBTCAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.hitbtc.com/api/2/ws";
 
-        public ExchangeHitbtcAPI()
+        public ExchangeHitBTCAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMillisecondsString;
@@ -651,5 +651,5 @@ namespace ExchangeSharp
         #endregion
     }
 
-    public partial class ExchangeName { public const string Hitbtc = "Hitbtc"; }
+    public partial class ExchangeName { public const string HitBTC = "HitBTC"; }
 }

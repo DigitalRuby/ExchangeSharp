@@ -19,7 +19,7 @@ using System.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed partial class ExchangeOkexAPI : ExchangeAPI
+    public sealed partial class ExchangeOKExAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
         public string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
@@ -31,7 +31,7 @@ namespace ExchangeSharp
 		/// </summary>
 		private static readonly TimeSpan chinaTimeOffset = TimeSpan.FromHours(-8);
 		
-        public ExchangeOkexAPI()
+        public ExchangeOKExAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             MarketSymbolSeparator = "-";
@@ -717,5 +717,5 @@ namespace ExchangeSharp
         #endregion
     }
 
-    public partial class ExchangeName { public const string Okex = "Okex"; }
+    public partial class ExchangeName { public const string OKEx = "OKEx"; }
 }

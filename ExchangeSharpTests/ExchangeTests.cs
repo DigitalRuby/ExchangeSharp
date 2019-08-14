@@ -68,7 +68,7 @@ namespace ExchangeSharpTests
             {
                 try
                 {
-                    if (api is ExchangeUfoDexAPI || api is ExchangeKrakenAPI || api is ExchangeOkexAPI)
+                    if (api is ExchangeUfoDexAPI || api is ExchangeKrakenAPI || api is ExchangeOKExAPI)
                     {
                         // WIP
                         continue;
