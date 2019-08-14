@@ -539,7 +539,11 @@ namespace ExchangeSharp
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
+				if (token[1].ToStringInvariant() == "hb")
+				{
+					// heartbeat
+				}
+				else if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
                 {
                     foreach (JToken orderToken in array[2])
                     {
@@ -888,9 +892,9 @@ namespace ExchangeSharp
             };
         }
 
-        private ExchangeOrderResult ParseOrderWebSocket(JToken order)
-        {
-            /*
+		private ExchangeOrderResult ParseOrderWebSocket(JToken order)
+		{
+			/*
             [ 0, "os", [ [
                 "<ORD_ID>",
                 "<ORD_PAIR>",
@@ -907,22 +911,31 @@ namespace ExchangeSharp
             ] ] ];
             */
 
-            decimal amount = order[2].ConvertInvariant<decimal>();
-            return new ExchangeOrderResult
-            {
-                Amount = amount,
-                AmountFilled = amount,
-                Price = order[6].ConvertInvariant<decimal>(),
-                AveragePrice = order[7].ConvertInvariant<decimal>(),
-                IsBuy = (amount > 0m),
-                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order[8].ConvertInvariant<long>()),
-                OrderId = order[0].ToStringInvariant(),
-                Result = ExchangeAPIOrderResult.Filled,
-                MarketSymbol = order[1].ToStringInvariant()
-            };
-        }
+			decimal amount = order[2].ConvertInvariant<decimal>();
+			/*
+			 ACTIVE, EXECUTED @ PRICE(AMOUNT) e.g. "EXECUTED @ 107.6(-0.2)", PARTIALLY FILLED @ PRICE(AMOUNT), INSUFFICIENT MARGIN was: PARTIALLY FILLED @ PRICE(AMOUNT), CANCELED, CANCELED was: PARTIALLY FILLED @ PRICE(AMOUNT)
+            */
+			string orderStatusString = order[5].ToStringInvariant().Split(' ')[0];
+			return new ExchangeOrderResult
+			{
+				Amount = amount,
+				AmountFilled = amount,
+				Price = order[6].ConvertInvariant<decimal>(),
+				AveragePrice = order[7].ConvertInvariant<decimal>(),
+				IsBuy = (amount > 0m),
+				OrderDate = order[8].ToDateTimeInvariant(),
+				OrderId = order[0].ToStringInvariant(),
+				Result = orderStatusString == "ACTIVE" ? ExchangeAPIOrderResult.Pending
+					   : orderStatusString == "EXECUTED" ? ExchangeAPIOrderResult.Filled
+					   : orderStatusString == "PARTIALLY" ? ExchangeAPIOrderResult.FilledPartially
+					   : orderStatusString == "INSUFFICIENT" ? ExchangeAPIOrderResult.Canceled
+					   : orderStatusString == "CANCELED" ? ExchangeAPIOrderResult.Canceled
+					   : ExchangeAPIOrderResult.Unknown,
+				MarketSymbol = order[1].ToStringInvariant(),
+			};
+		}
 
-        private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
+		private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
         {
 
             /*
@@ -941,7 +954,7 @@ namespace ExchangeSharp
             ],
             */
 
-            foreach (var kv in trades)
+			foreach (var kv in trades)
             {
                 ExchangeOrderResult order = new ExchangeOrderResult { Result = ExchangeAPIOrderResult.Filled };
                 foreach (JToken trade in kv.Value)
