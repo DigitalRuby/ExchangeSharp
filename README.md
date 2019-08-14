@@ -29,7 +29,7 @@ The following cryptocurrency exchanges are supported:
 | Coinbase         | x         | x           | T R       |
 | Cryptopia        | x         | x           |           |
 | Gemini           | x         | x           |   R       |
-| Hitbtc           | x         | x           |           |
+| HitBTC           | x         | x           |   R       |
 | Huobi            | x         | x           |   R B     |
 | Kraken           | x         | x           |   R       |
 | KuCoin           | x         | x           | T R       |

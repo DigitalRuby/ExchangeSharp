@@ -310,9 +310,7 @@ namespace ExchangeSharp
 					var tradesToken = token["trades"];
 					if (tradesToken != null) foreach (var tradeToken in tradesToken)
 					{
-						var trade = tradeToken.ParseTrade(amountKey: "quantity", priceKey: "price",
-								typeKey: "side", timestampKey: "timestamp",
-								TimestampType.UnixMilliseconds, idKey: "event_id");
+						var trade = parseTrade(tradeToken);
 						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
 						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 					}
@@ -320,9 +318,7 @@ namespace ExchangeSharp
 				else if (token["type"].ToStringInvariant() == "trade")
 				{
 					string marketSymbol = token["symbol"].ToStringInvariant();
-					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price",
-							typeKey: "side", timestampKey: "timestamp",
-							TimestampType.UnixMilliseconds, idKey: "event_id");
+					var trade = parseTrade(token);
 					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 				}
 			}, connectCallback: async (_socket) =>
@@ -331,6 +327,10 @@ namespace ExchangeSharp
 				await _socket.SendMessageAsync(new {
 						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = marketSymbols } } });
 			});
+			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(
+							amountKey: "quantity", priceKey: "price",
+							typeKey: "side", timestampKey: "timestamp",
+							TimestampType.UnixMilliseconds, idKey: "event_id");
 		}
 	}
 

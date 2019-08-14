@@ -440,6 +440,121 @@ namespace ExchangeSharp
 
 		// working on it. Hitbtc has extensive support for sockets, including trading
 
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
+			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["error"] != null)
+				{   /* {
+						  "jsonrpc": "2.0",
+						  "error": {
+							"code": 2001,
+							"message": "Symbol not found",
+							"description": "Try get /api/2/public/symbol, to get list of all available symbols."
+						  },
+						  "id": 123
+						} */
+					Logger.Info(token["error"]["code"].ToStringInvariant() + ", "
+							+ token["error"]["message"].ToStringInvariant() + ", "
+							+ token["error"]["description"].ToStringInvariant());
+				}
+				else if (token["method"].ToStringInvariant() == "snapshotTrades")
+				{   /* snapshot: {
+						  "jsonrpc": "2.0",
+						  "method": "snapshotTrades",
+						  "params": {
+							"data": [
+							  {
+								"id": 54469456,
+								"price": "0.054656",
+								"quantity": "0.057",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:33:42.821Z"
+							  },
+							  {
+								"id": 54469497,
+								"price": "0.054656",
+								"quantity": "0.092",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:33:48.754Z"
+							  },
+							  {
+								"id": 54469697,
+								"price": "0.054669",
+								"quantity": "0.002",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:34:13.288Z"
+							  }
+							],
+							"symbol": "ETHBTC"
+						  }
+						} */
+					token = token["params"];
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					foreach (var tradesToken in token["data"])
+					{
+						var trade = parseTrade(tradesToken);
+						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					}
+				}
+				else if (token["method"].ToStringInvariant() == "updateTrades")
+				{   /* {
+						  "jsonrpc": "2.0",
+						  "method": "updateTrades",
+						  "params": {
+							"data": [
+							  {
+								"id": 54469813,
+								"price": "0.054670",
+								"quantity": "0.183",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:34:25.041Z"
+							  }
+							],
+							"symbol": "ETHBTC"
+						  }
+						}  */
+					token = token["params"];
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					foreach (var tradesToken in token["data"])
+					{
+						var trade = parseTrade(tradesToken);
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					}
+				}
+			}, connectCallback: async (_socket) =>
+			{   /* {
+					  "method": "subscribeTrades",
+					  "params": {
+						"symbol": "ETHBTC",
+						"limit": 100
+					  },
+					  "id": 123
+					} */
+					foreach (var marketSymbol in marketSymbols)
+				{
+					await _socket.SendMessageAsync(new
+					{
+						method = "subscribeTrades",
+						@params = new {
+								   symbol = marketSymbol,
+								   limit = 10,
+							   },
+						id = CryptoUtility.UtcNow.Ticks // just need a unique number for client ID
+					});
+				}
+			});
+			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(amountKey: "quantity",
+				priceKey: "price", typeKey: "side", timestampKey: "timestamp",
+				timestampType: TimestampType.Iso8601, idKey: "id");
+		}
+
 		#endregion
 
 		#region Hitbtc Public Functions outside the ExchangeAPI
