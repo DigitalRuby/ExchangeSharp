@@ -65,17 +65,17 @@ namespace ExchangeSharp
             return streams.ToString();
         }
 
-        public ExchangeBinanceAPI()
-        {
-            // give binance plenty of room to accept requests
-            RequestWindow = TimeSpan.FromMinutes(15.0);
-            NonceStyle = NonceStyle.UnixMilliseconds;
-            NonceOffset = TimeSpan.FromSeconds(10.0);
-            MarketSymbolSeparator = string.Empty;
-            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
-        }
+		public ExchangeBinanceAPI()
+		{
+			// give binance plenty of room to accept requests
+			RequestWindow = TimeSpan.FromMilliseconds(60000);  // 60000 is max value = max request time window of 60 seconds
+			NonceStyle = NonceStyle.UnixMilliseconds;
+			NonceOffset = TimeSpan.FromSeconds(15); // 15 seconds are deducted from current UTCTime as base of the request time window
+			MarketSymbolSeparator = string.Empty;
+			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+		}
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+		public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
         {
             // All pairs in Binance end with BTC, ETH, BNB or USDT
             if (marketSymbol.EndsWith("BTC") || marketSymbol.EndsWith("ETH") || marketSymbol.EndsWith("BNB"))
