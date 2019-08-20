@@ -162,7 +162,7 @@ namespace ExchangeSharp
             {
                 marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            async Task innerCallback(string json)
+            Task innerCallback(string json)
             {
                 #region sample json
                 /*
@@ -216,6 +216,7 @@ namespace ExchangeSharp
                 book.MarketSymbol = ordersUpdates.MarketName;
                 book.SequenceId = ordersUpdates.Nonce;
                 callback(book);
+                return Task.CompletedTask;
             }
 
             return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
