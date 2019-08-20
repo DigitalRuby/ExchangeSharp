@@ -16,7 +16,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-using ExchangeSharp.API.Exchanges.Binance.Models;
+using ExchangeSharp.Binance;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -1083,6 +1083,13 @@ namespace ExchangeSharp
 				}
 				return Task.CompletedTask;
 			});
+		}
+
+		public async Task<string> GetListenKeyAsync()
+		{
+			JToken response = await MakeJsonRequestAsync<JToken>("/userDataStream", BaseUrl, null, "POST");
+			var listenKey = response["listenKey"].ToStringInvariant();
+			return listenKey;
 		}
 	}
 

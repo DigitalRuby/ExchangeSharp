@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.Binance.Models
+namespace ExchangeSharp.Binance
 {
 	public class ExecutionReport
 	{

@@ -16,7 +16,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using ExchangeSharp.API.Exchanges.Binance.Models;
 
 namespace ExchangeSharp
 {
@@ -104,8 +103,7 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) => throw new NotImplementedException();
-        protected virtual Task<string> OnGetListenKeyAsync() => throw new NotImplementedException();
-		protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
@@ -822,10 +820,7 @@ namespace ExchangeSharp
             return await OnCloseMarginPositionAsync(NormalizeMarketSymbol(marketSymbol));
         }
 
-        public virtual async Task<string> GetListenKeyAsync()
-        {
-	        return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetListenKeyAsync(), nameof(GetListenKeyAsync));
-        }
+   
 
 		#endregion REST API
 
