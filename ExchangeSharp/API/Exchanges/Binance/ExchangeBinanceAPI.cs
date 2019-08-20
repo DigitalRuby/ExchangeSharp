@@ -957,6 +957,11 @@ namespace ExchangeSharp
 			{
 				request.AddHeader("X-MBX-APIKEY", PublicApiKey.ToUnsecureString());
 			}
+			// Needed in order to get listening key
+			if (payload == null && request.RequestUri.AbsoluteUri.Contains("userDataStream"))
+			{
+				request.AddHeader("X-MBX-APIKEY", PublicApiKey.ToUnsecureString());
+			}
 			return base.ProcessRequestAsync(request, payload);
 		}
 
