@@ -17,7 +17,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
-
+using ExchangeSharp.API.Exchanges.Binance.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -326,6 +326,7 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             });
         }
+
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
@@ -982,7 +983,32 @@ namespace ExchangeSharp
 
             return transactions;
         }
-    }
+
+        protected override IWebSocket OnUserDataWebSocket(Action<object> callback, string listenKey)
+        {
+	        return ConnectWebSocket($"/ws/{listenKey}", (_socket, msg) =>
+	        {
+		        JToken token = JToken.Parse(msg.ToStringFromUTF8());
+		        var eventType = token["e"].ToStringInvariant();
+		        if (eventType == "executionReport")
+		        {
+			        var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant());
+			        callback(update);
+		        }
+		        else if (eventType == "outboundAccountInfo" || eventType == "outboundAccountPosition")
+				{
+					var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant());
+					callback(update);
+				}
+		        else if (eventType == "listStatus")
+				{
+					var update = JsonConvert.DeserializeObject<ListStatus>(token.ToStringInvariant());
+					callback(update);
+				}
+				return Task.CompletedTask;
+	        });
+        }
+	}
 
     public partial class ExchangeName { public const string Binance = "Binance"; }
 }
