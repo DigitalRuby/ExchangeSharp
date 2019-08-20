@@ -403,21 +403,25 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-            return ConnectWebSocket("/", (_socket, msg) =>
+            return ConnectWebSocket("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                if (token["type"].ToStringInvariant() != "ticker") return Task.CompletedTask; //the ticker channel provides the trade information as well
-                if (token["time"] == null) return Task.CompletedTask;
+				if (token["type"].ToStringInvariant() == "error")
+				{ // {{ "type": "error", "message": "Failed to subscribe", "reason": "match is not a valid channel" }}
+					Logger.Info(token["message"].ToStringInvariant() + ": " + token["reason"].ToStringInvariant());
+					return;
+				}
+				if (token["type"].ToStringInvariant() != "match") return; //the ticker channel provides the trade information as well
+				if (token["time"] == null) return;
                 ExchangeTrade trade = ParseTradeWebSocket(token);
                 string marketSymbol = token["product_id"].ToStringInvariant();
-                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
-                return Task.CompletedTask;
+                await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
             }, async (_socket) =>
             {
 				var subscribeRequest = new
@@ -428,7 +432,7 @@ namespace ExchangeSharp
                     {
                         new
                         {
-                            name = "ticker",
+                            name = "matches",
                             product_ids = marketSymbols
                         }
                     }
@@ -439,7 +443,7 @@ namespace ExchangeSharp
 
         private ExchangeTrade ParseTradeWebSocket(JToken token)
         {
-            return token.ParseTrade("last_size", "price", "side", "time", TimestampType.Iso8601, "sequence");
+            return token.ParseTradeCoinbase("size", "price", "side", "time", TimestampType.Iso8601, "trade_id");
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)

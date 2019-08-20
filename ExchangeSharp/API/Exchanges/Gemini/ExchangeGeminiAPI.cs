@@ -25,8 +25,8 @@ namespace ExchangeSharp
     public sealed partial class ExchangeGeminiAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
-
-        public ExchangeGeminiAPI()
+		public override string BaseUrlWebSocket { get; set; } = "wss://api.gemini.com/v2/marketdata";
+		public ExchangeGeminiAPI()
         {
             MarketSymbolIsUppercase = false;
             MarketSymbolSeparator = string.Empty;
@@ -122,7 +122,7 @@ namespace ExchangeSharp
                 Callback = callback,
                 DirectionIsBackwards = false,
                 EndDate = endDate,
-                ParseFunction = (JToken token) => token.ParseTrade("amount", "price", "type", "timestampms", TimestampType.UnixMilliseconds),
+                ParseFunction = (JToken token) => token.ParseTrade("amount", "price", "type", "timestampms", TimestampType.UnixMilliseconds, idKey: "tid"),
                 StartDate = startDate,
                 MarketSymbol = marketSymbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
@@ -222,7 +222,117 @@ namespace ExchangeSharp
             object nonce = await GenerateNonceAsync();
             await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", nonce }, { "order_id", orderId } });
         }
-    }
+
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			//{
+			//  "type": "l2_updates",
+			//  "symbol": "BTCUSD",
+			//  "changes": [
+
+			//	[
+			//	  "buy",
+			//	  "9122.04",
+			//	  "0.00121425"
+			//	],
+			//	...,
+			//	[
+			//	  "sell",
+			//	  "9122.07",
+			//	  "0.98942292"
+			//	]
+			//	...
+			//  ],
+			//  "trades": [
+			//	  {
+			//		  "type": "trade",
+			//		  "symbol": "BTCUSD",
+			//		  "event_id": 169841458,
+			//		  "timestamp": 1560976400428,
+			//		  "price": "9122.04",
+			//		  "quantity": "0.0073173",
+			//		  "side": "sell"
+
+			//	  },
+			//	  ...
+			//  ],
+			//  "auction_events": [
+			//	  {
+			//		  "type": "auction_result",
+			//		  "symbol": "BTCUSD",
+			//		  "time_ms": 1560974400000,
+			//		  "result": "success",
+			//		  "highest_bid_price": "9150.80",
+			//		  "lowest_ask_price": "9150.81",
+			//		  "collar_price": "9146.93",
+			//		  "auction_price": "9145.00",
+			//		  "auction_quantity": "470.10390845"
+
+			//	  },
+			//	  {
+			//		"type": "auction_indicative",
+			//		"symbol": "BTCUSD",
+			//		"time_ms": 1560974385000,
+			//		"result": "success",
+			//		"highest_bid_price": "9150.80",
+			//		"lowest_ask_price": "9150.81",
+			//		"collar_price": "9146.84",
+			//		"auction_price": "9134.04",
+			//		"auction_quantity": "389.3094317"
+			//	  },
+			//	...
+			//  ]
+			//}
+
+			//{
+			//	"type": "trade",
+			//	"symbol": "BTCUSD",
+			//	"event_id": 3575573053,
+			//	“timestamp”: 151231241,
+			//	"price": "9004.21000000",
+			//	"quantity": "0.09110000",
+			//	"side": "buy"
+			//}
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
+			return ConnectWebSocket(BaseUrlWebSocket, messageCallback: async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["result"].ToStringInvariant() == "error")
+				{ // {{  "result": "error",  "reason": "InvalidJson"}}
+					Logger.Info(token["reason"].ToStringInvariant());
+				}
+				else if (token["type"].ToStringInvariant() == "l2_updates")
+				{
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					var tradesToken = token["trades"];
+					if (tradesToken != null) foreach (var tradeToken in tradesToken)
+					{
+						var trade = parseTrade(tradeToken);
+						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					}
+				}
+				else if (token["type"].ToStringInvariant() == "trade")
+				{
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					var trade = parseTrade(token);
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}
+				await _socket.SendMessageAsync(new {
+						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = marketSymbols } } });
+			});
+			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(
+							amountKey: "quantity", priceKey: "price",
+							typeKey: "side", timestampKey: "timestamp",
+							TimestampType.UnixMilliseconds, idKey: "event_id");
+		}
+	}
 
     public partial class ExchangeName { public const string Gemini = "Gemini"; }
 }

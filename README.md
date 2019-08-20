@@ -1,5 +1,7 @@
 <img src='logo.png' width='600' />
 
+[![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master)
+
 ## Overview
 ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more!
 
@@ -15,29 +17,30 @@ The following cryptocurrency exchanges are supported:
 
 |Exchange Name     |Public REST|Private REST |Web Socket |
 | ---------------- | --------- | ----------- | --------- |
-| Abucoins         | x         | x           | TRO       |
-| Binance          | x         | x           | TRB       |
+| Abucoins         | x         | x           | T R   O   |
+| Binance          | x         | x           | T R B     |
 | Bitbank          | x         | x           |           |
-| Bitfinex         | x         | x           | TRO       |
+| Bitfinex         | x         | x           | T R   O   |
 | Bithumb          | x         |             |           |
-| BitMEX           | x         | x           | RO        |
-| Bitstamp         | x         | x           |           |
-| Bittrex          | x         | x           | TR        |
+| BitMEX           | x         | x           |   R   O   |
+| Bitstamp         | x         | x           |   R       |
+| Bittrex          | x         | x           | T R       |
 | Bleutrade        | x         | x           |           |
-| Coinbase         | x         | x           | TR        |
+| Coinbase         | x         | x           | T R       |
 | Cryptopia        | x         | x           |           |
-| Gemini           | x         | x           |           |
-| Hitbtc           | x         | x           |           |
-| Huobi            | x         | x           | RB        |
-| Kraken           | x         | x           |           |
-| KuCoin           | x         | x           | TR        |
+| Gemini           | x         | x           |   R       |
+| HitBTC           | x         | x           |   R       |
+| Huobi            | x         | x           |   R B     |
+| Kraken           | x         | x           |   R       |
+| KuCoin           | x         | x           | T R       |
 | LBank            | x         | x           |           |
 | Livecoin         | x         | x           |           |
-| OKex             | x         | x           | RB        |
-| Poloniex         | x         | x           | TRB       |
+| OKCoin           | x         | x           |   R B     |
+| OKEx             | x         | x           |   R B     |
+| Poloniex         | x         | x           | T R B     |
 | TuxExchange      | x         | x           |           |
 | YoBit            | x         | x           |           |
-| ZB.com           | wip       |             | R         |
+| ZB.com           | wip       |             |   R       |
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
@@ -143,7 +146,7 @@ Believe it or not, donations are quite rare. I've posted publicly the total dona
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
 Donation totals:
-0.02350084 BTC, 0.25 LTC
+0.02350084 BTC, 10.25 LTC
 
 Thanks for visiting!
 

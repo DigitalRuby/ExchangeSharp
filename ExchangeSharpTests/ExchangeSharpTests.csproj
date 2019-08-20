@@ -1,18 +1,28 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
 
     <IsPackable>false</IsPackable>
 
     <NeutralLanguage>en</NeutralLanguage>
 
-    <AssemblyVersion>0.6.9.0</AssemblyVersion>
+    <AssemblyVersion>0.6.0.2</AssemblyVersion>
 
-    <FileVersion>0.5.0.0</FileVersion>
+    <FileVersion>0.6.0.2</FileVersion>
 
     <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="TestData\AllSymbols.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="TestData\AllSymbols.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.2.0" />

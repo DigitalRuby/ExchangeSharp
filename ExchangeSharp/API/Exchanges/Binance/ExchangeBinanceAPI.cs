@@ -65,17 +65,17 @@ namespace ExchangeSharp
             return streams.ToString();
         }
 
-        public ExchangeBinanceAPI()
-        {
-            // give binance plenty of room to accept requests
-            RequestWindow = TimeSpan.FromMinutes(15.0);
-            NonceStyle = NonceStyle.UnixMilliseconds;
-            NonceOffset = TimeSpan.FromSeconds(10.0);
-            MarketSymbolSeparator = string.Empty;
-            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
-        }
+		public ExchangeBinanceAPI()
+		{
+			// give binance plenty of room to accept requests
+			RequestWindow = TimeSpan.FromMilliseconds(60000);  // 60000 is max value = max request time window of 60 seconds
+			NonceStyle = NonceStyle.UnixMilliseconds;
+			NonceOffset = TimeSpan.FromSeconds(15); // 15 seconds are deducted from current UTCTime as base of the request time window
+			MarketSymbolSeparator = string.Empty;
+			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+		}
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+		public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
         {
             // All pairs in Binance end with BTC, ETH, BNB or USDT
             if (marketSymbol.EndsWith("BTC") || marketSymbol.EndsWith("ETH") || marketSymbol.EndsWith("BNB"))
@@ -262,30 +262,30 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             /*
-            {
-              "e": "trade",     // Event type
-              "E": 123456789,   // Event time
-              "s": "BNBBTC",    // Symbol
-              "t": 12345,       // Trade ID
-              "p": "0.001",     // Price
-              "q": "100",       // Quantity
-              "b": 88,          // Buyer order Id
-              "a": 50,          // Seller order Id
-              "T": 123456785,   // Trade time
-              "m": true,        // Is the buyer the market maker?
-              "M": true         // Ignore.
-            }
+	    {
+	      "e": "aggTrade",  // Event type
+	      "E": 123456789,   // Event time
+	      "s": "BNBBTC",    // Symbol
+	      "a": 12345,       // Aggregate trade ID
+	      "p": "0.001",     // Price
+	      "q": "100",       // Quantity
+	      "f": 100,         // First trade ID
+	      "l": 105,         // Last trade ID
+	      "T": 123456785,   // Trade time
+	      "m": true,        // Is the buyer the market maker?
+	      "M": true         // Ignore
+	    }
             */
 
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
                 marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            string url = GetWebSocketStreamUrlForSymbols("@trade", marketSymbols);
-            return ConnectWebSocket(url, (_socket, msg) =>
+            string url = GetWebSocketStreamUrlForSymbols("@aggTrade", marketSymbols);
+            return ConnectWebSocket(url, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 string name = token["stream"].ToStringInvariant();
@@ -294,8 +294,7 @@ namespace ExchangeSharp
 
                 // buy=0 -> m = true (The buyer is maker, while the seller is taker).
                 // buy=1 -> m = false(The seller is maker, while the buyer is taker).
-                callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTrade("q", "p", "m", "E", TimestampType.UnixMilliseconds, "t", "false")));
-                return Task.CompletedTask;
+                await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTradeBinance("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
             });
         }
 
@@ -358,6 +357,51 @@ namespace ExchangeSharp
                 Url = "/aggTrades?symbol=[marketSymbol]&startTime={0}&endTime={1}",
             };
             await state.ProcessHistoricalTrades();
+        }
+
+        public async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
+        {
+            /* [ {
+            "a": 26129,         // Aggregate tradeId
+		    "p": "0.01633102",  // Price
+		    "q": "4.70443515",  // Quantity
+		    "f": 27781,         // First tradeId
+		    "l": 27781,         // Last tradeId
+		    "T": 1498793709153, // Timestamp
+		    "m": true,          // Was the buyer the maker?
+		    "M": true           // Was the trade the best price match?
+            } ] */
+
+            // TODO : Refactor into a common layer once more Exchanges implement this pattern
+
+            var fromId = startId;
+            var maxRequestLimit = 1000;
+            var trades = new List<ExchangeTrade>();
+            var processedIds = new HashSet<long>();
+            marketSymbol = NormalizeMarketSymbol(marketSymbol);
+
+            do
+            {
+                if (fromId > endId) break;
+
+                trades.Clear();
+                var limit = Math.Min(endId - fromId ?? maxRequestLimit, maxRequestLimit);
+                var obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&fromId={fromId}&limit={limit}");
+
+                foreach (var token in obj)
+                {
+                    var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
+					long tradeId = (long)trade.Id.ConvertInvariant<ulong>();
+					if (tradeId < fromId) continue;
+                    if (tradeId > endId) continue;
+                    if (!processedIds.Add(tradeId)) continue;
+
+                    trades.Add(trade);
+                    fromId = tradeId;
+                }
+
+                fromId++;
+            } while (callback(trades) && trades.Count > 0);
         }
 
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
@@ -435,7 +479,7 @@ namespace ExchangeSharp
             payload["symbol"] = order.MarketSymbol;
             payload["side"] = order.IsBuy ? "BUY" : "SELL";
             if (order.OrderType == OrderType.Stop)
-                payload["type"] = "STOP_LOOSE";//if order type is stop loose/limit, then binance expect word 'STOP_LOOSE' inestead of 'STOP'
+                payload["type"] = "STOP_LOSS";//if order type is stop loss/limit, then binance expect word 'STOP_LOSS' inestead of 'STOP'
             else
                 payload["type"] = order.OrderType.ToStringUpperInvariant();
 
@@ -557,26 +601,50 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
         {
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            //new way
+            List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
             if (string.IsNullOrWhiteSpace(marketSymbol))
             {
-                orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
+                trades.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
             }
             else
             {
                 Dictionary<string, object> payload = await GetNoncePayloadAsync();
                 payload["symbol"] = marketSymbol;
-                if (afterDate != null)
+				if (afterDate != null)
+				{
+					payload["startTime"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
+				}
+                JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, payload);
+                foreach (JToken trade in token)
                 {
-                    payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
-                }
-                JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
-                foreach (JToken order in token)
-                {
-                    orders.Add(ParseOrder(order));
+                    trades.Add(ParseTrade(trade, marketSymbol));
                 }
             }
-            return orders;
+            return trades;
+
+            //old way
+
+            //List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+            //if (string.IsNullOrWhiteSpace(marketSymbol))
+            //{
+            //    orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
+            //}
+            //else
+            //{
+            //    Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            //    payload["symbol"] = marketSymbol;
+            //    if (afterDate != null)
+            //    {
+            //        payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            //    }
+            //    JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
+            //    foreach (JToken order in token)
+            //    {
+            //        orders.Add(ParseOrder(order));
+            //    }
+            //}
+            //return orders;
         }
 
         private async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)

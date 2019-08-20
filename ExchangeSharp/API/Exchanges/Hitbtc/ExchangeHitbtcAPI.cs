@@ -23,12 +23,12 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed partial class ExchangeHitbtcAPI : ExchangeAPI
+    public sealed partial class ExchangeHitBTCAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.hitbtc.com/api/2/ws";
 
-        public ExchangeHitbtcAPI()
+        public ExchangeHitBTCAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMillisecondsString;
@@ -178,7 +178,6 @@ namespace ExchangeSharp
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            long? lastTradeID = null;
             // TODO: Can't get Hitbtc to return other than the last 50 trades even though their API says it should (by orderid or timestamp). When passing either of these parms, it still returns the last 50
             // So until there is an update, that's what we'll go with
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol);
@@ -187,7 +186,6 @@ namespace ExchangeSharp
                 foreach (JToken token in obj)
                 {
                     ExchangeTrade trade = ParseExchangeTrade(token);
-                    lastTradeID = trade.Id;
                     if (startDate == null || trade.Timestamp >= startDate)
                     {
                         trades.Add(trade);
@@ -436,49 +434,164 @@ namespace ExchangeSharp
             return withdraw;
         }
 
-        #endregion
+		#endregion
 
-        #region WebSocket APIs
+		#region WebSocket APIs
 
-        // working on it. Hitbtc has extensive support for sockets, including trading
+		// working on it. Hitbtc has extensive support for sockets, including trading
 
-        #endregion
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
+			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["error"] != null)
+				{   /* {
+						  "jsonrpc": "2.0",
+						  "error": {
+							"code": 2001,
+							"message": "Symbol not found",
+							"description": "Try get /api/2/public/symbol, to get list of all available symbols."
+						  },
+						  "id": 123
+						} */
+					Logger.Info(token["error"]["code"].ToStringInvariant() + ", "
+							+ token["error"]["message"].ToStringInvariant() + ", "
+							+ token["error"]["description"].ToStringInvariant());
+				}
+				else if (token["method"].ToStringInvariant() == "snapshotTrades")
+				{   /* snapshot: {
+						  "jsonrpc": "2.0",
+						  "method": "snapshotTrades",
+						  "params": {
+							"data": [
+							  {
+								"id": 54469456,
+								"price": "0.054656",
+								"quantity": "0.057",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:33:42.821Z"
+							  },
+							  {
+								"id": 54469497,
+								"price": "0.054656",
+								"quantity": "0.092",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:33:48.754Z"
+							  },
+							  {
+								"id": 54469697,
+								"price": "0.054669",
+								"quantity": "0.002",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:34:13.288Z"
+							  }
+							],
+							"symbol": "ETHBTC"
+						  }
+						} */
+					token = token["params"];
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					foreach (var tradesToken in token["data"])
+					{
+						var trade = parseTrade(tradesToken);
+						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					}
+				}
+				else if (token["method"].ToStringInvariant() == "updateTrades")
+				{   /* {
+						  "jsonrpc": "2.0",
+						  "method": "updateTrades",
+						  "params": {
+							"data": [
+							  {
+								"id": 54469813,
+								"price": "0.054670",
+								"quantity": "0.183",
+								"side": "buy",
+								"timestamp": "2017-10-19T16:34:25.041Z"
+							  }
+							],
+							"symbol": "ETHBTC"
+						  }
+						}  */
+					token = token["params"];
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					foreach (var tradesToken in token["data"])
+					{
+						var trade = parseTrade(tradesToken);
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+					}
+				}
+			}, connectCallback: async (_socket) =>
+			{   /* {
+					  "method": "subscribeTrades",
+					  "params": {
+						"symbol": "ETHBTC",
+						"limit": 100
+					  },
+					  "id": 123
+					} */
+					foreach (var marketSymbol in marketSymbols)
+				{
+					await _socket.SendMessageAsync(new
+					{
+						method = "subscribeTrades",
+						@params = new {
+								   symbol = marketSymbol,
+								   limit = 10,
+							   },
+						id = CryptoUtility.UtcNow.Ticks // just need a unique number for client ID
+					});
+				}
+			});
+			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(amountKey: "quantity",
+				priceKey: "price", typeKey: "side", timestampKey: "timestamp",
+				timestampType: TimestampType.Iso8601, idKey: "id");
+		}
 
-        #region Hitbtc Public Functions outside the ExchangeAPI
-        // HitBTC has two accounts per client: the main bank and trading 
-        // Coins deposited from this API go into the bank, and must be withdrawn from there as well
-        // Trading only takes place from the trading account.
-        // You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
-        // These functions aid in that process
+		#endregion
 
-        public async Task<Dictionary<string, decimal>> GetBankAmountsAsync()
-        {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/account/balance", null, await GetNoncePayloadAsync());
-            foreach (JToken token in obj["balance"])
-            {
-                decimal amount = token["available"].ConvertInvariant<decimal>();
-                if (amount > 0m) amounts[token["currency"].ToStringInvariant()] = amount;
-            }
-            return amounts;
-        }
+		#region Hitbtc Public Functions outside the ExchangeAPI
+		// HitBTC has two accounts per client: the main bank and trading 
+		// Coins deposited from this API go into the bank, and must be withdrawn from there as well
+		// Trading only takes place from the trading account.
+		// You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
+		// These functions aid in that process
 
+		public async Task<Dictionary<string, decimal>> GetBankAmountsAsync()
+		{
+			Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+			JToken obj = await MakeJsonRequestAsync<JToken>("/account/balance", null, await GetNoncePayloadAsync());
+			foreach (JToken token in obj)
 
-        public async Task<bool> AccountTransfer(string Symbol, decimal Amount, bool ToBank)
-        {
-            var payload = await GetNoncePayloadAsync();
-            payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
-            payload["currency"] = Symbol;
-            payload["amount"] = Amount;
-            JToken obj = await MakeJsonRequestAsync<JToken>("/account/transfer", null, payload);
-            return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
-        }
+			{
+				decimal amount = token["available"].ConvertInvariant<decimal>();
+				if (amount > 0m) amounts[token["currency"].ToStringInvariant()] = amount;
+			}
+			return amounts;
+		}
 
-        #endregion
+		public async Task<bool> AccountTransfer(string Symbol, decimal Amount, bool ToBank)
+		{
+			var payload = await GetNoncePayloadAsync();
+			payload["type"] = ToBank ? "exchangeToBank" : "bankToExchange";
+			payload["currency"] = Symbol;
+			payload["amount"] = Amount;
+			JToken obj = await MakeJsonRequestAsync<JToken>("/account/transfer", null, payload, "POST");
+			return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
+		}
 
-        #region Private Functions
+		#endregion
 
-        private ExchangeTicker ParseTicker(JToken token, string symbol)
+		#region Private Functions
+
+		private ExchangeTicker ParseTicker(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
             return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
@@ -538,5 +651,5 @@ namespace ExchangeSharp
         #endregion
     }
 
-    public partial class ExchangeName { public const string Hitbtc = "Hitbtc"; }
+    public partial class ExchangeName { public const string HitBTC = "HitBTC"; }
 }

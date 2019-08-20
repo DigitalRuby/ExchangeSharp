@@ -433,7 +433,7 @@ namespace ExchangeSharp
         private ExchangeTrade ParseTrade(JToken token)
         {
             // [{ "TradePairId":100,"Label":"LTC/BTC","Type":"Sell","Price":0.00006000, "Amount":499.99640000,"Total":0.02999978,"Timestamp": 1418297368}, ...]
-            return token.ParseTrade("Amount", "Price", "Type", "Timestamp", TimestampType.UnixSeconds);
+            return token.ParseTrade("Amount", "Price", "Type", "Timestamp", TimestampType.UnixSeconds, null);
         }
 
         #endregion Private Functions

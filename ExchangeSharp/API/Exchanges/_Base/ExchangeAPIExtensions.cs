@@ -14,7 +14,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
+using ExchangeSharp.API.Exchanges.Kraken.Models;
+using ExchangeSharp.Binance;
+using ExchangeSharp.Bitstamp;
+using ExchangeSharp.Coinbase;
+using ExchangeSharp.Kucoin;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -463,56 +467,124 @@ namespace ExchangeSharp
             return ticker;
         }
 
-        /// <summary>
-        /// Parse a trade
-        /// </summary>
-        /// <param name="token">Token</param>
-        /// <param name="amountKey">Amount key</param>
-        /// <param name="priceKey">Price key</param>
-        /// <param name="typeKey">Type key</param>
-        /// <param name="timestampKey">Timestamp key</param>
-        /// <param name="timestampType">Timestamp type</param>
-        /// <param name="idKey">Id key</param>
-        /// <param name="typeKeyIsBuyValue">Type key buy value</param>
-        /// <returns>Trade</returns>
-        internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
-            object timestampKey, TimestampType timestampType, object idKey = null, string typeKeyIsBuyValue = "buy")
-        {
-            ExchangeTrade trade = new ExchangeTrade
-            {
-                Amount = token[amountKey].ConvertInvariant<decimal>(),
-                Price = token[priceKey].ConvertInvariant<decimal>(),
-                IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue))
-            };
-            trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
-            if (idKey == null)
-            {
-                trade.Id = trade.Timestamp.Ticks;
-            }
-            else
-            {
-                try
-                {
-                    trade.Id = (long)token[idKey].ConvertInvariant<ulong>();
-                }
-                catch
-                {
-                    // dont care
-                }
-            }
-            return trade;
-        }
+		#region ParseTrade() methods
+		/// <summary>
+		/// Parse a trade
+		/// </summary>
+		/// <param name="token">Token</param>
+		/// <param name="amountKey">Amount key</param>
+		/// <param name="priceKey">Price key</param>
+		/// <param name="typeKey">Type key</param>
+		/// <param name="timestampKey">Timestamp key</param>
+		/// <param name="timestampType">Timestamp type</param>
+		/// <param name="idKey">Id key</param>
+		/// <param name="typeKeyIsBuyValue">Type key buy value</param>
+		/// <returns>Trade</returns>
+		internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			return ParseTradeComponents<ExchangeTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 
-        /// <summary>
-        /// Parse volume from JToken
-        /// </summary>
-        /// <param name="token">JToken</param>
-        /// <param name="baseVolumeKey">Base currency volume key</param>
-        /// <param name="quoteVolumeKey">Quote currency volume key</param>
-        /// <param name="last">Last volume value</param>
-        /// <param name="baseCurrencyVolume">Receive base currency volume</param>
-        /// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
-        internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
+		}
+
+		internal static ExchangeTrade ParseTradeBinance(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BinanceAggregateTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
+			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBitstamp(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BitstampTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.BuyOrderId = token["buy_order_id"].ConvertInvariant<long>();
+			trade.SellOrderId = token["sell_order_id"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeCoinbase(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<CoinbaseTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.MakerOrderId = (Guid)token["maker_order_id"];
+			trade.TakerOrderId = (Guid)token["taker_order_id"];
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeKraken(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<KrakenTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			if (token[4].ToStringInvariant() == "l")
+			{
+				trade.OrderType = OrderType.Limit;
+			}
+			else if (token[4].ToStringInvariant() == "m")
+			{
+				trade.OrderType = OrderType.Market;
+			}
+			else Logger.Info("error parsing orderType: " + token.ToStringInvariant());
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeKucoin(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<KucoinTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant().StringToByteArray();
+			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant().StringToByteArray();
+			return trade;
+		}
+
+		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+			where T : ExchangeTrade, new()
+		{
+			T trade = new T
+			{
+				Amount = token[amountKey].ConvertInvariant<decimal>(),
+				Price = token[priceKey].ConvertInvariant<decimal>(),
+				IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue)),
+			};
+			trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+			if (idKey == null)
+			{
+				trade.Id = trade.Timestamp.Ticks.ToStringInvariant();
+			}
+			else
+			{
+				try
+				{
+					trade.Id = token[idKey].ToStringInvariant();
+				}
+				catch
+				{
+					Logger.Info("error parsing trade ID: " + token.ToStringInvariant());
+				}
+			}
+			return trade;
+		}
+		#endregion
+
+		/// <summary>
+		/// Parse volume from JToken
+		/// </summary>
+		/// <param name="token">JToken</param>
+		/// <param name="baseVolumeKey">Base currency volume key</param>
+		/// <param name="quoteVolumeKey">Quote currency volume key</param>
+		/// <param name="last">Last volume value</param>
+		/// <param name="baseCurrencyVolume">Receive base currency volume</param>
+		/// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
+		internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
         {
             // parse out volumes, handle cases where one or both do not exist
             if (baseVolumeKey == null)
@@ -582,5 +654,5 @@ namespace ExchangeSharp
             }
             return candle;
         }
-    }
+	}
 }

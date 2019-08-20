@@ -145,6 +145,7 @@ namespace ExchangeSharpConsole
                 return api.GetTradesWebSocket(message =>
                 {
                     Console.WriteLine($"{message.Key}: {message.Value}");
+                    return Task.CompletedTask;
                 }, symbols);
             });
         }
