@@ -16,9 +16,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ExchangeSharp.Kucoin
+namespace ExchangeSharp.KuCoin
 {
-	public class KucoinTrade : ExchangeTrade
+	public class KuCoinTrade : ExchangeTrade
 	{
 		public byte[] MakerOrderId { get; set; } // nullable
 		public byte[] TakerOrderId { get; set; } // nullable

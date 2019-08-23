@@ -16,7 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ExchangeSharp.API.Exchanges.Kraken.Models
+namespace ExchangeSharp.Kraken
 {
 	public class KrakenTrade : ExchangeTrade
 	{
