@@ -16,6 +16,7 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 // different namespace for this since we don't want this to be easily accessible publically
 namespace ExchangeSharp.OKGroup 
@@ -643,28 +644,37 @@ namespace ExchangeSharp.OKGroup
 
         private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+			Timer pingTimer = null;
+            return ConnectWebSocket(url: string.Empty, messageCallback: async (_socket, msg) =>
             {
-                // https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
-                // All the messages returning from WebSocket API will be optimized by Deflate compression
-                JToken token = JToken.Parse(msg.ToStringFromUTF8Deflate());
-
+				// https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
+				// All the messages returning from WebSocket API will be optimized by Deflate compression
+				var msgString = msg.ToStringFromUTF8Deflate();
+				if (msgString == "pong")
+				{ // received reply to our ping
+					return;
+				}
+                JToken token = JToken.Parse(msgString);
                 var eventProperty = token["event"]?.ToStringInvariant();
                 if (eventProperty != null)
                 {
-	                if (eventProperty == "error")
-	                {
+					if (eventProperty == "error")
+					{
 						Logger.Info("Websocket unable to connect: " + token["message"]?.ToStringInvariant());
 						return;
-	                }
-
-	                if (eventProperty == "subscribe" && token["channel"] != null)
-	                {
-		                return;
-	                }
+					}
+					else if (eventProperty == "subscribe" && token["channel"] != null)
+					{ // subscription successful
+						if (pingTimer == null)
+						{
+							pingTimer = new Timer(callback: async s => await _socket.SendMessageAsync("ping"),
+								state: null, dueTime: 0, period: 15000); // send a ping every 15 seconds
+						}
+						return;
+					}
+					else return;
 				}
-
-                if (token["table"] != null)
+				else if (token["table"] != null)
                 {
 	                var data = token["data"];
 	                foreach (var dataRow in data)
@@ -673,10 +683,13 @@ namespace ExchangeSharp.OKGroup
 		                await callback(_socket, marketSymbol, null, dataRow);
 					}
                 }
-            }, async (_socket) =>
-            {
-                await connected(_socket);
-            });
+            }, connectCallback: async (_socket) => await connected(_socket)
+			, disconnectCallback: s =>
+			{
+				pingTimer.Dispose();
+				pingTimer = null;
+				return Task.CompletedTask;
+			});
         }
 
         private IWebSocket ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)

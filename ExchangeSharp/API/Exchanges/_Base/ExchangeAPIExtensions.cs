@@ -14,7 +14,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ExchangeSharp.API.Exchanges.Kraken.Models;
+using ExchangeSharp.Kraken;
 using ExchangeSharp.Binance;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
