@@ -309,7 +309,7 @@ namespace ExchangeSharp
 				string json = msg.ToStringFromUTF8();
 				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
 				string marketSymbol = update.Data.MarketSymbol;
-				ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, MarketSymbol = marketSymbol };
+				ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, MarketSymbol = marketSymbol, LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.Data.EventTime) };
 				foreach (List<object> ask in update.Data.Asks)
 				{
 					var depth = new ExchangeOrderPrice { Price = ask[0].ConvertInvariant<decimal>(), Amount = ask[1].ConvertInvariant<decimal>() };
