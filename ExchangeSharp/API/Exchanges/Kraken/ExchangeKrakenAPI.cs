@@ -51,9 +51,25 @@ namespace ExchangeSharp
         {
             if (exchangeSymbolToNormalizedSymbol.TryGetValue(marketSymbol, out string normalizedSymbol))
             {
+                int pos;
+                if (marketSymbol.StartsWith("WAVES"))
+                    pos = 5;
+                else
+                    pos = (normalizedSymbol.Length == 6 ? 3 : (normalizedSymbol.Length == 7 ? 4 : throw new InvalidOperationException("Cannot normalize symbol " + normalizedSymbol)));
+                return base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
+            }
+
+            # region if the initial fails, we try to use another method
+            var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
+            var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
+            string _marketSymbol = symbol.BaseCurrency + symbol.QuoteCurrency;
+            if (exchangeSymbolToNormalizedSymbol.TryGetValue(_marketSymbol, out normalizedSymbol))
+            {
                 int pos = (normalizedSymbol.Length == 6 ? 3 : (normalizedSymbol.Length == 7 ? 4 : throw new InvalidOperationException("Cannot normalize symbol " + normalizedSymbol)));
                 return base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
             }
+            #endregion
+
             throw new ArgumentException($"Symbol {marketSymbol} not found in Kraken lookup table");
         }
 
@@ -84,36 +100,54 @@ namespace ExchangeSharp
 			{ "ADAETH" , "adaeth" },
 			{ "ADAEUR" , "adaeur" },
 			{ "ADAUSD" , "adausd" },
-			{ "ADAXBT" , "adaxbt" },
-			{ "BCHEUR" , "bcheur" },
+			{ "ADAXBT" , "adabtc" },
+            { "ATOMCAD", "atomcad" },
+            { "ATOMETH", "atometh" },
+            { "ATOMEUR", "atomeur" },
+            { "ATOMUSD", "atomusd" },
+            { "ATOMXBT", "atombtc" },
+            { "BATETH", "bateth" },
+            { "BATEUR", "bateur" },
+            { "BATUSD", "batusd" },
+            { "BATXBT", "batbtc" },
+            { "BCHEUR" , "bcheur" },
 			{ "BCHUSD" , "bchusd" },
-			{ "BCHXBT" , "bchxbt" },
+			{ "BCHXBT" , "bchbtc" },
 			{ "BSVEUR" , "bsveur" },
 			{ "BSVUSD" , "bsvusd" },
-			{ "BSVXBT" , "bsvxbt" },
+			{ "BSVXBT" , "bsvbtc" },
 			{ "DASHEUR" , "dasheur" },
 			{ "DASHUSD" , "dashusd" },
-			{ "DASHXBT" , "dashxbt" },
+			{ "DASHXBT" , "dashbtc" },
 			{ "EOSETH" , "eoseth" },
 			{ "EOSEUR" , "eoseur" },
 			{ "EOSUSD" , "eosusd" },
-			{ "EOSXBT" , "eosxbt" },
-			{ "GNOETH" , "gnoeth" },
+			{ "EOSXBT" , "eosbtc" },
+            { "ETCETH" , "etceth" },
+            { "ETCEUR" , "etceur" },
+            { "ETCUSD" , "etcusd" },
+            { "ETCXBT" , "etcbtc" },
+            { "ETHCAD" , "ethcad" },
+            { "GNOETH" , "gnoeth" },
 			{ "GNOEUR" , "gnoeur" },
 			{ "GNOUSD" , "gnousd" },
-			{ "GNOXBT" , "gnoxbt" },
+			{ "GNOXBT" , "gnobtc" },
 			{ "QTUMCAD" , "qtumcad" },
 			{ "QTUMETH" , "qtumeth" },
 			{ "QTUMEUR" , "qtumeur" },
 			{ "QTUMUSD" , "qtumusd" },
-			{ "QTUMXBT" , "qtumxbt" },
-			{ "USDTZUSD" , "usdtusd" },
-			{ "XETCXETH" , "etceth" },
-			{ "XETCXXBT" , "etcxbt" },
+			{ "QTUMXBT" , "qtumbtc" },
+            { "USDTZUSD" , "usdtusd" },
+            { "WAVESETH" , "waveseth" },
+            { "WAVESEUR" , "waveseur" },
+            { "WAVESUSD" , "wavesusd" },
+            { "WAVESXBT" , "wavesbtc" },
+            { "XETCXETH" , "etceth" },
+			{ "XETCXXBT" , "etcbtc" },
 			{ "XETCZEUR" , "etceur" },
 			{ "XETCZUSD" , "etcusd" },
-			{ "XETHXXBT" , "ethxbt" },
-			{ "XETHXXBT.d" , "ethxbtd" },
+			{ "XETHXXBT" , "ethbtc" },
+			{ "XETHXXBT.d" , "ethbtcd" },
 			{ "XETHZCAD" , "ethcad" },
 			{ "XETHZCAD.d" , "ethcadd" },
 			{ "XETHZEUR" , "etheur" },
@@ -124,43 +158,43 @@ namespace ExchangeSharp
 			{ "XETHZJPY.d" , "ethjpyd" },
 			{ "XETHZUSD" , "ethusd" },
 			{ "XETHZUSD.d" , "ethusdd" },
-			{ "XLTCXXBT" , "ltcxbt" },
+			{ "XLTCXXBT" , "ltcbtc" },
 			{ "XLTCZEUR" , "ltceur" },
 			{ "XLTCZUSD" , "ltcusd" },
 			{ "XMLNXETH" , "mlneth" },
-			{ "XMLNXXBT" , "mlnxbt" },
+			{ "XMLNXXBT" , "mlnbtc" },
 			{ "XREPXETH" , "repeth" },
-			{ "XREPXXBT" , "repxbt" },
+			{ "XREPXXBT" , "repbtc" },
 			{ "XREPZEUR" , "repeur" },
 			{ "XREPZUSD" , "repusd" },
 			{ "XTZCAD" , "xtzcad" },
 			{ "XTZETH" , "xtzeth" },
 			{ "XTZEUR" , "xtzeur" },
 			{ "XTZUSD" , "xtzusd" },
-			{ "XTZXBT" , "xtzxbt" },
-			{ "XXBTZCAD" , "xbtcad" },
-			{ "XXBTZCAD.d" , "xbtcadd" },
-			{ "XXBTZEUR" , "xbteur" },
-			{ "XXBTZEUR.d" , "xbteurd" },
-			{ "XXBTZGBP" , "xbtgbp" },
-			{ "XXBTZGBP.d" , "xbtgbpd" },
-			{ "XXBTZJPY" , "xbtjpy" },
-			{ "XXBTZJPY.d" , "xbtjpyd" },
-			{ "XXBTZUSD" , "xbtusd" },
-			{ "XXBTZUSD.d" , "xbtusdd" },
-			{ "XXDGXXBT" , "xdgxbt" },
-			{ "XXLMXXBT" , "xlmxbt" },
+			{ "XTZXBT" , "xtzbtc" },
+			{ "XXBTZCAD" , "btccad" },
+			{ "XXBTZCAD.d" , "btccadd" },
+			{ "XXBTZEUR" , "btceur" },
+			{ "XXBTZEUR.d" , "btceurd" },
+			{ "XXBTZGBP" , "btcgbp" },
+			{ "XXBTZGBP.d" , "btcgbpd" },
+			{ "XXBTZJPY" , "btcjpy" },
+			{ "XXBTZJPY.d" , "btcjpyd" },
+			{ "XXBTZUSD" , "btcusd" },
+			{ "XXBTZUSD.d" , "btcusdd" },
+			{ "XXDGXXBT" , "xdgbtc" },
+			{ "XXLMXXBT" , "xlmbtc" },
 			{ "XXLMZEUR" , "xlmeur" },
 			{ "XXLMZUSD" , "xlmusd" },
-			{ "XXMRXXBT" , "xmrxbt" },
+			{ "XXMRXXBT" , "xmrbtc" },
 			{ "XXMRZEUR" , "xmreur" },
 			{ "XXMRZUSD" , "xmrusd" },
-			{ "XXRPXXBT" , "xrpxbt" },
+			{ "XXRPXXBT" , "xrpbtc" },
 			{ "XXRPZCAD" , "xrpcad" },
 			{ "XXRPZEUR" , "xrpeur" },
 			{ "XXRPZJPY" , "xrpjpy" },
 			{ "XXRPZUSD" , "xrpusd" },
-			{ "XZECXXBT" , "zecxbt" },
+			{ "XZECXXBT" , "zecbtc" },
 			{ "XZECZEUR" , "zeceur" },
 			{ "XZECZJPY" , "zecjpy" },
 			{ "XZECZUSD" , "zecusd" }
@@ -529,10 +563,26 @@ namespace ExchangeSharp
             var csvPairsList = string.Join(",", normalizedPairsList);
             JToken apiTickers = await MakeJsonRequestAsync<JToken>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", csvPairsList } });
             var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            foreach (string marketSymbol in marketSymbols)
+            foreach (string marketSymbol in normalizedPairsList)
             {
-                JToken ticker = apiTickers[marketSymbol];
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ConvertToExchangeTicker(marketSymbol, ticker)));
+                JToken ticker;
+                ticker = apiTickers[marketSymbol];
+
+                #region Fix for pairs that are not found like USDTZUSD
+                if (ticker == null)
+                {
+                    // Some pairs like USDTZUSD are not found, but they can be found using Metadata.
+                    var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
+                    var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
+                    ticker = apiTickers[symbol.BaseCurrency + symbol.QuoteCurrency];
+                }
+                #endregion
+
+                try
+                {
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ConvertToExchangeTicker(marketSymbol, ticker)));
+                }
+                catch(Exception e) { };
             }
             return tickers;
         }
@@ -544,6 +594,23 @@ namespace ExchangeSharp
             return ConvertToExchangeTicker(marketSymbol, ticker);
         }
 
+        public override (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
+        {
+            // lets try to convert coins where base and quote currencies are diferent than the union of both. Esample: Symbol ATOMUSD  Base: ZUSD Quote: ATOM
+            if(marketSymbol.Length > 6)
+            {
+                var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
+                var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
+                if (symbol == null)
+                    throw new ArgumentException("Market symbol not found");
+                string baseCurrency = symbol.MarketSymbol.Split('/')[0];
+                string quoteCurrency = symbol.MarketSymbol.Split('/')[1];
+                return (baseCurrency, quoteCurrency);
+            }
+
+            return base.ExchangeMarketSymbolToCurrencies(marketSymbol);
+        }
+	
         private ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
         {
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();
