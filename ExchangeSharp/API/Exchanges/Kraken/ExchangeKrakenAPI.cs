@@ -507,7 +507,8 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     IsActive = !prop.Name.Contains(".d"),
-                    MarketSymbol = pair["wsname"].ToStringInvariant(),
+                    MarketSymbol = pair["wsname"].ToStringInvariant() != "" ? 
+						pair["wsname"].ToStringInvariant() : pair["altname"].ToStringInvariant(),
                     MinTradeSize = quantityStepSize,
                     MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
                     BaseCurrency = pair["base"].ToStringInvariant(),

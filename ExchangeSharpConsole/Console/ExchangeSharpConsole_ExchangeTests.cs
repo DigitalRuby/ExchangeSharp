@@ -49,8 +49,8 @@ namespace ExchangeSharpConsole
                 {
                     return "BTC-LTC";
                 }
-                else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI ||/* api is ExchangeBleutradeAPI ||*/
-                    api is ExchangeKucoinAPI || api is ExchangeHuobiAPI || api is ExchangeAbucoinsAPI)
+                else if (api is ExchangeBinanceAPI || api is ExchangeOKExAPI ||/* api is ExchangeBleutradeAPI ||*/
+                    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI || api is ExchangeAbucoinsAPI)
                 {
                     return "ETH-BTC";
                 }
@@ -189,7 +189,7 @@ namespace ExchangeSharpConsole
                         catch
                         {
                             // These API require private access to get candles end points
-                            if (!(api is ExchangeKucoinAPI))
+                            if (!(api is ExchangeKuCoinAPI))
                             {
                                 throw;
                             }

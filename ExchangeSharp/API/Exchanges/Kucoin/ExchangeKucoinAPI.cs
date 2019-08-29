@@ -25,12 +25,12 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed partial class ExchangeKucoinAPI : ExchangeAPI
+    public sealed partial class ExchangeKuCoinAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
-        public ExchangeKucoinAPI()
+        public ExchangeKuCoinAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMilliseconds;

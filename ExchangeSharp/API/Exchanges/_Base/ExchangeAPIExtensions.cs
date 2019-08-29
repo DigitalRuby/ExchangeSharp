@@ -14,11 +14,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ExchangeSharp.API.Exchanges.Kraken.Models;
+using ExchangeSharp.Kraken;
 using ExchangeSharp.Binance;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
-using ExchangeSharp.Kucoin;
+using ExchangeSharp.KuCoin;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -538,7 +538,7 @@ namespace ExchangeSharp
 		internal static ExchangeTrade ParseTradeKucoin(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
 		{
-			var trade = ParseTradeComponents<KucoinTrade>(token, amountKey, priceKey, typeKey,
+			var trade = ParseTradeComponents<KuCoinTrade>(token, amountKey, priceKey, typeKey,
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant().StringToByteArray();
 			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant().StringToByteArray();

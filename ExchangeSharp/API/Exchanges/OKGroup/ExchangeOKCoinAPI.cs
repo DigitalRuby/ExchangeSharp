@@ -10,22 +10,18 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ExchangeSharp.OKGroup;
 
-namespace ExchangeSharp.KuCoin
+namespace ExchangeSharp
 {
-	public class KuCoinTrade : ExchangeTrade
+	public sealed partial class ExchangeOKCoinAPI : OKGroupCommon
 	{
-		public byte[] MakerOrderId { get; set; } // nullable
-		public byte[] TakerOrderId { get; set; } // nullable
-		public override string ToString()
-		{
-			return string.Format("{0},{1},{2}", base.ToString(),
-				BitConverter.ToString(MakerOrderId), BitConverter.ToString(TakerOrderId));
-		}
+		public override string BaseUrl { get; set; } = "https://www.okcoin.com/api/v1";
+		public override string BaseUrlV2 { get; set; } = "https://www.okcoin.com/v2/spot";
+		public override string BaseUrlV3 { get; set; } = "https://www.okcoin.com/api";
+		public override string BaseUrlWebSocket { get; set; } = "wss://real.okcoin.com:10442/ws/v3";
+		protected override bool isFuturesAndSwapEnabled { get; } = false;
 	}
+
+	public partial class ExchangeName { public const string OKCoin = "OKCoin"; }
 }

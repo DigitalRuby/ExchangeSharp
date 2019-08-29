@@ -91,7 +91,68 @@ namespace ExchangeSharp
             return await MakeJsonRequestAsync<string[]>("/symbols");
         }
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		{
+			List<ExchangeMarket> hardcodedSymbols = new List<ExchangeMarket>()
+			{
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "btcusd", BaseCurrency = "BTC", QuoteCurrency = "USD",
+					MinTradeSize = 0.00001M, QuantityStepSize = 0.00000001M, PriceStepSize = 0.01M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "ethusd", BaseCurrency = "ETH", QuoteCurrency = "USD",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.01M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "ethbtc", BaseCurrency = "ETH", QuoteCurrency = "BTC",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.00001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "zecusd", BaseCurrency = "ZEC", QuoteCurrency = "USD",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.01M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "zecbtc", BaseCurrency = "ZEC", QuoteCurrency = "BTC",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.00001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "zeceth", BaseCurrency = "ZEC", QuoteCurrency = "ETH",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.0001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "zecbch", BaseCurrency = "ZEC", QuoteCurrency = "BCH",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.0001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "zecltc", BaseCurrency = "ZEC", QuoteCurrency = "LTC",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "bchusd", BaseCurrency = "BCH", QuoteCurrency = "USD",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.01M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "bchbtc", BaseCurrency = "BCH", QuoteCurrency = "BTC",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.00001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "bcheth", BaseCurrency = "BCH", QuoteCurrency = "ETH",
+					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.0001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "ltcusd", BaseCurrency = "LTC", QuoteCurrency = "USD",
+					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.01M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "ltcbtc", BaseCurrency = "LTC", QuoteCurrency = "BTC",
+					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.00001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "ltceth", BaseCurrency = "LTC", QuoteCurrency = "ETH",
+					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.0001M},
+				new ExchangeMarket() { IsActive = true,
+					MarketSymbol = "ltcbch", BaseCurrency = "LTC", QuoteCurrency = "BCH",
+					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.0001M},
+			};
+			// + check to make sure no symbols are missing
+			var apiSymbols = await GetMarketSymbolsAsync();
+			foreach (var apiSymbol in apiSymbols)
+				if (!hardcodedSymbols.Select(m => m.MarketSymbol).Contains(apiSymbol))
+					throw new Exception("hardcoded symbols out of date, please send a PR on GitHub to update.");
+			foreach (var hardcodedSymbol in hardcodedSymbols)
+				if (!apiSymbols.Contains(hardcodedSymbol.MarketSymbol))
+					throw new Exception("hardcoded symbols out of date, please send a PR on GitHub to update.");
+			return hardcodedSymbols;
+		}
+
+		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/pubticker/" + marketSymbol);
             if (obj == null || obj.Count() == 0)
@@ -310,9 +371,7 @@ namespace ExchangeSharp
 					var tradesToken = token["trades"];
 					if (tradesToken != null) foreach (var tradeToken in tradesToken)
 					{
-						var trade = tradeToken.ParseTrade(amountKey: "quantity", priceKey: "price",
-								typeKey: "side", timestampKey: "timestamp",
-								TimestampType.UnixMilliseconds, idKey: "event_id");
+						var trade = parseTrade(tradeToken);
 						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
 						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 					}
@@ -320,9 +379,7 @@ namespace ExchangeSharp
 				else if (token["type"].ToStringInvariant() == "trade")
 				{
 					string marketSymbol = token["symbol"].ToStringInvariant();
-					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price",
-							typeKey: "side", timestampKey: "timestamp",
-							TimestampType.UnixMilliseconds, idKey: "event_id");
+					var trade = parseTrade(token);
 					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 				}
 			}, connectCallback: async (_socket) =>
@@ -331,6 +388,10 @@ namespace ExchangeSharp
 				await _socket.SendMessageAsync(new {
 						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = marketSymbols } } });
 			});
+			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(
+							amountKey: "quantity", priceKey: "price",
+							typeKey: "side", timestampKey: "timestamp",
+							TimestampType.UnixMilliseconds, idKey: "event_id");
 		}
 	}
 
