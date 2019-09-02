@@ -130,13 +130,13 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["dataType"].ToStringInvariant() == "trades")
@@ -148,11 +148,9 @@ namespace ExchangeSharp
                     var trades = ParseTradesWebsocket(data);
                     foreach (var trade in trades)
                     {
-                        callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+                        await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                     }
                 }
-                return Task.CompletedTask;
-
             }, async (_socket) =>
             {
                 foreach (var marketSymbol in marketSymbols)

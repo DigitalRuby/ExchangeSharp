@@ -63,6 +63,7 @@ namespace ExchangeSharp
             };
 
             MarketSymbolSeparator = string.Empty;
+            MarketSymbolIsUppercase = false;
         }
 
         public string NormalizeMarketSymbolV1(string marketSymbol)
@@ -250,14 +251,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-            return ConnectWebSocket("/2", (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
+            return ConnectWebSocket("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
@@ -277,7 +278,7 @@ namespace ExchangeSharp
                                 ExchangeTrade trade = ParseTradeWebSocket(token.Last);
                                 if (trade != null)
                                 {
-                                    callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+                                    await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
                                 }
                             }
                         }
@@ -299,7 +300,7 @@ namespace ExchangeSharp
 										{
 											trade.Flags |= ExchangeTradeFlags.IsLastFromSnapshot;
 										}
-										callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+										await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 									}
 								}
 							}
@@ -312,7 +313,6 @@ namespace ExchangeSharp
                     int channelId = token["chanId"].ConvertInvariant<int>();
                     channelIdToSymbol[channelId] = token["pair"].ToStringInvariant();
                 }
-                return Task.CompletedTask;
             }, async (_socket) =>
             {
 				foreach (var marketSymbol in marketSymbols)
@@ -327,7 +327,7 @@ namespace ExchangeSharp
             decimal amount = token[2].ConvertInvariant<decimal>();
             return new ExchangeTrade
             {
-                Id = token[0].ConvertInvariant<int>(),
+                Id = token[0].ToStringInvariant(),
                 Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token[1].ConvertInvariant<long>()),
                 Amount = Math.Abs(amount),
                 IsBuy = amount > 0,
@@ -379,7 +379,7 @@ namespace ExchangeSharp
                 }
                 foreach (decimal[] tradeChunkPiece in tradeChunk)
                 {
-                    trades.Add(new ExchangeTrade { Amount = Math.Abs(tradeChunkPiece[2]), IsBuy = tradeChunkPiece[2] > 0m, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((double)tradeChunkPiece[1]), Id = (long)tradeChunkPiece[0] });
+                    trades.Add(new ExchangeTrade { Amount = Math.Abs(tradeChunkPiece[2]), IsBuy = tradeChunkPiece[2] > 0m, Price = tradeChunkPiece[3], Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds((double)tradeChunkPiece[1]), Id = tradeChunkPiece[0].ToStringInvariant() });
                 }
                 trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
                 if (!callback(trades))
@@ -539,7 +539,11 @@ namespace ExchangeSharp
             return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
+				if (token[1].ToStringInvariant() == "hb")
+				{
+					// heartbeat
+				}
+				else if (token is JArray array && array.Count > 1 && array[2] is JArray && array[1].ToStringInvariant() == "os")
                 {
                     foreach (JToken orderToken in array[2])
                     {
@@ -573,7 +577,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
-            if (currency.Length == 0)
+            if (string.IsNullOrWhiteSpace(currency))
             {
                 throw new ArgumentNullException(nameof(currency));
             }
@@ -618,7 +622,7 @@ namespace ExchangeSharp
         /// <returns>Collection of ExchangeCoinTransfers</returns>
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
         {
-            if (currency.Length == 0)
+            if (string.IsNullOrWhiteSpace(currency))
             {
                 throw new ArgumentNullException(nameof(currency));
             }
@@ -631,6 +635,63 @@ namespace ExchangeSharp
             foreach (JToken token in result)
             {
                 if (!string.Equals(token["type"].ToStringUpperInvariant(), "DEPOSIT"))
+                {
+                    continue;
+                }
+
+                var transaction = new ExchangeTransaction
+                {
+                    PaymentId = token["id"].ToStringInvariant(),
+                    BlockchainTxId = token["txid"].ToStringInvariant(),
+                    Currency = token["currency"].ToStringUpperInvariant(),
+                    Notes = token["description"].ToStringInvariant() + ", method: " + token["method"].ToStringInvariant(),
+                    Amount = token["amount"].ConvertInvariant<decimal>(),
+                    Address = token["address"].ToStringInvariant()
+                };
+
+                string status = token["status"].ToStringUpperInvariant();
+                switch (status)
+                {
+                    case "COMPLETED":
+                        transaction.Status = TransactionStatus.Complete;
+                        break;
+                    case "UNCONFIRMED":
+                        transaction.Status = TransactionStatus.Processing;
+                        break;
+                    default:
+                        transaction.Status = TransactionStatus.Unknown;
+                        transaction.Notes += ", Unknown transaction status " + status;
+                        break;
+                }
+
+                double unixTimestamp = token["timestamp"].ConvertInvariant<double>();
+                transaction.Timestamp = unixTimestamp.UnixTimeStampToDateTimeSeconds();
+                transaction.TxFee = token["fee"].ConvertInvariant<decimal>();
+
+                transactions.Add(transaction);
+            }
+
+            return transactions;
+        }
+
+        /// <summary>Gets the deposit history for a symbol</summary>
+        /// <param name="currency">The symbol to check. Must be specified.</param>
+        /// <returns>Collection of ExchangeCoinTransfers</returns>
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
+        {
+            if (string.IsNullOrWhiteSpace(currency))
+            {
+                throw new ArgumentNullException(nameof(currency));
+            }
+
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            payload["currency"] = currency;
+
+            JToken result = await MakeJsonRequestAsync<JToken>("/history/movements", BaseUrlV1, payload, "POST");
+            var transactions = new List<ExchangeTransaction>();
+            foreach (JToken token in result)
+            {
+                if (!string.Equals(token["type"].ToStringUpperInvariant(), "WITHDRAWAL"))
                 {
                     continue;
                 }
@@ -831,9 +892,9 @@ namespace ExchangeSharp
             };
         }
 
-        private ExchangeOrderResult ParseOrderWebSocket(JToken order)
-        {
-            /*
+		private ExchangeOrderResult ParseOrderWebSocket(JToken order)
+		{
+			/*
             [ 0, "os", [ [
                 "<ORD_ID>",
                 "<ORD_PAIR>",
@@ -850,22 +911,31 @@ namespace ExchangeSharp
             ] ] ];
             */
 
-            decimal amount = order[2].ConvertInvariant<decimal>();
-            return new ExchangeOrderResult
-            {
-                Amount = amount,
-                AmountFilled = amount,
-                Price = order[6].ConvertInvariant<decimal>(),
-                AveragePrice = order[7].ConvertInvariant<decimal>(),
-                IsBuy = (amount > 0m),
-                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order[8].ConvertInvariant<long>()),
-                OrderId = order[0].ToStringInvariant(),
-                Result = ExchangeAPIOrderResult.Filled,
-                MarketSymbol = order[1].ToStringInvariant()
-            };
-        }
+			decimal amount = order[2].ConvertInvariant<decimal>();
+			/*
+			 ACTIVE, EXECUTED @ PRICE(AMOUNT) e.g. "EXECUTED @ 107.6(-0.2)", PARTIALLY FILLED @ PRICE(AMOUNT), INSUFFICIENT MARGIN was: PARTIALLY FILLED @ PRICE(AMOUNT), CANCELED, CANCELED was: PARTIALLY FILLED @ PRICE(AMOUNT)
+            */
+			string orderStatusString = order[5].ToStringInvariant().Split(' ')[0];
+			return new ExchangeOrderResult
+			{
+				Amount = amount,
+				AmountFilled = amount,
+				Price = order[6].ConvertInvariant<decimal>(),
+				AveragePrice = order[7].ConvertInvariant<decimal>(),
+				IsBuy = (amount > 0m),
+				OrderDate = order[8].ToDateTimeInvariant(),
+				OrderId = order[0].ToStringInvariant(),
+				Result = orderStatusString == "ACTIVE" ? ExchangeAPIOrderResult.Pending
+					   : orderStatusString == "EXECUTED" ? ExchangeAPIOrderResult.Filled
+					   : orderStatusString == "PARTIALLY" ? ExchangeAPIOrderResult.FilledPartially
+					   : orderStatusString == "INSUFFICIENT" ? ExchangeAPIOrderResult.Canceled
+					   : orderStatusString == "CANCELED" ? ExchangeAPIOrderResult.Canceled
+					   : ExchangeAPIOrderResult.Unknown,
+				MarketSymbol = order[1].ToStringInvariant(),
+			};
+		}
 
-        private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
+		private IEnumerable<ExchangeOrderResult> ParseOrderV2(Dictionary<string, List<JToken>> trades)
         {
 
             /*
@@ -884,7 +954,7 @@ namespace ExchangeSharp
             ],
             */
 
-            foreach (var kv in trades)
+			foreach (var kv in trades)
             {
                 ExchangeOrderResult order = new ExchangeOrderResult { Result = ExchangeAPIOrderResult.Filled };
                 foreach (JToken trade in kv.Value)

@@ -35,6 +35,9 @@ namespace ExchangeSharp
 
 #if HAS_SIGNALR
 
+        /// <summary>
+        /// Ideally this would be one instance per exchange instance, but Bittrex simply does not work if you request multiple end points over a single hub connection, sigh...
+        /// </summary>
         public sealed class BittrexWebSocketManager : SignalrManager
         {
             public BittrexWebSocketManager() : base("https://socket.bittrex.com/signalr", "c2")
@@ -65,7 +68,7 @@ namespace ExchangeSharp
             /// <param name="callback">Callback</param>
             /// <param name="marketSymbols">The market symbols to subscribe to</param>
             /// <returns>IDisposable to close the socket</returns>
-            public IWebSocket SubscribeToExchangeDeltas(Action<string> callback, params string[] marketSymbols)
+            public IWebSocket SubscribeToExchangeDeltas(Func<string, Task> callback, params string[] marketSymbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
                 List<object[]> paramList = new List<object[]>();
@@ -73,10 +76,9 @@ namespace ExchangeSharp
                 {
                     paramList.Add(new object[] { marketSymbol });
                 }
-                Task.Run(async () => await conn.OpenAsync("uE", (s) =>
+                Task.Run(async () => await conn.OpenAsync("uE", async (s) =>
                 {
-                    callback(s);
-                    return Task.CompletedTask;
+                    await callback(s);
                 }, 0, paramList.ToArray()));
                 return conn;
             }
@@ -146,8 +148,7 @@ namespace ExchangeSharp
                 }
                 callback(freshTickers);
             }
-            var client = SocketManager;
-            return client.SubscribeToSummaryDeltas(innerCallback);
+            return new BittrexWebSocketManager().SubscribeToSummaryDeltas(innerCallback);
         }
 
         protected override IWebSocket OnGetOrderBookWebSocket
@@ -161,7 +162,7 @@ namespace ExchangeSharp
             {
                 marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
             }
-            void innerCallback(string json)
+            Task innerCallback(string json)
             {
                 #region sample json
                 /*
@@ -215,59 +216,38 @@ namespace ExchangeSharp
                 book.MarketSymbol = ordersUpdates.MarketName;
                 book.SequenceId = ordersUpdates.Nonce;
                 callback(book);
+                return Task.CompletedTask;
             }
 
-            return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, marketSymbols);
+            return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			void innerCallback(string json)
+			async Task innerCallback(string json)
 			{
 				var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
 				foreach (var fill in ordersUpdates.Fills)
 				{
-					callback(new KeyValuePair<string, ExchangeTrade>(ordersUpdates.MarketName, new ExchangeTrade()
+					await callback(new KeyValuePair<string, ExchangeTrade>(ordersUpdates.MarketName, new ExchangeTrade()
 					{
 						Amount = fill.Quantity,
 						// Bittrex doesn't currently send out FillId on socket.bittrex.com, only beta.bittrex.com, but this will be ready when they start
 						// https://github.com/Bittrex/beta/issues/2, https://github.com/Bittrex/bittrex.github.io/issues/3
 						// You can always change the URL on the top of the file to beta.bittrex.com to start getting FillIds now
-						Id = fill.FillId,
+						Id = fill.FillId.ToStringInvariant(),
 						IsBuy = fill.OrderSide == OrderSide.Buy,
 						Price = fill.Rate,
 						Timestamp = fill.Timestamp
 					}));
 				}
 			}
-
-			return this.SocketManager.SubscribeToExchangeDeltas(innerCallback, marketSymbols);
+			return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
 		}
-
-		/// <summary>
-		/// Gets the BittrexSocketClient for this API
-		/// </summary>
-		private BittrexWebSocketManager SocketManager
-        {
-            get
-            {
-                if (webSocket == null)
-                {
-                    lock (this)
-                    {
-                        if (webSocket == null)
-                        {
-                            webSocket = new BittrexWebSocketManager();
-                        }
-                    }
-                }
-                return webSocket;
-            }
-        }
 
 #endif
 

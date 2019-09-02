@@ -49,8 +49,8 @@ namespace ExchangeSharpConsole
                 {
                     return "BTC-LTC";
                 }
-                else if (api is ExchangeBinanceAPI || api is ExchangeOkexAPI || api is ExchangeBleutradeAPI ||
-                    api is ExchangeKucoinAPI || api is ExchangeHuobiAPI || api is ExchangeAbucoinsAPI)
+                else if (api is ExchangeBinanceAPI || api is ExchangeOKExAPI ||/* api is ExchangeBleutradeAPI ||*/
+                    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI || api is ExchangeAbucoinsAPI)
                 {
                     return "ETH-BTC";
                 }
@@ -79,7 +79,12 @@ namespace ExchangeSharpConsole
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIs();
             foreach (IExchangeAPI api in apis)
             {
-                if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
+                // WIP exchanges...
+                if (api is ExchangeUfoDexAPI)
+                {
+                    continue;
+                }
+                else if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
                 {
                     continue;
                 }
@@ -184,7 +189,7 @@ namespace ExchangeSharpConsole
                         catch
                         {
                             // These API require private access to get candles end points
-                            if (!(api is ExchangeKucoinAPI))
+                            if (!(api is ExchangeKuCoinAPI))
                             {
                                 throw;
                             }

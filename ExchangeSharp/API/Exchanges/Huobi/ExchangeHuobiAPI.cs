@@ -220,7 +220,7 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
@@ -270,8 +270,7 @@ namespace ExchangeSharp
                 var trades = ParseTradesWebSocket(data);
                 foreach (var trade in trades)
                 {
-                    trade.Id = id;
-                    callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+                    await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                 }
             }, async (_socket) =>
             {

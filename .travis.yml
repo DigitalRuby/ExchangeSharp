@@ -1,0 +1,8 @@
+﻿language: csharp
+solution: ExchangeSharp.sln
+mono: latest
+dist: xenial
+dotnet: 2.2.102
+script:
+  - dotnet restore
+  - dotnet test

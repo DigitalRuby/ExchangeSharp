@@ -1,0 +1,19 @@
+trigger:
+    - master
+
+strategy:
+    matrix:
+        windows:
+            imageName: 'vs2017-win2016'
+
+pool:
+    vmImage: $(imageName)
+
+variables:
+    buildConfiguration: 'Release'
+
+steps:
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'Build All'
+    - script: dotnet test --configuration $(buildConfiguration)
+      displayName: 'Test'

@@ -24,11 +24,12 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBitstampAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://www.bitstamp.net/api/v2";
+		public override string BaseUrlWebSocket { get; set; } = "wss://ws.bitstamp.net";
 
-        /// <summary>
-        /// Bitstamp private API requires a customer id. Internally this is secured in the PassPhrase property.
-        /// </summary>
-        public string CustomerId
+		/// <summary>
+		/// Bitstamp private API requires a customer id. Internally this is secured in the PassPhrase property.
+		/// </summary>
+		public string CustomerId
         {
             get { return Passphrase.ToUnsecureString(); }
             set { Passphrase = value.ToSecureString(); }
@@ -113,7 +114,7 @@ namespace ExchangeSharp
 					QuoteCurrency = split[1],
 					MinTradeSize = baseDecimals, // will likely get overriden by MinTradeSizeInQuoteCurrency
 					QuantityStepSize = baseDecimals,
-					MinTradeSizeInQuoteCurrency = decimal.Parse(minOrderString.Split(' ')[0]),
+					MinTradeSizeInQuoteCurrency = minOrderString.Split(' ')[0].ConvertInvariant<decimal>(),
 					MinPrice = counterDecimals,
 					PriceStepSize = counterDecimals,
 					IsActive = token["trading"].ToStringLowerInvariant() == "enabled",
@@ -505,7 +506,72 @@ namespace ExchangeSharp
                 Success = responseObject["success"].ConvertInvariant<bool>()
             };
         }
-    }
+
+		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			}
+			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["event"].ToStringInvariant() == "bts:error")
+				{ // {{"event": "bts:error", "channel": "", 
+				  // "data": {"code": null, "message": "Bad subscription string." }	}}
+					token = token["data"];
+					Logger.Info(token["code"].ToStringInvariant() + " " 
+						+ token["message"].ToStringInvariant());
+				}
+				else if (token["event"].ToStringInvariant() == "trade")
+				{ 
+					//{{
+					//	"data": {
+					//	"microtimestamp": "1563418286809203",
+					//	"amount": 0.141247,
+					//	"buy_order_id": 3785916113,
+					//	"sell_order_id": 3785915893,
+					//	"amount_str": "0.14124700",
+					//	"price_str": "9754.23",
+					//	"timestamp": "1563418286",
+					//	"price": 9754.23,
+					//	"type": 0, // Trade type (0 - buy; 1 - sell).
+					//	"id": 94160906
+					//	},
+					//	"event": "trade",
+					//	"channel": "live_trades_btcusd"
+					//}}
+					string marketSymbol = token["channel"].ToStringInvariant().Split('_')[2];
+					var trade = token["data"].ParseTradeBitstamp(amountKey: "amount", priceKey: "price",
+							typeKey: "type", timestampKey: "microtimestamp",
+							TimestampType.UnixMicroeconds, idKey: "id",
+							typeKeyIsBuyValue: "0");
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+				}
+				else if (token["event"].ToStringInvariant() == "bts:subscription_succeeded")
+				{   // {{	"event": "bts:subscription_succeeded",
+					//"channel": "live_trades_btcusd",
+					//"data": { } }}
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				//{
+				//	"event": "bts:subscribe",
+				//	"data": {
+				//		"channel": "[channel_name]"
+				//	}
+				//}
+				foreach (var marketSymbol in marketSymbols)
+				{
+					await _socket.SendMessageAsync(new
+					{
+						@event = "bts:subscribe",
+						data = new { channel = $"live_trades_{marketSymbol}" }
+					});
+				}
+			});
+		}
+	}
 
     public partial class ExchangeName { public const string Bitstamp = "Bitstamp"; }
 }

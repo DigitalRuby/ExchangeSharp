@@ -103,24 +103,24 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) => throw new NotImplementedException();
-
         protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
         protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+		protected virtual IWebSocket OnUserDataWebSocket(Action<object> callback, string listenKey) => throw new NotImplementedException();
 
-        #endregion API implementation
+		#endregion API implementation
 
-        #region Protected methods
+		#region Protected methods
 
-        /// <summary>
-        /// Clamp price using market info. If necessary, a network request will be made to retrieve symbol metadata.
-        /// </summary>
-        /// <param name="marketSymbol">Market Symbol</param>
-        /// <param name="outputPrice">Price</param>
-        /// <returns>Clamped price</returns>
-        protected async Task<decimal> ClampOrderPrice(string marketSymbol, decimal outputPrice)
+		/// <summary>
+		/// Clamp price using market info. If necessary, a network request will be made to retrieve symbol metadata.
+		/// </summary>
+		/// <param name="marketSymbol">Market Symbol</param>
+		/// <param name="outputPrice">Price</param>
+		/// <returns>Clamped price</returns>
+		protected async Task<decimal> ClampOrderPrice(string marketSymbol, decimal outputPrice)
         {
             ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
@@ -820,17 +820,19 @@ namespace ExchangeSharp
             return await OnCloseMarginPositionAsync(NormalizeMarketSymbol(marketSymbol));
         }
 
-        #endregion REST API
+   
 
-        #region Web Socket API
+		#endregion REST API
 
-        /// <summary>
-        /// Get all tickers via web socket
-        /// </summary>
-        /// <param name="callback">Callback</param>
-        /// <param name="symbols"></param>
-        /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+		#region Web Socket API
+
+		/// <summary>
+		/// Get all tickers via web socket
+		/// </summary>
+		/// <param name="callback">Callback</param>
+		/// <param name="symbols"></param>
+		/// <returns>Web socket, call Dispose to close</returns>
+		public virtual IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetTickersWebSocket(callback, symbols);
@@ -842,7 +844,7 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="marketSymbols">Market Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] marketSymbols)
+        public virtual IWebSocket GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetTradesWebSocket(callback, marketSymbols);
@@ -883,6 +885,11 @@ namespace ExchangeSharp
             return OnGetCompletedOrderDetailsWebSocket(callback);
         }
 
-        #endregion Web Socket API
-    }
+        public virtual IWebSocket GetUserDataWebSocket(Action<object> callback, string listenKey)
+        {
+	        callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+	        return OnUserDataWebSocket(callback, listenKey);
+        }
+		#endregion Web Socket API
+	}
 }

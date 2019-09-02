@@ -312,7 +312,7 @@ namespace ExchangeSharp
                 });
                 return Task.FromResult<bool>(true);
             }
-            return Task.FromResult<bool>(false);
+            return Task.FromResult<bool>(false); 
         }
 
         private void QueueActions(params Func<IWebSocket, Task>[] actions)
