@@ -178,20 +178,47 @@ namespace ExchangeSharp
             return this.ParseTicker(token, marketSymbol);
         }
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
-        {
-            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            // [ { "coinType": "KCS", "trading": true, "lastDealPrice": 4500, "buy": 4120, "sell": 4500, "coinTypePair": "BTC", "sort": 0, "feeRate": 0.001, "volValue": 324866889, "high": 6890, "datetime": 1506051488000, "vol": 5363831663913, "low": 4500, "changeRate": -0.3431  }, ... ]
-            JToken token = await MakeJsonRequestAsync<JToken>("/market/allTickers");
-            foreach (JToken tick in token)
-            {
-                string marketSymbol = tick["symbol"].ToStringInvariant();
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickers(tick, marketSymbol)));
-            }
-            return tickers;
-        }
+		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		{
+			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			//{{
+			//"ticker": [
+			//{
+			//"symbol": "LOOM-BTC",
+			//"high": "0.00000295",
+			//"vol": "23885.7388",
+			//"last": "0.00000292",
+			//"low": "0.00000284",
+			//"buy": "0.00000291",
+			//"sell": "0.00000292",
+			//"changePrice": "0",
+			//"averagePrice": "0.00000292",
+			//"changeRate": "0",
+			//"volValue": "0.069025547588"
+			//},
+			//{
+			//"symbol": "BCD-BTC",
+			//"high": "0.00006503",
+			//"vol": "370.12648309",
+			//"last": "0.00006442",
+			//"low": "0.00006273",
+			//"buy": "0.00006389",
+			//"sell": "0.0000645",
+			//"changePrice": "0.00000049",
+			//"averagePrice": "0.00006527",
+			//"changeRate": "0.0076",
+			//"volValue": "0.0236902261670466"
+			//},
+			JToken token = await MakeJsonRequestAsync<JToken>("/market/allTickers");
+			foreach (JToken tick in token["ticker"])
+			{
+				string marketSymbol = tick["symbol"].ToStringInvariant();
+				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickers(tick, marketSymbol)));
+			}
+			return tickers;
+		}
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // [0]-Timestamp [1]-OrderType [2]-Price [3]-Amount [4]-Volume
