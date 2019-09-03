@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -25,9 +26,14 @@ namespace ExchangeSharp
     public abstract partial class ExchangeAPI : BaseAPI, IExchangeAPI
     {
         /// <summary>
-        /// Separator for global symbols
+        /// Separator for global symbols (char)
         /// </summary>
         public const char GlobalMarketSymbolSeparator = '-';
+
+        /// <summary>
+        /// Separator for global symbols (string)
+        /// </summary>
+        public const string GlobalMarketSymbolSeparatorString = "-";
 
         /// <summary>
         /// Whether to use the default method cache policy, default is true.
@@ -204,7 +210,7 @@ namespace ExchangeSharp
             {
                 MethodCachePolicy.Add(nameof(GetCurrenciesAsync), TimeSpan.FromHours(1.0));
                 MethodCachePolicy.Add(nameof(GetMarketSymbolsAsync), TimeSpan.FromHours(1.0));
-                MethodCachePolicy.Add(nameof(GetMarketSymbolsMetadataAsync), TimeSpan.FromHours(1.0));
+                MethodCachePolicy.Add(nameof(GetMarketSymbolsMetadataAsync), TimeSpan.FromHours(4.0));
                 MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
                 MethodCachePolicy.Add(nameof(GetTickersAsync), TimeSpan.FromSeconds(10.0));
                 MethodCachePolicy.Add(nameof(GetOrderBookAsync), TimeSpan.FromSeconds(10.0));
@@ -378,78 +384,77 @@ namespace ExchangeSharp
         /// <returns>Global symbol</returns>
         public virtual string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
         {
+            string modifiedMarketSymbol = marketSymbol;
+            char separator;
+
+            // if no separator, we must query metadata and build the pair
             if (string.IsNullOrWhiteSpace(MarketSymbolSeparator))
             {
-                if (marketSymbol.Length != 6)
+                // we must look it up via metadata, most often this call will be cached and fast
+                ExchangeMarket marketSymbolMetadata = GetExchangeMarketFromCacheAsync(marketSymbol).Sync();
+                if (marketSymbolMetadata == null)
                 {
-                    throw new InvalidOperationException(Name + " market symbol must be 6 chars: '" + marketSymbol + "' is not. Override this method to handle symbols that are not 6 chars in length.");
+                    throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
                 }
-                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(0, marketSymbol.Length - 3) + GlobalMarketSymbolSeparator + (marketSymbol.Substring(marketSymbol.Length - 3, 3)), GlobalMarketSymbolSeparator);
-            }
-            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol, MarketSymbolSeparator[0]);
-        }
-
-        public virtual string CurrenciesToExchangeMarketSymbol(string baseCurrency, string quoteCurrency)
-        {
-            var symbol = MarketSymbolIsReversed 
-                       ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" 
-                       : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}";
-
-            return MarketSymbolIsUppercase
-                       ? symbol.ToUpperInvariant()
-                       : symbol;
-        }
-
-        /// <summary>
-        /// NOTE: This method can potentially make a call to GetSymbolsMetadataAsync 
-        /// </summary>
-        /// <param name="marketSymbol"></param>
-        /// <returns></returns>
-        public virtual (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
-        {
-            string baseCurrency, quoteCurrency;
-            if (string.IsNullOrWhiteSpace(MarketSymbolSeparator))
-            {
-                if (marketSymbol.Length != 6)
-                {
-                    var errorMessage = Name + " symbol must be 6 chars: '" + marketSymbol + "' is not. Override this method to handle symbols that are not 6 chars in length.";
-                    try
-                    {
-                        //let's try looking this up by the metadata..
-                        var symbols = GetMarketSymbolsMetadataAsync().Sync().ToArray();//.ToDictionary(market => market.MarketName, market => market);
-                        var marketSymbolMetadata = symbols.First(
-                                market => market.MarketSymbol.Equals(marketSymbol, StringComparison.InvariantCultureIgnoreCase) || CurrenciesToExchangeMarketSymbol(market.BaseCurrency, market.QuoteCurrency)
-                                   .Equals(marketSymbol, StringComparison.InvariantCultureIgnoreCase)
-                            );
-
-                        return (marketSymbolMetadata.BaseCurrency, marketSymbolMetadata.QuoteCurrency);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new InvalidOperationException(errorMessage, e);
-                    }
-                    throw new InvalidOperationException(errorMessage);
-                }
-
-                if (MarketSymbolIsReversed)
-                {
-                    quoteCurrency = marketSymbol.Substring(0, marketSymbol.Length - 3);
-                    baseCurrency = marketSymbol.Substring(marketSymbol.Length - 3, 3);
-                }
-                else
-                {
-                    baseCurrency = marketSymbol.Substring(0, marketSymbol.Length - 3);
-                    quoteCurrency = marketSymbol.Substring(marketSymbol.Length - 3, 3);
-                }
+                modifiedMarketSymbol = marketSymbolMetadata.BaseCurrency + GlobalMarketSymbolSeparatorString + marketSymbolMetadata.QuoteCurrency;
+                separator = GlobalMarketSymbolSeparator;
             }
             else
             {
-                var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
-                if (pieces.Length != 2)
-                    throw new InvalidOperationException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in exactly 2 pieces.");
-                quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];
-                baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
+                separator = MarketSymbolSeparator[0];
             }
+            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(modifiedMarketSymbol, separator);
+        }
+
+        /// <summary>
+        /// Convert currencies to exchange market symbol
+        /// </summary>
+        /// <param name="baseCurrency">Base currency</param>
+        /// <param name="quoteCurrency">Quote currency</param>
+        /// <returns>Exchange market symbol</returns>
+        public virtual string CurrenciesToExchangeMarketSymbol(string baseCurrency, string quoteCurrency)
+        {
+            string symbol = (MarketSymbolIsReversed ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}");
+            return (MarketSymbolIsUppercase ? symbol.ToUpperInvariant() : symbol);
+        }
+
+        /// <summary>
+        /// Get currencies from exchange market symbol. This method will call GetMarketSymbolsMetadataAsync if no MarketSymbolSeparator is defined for the exchange.
+        /// </summary>
+        /// <param name="marketSymbol">Market symbol</param>
+        /// <returns>Base and quote currency</returns>
+        public virtual (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
+        {
+            marketSymbol.ThrowIfNullOrWhitespace(nameof(marketSymbol));
+
+            // no separator logic...
+            if (string.IsNullOrWhiteSpace(MarketSymbolSeparator))
+            {
+                try
+                {
+                    // we must look it up via metadata, most often this call will be cached and fast
+                    ExchangeMarket marketSymbolMetadata = GetExchangeMarketFromCacheAsync(marketSymbol).Sync();
+                    if (marketSymbolMetadata == null)
+                    {
+                        throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
+                    }
+                    return (marketSymbolMetadata.BaseCurrency, marketSymbolMetadata.QuoteCurrency);
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException($"Failed to retrieve symbol metadata for exchange {Name}.", e);
+                }
+            }
+
+            // default behavior with separator
+            string baseCurrency, quoteCurrency;
+            var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
+            if (pieces.Length != 2)
+            {
+                throw new InvalidOperationException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in exactly 2 pieces.");
+            }
+            quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];
+            baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
 
             return (baseCurrency, quoteCurrency);
         }
@@ -529,19 +534,35 @@ namespace ExchangeSharp
 
                 // not sure if this is needed, but adding it just in case
                 await new SynchronizationContextRemover();
-                ExchangeMarket[] markets = (await GetMarketSymbolsMetadataAsync()).ToArray();
-                ExchangeMarket market = markets.FirstOrDefault(m => m.MarketSymbol == marketSymbol);
-                if (market == null)
+                CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketFromCacheAsync), null);
+                if (cacheResult.Found && cacheResult.Value.TryGetValue(marketSymbol, out ExchangeMarket market))
                 {
-                    // try again with a fresh request, every symbol *should* be in the response from PopulateExchangeMarketsAsync
-                    Cache.Remove(nameof(GetMarketSymbolsMetadataAsync));
-
-                    markets = (await GetMarketSymbolsMetadataAsync()).ToArray();
-
-                    // try and find the market again, this time if not found we give up and just return null
-                    market = markets.FirstOrDefault(m => m.MarketSymbol == marketSymbol);
+                    return market;
                 }
-                return market;
+
+                // try again with a fresh request
+                Cache.Remove(nameof(GetExchangeMarketFromCacheAsync));
+                Cache.Remove(nameof(GetMarketSymbolsMetadataAsync));
+                cacheResult = await Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketFromCacheAsync), async () =>
+                {
+                    Dictionary<string, ExchangeMarket> symbolsMetadataDictionary = new Dictionary<string, ExchangeMarket>(StringComparer.OrdinalIgnoreCase);
+                    IEnumerable<ExchangeMarket> symbolsMetadata = await GetMarketSymbolsMetadataAsync();
+
+                    // build a new lookup dictionary
+                    foreach (ExchangeMarket symbolMetadata in symbolsMetadata)
+                    {
+                        symbolsMetadataDictionary[symbolMetadata.MarketSymbol] = symbolMetadata;
+                    }
+
+                    // return the cached dictionary for 4 hours
+                    return new CachedItem<Dictionary<string, ExchangeMarket>>(symbolsMetadataDictionary, DateTime.UtcNow.AddHours(4.0));
+                });
+
+                // attempt to lookup one more time in the dictionary
+                if (cacheResult.Found && cacheResult.Value.TryGetValue(marketSymbol, out market))
+                {
+                    return market;
+                }
             }
             catch
             {

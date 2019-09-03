@@ -582,7 +582,10 @@ namespace ExchangeSharp
                 {
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ConvertToExchangeTicker(marketSymbol, ticker)));
                 }
-                catch(Exception e) { };
+                catch
+                {
+                    // if Kraken throws bogus json at us, just eat it
+                }
             }
             return tickers;
         }
@@ -597,7 +600,7 @@ namespace ExchangeSharp
         public override (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
         {
             // lets try to convert coins where base and quote currencies are diferent than the union of both. Esample: Symbol ATOMUSD  Base: ZUSD Quote: ATOM
-            if(marketSymbol.Length > 6)
+            if (marketSymbol.Length > 6)
             {
                 var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
                 var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));

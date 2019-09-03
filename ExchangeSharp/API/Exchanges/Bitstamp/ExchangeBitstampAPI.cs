@@ -109,7 +109,7 @@ namespace ExchangeSharp
 				var minOrderString = token["minimum_order"].ToStringInvariant();
 				symbols.Add(new ExchangeMarket()
 				{
-					MarketSymbol = token["name"].ToStringInvariant(),
+					MarketSymbol = token["url_symbol"].ToStringInvariant(),
 					BaseCurrency = split[0],
 					QuoteCurrency = split[1],
 					MinTradeSize = baseDecimals, // will likely get overriden by MinTradeSizeInQuoteCurrency

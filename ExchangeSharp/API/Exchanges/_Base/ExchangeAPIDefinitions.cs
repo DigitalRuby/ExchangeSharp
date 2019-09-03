@@ -79,7 +79,7 @@ namespace ExchangeSharp
         protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
 
         /// <summary>
-        /// Separator for exchange symbol. If not a hyphen, set in constructor.
+        /// Separator for exchange symbol. If not a hyphen, set in constructor. This should be one character and is a string for convenience of concatenation.
         /// </summary>
         public string MarketSymbolSeparator { get; protected set; } = "-";
 

@@ -80,6 +80,20 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Throw ArgumentNullException if obj is null or whitespace
+        /// </summary>
+        /// <param name="obj">Object</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="message">Message</param>
+        public static void ThrowIfNullOrWhitespace(this string obj, string name, string message = null)
+        {
+            if (string.IsNullOrWhiteSpace(obj))
+            {
+                throw new ArgumentNullException(name, message);
+            }
+        }
+
+        /// <summary>
         /// Convert an object to string using invariant culture
         /// </summary>
         /// <param name="obj">Object</param>
