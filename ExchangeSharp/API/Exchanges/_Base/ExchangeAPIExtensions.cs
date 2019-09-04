@@ -170,7 +170,7 @@ namespace ExchangeSharp
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetOrderBookWebSocket(async (b) =>
+            IWebSocket socket = api.GetDeltaOrderBookWebSocket(async (b) =>
             {
                 try
                 {

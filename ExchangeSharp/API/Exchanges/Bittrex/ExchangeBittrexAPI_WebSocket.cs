@@ -151,7 +151,7 @@ namespace ExchangeSharp
             return new BittrexWebSocketManager().SubscribeToSummaryDeltas(innerCallback);
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket
+        protected override IWebSocket OnGetDeltaOrderBookWebSocket
         (
             Action<ExchangeOrderBook> callback,
             int maxCount = 20,
