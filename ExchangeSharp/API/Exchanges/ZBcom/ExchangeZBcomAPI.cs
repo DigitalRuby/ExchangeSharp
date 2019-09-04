@@ -126,8 +126,11 @@ namespace ExchangeSharp
             foreach (JToken token in data.Item1)
             {
                 //for some reason when returning tickers, the api doesn't include the symbol separator like it does everywhere else so we need to convert it to the correct format
-                marketSymbol = symbols.First(s => s.Replace(MarketSymbolSeparator, string.Empty).Equals(token.Path));
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
+                marketSymbol = symbols.FirstOrDefault(s => s.Replace(MarketSymbolSeparator, string.Empty).Equals(token.Path));
+                if (marketSymbol != null)
+                {
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
+                }
             }
             return tickers;
         }
