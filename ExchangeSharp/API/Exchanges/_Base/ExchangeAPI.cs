@@ -531,7 +531,8 @@ namespace ExchangeSharp
             try
             {
                 // *NOTE*: custom caching, do not wrap in CacheMethodCall...
-
+                // *NOTE*: vulnerability exists where if spammed with not found symbols, lots of network calls will happen, stalling the application
+                // TODO: Add not found dictionary, or some mechanism to mitigate this risk
                 // not sure if this is needed, but adding it just in case
                 await new SynchronizationContextRemover();
                 CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketFromCacheAsync), null);
