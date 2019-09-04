@@ -471,6 +471,10 @@ namespace ExchangeSharp
                 throw new ArgumentException("Market symbol must be non null and non empty");
             }
             int pos = marketSymbol.IndexOf(GlobalMarketSymbolSeparator);
+            if (pos < 0)
+            {
+                throw new ArgumentException($"Market symbol {marketSymbol} is missing the global symbol separator '{GlobalMarketSymbolSeparator}'");
+            }
             if (MarketSymbolIsReversed)
             {
                 marketSymbol = GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(0, pos)) + MarketSymbolSeparator + GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(pos + 1));
