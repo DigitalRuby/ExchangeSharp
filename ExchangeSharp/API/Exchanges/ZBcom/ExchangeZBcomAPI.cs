@@ -121,13 +121,23 @@ namespace ExchangeSharp
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            var symbols = (await GetMarketSymbolsAsync()).ToArray();
-            string marketSymbol;
+            var symbolLookup = await Cache.Get<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
+            {
+                var symbols = (await GetMarketSymbolsAsync()).ToArray();
+                Dictionary<string, string> lookup = symbols.ToDictionary((symbol) =>
+                {
+                    return symbol.Replace(MarketSymbolSeparator, string.Empty);
+                });
+                return new CachedItem<Dictionary<string, string>>(lookup, DateTime.UtcNow.AddHours(4.0));
+            });
+            if (!symbolLookup.Found)
+            {
+                throw new APIException("Unable to get symbols for exchange " + Name);
+            }
             foreach (JToken token in data.Item1)
             {
                 //for some reason when returning tickers, the api doesn't include the symbol separator like it does everywhere else so we need to convert it to the correct format
-                marketSymbol = symbols.FirstOrDefault(s => s.Replace(MarketSymbolSeparator, string.Empty).Equals(token.Path));
-                if (marketSymbol != null)
+                if (symbolLookup.Value.TryGetValue(token.Path, out string marketSymbol))
                 {
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
                 }
