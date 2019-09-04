@@ -123,11 +123,14 @@ namespace ExchangeSharp
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             var symbolLookup = await Cache.Get<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
             {
-                var symbols = (await GetMarketSymbolsAsync()).ToArray();
-                Dictionary<string, string> lookup = symbols.ToDictionary((symbol) =>
+                // create lookup dictionary of symbol string without separator to symbol string with separator
+                IEnumerable<string> symbols = await GetMarketSymbolsAsync();
+                Dictionary<string, string> lookup = symbols.ToDictionary((symbol) => symbol.Replace(MarketSymbolSeparator, string.Empty));
+                if (lookup.Count == 0)
                 {
-                    return symbol.Replace(MarketSymbolSeparator, string.Empty);
-                });
+                    // handle case where exchange burps and sends empty success response
+                    return new CachedItem<Dictionary<string, string>>();
+                }
                 return new CachedItem<Dictionary<string, string>>(lookup, DateTime.UtcNow.AddHours(4.0));
             });
             if (!symbolLookup.Found)
