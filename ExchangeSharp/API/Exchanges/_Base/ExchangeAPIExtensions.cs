@@ -161,7 +161,7 @@ namespace ExchangeSharp
 
                     case WebSocketOrderBookType.FullBookAlways:
                     {
-                        // Websocket always returns full order book, WTF...?
+                        // Websocket always returns full order book, some exchanges think CPU and bandwidth are free...
                         fullBooks[newOrderBook.MarketSymbol] = fullOrderBook = newOrderBook;
                     } break;
                 }
