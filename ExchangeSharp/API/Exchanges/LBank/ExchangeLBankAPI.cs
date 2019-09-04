@@ -174,33 +174,62 @@ namespace ExchangeSharp
             return tickerList;
         }
 
-        private ExchangeTicker ParseTicker(JToken resp)
-        {
-            string symbol = resp["symbol"].ConvertInvariant<string>();
-            DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(resp["timestamp"].ConvertInvariant<long>());
-            JToken obj = resp["ticker"];
-            decimal volume = obj["vol"].ConvertInvariant<decimal>();
+		private ExchangeTicker ParseTicker(JToken resp)
+		{
+			//{[
+			//{
+			//"symbol": "tky_eth",
+			//"ticker": {
+			//"change": 0,
+			//"high": 9.59E-06,
+			//"latest": 9.59E-06,
+			//"low": 9.59E-06,
+			//"turnover": 0.0,
+			//"vol": 0.0
+			//},
+			//"timestamp": 1567593631127
+			//},
+			//{
+			//"symbol": "ali_eth",
+			//"ticker": {
+			//"change": 0,
+			//"high": 4.8E-07,
+			//"latest": 4.8E-07,
+			//"low": 4.8E-07,
+			//"turnover": 0.0,
+			//"vol": 0.0
+			//},
+			//"timestamp": 1567593631338
+			//},
+			string symbol = resp["symbol"].ConvertInvariant<string>();
+			string[] pair = symbol.ToUpperInvariant().Split(this.MarketSymbolSeparator[0]);
+			DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(resp["timestamp"].ConvertInvariant<long>());
+			JToken obj = resp["ticker"];
+			decimal volume = obj["vol"].ConvertInvariant<decimal>();
 
-            ExchangeTicker ticker = new ExchangeTicker
-            {
-                Ask = obj["high"].ConvertInvariant<decimal>(),
-                Bid = obj["low"].ConvertInvariant<decimal>(),
-                Last = obj["latest"].ConvertInvariant<decimal>(),
-                //PercentChange = obj["change"].ConvertInvariant<decimal>(),
-                Volume = new ExchangeVolume
-                {
-                    BaseCurrencyVolume = volume,
-                    BaseCurrency = symbol,
-                    QuoteCurrencyVolume = volume * obj["latest"].ConvertInvariant<decimal>(),
-                    QuoteCurrency = symbol,
-                    Timestamp = timestamp
-                }
-            };
+			ExchangeTicker ticker = new ExchangeTicker
+			{
+				MarketSymbol = symbol,
+				Ask = obj["high"].ConvertInvariant<decimal>(),
+				Bid = obj["low"].ConvertInvariant<decimal>(),
+				Last = obj["latest"].ConvertInvariant<decimal>(),
+				//PercentChange = obj["change"].ConvertInvariant<decimal>(),
+				Volume = new ExchangeVolume
+				{
+					BaseCurrencyVolume = volume,
+					//BaseCurrency = symbol,
+					BaseCurrency = pair[0],
+					QuoteCurrencyVolume = volume * obj["latest"].ConvertInvariant<decimal>(),
+					//QuoteCurrency = symbol,
+					QuoteCurrency = pair[1],
+					Timestamp = timestamp
+				}
+			};
 
-            return ticker;
-        }
+			return ticker;
+		}
 
-        private List<ExchangeTrade> ParseRecentTrades(JToken trades, string symbol)
+		private List<ExchangeTrade> ParseRecentTrades(JToken trades, string symbol)
         {
             List<ExchangeTrade> exTradeList = new List<ExchangeTrade>(trades.Count());
 
