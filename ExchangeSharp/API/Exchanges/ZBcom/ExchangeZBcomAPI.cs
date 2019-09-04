@@ -48,7 +48,9 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             // {{"ticker":{"vol":"18202.5979","last":"6698.2","sell":"6703.21","buy":"6693.2","high":"6757.69","low":"6512.69"},"date":"1531822098779"}}
-            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", "date", TimestampType.UnixMilliseconds);
+            ExchangeTicker ticker = this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol");
+            ticker.Volume.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>());
+            return ticker;
         }
 
         private ExchangeTicker ParseTickerV2(string symbol, JToken data)
