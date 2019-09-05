@@ -560,7 +560,7 @@ namespace ExchangeSharp
                     }
 
                     // return the cached dictionary for 4 hours
-                    return new CachedItem<Dictionary<string, ExchangeMarket>>(symbolsMetadataDictionary, DateTime.UtcNow.AddHours(4.0));
+                    return new CachedItem<Dictionary<string, ExchangeMarket>>(symbolsMetadataDictionary, CryptoUtility.UtcNow.AddHours(4.0));
                 });
 
                 // attempt to lookup one more time in the dictionary

@@ -131,7 +131,7 @@ namespace ExchangeSharp
                     // handle case where exchange burps and sends empty success response
                     return new CachedItem<Dictionary<string, string>>();
                 }
-                return new CachedItem<Dictionary<string, string>>(lookup, DateTime.UtcNow.AddHours(4.0));
+                return new CachedItem<Dictionary<string, string>>(lookup, CryptoUtility.UtcNow.AddHours(4.0));
             });
             if (!symbolLookup.Found)
             {

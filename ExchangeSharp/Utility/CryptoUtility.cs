@@ -42,6 +42,7 @@ namespace ExchangeSharp
 
         private static DateTime UtcNowFuncImpl()
         {
+            // this is the only place in the code that DateTime.UtcNow is allowed. DateTime.UtcNow and DateTime.Now should not exist anywhere else in the code.
             return DateTime.UtcNow;
         }
 

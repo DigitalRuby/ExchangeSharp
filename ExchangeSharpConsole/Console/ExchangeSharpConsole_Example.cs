@@ -301,7 +301,7 @@ namespace ExchangeSharpConsole
                 try
                 {
                     var marketSymbol = dict["marketSymbol"];
-                    var candles = api.GetCandlesAsync(marketSymbol, 1800, DateTime.UtcNow.AddDays(-12), DateTime.UtcNow).Sync();                   
+                    var candles = api.GetCandlesAsync(marketSymbol, 1800, CryptoUtility.UtcNow.AddDays(-12), CryptoUtility.UtcNow).Sync();                   
                     
                     foreach (var candle in candles)
                     {

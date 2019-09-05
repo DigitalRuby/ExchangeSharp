@@ -120,7 +120,7 @@ namespace ExchangeSharp
         {
             //Get http://api.lbank.info/v1/kline.do
             limit = limit ?? 100;
-            DateTime fromDate = startDate ?? DateTime.UtcNow.AddDays(-1);
+            DateTime fromDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
             string type = CryptoUtility.SecondsToPeriodString(periodSeconds);
             long timestamp = CryptoUtility.UnixTimestampFromDateTimeSeconds(fromDate).ConvertInvariant<long>();
             JToken resp = await MakeJsonRequestAsync<JToken>($"/kline.do?symbol={symbol}&size={limit}&type={type}&time={timestamp}");
@@ -467,7 +467,7 @@ namespace ExchangeSharp
                 OrderId = obj["order_id"].ToStringInvariant(),
                 IsBuy = payload["type"].ToString().Equals("buy"),
                 Price = payload["price"].ConvertInvariant<decimal>(),
-                OrderDate = DateTime.Now,
+                OrderDate = CryptoUtility.UtcNow,
                 Result = ExchangeAPIOrderResult.Pending
             };
 

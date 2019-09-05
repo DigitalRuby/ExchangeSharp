@@ -9,6 +9,7 @@ Please follow these coding guidelines...
 - Before adding NuGet packages, consider copying in the bits of the source that matter into the Dependencies folder. The fewer packages that ExchangeSharp depends on, the better.
 - Only implement async methods as a general rule. Synchronous calls can be done by using the Sync extension method in ```CryptoUtility```. Saves a lot of duplicate code.
 - Use CryptoUtility.UtcNow instead of DateTime.UtcNow. This makes it easy to mock the date and time for unit or integration tests.
+- Use CryptoUtility.UnixTimeStampToDateTimeSeconds and CryptoUtility.UnixTimestampFromDateTimeSeconds, etc. for date conversions, keep all date in UTC.
 - Follow these code style guidelines please (we're not monsters):
   - Tabs for indent.
   - Curly braces on separate lines.

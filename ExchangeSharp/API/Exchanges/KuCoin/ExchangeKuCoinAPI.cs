@@ -463,7 +463,7 @@ namespace ExchangeSharp
              {
                  //need to subscribe to tickers one by one
                  marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                 var id = DateTime.UtcNow.Ticks;
+                 var id = CryptoUtility.UtcNow.Ticks;
                  foreach (var marketSymbol in marketSymbols)
                  {
                      // subscribe to tick topic
@@ -517,7 +517,7 @@ namespace ExchangeSharp
 						List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ? 
 							await GetMarketSymbolsAsync() : marketSymbols);
 						StringBuilder symbolsSB = new StringBuilder();
-						var id = DateTime.UtcNow.Ticks; // just needs to be a "Unique string to mark the request"
+						var id = CryptoUtility.UtcNow.Ticks; // just needs to be a "Unique string to mark the request"
 						int tunnelInt = 0;
 						while (marketSymbolsList.Count > 0)
 						{ // can only subscribe to 100 symbols per session (started w/ API 2.0)

@@ -38,7 +38,7 @@ namespace ExchangeSharp
             RequestWindow = TimeSpan.Zero;
             NonceStyle = NonceStyle.ExpiresUnixSeconds;
 
-            // make the nonce go 10 seconds into the future (the offset is subtracted)
+            // make the nonce go 60 seconds into the future (the offset is subtracted)
             // this will give us an api-expires 60 seconds into the future
             NonceOffset = TimeSpan.FromSeconds(-60.0);
 
