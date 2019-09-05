@@ -448,6 +448,10 @@ namespace ExchangeSharp
                     askValue = askValue[0];
                     ask = askValue.ConvertInvariant<decimal>();
                 }
+                else
+                {
+                    ask = askValue.ConvertInvariant<decimal>();
+                }
             }
             if (bidKey != null)
             {
@@ -455,6 +459,10 @@ namespace ExchangeSharp
                 if (bidValue is JArray)
                 {
                     bidValue = bidValue[0];
+                    bid = bidValue.ConvertInvariant<decimal>();
+                }
+                else
+                {
                     bid = bidValue.ConvertInvariant<decimal>();
                 }
             }
