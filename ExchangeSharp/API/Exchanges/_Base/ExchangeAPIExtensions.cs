@@ -438,21 +438,31 @@ namespace ExchangeSharp
             }
 
             // create the ticker and return it
-            JToken askValue = token[askKey];
-            JToken bidValue = token[bidKey];
-            if (askValue is JArray)
+            decimal ask = 0m;
+            decimal bid = 0m;
+            if (askKey != null)
             {
-                askValue = askValue[0];
+                JToken askValue = token[askKey];
+                if (askValue is JArray)
+                {
+                    askValue = askValue[0];
+                    ask = askValue.ConvertInvariant<decimal>();
+                }
             }
-            if (bidValue is JArray)
+            if (bidKey != null)
             {
-                bidValue = bidValue[0];
+                JToken bidValue = token[bidKey];
+                if (bidValue is JArray)
+                {
+                    bidValue = bidValue[0];
+                    bid = bidValue.ConvertInvariant<decimal>();
+                }
             }
             ExchangeTicker ticker = new ExchangeTicker
             {
                 MarketSymbol = marketSymbol,
-                Ask = askValue.ConvertInvariant<decimal>(),
-                Bid = bidValue.ConvertInvariant<decimal>(),
+                Ask = ask,
+                Bid = bid,
                 Id = (idKey == null ? null : token[idKey].ToStringInvariant()),
                 Last = last,
                 Volume = new ExchangeVolume
