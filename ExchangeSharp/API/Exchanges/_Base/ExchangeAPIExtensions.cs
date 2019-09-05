@@ -446,12 +446,8 @@ namespace ExchangeSharp
                 if (askValue is JArray)
                 {
                     askValue = askValue[0];
-                    ask = askValue.ConvertInvariant<decimal>();
                 }
-                else
-                {
-                    ask = askValue.ConvertInvariant<decimal>();
-                }
+                ask = askValue.ConvertInvariant<decimal>();
             }
             if (bidKey != null)
             {
@@ -459,12 +455,8 @@ namespace ExchangeSharp
                 if (bidValue is JArray)
                 {
                     bidValue = bidValue[0];
-                    bid = bidValue.ConvertInvariant<decimal>();
                 }
-                else
-                {
-                    bid = bidValue.ConvertInvariant<decimal>();
-                }
+                bid = bidValue.ConvertInvariant<decimal>();
             }
             ExchangeTicker ticker = new ExchangeTicker
             {
