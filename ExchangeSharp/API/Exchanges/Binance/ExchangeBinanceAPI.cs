@@ -303,7 +303,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth"));
+			string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth@100ms"));
 			return ConnectWebSocket($"/stream?streams={combined}", (_socket, msg) =>
 			{
 				string json = msg.ToStringFromUTF8();
