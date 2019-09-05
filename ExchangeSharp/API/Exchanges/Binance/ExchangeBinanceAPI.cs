@@ -243,7 +243,7 @@ namespace ExchangeSharp
 
 		protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
 		{
-			return ConnectWebSocket("/stream?streams=!ticker@arr@100ms", (_socket, msg) =>
+			return ConnectWebSocket("/stream?streams=!ticker@arr", (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -283,7 +283,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			string url = GetWebSocketStreamUrlForSymbols("@aggTrade@100ms", marketSymbols);
+			string url = GetWebSocketStreamUrlForSymbols("@aggTrade", marketSymbols);
 			return ConnectWebSocket(url, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
