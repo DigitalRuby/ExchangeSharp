@@ -34,7 +34,9 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMilliseconds;
-
+            NonceEndPoint = "/timestamp";
+            NonceEndPointField = "data";
+            NonceEndPointStyle = NonceStyle.UnixMilliseconds;
             MarketSymbolSeparator = "-";
             RateLimit = new RateGate(20, TimeSpan.FromSeconds(60.0));
         }
@@ -93,18 +95,6 @@ namespace ExchangeSharp
                 string msg = CryptoUtility.GetJsonForPayload(payload, true);
                 byte[] content = msg.ToBytesUTF8();
                 await request.WriteAllAsync(content, 0, content.Length);
-            }
-        }
-
-        protected override async Task OnGetNonceOffset()
-        {
-            try
-            {
-                JToken token = await MakeJsonRequestAsync<JToken>("/timestamp");
-                NonceOffset = CryptoUtility.UtcNow - CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["data"].ConvertInvariant<long>());
-            }
-            catch
-            {
             }
         }
 

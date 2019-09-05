@@ -21,6 +21,8 @@ When creating a new Exchange API, please do the following:
 - Put the exchange API class is in it's own folder (/API/Exchanges). If you are creating model objects or helper classes for an exchange, make internal classes inside a namespace for your exchange and put them in the sub-folder for the exchange. Binance and Bittrex are good examples.
 - Please use ```CryptoUtility, BaseAPIExtensions and ExchangeAPIExtensions``` for common code / parsing before rolling your own parsing code.
 - Ensure that the unit tests and integrations tests (```ExchangeSharpConsole.exe test exchangeName=[name]```) pass before submitting a pull request.
+- Set needed properties in the constructor of the exchange, such as NonceStyle, NonceEndPoint, NonceEndPointField, NonceEndPointStyle and any property in /API/Exchanges/_Base/ExchangeAPIDefinitions.cs.
+- If you have very custom nonce offset calculation logic, you can override OnGetNonceOffset, but please do only if absolutely necessary.
  
 
 

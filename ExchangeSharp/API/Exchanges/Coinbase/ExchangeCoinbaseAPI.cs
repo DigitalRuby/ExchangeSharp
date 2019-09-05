@@ -139,19 +139,6 @@ namespace ExchangeSharp
             return base.CanMakeAuthenticatedRequest(payload) && Passphrase != null;
         }
 
-        protected override async Task OnGetNonceOffset()
-        {
-            try
-            {
-                JToken token = await MakeJsonRequestAsync<JToken>("/time");
-                DateTime serverDate = token["iso"].ToDateTimeInvariant();
-                NonceOffset = (CryptoUtility.UtcNow - serverDate);
-            }
-            catch
-            {
-            }
-        }
-
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (CanMakeAuthenticatedRequest(payload))
@@ -187,6 +174,9 @@ namespace ExchangeSharp
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixSeconds;
+            NonceEndPoint = "/time";
+            NonceEndPointField = "iso";
+            NonceEndPointStyle = NonceStyle.Iso8601;
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
