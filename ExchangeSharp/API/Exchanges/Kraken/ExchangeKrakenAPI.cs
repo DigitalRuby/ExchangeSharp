@@ -597,11 +597,6 @@ namespace ExchangeSharp
             return ConvertToExchangeTicker(marketSymbol, ticker);
         }
 
-        public override (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
-        {
-            return base.ExchangeMarketSymbolToCurrencies(marketSymbol);
-        }
-	
         private ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
         {
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();

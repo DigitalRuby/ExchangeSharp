@@ -169,6 +169,23 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Split a market symbol into currencies. For weird exchanges like Bitthumb, they can override and hard-code the other pair
+        /// </summary>
+        /// <param name="marketSymbol">Market symbol</param>
+        /// <returns>Base and quote currency</returns>
+        protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
+        {
+            var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
+            if (pieces.Length < 2)
+            {
+                throw new InvalidOperationException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in at least 2 pieces.");
+            }
+            string baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
+            string quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];
+            return (baseCurrency, quoteCurrency);
+        }
+
+        /// <summary>
         /// Override to dispose of resources when the exchange is disposed
         /// </summary>
         protected virtual void OnDispose() { }
@@ -423,7 +440,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Market symbol</param>
         /// <returns>Base and quote currency</returns>
-        public virtual (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
+        public virtual (string baseCurrency, string quoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
         {
             marketSymbol.ThrowIfNullOrWhitespace(nameof(marketSymbol));
 
@@ -447,16 +464,7 @@ namespace ExchangeSharp
             }
 
             // default behavior with separator
-            string baseCurrency, quoteCurrency;
-            var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
-            if (pieces.Length != 2)
-            {
-                throw new InvalidOperationException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in exactly 2 pieces.");
-            }
-            quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];
-            baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
-
-            return (baseCurrency, quoteCurrency);
+            return OnSplitMarketSymbolToCurrencies(marketSymbol);
         }
 
         /// <summary>
