@@ -448,42 +448,46 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             if (callback == null)
-                return null;
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
-                //{
-                //  "method": "depth.update",
-                //  "params": [
-                //    true,
-                //    {
-                //      "asks": [
-                //        [
-                //          "10249.68000000",
-                //          "0.00200000"
-                //        ],
-                //        [
-                //          "10249.67000000",
-                //          "0.00110000"
-                //        ]
-                //      ],
-                //      "bids": [
-                //        [
-                //          "10249.61000000",
-                //          "0.86570000"
-                //        ],
-                //        [
-                //          "10248.44000000",
-                //          "1.00190000"
-                //        ]
-                //      ]
-                //    },
-                //    "BTC_USDT"
-                //  ],
-                //  "id": null
-                //}
+                return null;
+            }
+
+            //{
+            //  "method": "depth.update",
+            //  "params": [
+            //    true,
+            //    {
+            //      "asks": [
+            //        [
+            //          "10249.68000000",
+            //          "0.00200000"
+            //        ],
+            //        [
+            //          "10249.67000000",
+            //          "0.00110000"
+            //        ]
+            //      ],
+            //      "bids": [
+            //        [
+            //          "10249.61000000",
+            //          "0.86570000"
+            //        ],
+            //        [
+            //          "10248.44000000",
+            //          "1.00190000"
+            //        ]
+            //      ]
+            //    },
+            //    "BTC_USDT"
+            //  ],
+            //  "id": null
+            //}
+
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            {
                 JToken token = JToken.Parse(CryptoUtility.DecompressDeflate((new ArraySegment<byte>(msg, 2, msg.Length-2)).ToArray()).ToStringFromUTF8());
                 if (token["method"].ToStringInvariant() == "depth.update")
                 {
@@ -502,6 +506,7 @@ namespace ExchangeSharp
                     }
                     callback(book);
                 }
+                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 var id = Interlocked.Increment(ref websocketMessageId);
