@@ -34,7 +34,7 @@ namespace ExchangeSharp
             {
                 var start = CryptoUtility.UtcNow;
                 JToken token = await MakeJsonRequestAsync<JToken>("/time");
-                DateTime serverDate = DateTimeOffset.FromUnixTimeSeconds((long)token["server_time"]).UtcDateTime;
+                DateTime serverDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)token["server_time"]);
                 var end = CryptoUtility.UtcNow;
                 var now = start + TimeSpan.FromMilliseconds((end - start).TotalMilliseconds / 2);
                 var timeFaster = now - serverDate;
@@ -149,7 +149,7 @@ namespace ExchangeSharp
                     QuoteCurrency = quoteCurrency,
                     QuoteCurrencyVolume = (decimal)t["base_vol"],
                     BaseCurrencyVolume = (decimal)t["vol"],
-                    Timestamp = DateTimeOffset.FromUnixTimeSeconds((long)x["date"]).LocalDateTime,
+                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["date"]),
                 },
             };
         }
@@ -164,7 +164,7 @@ namespace ExchangeSharp
         {
             JToken obj = await MakeJsonRequestAsync<JToken>($"/order_book?symbol={marketSymbol}&limit={maxCount}");
             var result = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "date", maxCount: maxCount);
-            result.LastUpdatedUtc = DateTimeOffset.FromUnixTimeSeconds((long)obj["date"]).UtcDateTime;
+            result.LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)obj["date"]);
             result.MarketSymbol = marketSymbol;
             return result;
         }
@@ -178,7 +178,7 @@ namespace ExchangeSharp
                 Amount = (decimal)x["amount"],
                 Price = (decimal)x["price"],
                 IsBuy = (string)x["type"] != "sell",
-                Timestamp = DateTimeOffset.FromUnixTimeSeconds((long)x["date"]).LocalDateTime,
+                Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["date"]),
                 Flags = (string)x["type"] == "sell" ? default : ExchangeTradeFlags.IsBuy,
             });
         }
@@ -208,7 +208,7 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>(url);
             return obj["data"].Select(x => new MarketCandle
             {
-                Timestamp = DateTimeOffset.FromUnixTimeSeconds((long)x[0]).LocalDateTime,
+                Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x[0]),
                 BaseCurrencyVolume = (double)x[1],
                 ClosePrice = (decimal)x[2],
                 HighPrice = (decimal)x[3],
@@ -256,8 +256,8 @@ namespace ExchangeSharp
             {
                 MarketSymbol = (string)x["symbol"],
                 OrderId = (string)x["order_id"],
-                OrderDate = DateTimeOffset.FromUnixTimeSeconds((long)x["created_date"]).LocalDateTime,
-                FillDate = DateTimeOffset.FromUnixTimeSeconds((long)x["finished_date"]).LocalDateTime,
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["created_date"]),
+                FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["finished_date"]),
                 Price = (decimal)x["price"],
                 AveragePrice = (decimal)x["avg_price"],
                 Amount = (decimal)x["amount"],
@@ -293,7 +293,7 @@ namespace ExchangeSharp
                 AmountFilled = (decimal)x["amount"],
                 Fees = (decimal)x["fee"],
                 FeesCurrency = (string)x["fee_currency"],
-                FillDate = DateTimeOffset.FromUnixTimeSeconds((long)x["timestamp"]).LocalDateTime,
+                FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["timestamp"]),
                 IsBuy = (string)x["side"] == "buy",
                 Result = ExchangeAPIOrderResult.Unknown,
             });
@@ -308,8 +308,8 @@ namespace ExchangeSharp
             {
                 MarketSymbol = (string)x["symbol"],
                 OrderId = (string)x["order_id"],
-                OrderDate = DateTimeOffset.FromUnixTimeSeconds((long)x["created_date"]).LocalDateTime,
-                FillDate = DateTimeOffset.FromUnixTimeSeconds((long)x["finished_date"]).LocalDateTime,
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["created_date"]),
+                FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds((long)x["finished_date"]),
                 Price = (decimal)x["price"],
                 AveragePrice = (decimal)x["avg_price"],
                 Amount = (decimal)x["amount"],
@@ -433,7 +433,7 @@ namespace ExchangeSharp
                             symbol, new ExchangeTrade
                             {
                                 Id = (string)trade["id"],
-                                Timestamp = DateTimeOffset.FromUnixTimeSeconds(0).AddSeconds((double)trade["time"]).LocalDateTime,
+                                Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(0).AddSeconds((double)trade["time"]),
                                 Price = (decimal)trade["price"],
                                 Amount = (decimal)trade["amount"],
                                 IsBuy = isbuy,
@@ -489,7 +489,7 @@ namespace ExchangeSharp
                 {
                     var args = token["params"];
                     var data = args[1];
-                    var book = new ExchangeOrderBook { LastUpdatedUtc = DateTime.UtcNow, MarketSymbol = (string)args[2] };
+                    var book = new ExchangeOrderBook { LastUpdatedUtc = CryptoUtility.UtcNow, MarketSymbol = (string)args[2] };
                     foreach (var x in data["asks"])
                     {
                         var price = (decimal)x[0];
