@@ -21,7 +21,7 @@ namespace ExchangeSharp
         {
             MarketSymbolSeparator = "_";
             MarketSymbolIsReversed = false;
-            MarketSymbolIsUppercase = false;
+            MarketSymbolIsUppercase = true;
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
             NonceStyle = NonceStyle.UnixSeconds;
         }
@@ -104,7 +104,7 @@ namespace ExchangeSharp
 
         ExchangeMarket ParseSymbol(JToken x)
         {
-            var symbol = x["market"].ToStringInvariant();
+            var symbol = x["market"].ToStringUpperInvariant();
             var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(symbol);
             return new ExchangeMarket
             {
@@ -134,7 +134,7 @@ namespace ExchangeSharp
         ExchangeTicker ParseTicker(JToken x)
         {
             var t = x["ticker"][0];
-            var symbol = t["symbol"].ToStringInvariant();
+            var symbol = t["symbol"].ToStringUpperInvariant();
             var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(symbol);
 
             return new ExchangeTicker
@@ -142,7 +142,7 @@ namespace ExchangeSharp
                 Ask = (decimal)t["sell"],
                 Bid = (decimal)t["buy"],
                 Last = (decimal)t["last"],
-                MarketSymbol = t["symbol"].ToStringInvariant(),
+                MarketSymbol = symbol,
                 Volume = new ExchangeVolume
                 {
                     BaseCurrency = baseCurrency,
@@ -254,7 +254,7 @@ namespace ExchangeSharp
             var list = token["data"];
             return list.Select(x => new ExchangeOrderResult
             {
-                MarketSymbol = x["symbol"].ToStringLowerInvariant(),
+                MarketSymbol = x["symbol"].ToStringInvariant(),
                 OrderId = x["order_id"].ToStringInvariant(),
                 OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["created_date"].ConvertInvariant<long>()),
                 FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["finished_date"].ConvertInvariant<long>()),
@@ -286,7 +286,7 @@ namespace ExchangeSharp
             var list = token["list"];
             return list.Select(x => new ExchangeOrderResult
             {
-                MarketSymbol = x["symbol"].ToStringLowerInvariant(),
+                MarketSymbol = x["symbol"].ToStringInvariant(),
                 OrderId = x["order_id"].ToStringInvariant(),
                 TradeId = x["id"].ToStringInvariant(),
                 Price = (decimal)x["price"],
@@ -324,7 +324,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>("/spot/assets", payload: payload);
             var list = token["list"];
-            return list.Where(x => (decimal)x["total"] != 0).ToDictionary(x => x["currency"].ToStringLowerInvariant(), x => (decimal)x["total"]);
+            return list.Where(x => (decimal)x["total"] != 0).ToDictionary(x => x["currency"].ToStringInvariant(), x => (decimal)x["total"]);
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
@@ -332,7 +332,7 @@ namespace ExchangeSharp
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             JToken token = await MakeJsonRequestAsync<JToken>("/spot/assets", payload: payload);
             var list = token["list"];
-            return list.Where(x => (decimal)x["free"] != 0).ToDictionary(x => x["currency"].ToStringLowerInvariant(), x => (decimal)x["free"]);
+            return list.Where(x => (decimal)x["free"] != 0).ToDictionary(x => x["currency"].ToStringInvariant(), x => (decimal)x["free"]);
         }
 
         string GetOrderType(ExchangeOrderRequest order)
@@ -414,7 +414,7 @@ namespace ExchangeSharp
                     var args = token["params"];
                     var clean = (bool)args[0];
                     var trades = args[1];
-                    var symbol = args[2].ToStringLowerInvariant();
+                    var symbol = args[2].ToStringInvariant();
 
                     var x = trades as JArray;
                     for (int i=0; i<x.Count; i++)
@@ -489,7 +489,7 @@ namespace ExchangeSharp
                 {
                     var args = token["params"];
                     var data = args[1];
-                    var book = new ExchangeOrderBook { LastUpdatedUtc = CryptoUtility.UtcNow, MarketSymbol = args[2].ToStringLowerInvariant() };
+                    var book = new ExchangeOrderBook { LastUpdatedUtc = CryptoUtility.UtcNow, MarketSymbol = args[2].ToStringInvariant() };
                     foreach (var x in data["asks"])
                     {
                         var price = (decimal)x[0];
