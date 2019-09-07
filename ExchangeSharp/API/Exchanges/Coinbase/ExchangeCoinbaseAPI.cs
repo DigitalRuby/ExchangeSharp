@@ -260,7 +260,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
             System.Threading.ManualResetEvent evt = new System.Threading.ManualResetEvent(false);
             List<string> symbols = (await GetMarketSymbolsAsync()).ToList();
 
@@ -273,9 +273,9 @@ namespace ExchangeSharp
                     {
                         foreach (var kv in t)
                         {
-                            if (!tickers.Exists(m => m.Key == kv.Key))
+                            if (!tickers.ContainsKey(kv.Key))
                             {
-                                tickers.Add(kv);
+                                tickers[kv.Key] = kv.Value;
                                 symbols.Remove(kv.Key);
                             }
                         }
