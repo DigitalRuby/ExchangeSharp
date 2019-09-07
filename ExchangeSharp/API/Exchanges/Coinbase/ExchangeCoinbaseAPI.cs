@@ -266,27 +266,27 @@ namespace ExchangeSharp
 
             // stupid Coinbase does not have a one shot API call for tickers outside of web sockets
             using (var socket = GetTickersWebSocket((t) =>
-                                                    {
-                                                        lock (tickers)
-                                                        {
-                                                            if (symbols.Count != 0)
-                                                            {
-                                                                foreach (var kv in t)
-                                                                {
-                                                                    if (!tickers.Exists(m => m.Key == kv.Key))
-                                                                    {
-                                                                        tickers.Add(kv);
-                                                                        symbols.Remove(kv.Key);
-                                                                    }
-                                                                }
-                                                                if (symbols.Count == 0)
-                                                                {
-                                                                    evt.Set();
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                ))
+            {
+                lock (tickers)
+                {
+                    if (symbols.Count != 0)
+                    {
+                        foreach (var kv in t)
+                        {
+                            if (!tickers.Exists(m => m.Key == kv.Key))
+                            {
+                                tickers.Add(kv);
+                                symbols.Remove(kv.Key);
+                            }
+                        }
+                        if (symbols.Count == 0)
+                        {
+                            evt.Set();
+                        }
+                    }
+                }
+            }
+            ))
             {
                 evt.WaitOne(10000);
                 return tickers;
