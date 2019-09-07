@@ -463,7 +463,7 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+		protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
             return ConnectWebSocket(string.Empty, (_socket, msg) =>

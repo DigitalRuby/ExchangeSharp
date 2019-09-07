@@ -447,11 +447,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             if (callback == null)
+            {
                 return null;
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            }
+
+            return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 //{
                 //  "method": "depth.update",
@@ -483,7 +486,7 @@ namespace ExchangeSharp
                 //  ],
                 //  "id": null
                 //}
-                JToken token = JToken.Parse(CryptoUtility.DecompressDeflate((new ArraySegment<byte>(msg, 2, msg.Length-2)).ToArray()).ToStringFromUTF8());
+                JToken token = JToken.Parse(CryptoUtility.DecompressDeflate((new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()).ToStringFromUTF8());
                 if (token["method"].ToStringInvariant() == "depth.update")
                 {
                     var args = token["params"];
@@ -501,6 +504,7 @@ namespace ExchangeSharp
                     }
                     callback(book);
                 }
+                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 var id = Interlocked.Increment(ref websocketMessageId);

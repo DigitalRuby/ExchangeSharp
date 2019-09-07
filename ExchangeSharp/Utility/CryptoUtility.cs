@@ -42,6 +42,7 @@ namespace ExchangeSharp
 
         private static DateTime UtcNowFuncImpl()
         {
+            // this is the only place in the code that DateTime.UtcNow is allowed. DateTime.UtcNow and DateTime.Now should not exist anywhere else in the code.
             return DateTime.UtcNow;
         }
 
@@ -74,6 +75,20 @@ namespace ExchangeSharp
         public static void ThrowIfNull(this object obj, string name, string message = null)
         {
             if (obj == null)
+            {
+                throw new ArgumentNullException(name, message);
+            }
+        }
+
+        /// <summary>
+        /// Throw ArgumentNullException if obj is null or whitespace
+        /// </summary>
+        /// <param name="obj">Object</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="message">Message</param>
+        public static void ThrowIfNullOrWhitespace(this string obj, string name, string message = null)
+        {
+            if (string.IsNullOrWhiteSpace(obj))
             {
                 throw new ArgumentNullException(name, message);
             }

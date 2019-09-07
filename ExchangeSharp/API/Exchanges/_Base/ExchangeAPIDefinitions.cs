@@ -53,7 +53,7 @@ namespace ExchangeSharp
 
         protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
         protected virtual IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
-        protected virtual IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
+        protected virtual IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
         protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
         protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
 
@@ -79,7 +79,7 @@ namespace ExchangeSharp
         protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
 
         /// <summary>
-        /// Separator for exchange symbol. If not a hyphen, set in constructor.
+        /// Separator for exchange symbol. If not a hyphen, set in constructor. This should be one character and is a string for convenience of concatenation.
         /// </summary>
         public string MarketSymbolSeparator { get; protected set; } = "-";
 

@@ -82,7 +82,29 @@ namespace ExchangeSharp
 
         private ExchangeTicker ParseTicker(string marketSymbol, JToken data)
         {
-            return this.ParseTicker(data, marketSymbol, "sell_price", "buy_price", "buy_price", "average_price", "units_traded", "date", TimestampType.UnixMilliseconds);
+            /*
+            {
+                "opening_price": "12625000",
+                "closing_price": "12636000",
+                "min_price": "12550000",
+                "max_price": "12700000",
+                "units_traded": "866.21",
+                "acc_trade_value": "10930847017.53",
+                "prev_closing_price": "12625000",
+                "units_traded_24H": "16767.54",
+                "acc_trade_value_24H": "211682650507.99",
+                "fluctate_24H": "3,000",
+                "fluctate_rate_24H": "0.02"
+            }
+            */
+            ExchangeTicker ticker = this.ParseTicker(data, marketSymbol, "max_price", "min_price", "min_price", "min_price", "units_traded_24H");
+            ticker.Volume.Timestamp = data.Parent.Parent["date"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds();
+            return ticker;
+        }
+
+        protected override (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
+        {
+            return (marketSymbol, "KRW");
         }
 
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()

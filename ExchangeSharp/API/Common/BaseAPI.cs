@@ -37,6 +37,11 @@ namespace ExchangeSharp
     public enum NonceStyle
     {
         /// <summary>
+        /// No nonce style
+        /// </summary>
+        None = 0,
+
+        /// <summary>
         /// Ticks (int64)
         /// </summary>
         Ticks,
@@ -96,7 +101,12 @@ namespace ExchangeSharp
         /// No nonce, use expires instead which passes an expires param to the api using the nonce value - duplicate nonce are allowed
         /// Specify a negative NonceOffset for when you want the call to expire
         /// </summary>
-        ExpiresUnixMilliseconds
+        ExpiresUnixMilliseconds,
+
+        /// <summary>
+        /// An iso-8601 date
+        /// </summary>
+        Iso8601
     }
 
     /// <summary>
@@ -195,6 +205,22 @@ namespace ExchangeSharp
         /// Offset for nonce calculation, some exchanges like Binance have a problem with requests being in the future, so you can offset the current DateTime with this
         /// </summary>
         public TimeSpan NonceOffset { get; set; }
+
+        /// <summary>
+        /// The nonce end point for pulling down a server timestamp - override OnGetNonceOffset if you need custom handling
+        /// </summary>
+        public string NonceEndPoint { get; protected set; }
+
+        /// <summary>
+        /// The field in the json returned by the nonce end point to parse out - override OnGetNonceOffset if you need custom handling
+        /// </summary>
+        public string NonceEndPointField { get; protected set; }
+
+        /// <summary>
+        /// The type of value in the nonce end point field - override OnGetNonceOffset if you need custom handling.
+        /// Supported values are Iso8601 and UnixMilliseconds.
+        /// </summary>
+        public NonceStyle NonceEndPointStyle { get; protected set; }
 
         /// <summary>
         /// Cache policy - defaults to no cache, don't change unless you have specific needs
@@ -303,6 +329,7 @@ namespace ExchangeSharp
                             break;
 
                         case NonceStyle.TicksString:
+                        case NonceStyle.Iso8601:
                             nonce = now.Ticks.ToStringInvariant();
                             break;
 
@@ -376,7 +403,7 @@ namespace ExchangeSharp
                         case NonceStyle.ExpiresUnixSeconds:
                             nonce = (long)now.UnixTimestampFromDateTimeSeconds();
                             break;
-                            
+
                         default:
                             throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
                     }
@@ -611,7 +638,39 @@ namespace ExchangeSharp
         /// <summary>
         /// Derived classes can override to get a nonce offset from the API itself
         /// </summary>
-        protected virtual Task OnGetNonceOffset() { return Task.CompletedTask; }
+        protected virtual async Task OnGetNonceOffset()
+        {
+            if (String.IsNullOrWhiteSpace(NonceEndPoint))
+            {
+                return;
+            }
+
+            try
+            {
+                JToken token = await MakeJsonRequestAsync<JToken>(NonceEndPoint);
+                JToken value = token[NonceEndPointField];
+                DateTime serverDate;
+                switch (NonceEndPointStyle)
+                {
+                    case NonceStyle.Iso8601:
+                        serverDate = value.ToDateTimeInvariant();
+                        break;
+
+                    case NonceStyle.UnixMilliseconds:
+                        serverDate = value.ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds();
+                        break;
+
+                    default:
+                        throw new ArgumentException("Invalid nonce end point style '" + NonceEndPointStyle + "' for exchange '" + Name + "'");
+                }
+                NonceOffset = (CryptoUtility.UtcNow - serverDate);
+            }
+            catch
+            {
+                // if this fails we don't want to crash, just run without a nonce
+                Logger.Warn("Failed to get nonce offset for exchange {0}", Name);
+            }
+        }
 
         async Task IAPIRequestHandler.ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {

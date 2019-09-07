@@ -48,7 +48,9 @@ namespace ExchangeSharp
         private ExchangeTicker ParseTicker(string symbol, JToken data)
         {
             // {{"ticker":{"vol":"18202.5979","last":"6698.2","sell":"6703.21","buy":"6693.2","high":"6757.69","low":"6512.69"},"date":"1531822098779"}}
-            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", "date", TimestampType.UnixMilliseconds);
+            ExchangeTicker ticker = this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol");
+            ticker.Volume.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>());
+            return ticker;
         }
 
         private ExchangeTicker ParseTickerV2(string symbol, JToken data)
@@ -119,13 +121,29 @@ namespace ExchangeSharp
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            var symbols = (await GetMarketSymbolsAsync()).ToArray();
-            string marketSymbol;
+            var symbolLookup = await Cache.Get<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
+            {
+                // create lookup dictionary of symbol string without separator to symbol string with separator
+                IEnumerable<string> symbols = await GetMarketSymbolsAsync();
+                Dictionary<string, string> lookup = symbols.ToDictionary((symbol) => symbol.Replace(MarketSymbolSeparator, string.Empty));
+                if (lookup.Count == 0)
+                {
+                    // handle case where exchange burps and sends empty success response
+                    return new CachedItem<Dictionary<string, string>>();
+                }
+                return new CachedItem<Dictionary<string, string>>(lookup, CryptoUtility.UtcNow.AddHours(4.0));
+            });
+            if (!symbolLookup.Found)
+            {
+                throw new APIException("Unable to get symbols for exchange " + Name);
+            }
             foreach (JToken token in data.Item1)
             {
                 //for some reason when returning tickers, the api doesn't include the symbol separator like it does everywhere else so we need to convert it to the correct format
-                marketSymbol = symbols.First(s => s.Replace(MarketSymbolSeparator, string.Empty).Equals(token.Path));
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
+                if (symbolLookup.Value.TryGetValue(token.Path, out string marketSymbol))
+                {
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
+                }
             }
             return tickers;
         }

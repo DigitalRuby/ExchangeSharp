@@ -297,13 +297,13 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+		protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth"));
+			string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth@100ms"));
 			return ConnectWebSocket($"/stream?streams={combined}", (_socket, msg) =>
 			{
 				string json = msg.ToStringFromUTF8();

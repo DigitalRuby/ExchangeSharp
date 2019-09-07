@@ -117,7 +117,7 @@ namespace ExchangeSharpTests
             var api = makeMockRequestMaker(data);
             // starttime is required.
             // await Assert.ThrowsExceptionAsync<APIException>(async () => await api.GetCandlesAsync("BTC-JPY", 3600));
-            var resp = await api.GetCandlesAsync("BTC-JPY", 3600, DateTime.UtcNow);
+            var resp = await api.GetCandlesAsync("BTC-JPY", 3600, CryptoUtility.UtcNow);
             MarketCandle candle = resp.First();
             candle.ExchangeName.Should().Be("BitBank");
             candle.OpenPrice.Should().Be(1662145m);

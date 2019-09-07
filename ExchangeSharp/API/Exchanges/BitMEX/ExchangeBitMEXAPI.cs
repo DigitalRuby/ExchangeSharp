@@ -38,7 +38,7 @@ namespace ExchangeSharp
             RequestWindow = TimeSpan.Zero;
             NonceStyle = NonceStyle.ExpiresUnixSeconds;
 
-            // make the nonce go 10 seconds into the future (the offset is subtracted)
+            // make the nonce go 60 seconds into the future (the offset is subtracted)
             // this will give us an api-expires 60 seconds into the future
             NonceOffset = TimeSpan.FromSeconds(-60.0);
 
@@ -270,7 +270,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             /*
 {"info":"Welcome to the BitMEX Realtime API.","version":"2018-06-29T18:05:14.000Z","timestamp":"2018-07-05T14:22:26.267Z","docs":"https://www.bitmex.com/app/wsAPI","limit":{"remaining":39}}

@@ -154,7 +154,6 @@ namespace ExchangeSharp
                 var priceStepSize = Math.Pow(10, -pricePrecision).ConvertInvariant<decimal>();
                 var amountPrecision = marketSymbol["amount-precision"].ConvertInvariant<double>();
                 var quantityStepSize = Math.Pow(10, -amountPrecision).ConvertInvariant<decimal>();
-
                 var market = new ExchangeMarket
                 {
                     BaseCurrency = baseCurrency,
@@ -166,8 +165,6 @@ namespace ExchangeSharp
                     MinPrice = priceStepSize,
                     MinTradeSize = quantityStepSize,
                 };
-
-
                 markets.Add(market);
             }
             return markets;
@@ -210,11 +207,13 @@ namespace ExchangeSharp
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/tickers", BaseUrl, null);
-
-            foreach (JToken child in obj["data"])
+            foreach (JToken child in obj)
             {
                 symbol = child["symbol"].ToStringInvariant();
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(child, symbol, null, null, "close", "amount", "vol")));
+                if (symbol != "hb10" && symbol != "huobi10") // WTF...
+                {
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(child, symbol, null, null, "close", "amount", "vol")));
+                }
             }
 
             return tickers;
@@ -287,7 +286,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {

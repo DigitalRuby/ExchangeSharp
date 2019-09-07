@@ -192,6 +192,11 @@ namespace ExchangeSharp
                 cacheTimerLock.ExitReadLock();
             }
 
+            if (notFound == null)
+            {
+                return new CachedItem<T>();
+            }
+
             // most likely the callback needs to make a network request, so don't do it in a lock
             // it's ok if multiple calls stack on the same cache key, the last one to finish will win
             newItem = await notFound();

@@ -541,8 +541,8 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     IsActive = !prop.Name.Contains(".d"),
-                    MarketSymbol = pair["wsname"].ToStringInvariant() != "" ? 
-						pair["wsname"].ToStringInvariant() : pair["altname"].ToStringInvariant(),
+                    MarketSymbol = (pair["wsname"].ToStringInvariant() != "" ? 
+						pair["wsname"].ToStringInvariant() : pair["altname"].ToStringInvariant()).Replace("/", string.Empty),
                     MinTradeSize = quantityStepSize,
                     MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
                     BaseCurrency = pair["base"].ToStringInvariant(),
@@ -582,7 +582,10 @@ namespace ExchangeSharp
                 {
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ConvertToExchangeTicker(marketSymbol, ticker)));
                 }
-                catch(Exception e) { };
+                catch
+                {
+                    // if Kraken throws bogus json at us, just eat it
+                }
             }
             return tickers;
         }
@@ -594,23 +597,6 @@ namespace ExchangeSharp
             return ConvertToExchangeTicker(marketSymbol, ticker);
         }
 
-        public override (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
-        {
-            // lets try to convert coins where base and quote currencies are diferent than the union of both. Esample: Symbol ATOMUSD  Base: ZUSD Quote: ATOM
-            if(marketSymbol.Length > 6)
-            {
-                var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
-                var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
-                if (symbol == null)
-                    throw new ArgumentException("Market symbol not found");
-                string baseCurrency = symbol.MarketSymbol.Split('/')[0];
-                string quoteCurrency = symbol.MarketSymbol.Split('/')[1];
-                return (baseCurrency, quoteCurrency);
-            }
-
-            return base.ExchangeMarketSymbolToCurrencies(marketSymbol);
-        }
-	
         private ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
         {
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();

@@ -228,7 +228,7 @@ namespace ExchangeSharp.OKGroup
 				});
         }
 
-        protected override IWebSocket OnGetOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
 			/*
 			 request:
@@ -330,15 +330,6 @@ namespace ExchangeSharp.OKGroup
             return candles;
         }
 
-		public override (string BaseCurrency, string QuoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
-		{
-			string baseCurrency, quoteCurrency;
-			var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
-			// futures and swap symbols have more than 2 parts
-			quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];
-			baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
-            return (baseCurrency, quoteCurrency);
-		}
 	#endregion
 
 		#region Private APIs
