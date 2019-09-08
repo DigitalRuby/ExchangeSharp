@@ -50,7 +50,7 @@ namespace ExchangeSharpConsole
                     return "BTC-LTC";
                 }
                 else if (api is ExchangeBinanceAPI || api is ExchangeOKExAPI ||/* api is ExchangeBleutradeAPI ||*/
-                    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI || api is ExchangeAbucoinsAPI)
+                    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI)
                 {
                     return "ETH-BTC";
                 }

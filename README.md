@@ -17,7 +17,6 @@ The following cryptocurrency exchanges are supported:
 
 |Exchange Name     |Public REST|Private REST |Web Socket |
 | ---------------- | --------- | ----------- | --------- |
-| Abucoins         | x         | x           | T R   O   |
 | Binance          | x         | x           | T R B     |
 | Bitbank          | x         | x           |           |
 | Bitfinex         | x         | x           | T R   O   |
