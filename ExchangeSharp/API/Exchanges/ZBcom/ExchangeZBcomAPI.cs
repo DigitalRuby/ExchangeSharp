@@ -97,6 +97,7 @@ namespace ExchangeSharp
 				var amountScaleDecimals = (decimal)Math.Pow(0.1, amountScale);
 				symbols.Add(new ExchangeMarket()
 				{
+					IsActive = true, // ZB.com does not provide this info, assuming all are active
 					MarketSymbol = prop.Name,
 					BaseCurrency = split[0],
 					QuoteCurrency = split[1],
