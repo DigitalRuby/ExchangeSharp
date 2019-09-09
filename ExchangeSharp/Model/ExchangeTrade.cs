@@ -64,9 +64,12 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0:s},p:{1},a:{2},{3},id:{4},{5}", 
+			StringBuilder flagsSB = new StringBuilder();
+			flagsSB.Append((Flags & ExchangeTradeFlags.IsFromSnapshot) == ExchangeTradeFlags.IsFromSnapshot ? "snap:" : "");
+			flagsSB.Append((Flags & ExchangeTradeFlags.IsLastFromSnapshot) == ExchangeTradeFlags.IsLastFromSnapshot ? "last" : "");
+			return string.Format("{0:s},p:{1},a:{2},{3},id:{4},{5}", 
 				Timestamp, Price, Amount, IsBuy ? "Buy" : "Sell",
-				Id, (Flags & ExchangeTradeFlags.IsFromSnapshot) == ExchangeTradeFlags.IsFromSnapshot ? "snap" : "");
+				Id, flagsSB);
         }
 
         /// <summary>

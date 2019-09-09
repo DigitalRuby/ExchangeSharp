@@ -391,7 +391,9 @@ namespace ExchangeSharp
         {
             if (callback == null)
                 return null;
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+			else if (marketSymbols == null || marketSymbols.Length == 0)
+				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
             {
                 // {
                 //    "method": "trades.update",
@@ -427,11 +429,12 @@ namespace ExchangeSharp
                         var flags = default(ExchangeTradeFlags);
                         if (isbuy)
                             flags |= ExchangeTradeFlags.IsBuy;
-                        if (clean)
-                            flags |= ExchangeTradeFlags.IsFromSnapshot;
-                        if (i == x.Count - 1)
-                            flags |= ExchangeTradeFlags.IsLastFromSnapshot;
-
+						if (clean)
+						{
+							flags |= ExchangeTradeFlags.IsFromSnapshot;
+							if (i == x.Count - 1)
+								flags |= ExchangeTradeFlags.IsLastFromSnapshot;
+						}
                         await callback.Invoke(new KeyValuePair<string, ExchangeTrade>(
                             symbol, new ExchangeTrade
                             {
@@ -458,7 +461,7 @@ namespace ExchangeSharp
                 return null;
             }
 
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			return ConnectWebSocket(string.Empty, (_socket, msg) =>
             {
                 //{
                 //  "method": "depth.update",
