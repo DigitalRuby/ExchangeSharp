@@ -195,6 +195,44 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Get cache of symbols metadata and put into a dictionary. This method looks in the cache first, and if found, returns immediately, otherwise makes a network request and puts it in the cache
+        /// </summary>
+        /// <param name="api">Exchange API</param>
+        /// <returns>Dictionary of symbol name and market, or null if there was an error</returns>
+        public static async Task<Dictionary<string, ExchangeMarket>> GetExchangeMarketDictionaryFromCacheAsync(this ExchangeAPI api)
+        {
+            await new SynchronizationContextRemover();
+            CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await api.Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketDictionaryFromCacheAsync), async () =>
+            {
+                try
+                {
+                    Dictionary<string, ExchangeMarket> symbolsMetadataDictionary = new Dictionary<string, ExchangeMarket>(StringComparer.OrdinalIgnoreCase);
+                    IEnumerable<ExchangeMarket> symbolsMetadata = await api.GetMarketSymbolsMetadataAsync();
+
+                    // build a new lookup dictionary
+                    foreach (ExchangeMarket symbolMetadata in symbolsMetadata)
+                    {
+                        symbolsMetadataDictionary[symbolMetadata.MarketSymbol] = symbolMetadata;
+                    }
+
+                    // return the cached dictionary for 4 hours
+                    return new CachedItem<Dictionary<string, ExchangeMarket>>(symbolsMetadataDictionary, CryptoUtility.UtcNow.AddHours(4.0));
+                }
+                catch// (Exception ex)
+                {
+                    // if the network goes down this could log quite a lot of exceptions...
+                    //Logger.Error(ex);
+                    return new CachedItem<Dictionary<string, ExchangeMarket>>();
+                }
+            });
+            if (cacheResult.Found)
+            {
+                return cacheResult.Value;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Place a limit order by first querying the order book and then placing the order for a threshold below the bid or above the ask that would fully fulfill the amount.
         /// The order book is scanned until an amount of bids or asks that will fulfill the order is found and then the order is placed at the lowest bid or highest ask price multiplied
         /// by priceThreshold.

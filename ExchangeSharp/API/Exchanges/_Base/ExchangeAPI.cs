@@ -547,32 +547,17 @@ namespace ExchangeSharp
                 // TODO: Add not found dictionary, or some mechanism to mitigate this risk
                 // not sure if this is needed, but adding it just in case
                 await new SynchronizationContextRemover();
-                CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketFromCacheAsync), null);
-                if (cacheResult.Found && cacheResult.Value.TryGetValue(marketSymbol, out ExchangeMarket market))
+                Dictionary<string, ExchangeMarket> lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
+                if (lookup != null && lookup.TryGetValue(marketSymbol, out ExchangeMarket market))
                 {
                     return market;
                 }
 
                 // try again with a fresh request
-                Cache.Remove(nameof(GetExchangeMarketFromCacheAsync));
                 Cache.Remove(nameof(GetMarketSymbolsMetadataAsync));
-                cacheResult = await Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketFromCacheAsync), async () =>
-                {
-                    Dictionary<string, ExchangeMarket> symbolsMetadataDictionary = new Dictionary<string, ExchangeMarket>(StringComparer.OrdinalIgnoreCase);
-                    IEnumerable<ExchangeMarket> symbolsMetadata = await GetMarketSymbolsMetadataAsync();
-
-                    // build a new lookup dictionary
-                    foreach (ExchangeMarket symbolMetadata in symbolsMetadata)
-                    {
-                        symbolsMetadataDictionary[symbolMetadata.MarketSymbol] = symbolMetadata;
-                    }
-
-                    // return the cached dictionary for 4 hours
-                    return new CachedItem<Dictionary<string, ExchangeMarket>>(symbolsMetadataDictionary, CryptoUtility.UtcNow.AddHours(4.0));
-                });
-
-                // attempt to lookup one more time in the dictionary
-                if (cacheResult.Found && cacheResult.Value.TryGetValue(marketSymbol, out market))
+                Cache.Remove(nameof(ExchangeAPIExtensions.GetExchangeMarketDictionaryFromCacheAsync));
+                lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
+                if (lookup != null && lookup.TryGetValue(marketSymbol, out market))
                 {
                     return market;
                 }

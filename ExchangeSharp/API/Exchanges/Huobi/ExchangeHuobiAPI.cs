@@ -207,10 +207,11 @@ namespace ExchangeSharp
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/tickers", BaseUrl, null);
+            Dictionary<string, ExchangeMarket> markets = await this.GetExchangeMarketDictionaryFromCacheAsync();
             foreach (JToken child in obj)
             {
                 symbol = child["symbol"].ToStringInvariant();
-                if (symbol != "hb10" && symbol != "huobi10") // WTF...
+                if (markets.ContainsKey(symbol))
                 {
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(child, symbol, null, null, "close", "amount", "vol")));
                 }
@@ -431,7 +432,6 @@ namespace ExchangeSharp
       [7990, 1.9970],
       [7995, 0.88],
              */
-            ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + marketSymbol + "&type=step0", BaseUrl, null);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
         }
