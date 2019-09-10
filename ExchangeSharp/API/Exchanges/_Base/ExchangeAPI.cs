@@ -109,12 +109,12 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
-		protected virtual IWebSocket OnUserDataWebSocket(Action<object> callback, string listenKey) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+		protected virtual Task<IWebSocket> OnUserDataWebSocket(Action<object> callback, string listenKey) => throw new NotImplementedException();
 
 		#endregion API implementation
 
@@ -851,7 +851,7 @@ namespace ExchangeSharp
 		/// <param name="callback">Callback</param>
 		/// <param name="symbols"></param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		public virtual IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+		public virtual Task<IWebSocket> GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetTickersWebSocket(callback, symbols);
@@ -863,7 +863,7 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="marketSymbols">Market Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        public virtual Task<IWebSocket> GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetTradesWebSocket(callback, marketSymbols);
@@ -876,7 +876,7 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="marketSymbols">Market symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        public virtual Task<IWebSocket> GetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetDeltaOrderBookWebSocket(callback, maxCount, marketSymbols);
@@ -887,7 +887,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        public virtual Task<IWebSocket> GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetOrderDetailsWebSocket(callback);
@@ -898,13 +898,19 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        public virtual Task<IWebSocket> GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
             return OnGetCompletedOrderDetailsWebSocket(callback);
         }
 
-        public virtual IWebSocket GetUserDataWebSocket(Action<object> callback, string listenKey)
+        /// <summary>
+        /// Get user detail over web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <param name="listenKey">Listen key</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual Task<IWebSocket> GetUserDataWebSocket(Action<object> callback, string listenKey)
         {
 	        callback.ThrowIfNull(nameof(callback), "Callback must not be null");
 	        return OnUserDataWebSocket(callback, listenKey);

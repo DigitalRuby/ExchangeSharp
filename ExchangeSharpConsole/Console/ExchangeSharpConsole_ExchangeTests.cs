@@ -18,6 +18,7 @@ using System.Linq;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 using ExchangeSharp;
 
@@ -33,7 +34,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        private static void TestExchanges(string nameRegex = null, string functionRegex = null)
+        private static async Task TestExchanges(string nameRegex = null, string functionRegex = null)
         {
             string GetSymbol(IExchangeAPI api)
             {
@@ -97,7 +98,7 @@ namespace ExchangeSharpConsole
                     if (functionRegex == null || Regex.IsMatch("symbol", functionRegex, RegexOptions.IgnoreCase))
                     {
                         Console.Write("Test {0} GetSymbolsAsync... ", api.Name);
-                        IReadOnlyCollection<string> symbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+                        IReadOnlyCollection<string> symbols = (await api.GetMarketSymbolsAsync()).ToArray();
                         Assert(symbols != null && symbols.Count != 0 && symbols.Contains(marketSymbol, StringComparer.OrdinalIgnoreCase));
                         Console.WriteLine($"OK (default: {marketSymbol}; {symbols.Count} symbols)");
                     }
@@ -107,7 +108,7 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetCurrenciesAsync... ", api.Name);
-                            var currencies = api.GetCurrenciesAsync().Sync();
+                            var currencies = await api.GetCurrenciesAsync();
                             Assert(currencies.Count != 0);
                             Console.WriteLine($"OK ({currencies.Count} currencies)");
                         }
@@ -122,7 +123,7 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetOrderBookAsync... ", api.Name);
-                            var book = api.GetOrderBookAsync(marketSymbol).Sync();
+                            var book = await api.GetOrderBookAsync(marketSymbol);
                             Assert(book.Asks.Count != 0 && book.Bids.Count != 0 && book.Asks.First().Value.Amount > 0m &&
                                 book.Asks.First().Value.Price > 0m && book.Bids.First().Value.Amount > 0m && book.Bids.First().Value.Price > 0m);
                             Console.WriteLine($"OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
@@ -138,7 +139,7 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetTickerAsync... ", api.Name);
-                            var ticker = api.GetTickerAsync(marketSymbol).Sync();
+                            var ticker = await api.GetTickerAsync(marketSymbol);
                             Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
                                 ticker.Volume != null && ticker.Volume.QuoteCurrencyVolume > 0m && ticker.Volume.BaseCurrencyVolume > 0m);
                             Console.WriteLine($"OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
@@ -154,12 +155,12 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetHistoricalTradesAsync... ", api.Name);
-                            api.GetHistoricalTradesAsync(histTradeCallback, marketSymbol).Sync();
+                            await api.GetHistoricalTradesAsync(histTradeCallback, marketSymbol);
                             Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                             Console.WriteLine($"OK ({trades.Length})");
 
                             Console.Write("Test {0} GetRecentTradesAsync... ", api.Name);
-                            trades = api.GetRecentTradesAsync(marketSymbol).Sync().ToArray();
+                            trades = (await api.GetRecentTradesAsync(marketSymbol)).ToArray();
                             Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                             Console.WriteLine($"OK ({trades.Length} trades)");
                         }
@@ -174,7 +175,7 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetCandlesAsync... ", api.Name);
-                            var candles = api.GetCandlesAsync(marketSymbol, 86400, CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null).Sync().ToArray();
+                            var candles = (await api.GetCandlesAsync(marketSymbol, 86400, CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null)).ToArray();
                             Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m && candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
                                 candles[0].HighPrice >= candles[0].LowPrice && candles[0].HighPrice >= candles[0].ClosePrice && candles[0].HighPrice >= candles[0].OpenPrice &&
                                 !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name && candles[0].PeriodSeconds == 86400 && candles[0].BaseCurrencyVolume > 0.0 &&
@@ -203,11 +204,11 @@ namespace ExchangeSharpConsole
             }
         }
 
-        public static void RunPerformTests(Dictionary<string, string> dict)
+        public static async Task RunPerformTests(Dictionary<string, string> dict)
         {
             dict.TryGetValue("exchangeName", out string exchangeNameRegex);
             dict.TryGetValue("function", out string functionRegex);
-            TestExchanges(exchangeNameRegex, functionRegex);
+            await TestExchanges(exchangeNameRegex, functionRegex);
         }
     }
 }

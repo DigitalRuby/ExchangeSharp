@@ -51,14 +51,10 @@ namespace ExchangeSharp
             /// </summary>
             /// <param name="callback">Callback</param>
             /// <returns>IDisposable to close the socket</returns>
-            public IWebSocket SubscribeToSummaryDeltas(Action<string> callback)
+            public async Task<IWebSocket> SubscribeToSummaryDeltas(Func<string, Task> callback)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
-                Task.Run(async () => await conn.OpenAsync("uS", (s) =>
-                {
-                    callback(s);
-                    return Task.CompletedTask;
-                }));
+                await conn.OpenAsync("uS", callback);
                 return conn;
             }
 
@@ -68,7 +64,7 @@ namespace ExchangeSharp
             /// <param name="callback">Callback</param>
             /// <param name="marketSymbols">The market symbols to subscribe to</param>
             /// <returns>IDisposable to close the socket</returns>
-            public IWebSocket SubscribeToExchangeDeltas(Func<string, Task> callback, params string[] marketSymbols)
+            public async Task<IWebSocket> SubscribeToExchangeDeltas(Func<string, Task> callback, params string[] marketSymbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
                 List<object[]> paramList = new List<object[]>();
@@ -76,19 +72,16 @@ namespace ExchangeSharp
                 {
                     paramList.Add(new object[] { marketSymbol });
                 }
-                Task.Run(async () => await conn.OpenAsync("uE", async (s) =>
-                {
-                    await callback(s);
-                }, 0, paramList.ToArray()));
+                await conn.OpenAsync("uE", callback, 0, paramList.ToArray());
                 return conn;
             }
         }
 
         private BittrexWebSocketManager webSocket;
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+        protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
-            void innerCallback(string json)
+            Task innerCallback(string json)
             {
                 #region sample json
                 /*
@@ -147,11 +140,12 @@ namespace ExchangeSharp
                     freshTickers[marketName] = t;
                 }
                 callback(freshTickers);
+                return Task.CompletedTask;
             }
             return new BittrexWebSocketManager().SubscribeToSummaryDeltas(innerCallback);
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket
+        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocket
         (
             Action<ExchangeOrderBook> callback,
             int maxCount = 20,
@@ -222,7 +216,7 @@ namespace ExchangeSharp
             return new BittrexWebSocketManager().SubscribeToExchangeDeltas(innerCallback, marketSymbols);
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{

@@ -192,7 +192,7 @@ namespace ExchangeSharp.OKGroup
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			/*
 			 spot request:
@@ -228,7 +228,7 @@ namespace ExchangeSharp.OKGroup
 				});
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
 			/*
 			 request:
@@ -633,7 +633,7 @@ namespace ExchangeSharp.OKGroup
             return result;
         }
 
-        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        private Task<IWebSocket> ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
 			Timer pingTimer = null;
             return ConnectWebSocket(url: string.Empty, messageCallback: async (_socket, msg) =>
@@ -683,7 +683,7 @@ namespace ExchangeSharp.OKGroup
 			});
         }
 
-        private IWebSocket ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        private Task<IWebSocket> ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
             return ConnectWebSocketOkex(async (_socket) =>
             {

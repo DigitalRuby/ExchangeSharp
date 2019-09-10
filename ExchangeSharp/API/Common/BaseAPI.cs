@@ -496,7 +496,7 @@ namespace ExchangeSharp
         /// <param name="messageCallback">Callback for messages</param>
         /// <param name="connectCallback">Connect callback</param>
         /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-        public IWebSocket ConnectWebSocket
+        public Task<IWebSocket> ConnectWebSocket
         (
             string url,
             Func<IWebSocket, byte[], Task> messageCallback,
@@ -524,7 +524,7 @@ namespace ExchangeSharp
                 wrapper.Disconnected += disconnectCallback;
             }
             wrapper.Start();
-            return wrapper;
+            return Task.FromResult<IWebSocket>(wrapper);
         }
 
         /// <summary>

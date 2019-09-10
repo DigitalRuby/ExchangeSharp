@@ -433,7 +433,7 @@ namespace ExchangeSharp
 
         #region Websockets
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
             var websocketUrlToken = GetWebsocketBulletToken();
             return ConnectWebSocket(
@@ -463,7 +463,7 @@ namespace ExchangeSharp
                 );
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			//{
 			//  "id":"5c24c5da03aa673885cd67aa",

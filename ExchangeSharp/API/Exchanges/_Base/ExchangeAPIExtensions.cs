@@ -37,7 +37,7 @@ namespace ExchangeSharp
         /// parameter</param>
         /// <param name="symbols">Order book symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public static IWebSocket GetFullOrderBookWebSocket(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        public static async Task<IWebSocket> GetFullOrderBookWebSocket(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (api.WebSocketOrderBookType == WebSocketOrderBookType.None)
             {
@@ -170,7 +170,7 @@ namespace ExchangeSharp
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetDeltaOrderBookWebSocket(async (b) =>
+            IWebSocket socket = await api.GetDeltaOrderBookWebSocket(async (b) =>
             {
                 try
                 {

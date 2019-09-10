@@ -10,7 +10,7 @@ namespace ExchangeSharpConsole
 {
     public static partial class ExchangeSharpConsoleMain
     {
-        public static void RunGetOrderHistory(Dictionary<string, string> dict)
+        public static async Task RunGetOrderHistory(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName", "marketSymbol");
 
@@ -26,7 +26,7 @@ namespace ExchangeSharpConsole
                 startDate = DateTime.Parse(dict["startDate"]).ToUniversalTime();
             }
 
-            var completedOrders = api.GetCompletedOrderDetailsAsync(marketSymbol, startDate).Sync();
+            var completedOrders = await api.GetCompletedOrderDetailsAsync(marketSymbol, startDate);
             foreach (var completedOrder in completedOrders)
             {
                 Console.WriteLine(completedOrder);
@@ -36,7 +36,7 @@ namespace ExchangeSharpConsole
             Console.ReadLine();
         }
 
-        public static void RunGetOrderDetails(Dictionary<string, string> dict)
+        public static async Task RunGetOrderDetails(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName", "orderId");
 
@@ -52,7 +52,7 @@ namespace ExchangeSharpConsole
                 marketSymbol = dict["marketSymbol"];
             }
 
-            var orderDetails = api.GetOrderDetailsAsync(orderId, marketSymbol).Sync();
+            var orderDetails = await api.GetOrderDetailsAsync(orderId, marketSymbol);
             Console.WriteLine(orderDetails);
 
             Console.Write("Press enter to exit..");
