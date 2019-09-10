@@ -57,17 +57,16 @@ namespace ExchangeSharpWinForms
         public MainForm()
         {
             InitializeComponent();
-            foreach (var exchange in ExchangeAPI.GetExchangeAPIs())
-            {
-                cmbExchange.Items.Add(exchange.Name);
-            }
-            cmbExchange.SelectedIndex = 0;
         }
 
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            FetchTickers();
+            foreach (var exchange in ExchangeAPI.GetExchangeAPIs())
+            {
+                cmbExchange.Items.Add(exchange.Name);
+            }
+            cmbExchange.SelectedIndex = 0;
         }
 
         private void Button1_Click(object sender, EventArgs e)
