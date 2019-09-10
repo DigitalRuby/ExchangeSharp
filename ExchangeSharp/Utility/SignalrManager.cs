@@ -115,18 +115,17 @@ namespace ExchangeSharp
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
 
-                while (!_manager.disposed)
+                while (true)
                 {
-                    await _manager.AddListener(functionName, callback, param);
-
-                    if (_manager.hubConnection.State != ConnectionState.Connected)
-                    {
-                        await Task.Delay(100);
-                        continue;
-                    }
-
                     try
                     {
+                        await _manager.AddListener(functionName, callback, param);
+
+                        while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
+                        {
+                            await Task.Delay(100);
+                        }
+
                         // ask for proxy after adding the listener, as the listener will force a connection if needed
                         IHubProxy _proxy = _manager.hubProxy;
                         if (_proxy == null)
@@ -141,8 +140,7 @@ namespace ExchangeSharp
                             {
                                 await Task.Delay(delayMilliseconds);
                             }
-                            bool result = await _proxy.Invoke<bool>(functionFullName, param[i]).ConfigureAwait(false);
-                            if (!result)
+                            if (!(await _proxy.Invoke<bool>(functionFullName, param[i])))
                             {
                                 throw new APIException("Invoke returned success code of false");
                             }
@@ -179,10 +177,13 @@ namespace ExchangeSharp
                     {
                         initialConnectFired = true;
 
-                        // kick off a connect event if this is the first time, the connect even can only get set after the open request is sent
-                        Task.Delay(1000).ContinueWith(async (t) => { await InvokeConnected(); }).ConfigureAwait(false).GetAwaiter();
+                        // kick off a connect event if this is the first time, the connect event can only get set after the open request is sent
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(1000);
+                            await InvokeConnected();
+                        }).ConfigureAwait(false).GetAwaiter();
                     }
-                    return;
                 }
             }
 

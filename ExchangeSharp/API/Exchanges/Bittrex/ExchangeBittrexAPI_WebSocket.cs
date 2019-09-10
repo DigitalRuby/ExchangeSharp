@@ -50,8 +50,9 @@ namespace ExchangeSharp
             /// Subscribe to all market summaries
             /// </summary>
             /// <param name="callback">Callback</param>
+            /// <param name="marketSymbols">Symbols</param>
             /// <returns>IDisposable to close the socket</returns>
-            public async Task<IWebSocket> SubscribeToSummaryDeltas(Func<string, Task> callback)
+            public async Task<IWebSocket> SubscribeToSummaryDeltas(Func<string, Task> callback, params string[] marketSymbols)
             {
                 SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
                 await conn.OpenAsync("uS", callback);
@@ -79,8 +80,13 @@ namespace ExchangeSharp
 
         private BittrexWebSocketManager webSocket;
 
-        protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+        protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
+            HashSet<string> filter = new HashSet<string>();
+            foreach (string marketSymbol in marketSymbols)
+            {
+                filter.Add(marketSymbol);
+            }
             Task innerCallback(string json)
             {
                 #region sample json
@@ -115,6 +121,10 @@ namespace ExchangeSharp
                 foreach (JToken ticker in token)
                 {
                     string marketName = ticker["M"].ToStringInvariant();
+                    if (filter.Count != 0 && !filter.Contains(marketName))
+                    {
+                        continue;
+                    }
                     var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(marketName);
                     decimal last = ticker["l"].ConvertInvariant<decimal>();
                     decimal ask = ticker["A"].ConvertInvariant<decimal>();
@@ -142,7 +152,7 @@ namespace ExchangeSharp
                 callback(freshTickers);
                 return Task.CompletedTask;
             }
-            return new BittrexWebSocketManager().SubscribeToSummaryDeltas(innerCallback);
+            return new BittrexWebSocketManager().SubscribeToSummaryDeltas(innerCallback, marketSymbols);
         }
 
         protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocket
