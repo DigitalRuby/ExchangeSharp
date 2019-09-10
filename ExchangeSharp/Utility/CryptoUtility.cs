@@ -1332,7 +1332,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Make a task execute synchronously
+        /// Make a task execute synchronously - do not call this from the UI thread or it will lock up the application
         /// </summary>
         /// <param name="task">Task</param>
         public static void Sync(this Task task)
@@ -1341,7 +1341,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Make a task execute synchronously
+        /// Make a task execute synchronously - do not call this from the UI thread or it will lock up the application
         /// </summary>
         /// <param name="task">Task</param>
         /// <returns>Result</returns>
