@@ -145,6 +145,7 @@ namespace ExchangeSharp
                                 throw new APIException("Invoke returned success code of false");
                             }
                         }
+                        ex = null;
                         break;
                     }
                     catch (Exception _ex)
