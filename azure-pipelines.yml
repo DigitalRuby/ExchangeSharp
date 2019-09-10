@@ -13,7 +13,7 @@ variables:
     buildConfiguration: 'Release'
 
 steps:
-    - script: dotnet build ExchangeSharpTests.csproj --configuration $(buildConfiguration)
+    - script: dotnet build ./ExchangeSharpTests/ExchangeSharpTests.csproj --configuration $(buildConfiguration)
       displayName: 'Build All'
-    - script: dotnet test ExchangeSharpTests.csproj --configuration $(buildConfiguration)
+    - script: dotnet test ./ExchangeSharpTests/ExchangeSharpTests.csproj --configuration $(buildConfiguration)
       displayName: 'Test'
