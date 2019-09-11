@@ -21,38 +21,46 @@ namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsoleMain
     {
-        public static void RunExample(Dictionary<string, string> dict)
+        public static async Task RunExample(Dictionary<string, string> dict)
         {
             ExchangeKrakenAPI api = new ExchangeKrakenAPI();
-            ExchangeTicker ticker = api.GetTickerAsync("XXBTZUSD").Sync();
-            Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
+            ExchangeTicker ticker = await api.GetTickerAsync("XXBTZUSD");
+            Logger.Info("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
             // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
             api.LoadAPIKeys("keys.bin");
 
             /// place limit order for 0.01 bitcoin at ticker.Ask USD
-            ExchangeOrderResult result = api.PlaceOrderAsync(new ExchangeOrderRequest
+            ExchangeOrderResult result = await api.PlaceOrderAsync(new ExchangeOrderRequest
             {
                 Amount = 0.01m,
                 IsBuy = true,
                 Price = ticker.Ask,
                 MarketSymbol = "XXBTZUSD"
-            }).Sync();
+            });
 
             // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
             //  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.
             // I've also found that Kraken tends to fail if you follow up too quickly with an order details request, so sleep a bit to give them time to get
             //  their house in order.
-            System.Threading.Thread.Sleep(500);
-            result = api.GetOrderDetailsAsync(result.OrderId).Sync();
+            await Task.Delay(500);
+            result = await api.GetOrderDetailsAsync(result.OrderId);
 
-            Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+            Logger.Info("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+        }
+
+        private static void WaitForKey()
+        {
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
         }
 
         private static string[] GetMarketSymbols(Dictionary<string, string> dict, bool required = true)
         {
-            if(required)
-              RequireArgs(dict, "marketSymbols");
+            if (required)
+            {
+                RequireArgs(dict, "marketSymbols");
+            }
             if ((!dict.ContainsKey("marketSymbols") && !required) || dict["marketSymbols"] == "*")
             {
                 return null;
@@ -102,6 +110,7 @@ namespace ExchangeSharpConsole
                 }
                 try
                 {
+                    Logger.Info("Connecting web socket to {0}...", api.Name);
                     using (var socket = await func(api))
                     {
                         SetWebSocketEvents(socket);
@@ -121,13 +130,15 @@ namespace ExchangeSharpConsole
             string[] symbols = GetMarketSymbols(dict, false);
             await RunWebSocket(dict, (api) =>
             {
-                if(symbols != null)
-                symbols = ValidateMarketSymbols(api, symbols);
+                if (symbols != null)
+                {
+                    symbols = ValidateMarketSymbols(api, symbols);
+                }
                 return api.GetTickersWebSocket(freshTickers =>
                 {
                     foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
                     {
-                        Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
+                        Logger.Info($"market {kvp.Key}, ticker {kvp.Value}");
                     }
                 }, symbols);
             });
@@ -141,7 +152,7 @@ namespace ExchangeSharpConsole
                 symbols = ValidateMarketSymbols(api, symbols);
                 return api.GetTradesWebSocket(message =>
                 {
-                    Console.WriteLine($"{message.Key}: {message.Value}");
+                    Logger.Info($"{message.Key}: {message.Value}");
                     return Task.CompletedTask;
                 }, symbols);
             });
@@ -158,7 +169,7 @@ namespace ExchangeSharpConsole
                    //print the top bid and ask with amount
                    var topBid = message.Bids.FirstOrDefault();
                    var topAsk = message.Asks.FirstOrDefault();
-                   Console.WriteLine($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                   Logger.Info($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
                 }, symbols: symbols);
             });
         }
@@ -176,7 +187,7 @@ namespace ExchangeSharpConsole
                 System.Security.SecureString[] secureStrings = CryptoUtility.LoadProtectedStringsFromFile(dict["path"]);
                 foreach (System.Security.SecureString s in secureStrings)
                 {
-                    Console.WriteLine(CryptoUtility.ToUnsecureString(s));
+                    Logger.Info(CryptoUtility.ToUnsecureString(s));
                 }
             }
             else
@@ -201,7 +212,7 @@ namespace ExchangeSharpConsole
 
                     foreach (var marketSymbol in marketSymbols)
                     {
-                        Console.WriteLine(marketSymbol);
+                        Logger.Info(marketSymbol.ToString());
                     }
 
                     Console.WriteLine("Press any key to quit.");
@@ -230,11 +241,10 @@ namespace ExchangeSharpConsole
 
                     foreach (var marketSymbol in marketSymbols)
                     {
-                        Console.WriteLine(marketSymbol);
+                        Logger.Info(marketSymbol);
                     }
 
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    WaitForKey();
                 }
                 catch (Exception ex)
                 {
@@ -261,9 +271,9 @@ namespace ExchangeSharpConsole
                         var marketSymbol = dict["marketSymbol"];
                         var ticker = await api.GetTickerAsync(marketSymbol);
                         tickers = new List<KeyValuePair<string, ExchangeTicker>>()
-                                  {
-                                      new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)
-                                  };
+                        {
+                            new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)
+                        };
                     }
                     else
                     {
@@ -272,11 +282,10 @@ namespace ExchangeSharpConsole
                     
                     foreach (var ticker in tickers)
                     {
-                        Console.WriteLine(ticker);
+                        Logger.Info(ticker.ToString());
                     }
 
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    WaitForKey();
                 }
                 catch (Exception ex)
                 {
@@ -302,11 +311,10 @@ namespace ExchangeSharpConsole
                     
                     foreach (var candle in candles)
                     {
-                        Console.WriteLine(candle);
+                        Logger.Info(candle.ToString());
                     }
 
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    WaitForKey();
                 }
                 catch (Exception ex)
                 {

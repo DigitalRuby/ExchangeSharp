@@ -106,7 +106,7 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.ContainsKey("example"))
                 {
-                    RunExample(argsDictionary);
+                    await RunExample(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("keys"))
                 {

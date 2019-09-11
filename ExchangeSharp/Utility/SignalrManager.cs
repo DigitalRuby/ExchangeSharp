@@ -181,7 +181,7 @@ namespace ExchangeSharp
                         // kick off a connect event if this is the first time, the connect event can only get set after the open request is sent
                         Task.Run(async () =>
                         {
-                            await Task.Delay(1000);
+                            await Task.Delay(1000); // give time for the caller to set a connected event
                             await InvokeConnected();
                         }).ConfigureAwait(false).GetAwaiter();
                     }
