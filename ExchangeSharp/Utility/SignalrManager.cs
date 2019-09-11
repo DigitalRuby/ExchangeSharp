@@ -593,14 +593,21 @@ namespace ExchangeSharp
             // setup connect event
             customTransport.WebSocket.Connected += async (ws) =>
             {
-                SignalrSocketConnection[] socketsCopy;
-                lock (sockets)
+                try
                 {
-                    socketsCopy = sockets.ToArray();
+                    SignalrSocketConnection[] socketsCopy;
+                    lock (sockets)
+                    {
+                        socketsCopy = sockets.ToArray();
+                    }
+                    foreach (SignalrSocketConnection socket in socketsCopy)
+                    {
+                        await socket.InvokeConnected();
+                    }
                 }
-                foreach (SignalrSocketConnection socket in socketsCopy)
+                catch (Exception ex)
                 {
-                    await socket.InvokeConnected();
+                    Logger.Info(ex.ToString());
                 }
             };
 
@@ -633,22 +640,33 @@ namespace ExchangeSharp
                     Logger.Info(ex.ToString());
                 }
             };
-            await hubConnection.Start(autoTransport);
 
-            // get list of listeners quickly to limit lock
-            HubListener[] listeners;
-            lock (this.listeners)
+            try
             {
-                listeners = this.listeners.Values.ToArray();
-            }
+                // it's possible for the hub connection to disconnect during this code if connection is crappy
+                // so we simply catch the exception and log an info message, the disconnect/reconnect loop will
+                // catch the close and re-initiate this whole method again
+                await hubConnection.Start(autoTransport);
 
-            // re-call the end point to enable messages
-            foreach (var listener in listeners)
-            {
-                foreach (object[] p in listener.Param)
+                // get list of listeners quickly to limit lock
+                HubListener[] listeners;
+                lock (this.listeners)
                 {
-                    await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                    listeners = this.listeners.Values.ToArray();
                 }
+
+                // re-call the end point to enable messages
+                foreach (var listener in listeners)
+                {
+                    foreach (object[] p in listener.Param)
+                    {
+                        await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Info(ex.ToString());
             }
         }
 
