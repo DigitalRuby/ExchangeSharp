@@ -263,4 +263,5 @@ __pycache__/
 # Trader binary and log files
 *.bin
 *.log*
-ExchangeSharpConsole/Properties/launchSettings.json
+launchSettings.json
+**/PublishProfiles/*
