@@ -168,7 +168,7 @@ namespace ExchangeSharp
                     }
                 }
 
-                if (ex == null)
+                if (ex == null && !disposed && !_manager.disposed)
                 {
                     this.callback = callback;
                     lock (_manager.sockets)
