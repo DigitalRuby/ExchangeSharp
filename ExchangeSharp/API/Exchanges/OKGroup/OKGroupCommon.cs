@@ -31,7 +31,12 @@ namespace ExchangeSharp.OKGroup
 		/// Base URL V3 for the OK group API
 		/// </summary>
 		public abstract string BaseUrlV3 { get; set; }
-		protected abstract bool isFuturesAndSwapEnabled { get; }
+
+        /// <summary>
+        /// Are futures and swap enabled?
+        /// </summary>
+		protected abstract bool IsFuturesAndSwapEnabled { get; }
+
 		/// <summary>
 		/// China time to utc, no DST correction needed
 		/// </summary>
@@ -136,7 +141,7 @@ namespace ExchangeSharp.OKGroup
 			List<ExchangeMarket> markets = new List<ExchangeMarket>();
 			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 				"/spot/v3/instruments", BaseUrlV3));
-			if (isFuturesAndSwapEnabled)
+			if (IsFuturesAndSwapEnabled)
 			{
 				parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 					"/futures/v3/instruments", BaseUrlV3));
@@ -176,7 +181,7 @@ namespace ExchangeSharp.OKGroup
 		{// V3: /api/spot/v3/instruments/ticker (/api is already included in base URL)
 			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
 			parseData(await MakeRequestOkexAsync(null, "/spot/v3/instruments/ticker", BaseUrlV3));
-			if (isFuturesAndSwapEnabled)
+			if (IsFuturesAndSwapEnabled)
 			{
 				parseData(await MakeRequestOkexAsync(null, "/futures/v3/instruments/ticker", BaseUrlV3));
 				parseData(await MakeRequestOkexAsync(null, "/swap/v3/instruments/ticker", BaseUrlV3));
@@ -192,7 +197,7 @@ namespace ExchangeSharp.OKGroup
             return tickers;
         }
 
-        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			/*
 			 spot request:
@@ -216,19 +221,19 @@ namespace ExchangeSharp.OKGroup
 					  }]
 				 } 
 			 */
-			return ConnectWebSocketOkex(async (_socket) =>
-				{
-					await AddMarketSymbolsToChannel(_socket, "/trade:{0}", marketSymbols);
-				}, async (_socket, symbol, sArray, token) =>
-				{
-					ExchangeTrade trade = token.ParseTrade(amountKey: "size", priceKey: "price",
-						typeKey: "side", timestampKey: "timestamp",
-						timestampType: TimestampType.Iso8601, idKey: "trade_id");
-					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-				});
+			return await ConnectWebSocketOkex(async (_socket) =>
+			{
+				await AddMarketSymbolsToChannel(_socket, "/trade:{0}", marketSymbols);
+			}, async (_socket, symbol, sArray, token) =>
+			{
+				ExchangeTrade trade = token.ParseTrade(amountKey: "size", priceKey: "price",
+					typeKey: "side", timestampKey: "timestamp",
+					timestampType: TimestampType.Iso8601, idKey: "trade_id");
+				await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+			});
         }
 
-        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
 			/*
 			 request:
@@ -266,7 +271,7 @@ namespace ExchangeSharp.OKGroup
 			 
 			 */
 
-			return ConnectWebSocketOkex(async (_socket) =>
+			return await ConnectWebSocketOkex(async (_socket) =>
             {
                 marketSymbols = await AddMarketSymbolsToChannel(_socket, "/depth:{0}", marketSymbols);
             }, (_socket, symbol, sArray, token) =>
@@ -636,7 +641,7 @@ namespace ExchangeSharp.OKGroup
         private Task<IWebSocket> ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
 			Timer pingTimer = null;
-            return ConnectWebSocket(url: string.Empty, messageCallback: async (_socket, msg) =>
+            return ConnectWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
             {
 				// https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
 				// All the messages returning from WebSocket API will be optimized by Deflate compression

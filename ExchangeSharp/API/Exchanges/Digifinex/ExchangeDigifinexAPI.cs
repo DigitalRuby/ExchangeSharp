@@ -387,13 +387,17 @@ namespace ExchangeSharp
 
         #region WebSocket APIs
 
-        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             if (callback == null)
+            {
                 return null;
-			else if (marketSymbols == null || marketSymbols.Length == 0)
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
-			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            }
+            else if (marketSymbols == null || marketSymbols.Length == 0)
+            {
+                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+            }
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 // {
                 //    "method": "trades.update",
@@ -413,7 +417,7 @@ namespace ExchangeSharp
                 //         ],
                 //     "id": null
                 // }
-                JToken token = JToken.Parse(CryptoUtility.DecompressDeflate((new ArraySegment<byte>(msg, 2, msg.Length-2)).ToArray()).ToStringFromUTF8());
+                JToken token = JToken.Parse(CryptoUtility.DecompressDeflate((new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()).ToStringFromUTF8());
                 if (token["method"].ToStringLowerInvariant() == "trades.update")
                 {
                     var args = token["params"];
@@ -422,46 +426,54 @@ namespace ExchangeSharp
                     var symbol = args[2].ToStringUpperInvariant();
 
                     var x = trades as JArray;
-                    for (int i=0; i<x.Count; i++)
+                    for (int i = 0; i < x.Count; i++)
                     {
                         var trade = x[i];
-                        var isbuy = trade["type"].ToStringLowerInvariant() != "sell";
+                        var isBuy = trade["type"].ToStringLowerInvariant() != "sell";
                         var flags = default(ExchangeTradeFlags);
-                        if (isbuy)
+                        if (isBuy)
+                        {
                             flags |= ExchangeTradeFlags.IsBuy;
-						if (clean)
-						{
-							flags |= ExchangeTradeFlags.IsFromSnapshot;
-							if (i == x.Count - 1)
-								flags |= ExchangeTradeFlags.IsLastFromSnapshot;
-						}
-                        await callback.Invoke(new KeyValuePair<string, ExchangeTrade>(
-                            symbol, new ExchangeTrade
+                            if (clean)
                             {
-                                Id = trade["id"].ToStringInvariant(),
-                                Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(0).AddSeconds(trade["time"].ConvertInvariant<double>()),
-                                Price = trade["price"].ConvertInvariant<decimal>(),
-                                Amount = trade["amount"].ConvertInvariant<decimal>(),
-                                IsBuy = isbuy,
-                                Flags = flags,
-                            }));
+                                flags |= ExchangeTradeFlags.IsFromSnapshot;
+                                if (i == x.Count - 1)
+                                {
+                                    flags |= ExchangeTradeFlags.IsLastFromSnapshot;
+                                }
+                            }
+                            await callback.Invoke(new KeyValuePair<string, ExchangeTrade>
+                            (
+                                symbol,
+                                new ExchangeTrade
+                                {
+                                    Id = trade["id"].ToStringInvariant(),
+                                    Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(0).AddSeconds(trade["time"].ConvertInvariant<double>()),
+                                    Price = trade["price"].ConvertInvariant<decimal>(),
+                                    Amount = trade["amount"].ConvertInvariant<decimal>(),
+                                    IsBuy = isBuy,
+                                    Flags = flags,
+                                }
+                            ));
+                        }
                     }
                 }
-            }, async (_socket) =>
+            },
+            async (_socket2) =>
             {
                 var id = Interlocked.Increment(ref websocketMessageId);
-                await _socket.SendMessageAsync(new { id, method = "trades.subscribe", @params = marketSymbols } );
+                await _socket2.SendMessageAsync(new { id, method = "trades.subscribe", @params = marketSymbols });
             });
         }
 
-        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             if (callback == null)
             {
                 return null;
             }
 
-			return ConnectWebSocket(string.Empty, (_socket, msg) =>
+			return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 //{
                 //  "method": "depth.update",

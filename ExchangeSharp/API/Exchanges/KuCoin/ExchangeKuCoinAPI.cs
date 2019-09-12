@@ -251,11 +251,13 @@ namespace ExchangeSharp
             startDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
 
 
-            var payload = new Dictionary<string, object>();
-            payload.Add("symbol", marketSymbol);
-            payload.Add("type", periodString);
-            payload.Add("startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());        // the nonce is milliseconds, this is seconds without decimal
-            payload.Add("endAt", (long)endDate.Value.UnixTimestampFromDateTimeSeconds());            // the nonce is milliseconds, this is seconds without decimal
+            var payload = new Dictionary<string, object>
+            {
+                { "symbol", marketSymbol },
+                { "type", periodString },
+                { "startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds() },        // the nonce is milliseconds, this is seconds without decimal
+                { "endAt", (long)endDate.Value.UnixTimestampFromDateTimeSeconds() }            // the nonce is milliseconds, this is seconds without decimal
+            };
             var addPayload = CryptoUtility.GetFormForPayload(payload, false);
 
             // The results of this Kucoin API call are also a mess. 6 different arrays (c,t,v,h,l,o) with the index of each shared for the candle values
@@ -433,37 +435,38 @@ namespace ExchangeSharp
 
         #region Websockets
 
-        protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
             var websocketUrlToken = GetWebsocketBulletToken();
-            return ConnectWebSocket(
-                    $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
-          {
-              JToken token = JToken.Parse(msg.ToStringFromUTF8());
-              if (token["type"].ToStringInvariant() == "message")
-              {
-                  var dataToken = token["data"];
-                  var marketSymbol = dataToken["symbol"].ToStringInvariant();
-                  ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
-                  callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
-              }
+            return await ConnectWebSocketAsync
+            (
+                $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
+                {
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                    if (token["type"].ToStringInvariant() == "message")
+                    {
+                        var dataToken = token["data"];
+                        var marketSymbol = dataToken["symbol"].ToStringInvariant();
+                        ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
+                        callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
+                    }
 
-              return Task.CompletedTask;
-          }, async (_socket) =>
-             {
-                 //need to subscribe to tickers one by one
-                 marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                 var id = CryptoUtility.UtcNow.Ticks;
-                 foreach (var marketSymbol in marketSymbols)
-                 {
-                     // subscribe to tick topic
-                     await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
-                 }
-             }
-                );
+                    return Task.CompletedTask;
+                }, async (_socket) =>
+                {
+                    //need to subscribe to tickers one by one
+                    marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
+                    var id = CryptoUtility.UtcNow.Ticks;
+                    foreach (var marketSymbol in marketSymbols)
+                    {
+                        // subscribe to tick topic
+                        await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
+                    }
+                }
+            );
         }
 
-        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			//{
 			//  "id":"5c24c5da03aa673885cd67aa",
@@ -485,58 +488,59 @@ namespace ExchangeSharp
 			//  }
 			//}
             var websocketUrlToken = GetWebsocketBulletToken();
-			return ConnectWebSocket(
-                    $"?token={websocketUrlToken}", async (_socket, msg) =>
+			return await ConnectWebSocketAsync
+            (
+                $"?token={websocketUrlToken}", async (_socket, msg) =>
 
-					{
-                        JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                        if (token["type"].ToStringInvariant() == "message")
-                        {
-                            var dataToken = token["data"];
-							var marketSymbol = token["data"]["symbol"].ToStringInvariant();
-                            var trade = dataToken.ParseTradeKucoin(amountKey: "size", priceKey: "price", typeKey: "side",
-                                timestampKey: "time", TimestampType.UnixNanoseconds, idKey: "tradeId");
-							await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
-                        }
-						else if (token["type"].ToStringInvariant() == "error")
-						{
-							Logger.Info(token["data"].ToStringInvariant());
-						}
-                    }, async (_socket) =>
+				{
+                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
+                    if (token["type"].ToStringInvariant() == "message")
                     {
-						List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ? 
-							await GetMarketSymbolsAsync() : marketSymbols);
-						StringBuilder symbolsSB = new StringBuilder();
-						var id = CryptoUtility.UtcNow.Ticks; // just needs to be a "Unique string to mark the request"
-						int tunnelInt = 0;
-						while (marketSymbolsList.Count > 0)
-						{ // can only subscribe to 100 symbols per session (started w/ API 2.0)
-							var nextBatch = marketSymbolsList.GetRange(index: 0, count: 100);
-							marketSymbolsList.RemoveRange(index: 0, count: 100);
-							// create a new tunnel
-							await _socket.SendMessageAsync(new
-							{
-								id = id++,
-								type = "openTunnel",
-								newTunnelId = $"bt{tunnelInt}",
-								response = "true",
-							});
-							// wait for tunnel to be created
-							await Task.Delay(millisecondsDelay: 1000);
-							// subscribe to Match Execution Data
-							await _socket.SendMessageAsync(new
-							{
-								id = id++,
-								type = "subscribe",
-								topic = $"/market/match:{ string.Join(",", nextBatch)}",
-								tunnelId = $"bt{tunnelInt}",
-								privateChannel = "false", //Adopted the private channel or not. Set as false by default.
-								response = "true",
-							});
-							tunnelInt++;
-						}
+                        var dataToken = token["data"];
+						var marketSymbol = token["data"]["symbol"].ToStringInvariant();
+                        var trade = dataToken.ParseTradeKucoin(amountKey: "size", priceKey: "price", typeKey: "side",
+                            timestampKey: "time", TimestampType.UnixNanoseconds, idKey: "tradeId");
+						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
                     }
-                );
+					else if (token["type"].ToStringInvariant() == "error")
+					{
+						Logger.Info(token["data"].ToStringInvariant());
+					}
+                }, async (_socket) =>
+                {
+					List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ? 
+						await GetMarketSymbolsAsync() : marketSymbols);
+					StringBuilder symbolsSB = new StringBuilder();
+					var id = CryptoUtility.UtcNow.Ticks; // just needs to be a "Unique string to mark the request"
+					int tunnelInt = 0;
+					while (marketSymbolsList.Count > 0)
+					{ // can only subscribe to 100 symbols per session (started w/ API 2.0)
+						var nextBatch = marketSymbolsList.GetRange(index: 0, count: 100);
+						marketSymbolsList.RemoveRange(index: 0, count: 100);
+						// create a new tunnel
+						await _socket.SendMessageAsync(new
+						{
+							id = id++,
+							type = "openTunnel",
+							newTunnelId = $"bt{tunnelInt}",
+							response = "true",
+						});
+						// wait for tunnel to be created
+						await Task.Delay(millisecondsDelay: 1000);
+						// subscribe to Match Execution Data
+						await _socket.SendMessageAsync(new
+						{
+							id = id++,
+							type = "subscribe",
+							topic = $"/market/match:{ string.Join(",", nextBatch)}",
+							tunnelId = $"bt{tunnelInt}",
+							privateChannel = "false", //Adopted the private channel or not. Set as false by default.
+							response = "true",
+						});
+						tunnelInt++;
+					}
+                }
+            );
         }
 
         #endregion Websockets

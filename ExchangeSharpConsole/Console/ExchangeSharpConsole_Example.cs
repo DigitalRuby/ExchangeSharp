@@ -128,13 +128,13 @@ namespace ExchangeSharpConsole
         private static async Task RunWebSocketTickers(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict, false);
-            await RunWebSocket(dict, (api) =>
+            await RunWebSocket(dict, async (api) =>
             {
                 if (symbols != null)
                 {
                     symbols = ValidateMarketSymbols(api, symbols);
                 }
-                return api.GetTickersWebSocket(freshTickers =>
+                return await api.GetTickersWebSocketAsync(freshTickers =>
                 {
                     foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
                     {
@@ -147,10 +147,10 @@ namespace ExchangeSharpConsole
         private static async Task RunTradesWebSocket(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict);
-            await RunWebSocket(dict, (api) =>
+            await RunWebSocket(dict, async (api) =>
             {
                 symbols = ValidateMarketSymbols(api, symbols);
-                return api.GetTradesWebSocket(message =>
+                return await api.GetTradesWebSocketAsync(message =>
                 {
                     Logger.Info($"{message.Key}: {message.Value}");
                     return Task.CompletedTask;

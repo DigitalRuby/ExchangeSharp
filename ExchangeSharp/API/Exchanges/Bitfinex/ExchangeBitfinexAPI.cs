@@ -213,10 +213,10 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
@@ -251,14 +251,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-            return ConnectWebSocket("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
+            return await ConnectWebSocketAsync("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
@@ -534,9 +534,9 @@ namespace ExchangeSharp
             return await GetOrderDetailsInternalV1(new string[] { marketSymbol }, afterDate);
         }
 
-        protected override Task<IWebSocket> OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        protected override Task<IWebSocket> OnGetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback)
         {
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token[1].ToStringInvariant() == "hb")

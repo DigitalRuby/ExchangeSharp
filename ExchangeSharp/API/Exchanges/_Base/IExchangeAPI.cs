@@ -225,7 +225,7 @@ namespace ExchangeSharp
         /// <param name="callback">Callback</param>
         /// <param name="symbols">Symbols. If no symbols are specified, this will get the tickers for all symbols. NOTE: Some exchanges don't allow you to specify which symbols to return.</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        Task<IWebSocket> GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols);
+        Task<IWebSocket> GetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols);
 
         /// <summary>
         /// Get information about trades via web socket
@@ -233,21 +233,21 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="marketSymbols">Market symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        Task<IWebSocket> GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols);
+        Task<IWebSocket> GetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols);
 
         /// <summary>
         /// Get the details of all changed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        Task<IWebSocket> GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        Task<IWebSocket> GetOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        Task<IWebSocket> GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
 
         #endregion Web Socket
     }

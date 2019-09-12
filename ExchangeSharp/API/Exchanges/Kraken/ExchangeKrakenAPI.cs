@@ -828,13 +828,13 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
 
-		protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token.Type == JTokenType.Array && token[2].ToStringInvariant() == "trade")

@@ -507,13 +507,13 @@ namespace ExchangeSharp
             };
         }
 
-		protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
 			}
-			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			return ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["event"].ToStringInvariant() == "bts:error")

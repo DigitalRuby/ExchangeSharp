@@ -149,13 +149,13 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["dataType"].ToStringInvariant() == "trades")

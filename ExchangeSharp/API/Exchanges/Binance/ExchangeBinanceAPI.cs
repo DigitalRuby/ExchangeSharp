@@ -241,9 +241,9 @@ namespace ExchangeSharp
 			return tickers;
 		}
 
-		protected override Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+		protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
 		{
-			return ConnectWebSocket("/stream?streams=!ticker@arr", (_socket, msg) =>
+			return ConnectWebSocketAsync("/stream?streams=!ticker@arr", (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -261,7 +261,7 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override Task<IWebSocket> OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			/*
 	    {
@@ -281,10 +281,10 @@ namespace ExchangeSharp
 
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			string url = GetWebSocketStreamUrlForSymbols("@aggTrade", marketSymbols);
-			return ConnectWebSocket(url, async (_socket, msg) =>
+			return await ConnectWebSocketAsync(url, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				string name = token["stream"].ToStringInvariant();
@@ -297,14 +297,14 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth@100ms"));
-			return ConnectWebSocket($"/stream?streams={combined}", (_socket, msg) =>
+			return await ConnectWebSocketAsync($"/stream?streams={combined}", (_socket, msg) =>
 			{
 				string json = msg.ToStringFromUTF8();
 				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
@@ -1060,9 +1060,9 @@ namespace ExchangeSharp
 			return transactions;
 		}
 
-		protected override Task<IWebSocket> OnUserDataWebSocket(Action<object> callback, string listenKey)
+		protected override async Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback, string listenKey)
 		{
-			return ConnectWebSocket($"/ws/{listenKey}", (_socket, msg) =>
+			return await ConnectWebSocketAsync($"/ws/{listenKey}", (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				var eventType = token["e"].ToStringInvariant();
