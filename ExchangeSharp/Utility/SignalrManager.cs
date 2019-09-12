@@ -115,10 +115,11 @@ namespace ExchangeSharp
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
 
-                while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
+                while (!disposed && !_manager.disposed)
                 {
                     try
                     {
+                        // performs any needed reconnect
                         await _manager.AddListener(functionName, callback, param);
 
                         while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
