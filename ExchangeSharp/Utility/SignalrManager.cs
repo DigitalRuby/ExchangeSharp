@@ -115,7 +115,7 @@ namespace ExchangeSharp
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
 
-                while (true)
+                while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
                 {
                     try
                     {
