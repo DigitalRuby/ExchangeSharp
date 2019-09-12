@@ -27,20 +27,21 @@ namespace ExchangeSharp
         /// Constructor
         /// </summary>
         /// <param name="api">Exchange API</param>
+        /// <param name="marketSymbols">Market symbols</param>
         /// <param name="marketSymbol">The market symbol to trade by default, can be null</param>
-        public ExchangeInfo(IExchangeAPI api, string marketSymbol = null)
+        public ExchangeInfo(IExchangeAPI api, IReadOnlyCollection<string> marketSymbols, string marketSymbol = null)
         {
             API = api;
-            MarketSymbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+            MarketSymbols = marketSymbols;
             TradeInfo = new ExchangeTradeInfo(this, marketSymbol);
         }
 
         /// <summary>
         /// Update the exchange info - get new trade info, etc.
         /// </summary>
-        public void Update()
+        public async Task UpdateAsync()
         {
-            TradeInfo.Update();
+            await TradeInfo.UpdateAsync();
         }
 
         /// <summary>

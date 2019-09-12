@@ -38,14 +38,14 @@ namespace ExchangeSharp
             return marketSymbol;
         }
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
-            return "KRW" + GlobalMarketSymbolSeparator + marketSymbol;
+            return Task.FromResult("KRW" + GlobalMarketSymbolSeparator + marketSymbol);
         }
 
-        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
-            return marketSymbol.Substring(marketSymbol.IndexOf(GlobalMarketSymbolSeparator) + 1);
+            return Task.FromResult(marketSymbol.Substring(marketSymbol.IndexOf(GlobalMarketSymbolSeparator) + 1));
         }
 
         private string StatusToError(string status)
@@ -80,7 +80,7 @@ namespace ExchangeSharp
             return new Tuple<JToken, string>(obj, marketSymbol);
         }
 
-        private ExchangeTicker ParseTicker(string marketSymbol, JToken data)
+        private async Task<ExchangeTicker> ParseTickerAsync(string marketSymbol, JToken data)
         {
             /*
             {
@@ -97,7 +97,7 @@ namespace ExchangeSharp
                 "fluctate_rate_24H": "0.02"
             }
             */
-            ExchangeTicker ticker = this.ParseTicker(data, marketSymbol, "max_price", "min_price", "min_price", "min_price", "units_traded_24H");
+            ExchangeTicker ticker = await this.ParseTickerAsync(data, marketSymbol, "max_price", "min_price", "min_price", "min_price", "units_traded_24H");
             ticker.Volume.Timestamp = data.Parent.Parent["date"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds();
             return ticker;
         }
@@ -125,7 +125,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             var data = await MakeRequestBithumbAsync(marketSymbol, "/public/ticker/$SYMBOL$");
-            return ParseTicker(data.Item2, data.Item1);
+            return await ParseTickerAsync(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -138,7 +138,7 @@ namespace ExchangeSharp
             {
                 if (token.Name != "date")
                 {
-                    ExchangeTicker ticker = ParseTicker(token.Name, token.Value);
+                    ExchangeTicker ticker = await ParseTickerAsync(token.Name, token.Value);
                     ticker.Volume.Timestamp = date;
                     tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ticker));
                 }

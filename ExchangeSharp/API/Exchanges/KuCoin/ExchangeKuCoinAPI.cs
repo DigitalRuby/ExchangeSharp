@@ -165,7 +165,7 @@ namespace ExchangeSharp
         {
             //{ "code":"200000","data":{ "sequence":"1550467754497","bestAsk":"0.000277","size":"107.3627934","price":"0.000276","bestBidSize":"2062.7337015","time":1551735305135,"bestBid":"0.0002741","bestAskSize":"223.177"} }
             JToken token = await MakeJsonRequestAsync<JToken>("/market/orderbook/level1?symbol=" + marketSymbol);
-            return this.ParseTicker(token, marketSymbol);
+            return await this.ParseTickerAsync(token, marketSymbol);
         }
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -203,7 +203,7 @@ namespace ExchangeSharp
 			foreach (JToken tick in token["ticker"])
 			{
 				string marketSymbol = tick["symbol"].ToStringInvariant();
-				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickers(tick, marketSymbol)));
+				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickersAsync(tick, marketSymbol)));
 			}
 			return tickers;
 		}
@@ -440,18 +440,16 @@ namespace ExchangeSharp
             var websocketUrlToken = GetWebsocketBulletToken();
             return await ConnectWebSocketAsync
             (
-                $"?bulletToken={websocketUrlToken}&format=json&resource=api", (_socket, msg) =>
+                $"?bulletToken={websocketUrlToken}&format=json&resource=api", async (_socket, msg) =>
                 {
                     JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token["type"].ToStringInvariant() == "message")
                     {
                         var dataToken = token["data"];
                         var marketSymbol = dataToken["symbol"].ToStringInvariant();
-                        ExchangeTicker ticker = this.ParseTicker(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
+                        ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
                         callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
                     }
-
-                    return Task.CompletedTask;
                 }, async (_socket) =>
                 {
                     //need to subscribe to tickers one by one
@@ -547,7 +545,7 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(JToken token, string symbol)
+        private async Task<ExchangeTicker> ParseTickerAsync(JToken token, string symbol)
         {
             //            //Get Ticker
             //            {
@@ -561,9 +559,10 @@ namespace ExchangeSharp
             //    "time": 1550653727731
 
             //}
-            return this.ParseTicker(token, symbol, "bestAsk", "bestBid", "price", "bestAskSize");
+            return await this.ParseTickerAsync(token, symbol, "bestAsk", "bestBid", "price", "bestAskSize");
         }
-        private ExchangeTicker ParseTickers(JToken token, string symbol)
+
+        private async Task<ExchangeTicker> ParseTickersAsync(JToken token, string symbol)
         {
             //      {
             //          "symbol": "LOOM-BTC",
@@ -576,7 +575,7 @@ namespace ExchangeSharp
             //  "vol": "45161.5073",
             //  "last": "0.00001204"
             //},
-            return this.ParseTicker(token, symbol, "sell", "buy", "last", "vol");
+            return await this.ParseTickerAsync(token, symbol, "sell", "buy", "last", "vol");
         }
 
         // { "oid": "59e59b279bd8d31d093d956e", "type": "SELL", "userOid": null, "coinType": "KCS", "coinTypePair": "BTC", "direction": "SELL","price": 0.1,"dealAmount": 0,"pendingAmount": 100, "createdAt": 1508219688000, "updatedAt": 1508219688000 }

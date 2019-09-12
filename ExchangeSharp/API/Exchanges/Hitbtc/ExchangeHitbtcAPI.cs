@@ -131,7 +131,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/ticker/" + marketSymbol);
-            return ParseTicker(obj, marketSymbol);
+            return await ParseTickerAsync(obj, marketSymbol);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -141,7 +141,7 @@ namespace ExchangeSharp
             foreach (JToken token in obj)
             {
                 string marketSymbol = NormalizeMarketSymbol(token["symbol"].ToStringInvariant());
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTicker(token, marketSymbol)));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(token, marketSymbol)));
             }
             return tickers;
         }
@@ -165,7 +165,10 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Putting an arbitrary limit of 10 for 'recent'
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=10");
-            foreach (JToken token in obj) trades.Add(ParseExchangeTrade(token));
+            foreach (JToken token in obj)
+            {
+                trades.Add(ParseExchangeTrade(token));
+            }
             return trades;
         }
 
@@ -591,10 +594,10 @@ namespace ExchangeSharp
 
 		#region Private Functions
 
-		private ExchangeTicker ParseTicker(JToken token, string symbol)
+		private async Task<ExchangeTicker> ParseTickerAsync(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
-            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
         }
 
         private ExchangeTrade ParseExchangeTrade(JToken token)

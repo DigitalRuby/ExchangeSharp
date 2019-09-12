@@ -49,12 +49,12 @@ namespace ExchangeSharp
             RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             throw new NotImplementedException();
         }
 
-        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             throw new NotImplementedException();
         }
@@ -280,7 +280,7 @@ namespace ExchangeSharp
 
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
             }
             return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {

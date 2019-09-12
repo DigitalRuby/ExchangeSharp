@@ -127,7 +127,7 @@ namespace ExchangeSharp
         {
             // {"high": "0.10948945", "last": "0.10121817", "timestamp": "1513387486", "bid": "0.10112165", "vwap": "0.09958913", "volume": "9954.37332614", "low": "0.09100000", "ask": "0.10198408", "open": "0.10250028"}
             JToken token = await MakeBitstampRequestAsync("/ticker/" + marketSymbol);
-            return this.ParseTicker(token, marketSymbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSeconds);
+            return await this.ParseTickerAsync(token, marketSymbol, "ask", "bid", "last", "volume", null, "timestamp", TimestampType.UnixSeconds);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
@@ -507,13 +507,13 @@ namespace ExchangeSharp
             };
         }
 
-		protected override Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["event"].ToStringInvariant() == "bts:error")

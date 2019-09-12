@@ -134,11 +134,11 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.ContainsKey("getOrderHistory"))
                 {
-                    await RunGetOrderHistory(argsDictionary);
+                    await RunGetOrderHistoryAsync(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("getOrderDetails"))
                 {
-                    await RunGetOrderDetails(argsDictionary);
+                    await RunGetOrderDetailsAsync(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("symbols-metadata"))
                 {

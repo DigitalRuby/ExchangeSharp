@@ -174,11 +174,12 @@ namespace ExchangeSharp.OKGroup
 		{ // V3: /api/swap/v3/instruments/BTC-USD-SWAP/ticker
 			var data = await MakeRequestOkexAsync(marketSymbol, 
 				"/swap/v3/instruments/$SYMBOL$/ticker", baseUrl: BaseUrlV3);
-            return ParseTickerV3(data.Item2, data.Item1);
+            return await ParseTickerV3Async(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
-		{// V3: /api/spot/v3/instruments/ticker (/api is already included in base URL)
+		{
+            // V3: /api/spot/v3/instruments/ticker (/api is already included in base URL)
 			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
 			parseData(await MakeRequestOkexAsync(null, "/spot/v3/instruments/ticker", BaseUrlV3));
 			if (IsFuturesAndSwapEnabled)
@@ -186,12 +187,12 @@ namespace ExchangeSharp.OKGroup
 				parseData(await MakeRequestOkexAsync(null, "/futures/v3/instruments/ticker", BaseUrlV3));
 				parseData(await MakeRequestOkexAsync(null, "/swap/v3/instruments/ticker", BaseUrlV3));
 			}
-			void parseData(Tuple<JToken, string> data)
+			async void parseData(Tuple<JToken, string> data)
 			{
 				foreach (JToken token in data.Item1)
 				{
 					var marketSymbol = token["instrument_id"].ToStringInvariant();
-					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV3(marketSymbol, token)));
+					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerV3Async(marketSymbol, token)));
 				}
 			}
             return tickers;
@@ -221,7 +222,7 @@ namespace ExchangeSharp.OKGroup
 					  }]
 				 } 
 			 */
-			return await ConnectWebSocketOkex(async (_socket) =>
+			return await ConnectWebSocketOkexAsync(async (_socket) =>
 			{
 				await AddMarketSymbolsToChannel(_socket, "/trade:{0}", marketSymbols);
 			}, async (_socket, symbol, sArray, token) =>
@@ -271,7 +272,7 @@ namespace ExchangeSharp.OKGroup
 			 
 			 */
 
-			return await ConnectWebSocketOkex(async (_socket) =>
+			return await ConnectWebSocketOkexAsync(async (_socket) =>
             {
                 marketSymbols = await AddMarketSymbolsToChannel(_socket, "/depth:{0}", marketSymbols);
             }, (_socket, symbol, sArray, token) =>
@@ -488,19 +489,19 @@ namespace ExchangeSharp.OKGroup
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data)
+        private async Task<ExchangeTicker> ParseTickerAsync(string symbol, JToken data)
         {
             //{"date":"1518043621","ticker":{"high":"0.01878000","vol":"1911074.97335534","last":"0.01817627","low":"0.01813515","buy":"0.01817626","sell":"0.01823447"}}
-            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSeconds);
+            return await this.ParseTickerAsync(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSeconds);
         }
 
-		private ExchangeTicker ParseTickerV2(string symbol, JToken ticker)
+		private async Task<ExchangeTicker> ParseTickerV2Async(string symbol, JToken ticker)
 		{
 			// {"buy":"0.00001273","change":"-0.00000009","changePercentage":"-0.70%","close":"0.00001273","createdDate":1527355333053,"currencyId":535,"dayHigh":"0.00001410","dayLow":"0.00001174","high":"0.00001410","inflows":"19.52673814","last":"0.00001273","low":"0.00001174","marketFrom":635,"name":{},"open":"0.00001282","outflows":"52.53715678","productId":535,"sell":"0.00001284","symbol":"you_btc","volume":"5643177.15601228"}
-			return this.ParseTicker(ticker, symbol, "sell", "buy", "last", "volume", null, "createdDate", TimestampType.UnixMilliseconds);
+			return await this.ParseTickerAsync(ticker, symbol, "sell", "buy", "last", "volume", null, "createdDate", TimestampType.UnixMilliseconds);
 		}
 
-		private ExchangeTicker ParseTickerV3(string symbol, JToken ticker)
+		private async Task<ExchangeTicker> ParseTickerV3Async(string symbol, JToken ticker)
 		{
 			/*
 			[
@@ -537,7 +538,7 @@ namespace ExchangeSharp.OKGroup
 				}
 			]
 			*/
-			return this.ParseTicker(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last", 
+			return await this.ParseTickerAsync(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last", 
 				baseVolumeKey: "base_volume_24h", quoteVolumeKey: "quote_volume_24h", 
 				timestampKey: "timestamp", timestampType: TimestampType.Iso8601);
 		}
@@ -638,7 +639,7 @@ namespace ExchangeSharp.OKGroup
             return result;
         }
 
-        private Task<IWebSocket> ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        private Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
 			Timer pingTimer = null;
             return ConnectWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
@@ -688,9 +689,9 @@ namespace ExchangeSharp.OKGroup
 			});
         }
 
-        private Task<IWebSocket> ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        private Task<IWebSocket> ConnectPrivateWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
-            return ConnectWebSocketOkex(async (_socket) =>
+            return ConnectWebSocketOkexAsync(async (_socket) =>
             {
                 await _socket.SendMessageAsync(GetAuthForWebSocket());
             }, async (_socket, symbol, sArray, token) =>
@@ -710,7 +711,7 @@ namespace ExchangeSharp.OKGroup
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			var spotSymbols = marketSymbols.Where(ms => ms.Split('-').Length == 2);
 			var futureSymbols = marketSymbols.Where(

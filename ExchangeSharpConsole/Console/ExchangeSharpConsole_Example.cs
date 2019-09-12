@@ -68,9 +68,9 @@ namespace ExchangeSharpConsole
             return dict["marketSymbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static string[] ValidateMarketSymbols(IExchangeAPI api, string[] marketSymbols)
+        private static async Task<string[]> ValidateMarketSymbolsAsync(IExchangeAPI api, string[] marketSymbols)
         {
-            string[] apiSymbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+            string[] apiSymbols = (await api.GetMarketSymbolsAsync()).ToArray();
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
                 marketSymbols = apiSymbols;
@@ -132,7 +132,7 @@ namespace ExchangeSharpConsole
             {
                 if (symbols != null)
                 {
-                    symbols = ValidateMarketSymbols(api, symbols);
+                    symbols = await ValidateMarketSymbolsAsync(api, symbols);
                 }
                 return await api.GetTickersWebSocketAsync(freshTickers =>
                 {
@@ -149,7 +149,7 @@ namespace ExchangeSharpConsole
             string[] symbols = GetMarketSymbols(dict);
             await RunWebSocket(dict, async (api) =>
             {
-                symbols = ValidateMarketSymbols(api, symbols);
+                symbols = await ValidateMarketSymbolsAsync(api, symbols);
                 return await api.GetTradesWebSocketAsync(message =>
                 {
                     Logger.Info($"{message.Key}: {message.Value}");
@@ -161,10 +161,10 @@ namespace ExchangeSharpConsole
         private static async Task RunOrderBookWebSocket(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict);
-            await RunWebSocket(dict, (api) =>
+            await RunWebSocket(dict, async (api) =>
             {
-                symbols = ValidateMarketSymbols(api, symbols);
-                return ExchangeAPIExtensions.GetFullOrderBookWebSocket(api, message =>
+                symbols = await ValidateMarketSymbolsAsync(api, symbols);
+                return await ExchangeAPIExtensions.GetFullOrderBookWebSocketAsync(api, message =>
                 {
                    //print the top bid and ask with amount
                    var topBid = message.Bids.FirstOrDefault();

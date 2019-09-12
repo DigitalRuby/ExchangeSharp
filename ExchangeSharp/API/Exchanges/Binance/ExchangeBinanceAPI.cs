@@ -44,11 +44,11 @@ namespace ExchangeSharp
 			};
 		}
 
-		private string GetWebSocketStreamUrlForSymbols(string suffix, params string[] marketSymbols)
+		private async Task<string> GetWebSocketStreamUrlForSymbolsAsync(string suffix, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 
 			StringBuilder streams = new StringBuilder("/stream?streams=");
@@ -74,21 +74,21 @@ namespace ExchangeSharp
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
 		}
 
-		public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
 		{
 			// All pairs in Binance end with BTC, ETH, BNB or USDT
 			if (marketSymbol.EndsWith("BTC") || marketSymbol.EndsWith("ETH") || marketSymbol.EndsWith("BNB"))
 			{
 				string baseSymbol = marketSymbol.Substring(marketSymbol.Length - 3);
-				return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator((marketSymbol.Replace(baseSymbol, "") + GlobalMarketSymbolSeparator + baseSymbol), GlobalMarketSymbolSeparator);
+				return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync((marketSymbol.Replace(baseSymbol, "") + GlobalMarketSymbolSeparator + baseSymbol), GlobalMarketSymbolSeparator);
 			}
 			if (marketSymbol.EndsWith("USDT"))
 			{
 				string baseSymbol = marketSymbol.Substring(marketSymbol.Length - 4);
-				return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator((marketSymbol.Replace(baseSymbol, "") + GlobalMarketSymbolSeparator + baseSymbol), GlobalMarketSymbolSeparator);
+				return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync((marketSymbol.Replace(baseSymbol, "") + GlobalMarketSymbolSeparator + baseSymbol), GlobalMarketSymbolSeparator);
 			}
 
-			return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(0, marketSymbol.Length - 3) + GlobalMarketSymbolSeparator + (marketSymbol.Substring(marketSymbol.Length - 3, 3)), GlobalMarketSymbolSeparator);
+			return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(marketSymbol.Substring(0, marketSymbol.Length - 3) + GlobalMarketSymbolSeparator + (marketSymbol.Substring(marketSymbol.Length - 3, 3)), GlobalMarketSymbolSeparator);
 		}
 
 		/// <summary>
@@ -225,7 +225,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
 			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol);
-			return ParseTicker(marketSymbol, obj);
+			return await ParseTickerAsync(marketSymbol, obj);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -236,28 +236,27 @@ namespace ExchangeSharp
 			foreach (JToken child in obj)
 			{
 				marketSymbol = child["symbol"].ToStringInvariant();
-				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTicker(marketSymbol, child)));
+				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(marketSymbol, child)));
 			}
 			return tickers;
 		}
 
 		protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
 		{
-			return ConnectWebSocketAsync("/stream?streams=!ticker@arr", (_socket, msg) =>
+			return ConnectWebSocketAsync("/stream?streams=!ticker@arr", async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
 				ExchangeTicker ticker;
 				foreach (JToken childToken in token["data"])
 				{
-					ticker = ParseTickerWebSocket(childToken);
+					ticker = await ParseTickerWebSocketAsync(childToken);
 					tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
 				}
 				if (tickerList.Count != 0)
 				{
 					callback(tickerList);
 				}
-				return Task.CompletedTask;
 			});
 		}
 
@@ -283,7 +282,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			string url = GetWebSocketStreamUrlForSymbols("@aggTrade", marketSymbols);
+			string url = await GetWebSocketStreamUrlForSymbolsAsync("@aggTrade", marketSymbols);
 			return await ConnectWebSocketAsync(url, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -786,16 +785,16 @@ namespace ExchangeSharp
 			return isActive;
 		}
 
-		private ExchangeTicker ParseTicker(string symbol, JToken token)
+		private async Task<ExchangeTicker> ParseTickerAsync(string symbol, JToken token)
 		{
 			// {"priceChange":"-0.00192300","priceChangePercent":"-4.735","weightedAvgPrice":"0.03980955","prevClosePrice":"0.04056700","lastPrice":"0.03869000","lastQty":"0.69300000","bidPrice":"0.03858500","bidQty":"38.35000000","askPrice":"0.03869000","askQty":"31.90700000","openPrice":"0.04061300","highPrice":"0.04081900","lowPrice":"0.03842000","volume":"128015.84300000","quoteVolume":"5096.25362239","openTime":1512403353766,"closeTime":1512489753766,"firstId":4793094,"lastId":4921546,"count":128453}
-			return this.ParseTicker(token, symbol, "askPrice", "bidPrice", "lastPrice", "volume", "quoteVolume", "closeTime", TimestampType.UnixMilliseconds);
+			return await this.ParseTickerAsync(token, symbol, "askPrice", "bidPrice", "lastPrice", "volume", "quoteVolume", "closeTime", TimestampType.UnixMilliseconds);
 		}
 
-		private ExchangeTicker ParseTickerWebSocket(JToken token)
+		private async Task<ExchangeTicker> ParseTickerWebSocketAsync(JToken token)
 		{
 			string marketSymbol = token["s"].ToStringInvariant();
-			return this.ParseTicker(token, marketSymbol, "a", "b", "c", "v", "q", "E", TimestampType.UnixMilliseconds);
+			return await this.ParseTickerAsync(token, marketSymbol, "a", "b", "c", "v", "q", "E", TimestampType.UnixMilliseconds);
 		}
 
 		private ExchangeOrderResult ParseOrder(JToken token)

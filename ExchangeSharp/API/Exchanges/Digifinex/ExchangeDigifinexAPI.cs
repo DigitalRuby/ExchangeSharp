@@ -105,10 +105,10 @@ namespace ExchangeSharp
 
         #region Public APIs
 
-        ExchangeMarket ParseSymbol(JToken x)
+        private async Task<ExchangeMarket> ParseExchangeMarketAsync(JToken x)
         {
             var symbol = x["market"].ToStringUpperInvariant();
-            var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(symbol);
+            var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
             return new ExchangeMarket
             {
                 IsActive = true,
@@ -125,7 +125,13 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("markets");
-            return obj["data"].Select(x => ParseSymbol(x));
+            JToken data = obj["data"];
+            List<ExchangeMarket> results = new List<ExchangeMarket>();
+            foreach (JToken token in data)
+            {
+                results.Add(await ParseExchangeMarketAsync(token));
+            }
+            return results;
         }
 
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
@@ -133,12 +139,11 @@ namespace ExchangeSharp
             return (await GetMarketSymbolsMetadataAsync()).Select(x => x.MarketSymbol);
         }
 
-
-        ExchangeTicker ParseTicker(JToken x)
+        private async Task<ExchangeTicker> ParseTickerAsync(JToken x)
         {
             var t = x["ticker"][0];
             var symbol = t["symbol"].ToStringUpperInvariant();
-            var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(symbol);
+            var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
 
             return new ExchangeTicker
             {
@@ -160,7 +165,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>($"/ticker?symbol={marketSymbol}");
-            return ParseTicker(obj);
+            return await ParseTickerAsync(obj);
         }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)

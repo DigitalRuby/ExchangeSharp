@@ -154,7 +154,7 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Exchange market symbol</param>
         /// <param name="separator">Separator</param>
         /// <returns>Global symbol</returns>
-        protected string ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(string marketSymbol, char separator = GlobalMarketSymbolSeparator)
+        protected async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(string marketSymbol, char separator = GlobalMarketSymbolSeparator)
         {
             if (string.IsNullOrEmpty(marketSymbol))
             {
@@ -163,9 +163,9 @@ namespace ExchangeSharp
             string[] pieces = marketSymbol.Split(separator);
             if (MarketSymbolIsReversed)
             {
-                return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalMarketSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
+                return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant();
             }
-            return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalMarketSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();
+            return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant();
         }
 
         /// <summary>
@@ -341,14 +341,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="currency">Exchange currency</param>
         /// <returns>Global currency</returns>
-        public string ExchangeCurrencyToGlobalCurrency(string currency)
+        public Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
         {
             currency = (currency ?? string.Empty);
             foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
             {
                 currency = currency.Replace(kv.Key, kv.Value);
             }
-            return currency.ToUpperInvariant();
+            return Task.FromResult(currency.ToUpperInvariant());
         }
 
         /// <summary>
@@ -399,7 +399,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Exchange symbol</param>
         /// <returns>Global symbol</returns>
-        public virtual string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public virtual async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             string modifiedMarketSymbol = marketSymbol;
             char separator;
@@ -408,7 +408,7 @@ namespace ExchangeSharp
             if (string.IsNullOrWhiteSpace(MarketSymbolSeparator))
             {
                 // we must look it up via metadata, most often this call will be cached and fast
-                ExchangeMarket marketSymbolMetadata = GetExchangeMarketFromCacheAsync(marketSymbol).Sync();
+                ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(marketSymbol);
                 if (marketSymbolMetadata == null)
                 {
                     throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
@@ -420,7 +420,7 @@ namespace ExchangeSharp
             {
                 separator = MarketSymbolSeparator[0];
             }
-            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(modifiedMarketSymbol, separator);
+            return await ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(modifiedMarketSymbol, separator);
         }
 
         /// <summary>
@@ -440,7 +440,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Market symbol</param>
         /// <returns>Base and quote currency</returns>
-        public virtual (string baseCurrency, string quoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
+        public virtual async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
         {
             marketSymbol.ThrowIfNullOrWhitespace(nameof(marketSymbol));
 
@@ -450,7 +450,7 @@ namespace ExchangeSharp
                 try
                 {
                     // we must look it up via metadata, most often this call will be cached and fast
-                    ExchangeMarket marketSymbolMetadata = GetExchangeMarketFromCacheAsync(marketSymbol).Sync();
+                    ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(marketSymbol);
                     if (marketSymbolMetadata == null)
                     {
                         throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
@@ -472,7 +472,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Global market symbol</param>
         /// <returns>Exchange market symbol</returns>
-        public virtual string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        public virtual Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             if (string.IsNullOrWhiteSpace(marketSymbol))
             {
@@ -491,7 +491,7 @@ namespace ExchangeSharp
             {
                 marketSymbol = GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(pos + 1)) + MarketSymbolSeparator + GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(0, pos));
             }
-            return (MarketSymbolIsUppercase ? marketSymbol.ToUpperInvariant() : marketSymbol.ToLowerInvariant());
+            return Task.FromResult(MarketSymbolIsUppercase ? marketSymbol.ToUpperInvariant() : marketSymbol.ToLowerInvariant());
         }
 
         /// <summary>

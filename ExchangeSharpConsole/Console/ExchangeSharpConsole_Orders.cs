@@ -10,7 +10,7 @@ namespace ExchangeSharpConsole
 {
     public static partial class ExchangeSharpConsoleMain
     {
-        public static async Task RunGetOrderHistory(Dictionary<string, string> dict)
+        public static async Task RunGetOrderHistoryAsync(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName", "marketSymbol");
 
@@ -36,7 +36,7 @@ namespace ExchangeSharpConsole
             Console.ReadLine();
         }
 
-        public static async Task RunGetOrderDetails(Dictionary<string, string> dict)
+        public static async Task RunGetOrderDetailsAsync(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName", "orderId");
 

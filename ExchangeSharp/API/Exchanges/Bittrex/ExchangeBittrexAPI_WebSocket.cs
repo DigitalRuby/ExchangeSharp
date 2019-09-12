@@ -87,7 +87,7 @@ namespace ExchangeSharp
             {
                 filter.Add(marketSymbol);
             }
-            Task innerCallback(string json)
+            async Task innerCallback(string json)
             {
                 #region sample json
                 /*
@@ -125,7 +125,7 @@ namespace ExchangeSharp
                     {
                         continue;
                     }
-                    var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(marketName);
+                    var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketName);
                     decimal last = ticker["l"].ConvertInvariant<decimal>();
                     decimal ask = ticker["A"].ConvertInvariant<decimal>();
                     decimal bid = ticker["B"].ConvertInvariant<decimal>();
@@ -150,7 +150,6 @@ namespace ExchangeSharp
                     freshTickers[marketName] = t;
                 }
                 callback(freshTickers);
-                return Task.CompletedTask;
             }
             return await new BittrexWebSocketManager().SubscribeToSummaryDeltasAsync(innerCallback, marketSymbols);
         }
@@ -164,7 +163,7 @@ namespace ExchangeSharp
         {
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
             }
             Task innerCallback(string json)
             {

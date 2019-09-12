@@ -210,7 +210,7 @@ namespace ExchangeSharp
             /// <summary>
             /// Dispose of the socket and remove from listeners
             /// </summary>
-            public void Dispose()
+            public async void Dispose()
             {
                 if (disposed)
                 {
@@ -225,7 +225,7 @@ namespace ExchangeSharp
                         manager.sockets.Remove(this);
                     }
                     manager.RemoveListener(functionFullName, callback);
-                    InvokeDisconnected().Sync();
+                    await InvokeDisconnected();
                 }
                 catch
                 {
@@ -247,8 +247,9 @@ namespace ExchangeSharp
         {
             private IConnection connection;
             private string connectionData;
-			TimeSpan connectInterval;
-			TimeSpan keepAlive;
+			private readonly TimeSpan connectInterval;
+			private readonly TimeSpan keepAlive;
+
 			public ExchangeSharp.ClientWebSocket WebSocket { get; private set; }
 
             public override bool SupportsKeepAlive => true;

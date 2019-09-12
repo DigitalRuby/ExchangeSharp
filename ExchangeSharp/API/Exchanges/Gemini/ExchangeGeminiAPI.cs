@@ -32,13 +32,13 @@ namespace ExchangeSharp
             MarketSymbolSeparator = string.Empty;
         }
 
-        private ExchangeVolume ParseVolume(JToken token, string symbol)
+        private async Task<ExchangeVolume> ParseVolumeAsync(JToken token, string symbol)
         {
             ExchangeVolume vol = new ExchangeVolume();
             JProperty[] props = token.Children<JProperty>().ToArray();
             if (props.Length == 3)
             {
-                var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(symbol);
+                var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
                 vol.QuoteCurrency = quoteCurrency.ToUpperInvariant();
                 vol.QuoteCurrencyVolume = token[quoteCurrency.ToUpperInvariant()].ConvertInvariant<decimal>();
                 vol.BaseCurrency = baseCurrency.ToUpperInvariant();
@@ -166,7 +166,7 @@ namespace ExchangeSharp
                 Bid = obj["bid"].ConvertInvariant<decimal>(),
                 Last = obj["last"].ConvertInvariant<decimal>()
             };
-            t.Volume = ParseVolume(obj["volume"], marketSymbol);
+            t.Volume = await ParseVolumeAsync(obj["volume"], marketSymbol);
             return t;
         }
 

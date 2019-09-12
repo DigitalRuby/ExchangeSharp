@@ -39,14 +39,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Exchange symbol</param>
         /// <returns>Global symbol</returns>
-        string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol);
+        Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol);
 
         /// <summary>
         /// Convert a global symbol into an exchange symbol, which will potentially be different from other exchanges.
         /// </summary>
         /// <param name="marketSymbol">Global symbol</param>
         /// <returns>Exchange symbol</returns>
-        string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol);
+        Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol);
 
         /// <summary>
         /// Convert seconds to a period string, or throw exception if seconds invalid. Example: 60 seconds becomes 1m.
