@@ -51,11 +51,11 @@ namespace ExchangeSharp
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string symbol);
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string symbol);
 
-        protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
-        protected virtual IWebSocket OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
-        protected virtual IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
-        protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
-        protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        protected virtual Task<IWebSocket> OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers);
+        protected virtual Task<IWebSocket> OnGetTradesWebSocket(Action<KeyValuePair<string, ExchangeTrade>> callback, params string[] symbols);
+        protected virtual Task<IWebSocket> OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols);
+        protected virtual Task<IWebSocket> OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        protected virtual Task<IWebSocket> OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
 
         // these generally do not need to be overriden unless your Exchange does something funny or does not use a symbol separator
         public virtual string NormalizeSymbol(string symbol);
