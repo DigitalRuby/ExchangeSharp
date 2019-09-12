@@ -210,7 +210,7 @@ namespace ExchangeSharp
             /// <summary>
             /// Dispose of the socket and remove from listeners
             /// </summary>
-            public async void Dispose()
+            public void Dispose()
             {
                 if (disposed)
                 {
@@ -225,7 +225,7 @@ namespace ExchangeSharp
                         manager.sockets.Remove(this);
                     }
                     manager.RemoveListener(functionFullName, callback);
-                    await InvokeDisconnected();
+                    InvokeDisconnected().GetAwaiter();
                 }
                 catch
                 {

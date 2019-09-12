@@ -313,9 +313,8 @@ namespace ExchangeSharp
             {
                 await OnGetNonceOffset();
             }
-
             
-                object nonce;
+            object nonce;
 
             while (true)
             {

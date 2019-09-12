@@ -10,10 +10,12 @@ Please follow these coding guidelines...
 - Only implement async methods as a general rule. Synchronous calls can be done by using the Sync extension method in ```CryptoUtility```. Saves a lot of duplicate code.
 - Use CryptoUtility.UtcNow instead of DateTime.UtcNow. This makes it easy to mock the date and time for unit or integration tests.
 - Use CryptoUtility.UnixTimeStampToDateTimeSeconds and CryptoUtility.UnixTimestampFromDateTimeSeconds, etc. for date conversions, keep all date in UTC.
-- Follow these code style guidelines please (we're not monsters):
+- Please follow these code style guidelines please (we're not monsters):
   - Tabs for indent.
   - Curly braces on separate lines.
-  - Wrap all if statements with curly braces, makes debug and set breakpoints much easier, along with adding new code to the if statement block.
+  - Wrap if, else if, and any loops or control logic with curly braces. Avoid `if (something) doSomething();` on same line or next line without curly braces.
+  - Append 'Async' to the end of the name of any method returning a Task - except for unit and integration test methods.
+  - Avoid using `.Sync()` or `.RunSynchronously()` - all code should use Tasks and/or async / await.
 
 When creating a new Exchange API, please do the following:
 - For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange. Use node.js in Visual Studio to debug through the code.
