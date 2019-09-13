@@ -313,12 +313,12 @@ namespace ExchangeSharp
             {
                 await OnGetNonceOffset();
             }
+            
+            object nonce;
 
-            lock (this)
+            while (true)
             {
-                object nonce;
-
-                while (true)
+                lock (this)
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of offset can help
                     DateTime now = CryptoUtility.UtcNow - NonceOffset;
@@ -373,28 +373,28 @@ namespace ExchangeSharp
 
                         case NonceStyle.Int32File:
                         case NonceStyle.Int64File:
-                        {
-                            // why an API would use a persistent incrementing counter for nonce is beyond me, ticks is so much better with a sliding window...
-                            // making it required to increment by 1 is also a pain - especially when restarting a process or rebooting.
-                            string tempFile = Path.Combine(Path.GetTempPath(), PublicApiKey.ToUnsecureString() + ".nonce");
-                            if (!File.Exists(tempFile))
                             {
-                                File.WriteAllText(tempFile, "0");
-                            }
-                            unchecked
-                            {
-                                long longNonce = File.ReadAllText(tempFile).ConvertInvariant<long>() + 1;
-                                long maxValue = (NonceStyle == NonceStyle.Int32File ? int.MaxValue : long.MaxValue);
-                                if (longNonce < 1 || longNonce > maxValue)
+                                // why an API would use a persistent incrementing counter for nonce is beyond me, ticks is so much better with a sliding window...
+                                // making it required to increment by 1 is also a pain - especially when restarting a process or rebooting.
+                                string tempFile = Path.Combine(Path.GetTempPath(), PublicApiKey.ToUnsecureString() + ".nonce");
+                                if (!File.Exists(tempFile))
                                 {
-                                    throw new APIException($"Nonce {longNonce.ToStringInvariant()} is out of bounds, valid ranges are 1 to {maxValue.ToStringInvariant()}, " +
-                                        $"please regenerate new API keys. Please contact {Name} API support and ask them to change to a sensible nonce algorithm.");
+                                    File.WriteAllText(tempFile, "0");
                                 }
-                                File.WriteAllText(tempFile, longNonce.ToStringInvariant());
-                                nonce = longNonce;
+                                unchecked
+                                {
+                                    long longNonce = File.ReadAllText(tempFile).ConvertInvariant<long>() + 1;
+                                    long maxValue = (NonceStyle == NonceStyle.Int32File ? int.MaxValue : long.MaxValue);
+                                    if (longNonce < 1 || longNonce > maxValue)
+                                    {
+                                        throw new APIException($"Nonce {longNonce.ToStringInvariant()} is out of bounds, valid ranges are 1 to {maxValue.ToStringInvariant()}, " +
+                                            $"please regenerate new API keys. Please contact {Name} API support and ask them to change to a sensible nonce algorithm.");
+                                    }
+                                    File.WriteAllText(tempFile, longNonce.ToStringInvariant());
+                                    nonce = longNonce;
+                                }
+                                break;
                             }
-                            break;
-                        }
 
                         case NonceStyle.ExpiresUnixMilliseconds:
                             nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
@@ -415,13 +415,13 @@ namespace ExchangeSharp
                         lastNonce = convertedNonce;
                         break;
                     }
-
-                    // wait 1 millisecond for a new nonce
-                    Task.Delay(1).Sync();
                 }
 
-                return nonce;
+                // wait 1 millisecond for a new nonce
+                await Task.Delay(1);
             }
+
+            return nonce;
         }
 
         /// <summary>
@@ -496,7 +496,7 @@ namespace ExchangeSharp
         /// <param name="messageCallback">Callback for messages</param>
         /// <param name="connectCallback">Connect callback</param>
         /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-        public IWebSocket ConnectWebSocket
+        public Task<IWebSocket> ConnectWebSocketAsync
         (
             string url,
             Func<IWebSocket, byte[], Task> messageCallback,
@@ -524,7 +524,7 @@ namespace ExchangeSharp
                 wrapper.Disconnected += disconnectCallback;
             }
             wrapper.Start();
-            return wrapper;
+            return Task.FromResult<IWebSocket>(wrapper);
         }
 
         /// <summary>

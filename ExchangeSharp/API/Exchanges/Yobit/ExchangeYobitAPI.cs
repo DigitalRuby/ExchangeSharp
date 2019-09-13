@@ -105,7 +105,10 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/ticker/" + NormalizeMarketSymbol(marketSymbol), null, null, "POST");
-            if (token != null && token.HasValues) return ParseTicker(token.First as JProperty);
+            if (token != null && token.HasValues)
+            {
+                return await ParseTickerAsync(token.First as JProperty);
+            }
             return null;
         }
 
@@ -331,11 +334,11 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(JProperty prop)
+        private async Task<ExchangeTicker> ParseTickerAsync(JProperty prop)
         {
             // "ltc_btc":{ "high":105.41,"low":104.67,"avg":105.04,"vol":43398.22251455,"vol_cur":4546.26962359,"last":105.11,"buy":104.2,"sell":105.11,"updated":1418654531 }
             string marketSymbol = prop.Name.ToUpperInvariant();
-            return this.ParseTicker(prop.First, marketSymbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSeconds);
+            return await this.ParseTickerAsync(prop.First, marketSymbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSeconds);
         }
 
         private ExchangeTrade ParseTrade(JToken prop)

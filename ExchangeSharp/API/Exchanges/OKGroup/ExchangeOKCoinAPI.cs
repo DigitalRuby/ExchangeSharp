@@ -20,7 +20,7 @@ namespace ExchangeSharp
 		public override string BaseUrlV2 { get; set; } = "https://www.okcoin.com/v2/spot";
 		public override string BaseUrlV3 { get; set; } = "https://www.okcoin.com/api";
 		public override string BaseUrlWebSocket { get; set; } = "wss://real.okcoin.com:10442/ws/v3";
-		protected override bool isFuturesAndSwapEnabled { get; } = false;
+		protected override bool IsFuturesAndSwapEnabled { get; } = false;
 	}
 
 	public partial class ExchangeName { public const string OKCoin = "OKCoin"; }

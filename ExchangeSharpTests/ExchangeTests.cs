@@ -33,28 +33,27 @@ namespace ExchangeSharpTests
         /// Loop through all exchanges, get a json string for all symbols
         /// </summary>
         /// <returns></returns>
-        private string GetAllSymbolsJson()
+        private async Task<string> GetAllSymbolsJsonAsync()
         {
             Dictionary<string, string[]> allSymbols = new Dictionary<string, string[]>();
-            Parallel.ForEach(ExchangeAPI.GetExchangeAPIs(), (api) =>
+            List<Task> tasks = new List<Task>();
+            foreach (ExchangeAPI api in ExchangeAPI.GetExchangeAPIs())
             {
-                try
+                tasks.Add(Task.Run(async () =>
                 {
+                    string[] symbols = (await api.GetMarketSymbolsAsync()).ToArray();
                     lock (allSymbols)
                     {
-                        allSymbols[api.Name] = api.GetMarketSymbolsAsync().Sync().ToArray();
+                        allSymbols[api.Name] = symbols;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex);
-                }
-            });
+                }));
+            }
+            await Task.WhenAll(tasks);
             return JsonConvert.SerializeObject(allSymbols);
         }
 
         [TestMethod]
-        public void GlobalSymbolTest()
+        public async Task GlobalSymbolTest()
         {
             // if tests fail, uncomment this and add replace Resources.AllSymbolsJson
             // string allSymbolsJson = GetAllSymbolsJson(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
@@ -76,8 +75,8 @@ namespace ExchangeSharpTests
                     }
 
                     bool isBithumb = (api.Name == ExchangeName.Bithumb);
-                    string exchangeMarketSymbol = api.GlobalMarketSymbolToExchangeMarketSymbol(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);
-                    string globalMarketSymbol2 = api.ExchangeMarketSymbolToGlobalMarketSymbol(exchangeMarketSymbol);
+                    string exchangeMarketSymbol = await api.GlobalMarketSymbolToExchangeMarketSymbolAsync(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);
+                    string globalMarketSymbol2 = await api.ExchangeMarketSymbolToGlobalMarketSymbolAsync(exchangeMarketSymbol);
                     if ((!isBithumb && globalMarketSymbol2.EndsWith("-BTC")) ||
                         globalMarketSymbol2.EndsWith("-USD") ||
                         globalMarketSymbol2.EndsWith("-USDT"))

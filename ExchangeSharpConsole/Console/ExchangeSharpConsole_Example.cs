@@ -21,38 +21,46 @@ namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsoleMain
     {
-        public static void RunExample(Dictionary<string, string> dict)
+        public static async Task RunExample(Dictionary<string, string> dict)
         {
             ExchangeKrakenAPI api = new ExchangeKrakenAPI();
-            ExchangeTicker ticker = api.GetTickerAsync("XXBTZUSD").Sync();
-            Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
+            ExchangeTicker ticker = await api.GetTickerAsync("XXBTZUSD");
+            Logger.Info("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
             // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
             api.LoadAPIKeys("keys.bin");
 
             /// place limit order for 0.01 bitcoin at ticker.Ask USD
-            ExchangeOrderResult result = api.PlaceOrderAsync(new ExchangeOrderRequest
+            ExchangeOrderResult result = await api.PlaceOrderAsync(new ExchangeOrderRequest
             {
                 Amount = 0.01m,
                 IsBuy = true,
                 Price = ticker.Ask,
                 MarketSymbol = "XXBTZUSD"
-            }).Sync();
+            });
 
             // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
             //  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.
             // I've also found that Kraken tends to fail if you follow up too quickly with an order details request, so sleep a bit to give them time to get
             //  their house in order.
-            System.Threading.Thread.Sleep(500);
-            result = api.GetOrderDetailsAsync(result.OrderId).Sync();
+            await Task.Delay(500);
+            result = await api.GetOrderDetailsAsync(result.OrderId);
 
-            Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+            Logger.Info("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+        }
+
+        private static void WaitForKey()
+        {
+            Console.WriteLine("Press any key to quit.");
+            Console.ReadKey();
         }
 
         private static string[] GetMarketSymbols(Dictionary<string, string> dict, bool required = true)
         {
-            if(required)
-              RequireArgs(dict, "marketSymbols");
+            if (required)
+            {
+                RequireArgs(dict, "marketSymbols");
+            }
             if ((!dict.ContainsKey("marketSymbols") && !required) || dict["marketSymbols"] == "*")
             {
                 return null;
@@ -60,9 +68,9 @@ namespace ExchangeSharpConsole
             return dict["marketSymbols"].Split(",".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         }
 
-        private static string[] ValidateMarketSymbols(IExchangeAPI api, string[] marketSymbols)
+        private static async Task<string[]> ValidateMarketSymbolsAsync(IExchangeAPI api, string[] marketSymbols)
         {
-            string[] apiSymbols = api.GetMarketSymbolsAsync().Sync().ToArray();
+            string[] apiSymbols = (await api.GetMarketSymbolsAsync()).ToArray();
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
                 marketSymbols = apiSymbols;
@@ -91,7 +99,7 @@ namespace ExchangeSharpConsole
             };
         }
 
-        private static void RunWebSocket(Dictionary<string, string> dict, Func<IExchangeAPI, IWebSocket> func)
+        private static async Task RunWebSocket(Dictionary<string, string> dict, Func<IExchangeAPI, Task<IWebSocket>> func)
         {
             RequireArgs(dict, "exchangeName");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
@@ -102,7 +110,8 @@ namespace ExchangeSharpConsole
                 }
                 try
                 {
-                    using (var socket = func(api))
+                    Logger.Info("Connecting web socket to {0}...", api.Name);
+                    using (var socket = await func(api))
                     {
                         SetWebSocketEvents(socket);
                         Console.WriteLine("Press any key to quit.");
@@ -116,52 +125,51 @@ namespace ExchangeSharpConsole
             }
         }
 
-        private static void RunWebSocketTickers(Dictionary<string, string> dict)
+        private static async Task RunWebSocketTickers(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict, false);
-            RunWebSocket(dict, (api) =>
-                               {
-                                   if(symbols != null)
-                                    symbols = ValidateMarketSymbols(api, symbols);
-                                   return api.GetTickersWebSocket(
-                                           freshTickers =>
-                                           {
-                                               foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
-                                               {
-                                                   Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
-                                               }
-                                           }, symbols
-                                       );
-                               }
-                );
+            await RunWebSocket(dict, async (api) =>
+            {
+                if (symbols != null)
+                {
+                    symbols = await ValidateMarketSymbolsAsync(api, symbols);
+                }
+                return await api.GetTickersWebSocketAsync(freshTickers =>
+                {
+                    foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
+                    {
+                        Logger.Info($"market {kvp.Key}, ticker {kvp.Value}");
+                    }
+                }, symbols);
+            });
         }
 
-        private static void RunTradesWebSocket(Dictionary<string, string> dict)
+        private static async Task RunTradesWebSocket(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict);
-            RunWebSocket(dict, (api) =>
+            await RunWebSocket(dict, async (api) =>
             {
-                symbols = ValidateMarketSymbols(api, symbols);
-                return api.GetTradesWebSocket(message =>
+                symbols = await ValidateMarketSymbolsAsync(api, symbols);
+                return await api.GetTradesWebSocketAsync(message =>
                 {
-                    Console.WriteLine($"{message.Key}: {message.Value}");
+                    Logger.Info($"{message.Key}: {message.Value}");
                     return Task.CompletedTask;
                 }, symbols);
             });
         }
 
-        private static void RunOrderBookWebSocket(Dictionary<string, string> dict)
+        private static async Task RunOrderBookWebSocket(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict);
-            RunWebSocket(dict, (api) =>
+            await RunWebSocket(dict, async (api) =>
             {
-                symbols = ValidateMarketSymbols(api, symbols);
-                return ExchangeAPIExtensions.GetFullOrderBookWebSocket(api, message =>
+                symbols = await ValidateMarketSymbolsAsync(api, symbols);
+                return await ExchangeAPIExtensions.GetFullOrderBookWebSocketAsync(api, message =>
                 {
                    //print the top bid and ask with amount
                    var topBid = message.Bids.FirstOrDefault();
                    var topAsk = message.Asks.FirstOrDefault();
-                   Console.WriteLine($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                   Logger.Info($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
                 }, symbols: symbols);
             });
         }
@@ -179,7 +187,7 @@ namespace ExchangeSharpConsole
                 System.Security.SecureString[] secureStrings = CryptoUtility.LoadProtectedStringsFromFile(dict["path"]);
                 foreach (System.Security.SecureString s in secureStrings)
                 {
-                    Console.WriteLine(CryptoUtility.ToUnsecureString(s));
+                    Logger.Info(CryptoUtility.ToUnsecureString(s));
                 }
             }
             else
@@ -188,7 +196,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        public static void RunGetSymbolsMetadata(Dictionary<string, string> dict)
+        public static async Task RunGetSymbolsMetadata(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
@@ -200,11 +208,11 @@ namespace ExchangeSharpConsole
 
                 try
                 {
-                    var marketSymbols = api.GetMarketSymbolsMetadataAsync().Sync();
+                    var marketSymbols = await api.GetMarketSymbolsMetadataAsync();
 
                     foreach (var marketSymbol in marketSymbols)
                     {
-                        Console.WriteLine(marketSymbol);
+                        Logger.Info(marketSymbol.ToString());
                     }
 
                     Console.WriteLine("Press any key to quit.");
@@ -217,7 +225,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        public static void RunGetMarketSymbols(Dictionary<string, string> dict)
+        public static async Task RunGetMarketSymbols(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
@@ -229,15 +237,14 @@ namespace ExchangeSharpConsole
 
                 try
                 {
-                    var marketSymbols = api.GetMarketSymbolsAsync().Sync();
+                    var marketSymbols = await api.GetMarketSymbolsAsync();
 
                     foreach (var marketSymbol in marketSymbols)
                     {
-                        Console.WriteLine(marketSymbol);
+                        Logger.Info(marketSymbol);
                     }
 
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    WaitForKey();
                 }
                 catch (Exception ex)
                 {
@@ -246,7 +253,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        public static void RunGetTickers(Dictionary<string, string> dict)
+        public static async Task RunGetTickers(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
@@ -262,24 +269,23 @@ namespace ExchangeSharpConsole
                     if (dict.ContainsKey("marketSymbol"))
                     {
                         var marketSymbol = dict["marketSymbol"];
-                        var ticker = api.GetTickerAsync(marketSymbol).Sync();
+                        var ticker = await api.GetTickerAsync(marketSymbol);
                         tickers = new List<KeyValuePair<string, ExchangeTicker>>()
-                                  {
-                                      new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)
-                                  };
+                        {
+                            new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker)
+                        };
                     }
                     else
                     {
-                        tickers = api.GetTickersAsync().Sync();
+                        tickers = await api.GetTickersAsync();
                     }
                     
                     foreach (var ticker in tickers)
                     {
-                        Console.WriteLine(ticker);
+                        Logger.Info(ticker.ToString());
                     }
 
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    WaitForKey();
                 }
                 catch (Exception ex)
                 {
@@ -288,7 +294,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        public static void RunGetCandles(Dictionary<string, string> dict)
+        public static async Task RunGetCandles(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName", "marketSymbol");
             using (var api = ExchangeAPI.GetExchangeAPI(dict["exchangeName"]))
@@ -301,15 +307,14 @@ namespace ExchangeSharpConsole
                 try
                 {
                     var marketSymbol = dict["marketSymbol"];
-                    var candles = api.GetCandlesAsync(marketSymbol, 1800, CryptoUtility.UtcNow.AddDays(-12), CryptoUtility.UtcNow).Sync();                   
+                    var candles = await api.GetCandlesAsync(marketSymbol, 1800, CryptoUtility.UtcNow.AddDays(-12), CryptoUtility.UtcNow);
                     
                     foreach (var candle in candles)
                     {
-                        Console.WriteLine(candle);
+                        Logger.Info(candle.ToString());
                     }
 
-                    Console.WriteLine("Press any key to quit.");
-                    Console.ReadKey();
+                    WaitForKey();
                 }
                 catch (Exception ex)
                 {

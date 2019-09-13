@@ -27,18 +27,18 @@ namespace ExchangeSharp
         public bool HitPeak { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override void Initialize(ExchangeTradeInfo tradeInfo)
+        protected override async Task InitializeAsync(ExchangeTradeInfo tradeInfo)
         {
-            base.Initialize(tradeInfo);
+            await base.InitializeAsync(tradeInfo);
 
             SetPlotListCount(1);
             AnchorPrice = TradeInfo.Trade.Price;
             HitValley = HitPeak = false;
-            ProcessTrade();
+            await ProcessTradeAsync();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override void ProcessTrade()
+        protected override async Task ProcessTradeAsync()
         {
             double diff = TradeInfo.Trade.Price - AnchorPrice;
             PlotPoints[0].Add(new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price));
@@ -48,7 +48,7 @@ namespace ExchangeSharp
                 // lower anchor price just a bit in case price drops so we will buy more
                 AnchorPrice -= (BuyFalseReverseThresholdPercent * AnchorPrice);
                 HitPeak = false;
-                PerformBuy();
+                await PerformBuyAsync();
             }
             else if (HitPeak && diff >= ((SellThresholdPercent * AnchorPrice) + (SellReverseThresholdPercent * AnchorPrice)) &&
                 BuyPrices.Count != 0 && TradeInfo.Trade.Price > BuyPrices[BuyPrices.Count - 1].Value + (SellReverseThresholdPercent * AnchorPrice))
@@ -56,7 +56,7 @@ namespace ExchangeSharp
                 // peak reversal, sell
                 AnchorPrice = TradeInfo.Trade.Price;
                 HitPeak = HitValley = false;
-                PerformSell();
+                await PerformSellAsync();
             }
             else if (diff < (BuyThresholdPercent * AnchorPrice))
             {

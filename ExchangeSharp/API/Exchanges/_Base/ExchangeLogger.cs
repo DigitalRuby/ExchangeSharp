@@ -34,11 +34,11 @@ namespace ExchangeSharp
         HashSet<string> tradeIds = new HashSet<string>();
         HashSet<string> tradeIds2 = new HashSet<string>();
 
-        private void LoggerThread()
+        private async Task LoggerThread()
         {
             while (IsRunningInBackground && !cancelEvent.WaitOne(Interval))
             {
-                Update();
+                await UpdateAsync();
             }
             cancelEvent.Set();
             IsRunningInBackground = false;
@@ -77,7 +77,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Update the logger - you can call this periodically if you don't want to call Start to run the logger in a background thread.
         /// </summary>
-        public void Update()
+        public async Task UpdateAsync()
         {
             ExchangeTrade[] newTrades;
             HashSet<string> tmpTradeIds;
@@ -87,7 +87,7 @@ namespace ExchangeSharp
                 if (MarketSymbol == "*")
                 {
                     // get all symbols
-                    Tickers = API.GetTickersAsync().Sync().ToArray();
+                    Tickers = (await API.GetTickersAsync()).ToArray();
                     tickerWriter.Write(Tickers.Count);
                     foreach (KeyValuePair<string, ExchangeTicker> ticker in Tickers)
                     {
@@ -98,9 +98,9 @@ namespace ExchangeSharp
                 else
                 {
                     // make API calls first, if they fail we will try again later
-                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(MarketSymbol, API.GetTickerAsync(MarketSymbol).Sync()) };
-                    OrderBook = API.GetOrderBookAsync(MarketSymbol).Sync();
-                    Trades = API.GetRecentTradesAsync(MarketSymbol).Sync().OrderBy(t => t.Timestamp).ToArray();
+                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(MarketSymbol, await API.GetTickerAsync(MarketSymbol)) };
+                    OrderBook = await API.GetOrderBookAsync(MarketSymbol);
+                    Trades = (await API.GetRecentTradesAsync(MarketSymbol)).OrderBy(t => t.Timestamp).ToArray();
 
                     // all API calls succeeded, we can write to files
 

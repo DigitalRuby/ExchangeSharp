@@ -57,11 +57,11 @@ namespace ExchangeSharp
         public List<KeyValuePair<float, float>> SellPrices { get; } = new List<KeyValuePair<float, float>>();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected virtual void Initialize(ExchangeTradeInfo info)
+        protected virtual async Task InitializeAsync(ExchangeTradeInfo info)
         {
             TradeInfo = info;
             LastTradeTimestamp = info.Trade.Ticks;
-            UpdateAmounts();
+            await UpdateAmountsAsync();
             StartCashFlow = CashFlow;
             Profit = (CashFlow - StartCashFlow) + (ItemCount * (decimal)info.Trade.Price);
 			ItemCount = 0.0m;
@@ -77,11 +77,11 @@ namespace ExchangeSharp
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UpdateAmounts()
+        private async Task UpdateAmountsAsync()
         {
             if (ProductionMode)
             {
-                var dict = TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTradeAsync().Sync();
+                var dict = await TradeInfo.ExchangeInfo.API.GetAmountsAvailableToTradeAsync();
                 string[] tradeSymbols = TradeInfo.MarketSymbol.Split('_');
                 dict.TryGetValue(tradeSymbols[1], out decimal itemCount);
                 dict.TryGetValue(tradeSymbols[0], out decimal cashFlow);
@@ -103,7 +103,7 @@ namespace ExchangeSharp
         /// Use TradeInfo property to update the trader
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected abstract void ProcessTrade();
+        protected abstract Task ProcessTradeAsync();
 
         public override string ToString()
         {
@@ -118,7 +118,7 @@ namespace ExchangeSharp
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update()
+        public async Task UpdateAsync()
         {
             if (TradeInfo.Trade.Ticks <= 0)
             {
@@ -128,7 +128,7 @@ namespace ExchangeSharp
             // init
             else if (LastTradeTimestamp == 0)
             {
-                Initialize(TradeInfo);
+                await InitializeAsync(TradeInfo);
                 return;
             }
             else if (TradeInfo.Trade.Ticks - LastTradeTimestamp >= Interval)
@@ -142,14 +142,14 @@ namespace ExchangeSharp
 #endif
 
                 LastTradeTimestamp = TradeInfo.Trade.Ticks;
-                ProcessTrade();
+                await ProcessTradeAsync();
             }
 
-            UpdateAmounts();
+            await UpdateAmountsAsync();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public decimal PerformBuy(decimal count = -1)
+        public async Task<decimal> PerformBuyAsync(decimal count = -1)
         {
             count = (count <= 0m ? BuyUnits : count);
             if (CashFlow >= ((decimal)TradeInfo.Trade.Price * count))
@@ -159,14 +159,14 @@ namespace ExchangeSharp
                 actualBuyPrice += (actualBuyPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
+                    await TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
                     {
                         Amount = count,
                         IsBuy = true,
                         Price = actualBuyPrice,
                         ShouldRoundAmount = false,
                         MarketSymbol = TradeInfo.MarketSymbol
-                    }).Sync();
+                    });
                 }
                 else
                 {
@@ -177,14 +177,14 @@ namespace ExchangeSharp
                 }
                 Buys++;
                 Spend += actualBuyPrice * count;
-                UpdateAmounts();
+                await UpdateAmountsAsync();
                 return count;
             }
             return 0m;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public decimal PerformSell(decimal count = -1)
+        public async Task<decimal> PerformSellAsync(decimal count = -1)
         {
             count = (count <= 0m ? SellUnits : count);
             if (ItemCount >= count)
@@ -193,14 +193,14 @@ namespace ExchangeSharp
                 actualSellPrice -= (actualSellPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
+                    await TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
                     {
                         Amount = count,
                         IsBuy = false,
                         Price = actualSellPrice,
                         ShouldRoundAmount = false,
                         MarketSymbol = TradeInfo.MarketSymbol
-                    }).Sync();
+                    });
                 }
                 else
                 {
@@ -211,7 +211,7 @@ namespace ExchangeSharp
                 }
                 Sells++;
                 Earned += actualSellPrice * count;
-                UpdateAmounts();
+                await UpdateAmountsAsync();
                 return count;
             }
             return 0m;

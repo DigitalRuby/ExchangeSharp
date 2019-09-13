@@ -106,14 +106,17 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker?currencyPair=" + marketSymbol.UrlEncode());
-            return ParseTicker(token);
+            return await ParseTickerAsync(token);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/ticker");
-            foreach (JToken tick in token) tickers.Add(new KeyValuePair<string, ExchangeTicker>(tick["symbol"].ToStringInvariant(), ParseTicker(tick)));
+            foreach (JToken tick in token)
+            {
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(tick["symbol"].ToStringInvariant(), await ParseTickerAsync(tick)));
+            }
             return tickers;
         }
 
@@ -343,11 +346,11 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(JToken token)
+        private async Task<ExchangeTicker> ParseTickerAsync(JToken token)
         {
             // [{"symbol": "LTC/BTC","last": 0.00805061,"high": 0.00813633,"low": 0.00784855,"volume": 14729.48452951,"vwap": 0.00795126,"max_bid": 0.00813633,"min_ask": 0.00784855,"best_bid": 0.00798,"best_ask": 0.00811037}, ... ]
             string marketSymbol = token["symbol"].ToStringInvariant();
-            return this.ParseTicker(token, marketSymbol, "best_ask", "best_bid", "last", "volume");
+            return await this.ParseTickerAsync(token, marketSymbol, "best_ask", "best_bid", "last", "volume");
         }
 
         private ExchangeTrade ParseTrade(JToken token)

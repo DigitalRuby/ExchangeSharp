@@ -42,7 +42,7 @@ namespace ExchangeSharp
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
         }
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             if (marketSymbol.Length < 6)
             {
@@ -50,9 +50,9 @@ namespace ExchangeSharp
             }
             else if (marketSymbol.Length == 6)
             {
-                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(0, 3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(3, 3), GlobalMarketSymbolSeparator);
+                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(marketSymbol.Substring(0, 3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(3, 3), GlobalMarketSymbolSeparator);
             }
-            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(0, 3), GlobalMarketSymbolSeparator);
+            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(marketSymbol.Substring(3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(0, 3), GlobalMarketSymbolSeparator);
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -199,7 +199,7 @@ namespace ExchangeSharp
             }}
              */
             JToken ticker = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + marketSymbol);
-            return this.ParseTicker(ticker["tick"], marketSymbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
+            return await this.ParseTickerAsync(ticker["tick"], marketSymbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
         }
 
         protected async override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -213,16 +213,16 @@ namespace ExchangeSharp
                 symbol = child["symbol"].ToStringInvariant();
                 if (markets.ContainsKey(symbol))
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(child, symbol, null, null, "close", "amount", "vol")));
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, await this.ParseTickerAsync(child, symbol, null, null, "close", "amount", "vol")));
                 }
             }
 
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 /*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
@@ -287,9 +287,9 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 /*
 {{

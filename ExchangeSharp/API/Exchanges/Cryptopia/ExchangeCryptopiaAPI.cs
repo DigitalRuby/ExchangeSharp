@@ -139,14 +139,17 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken result = await MakeJsonRequestAsync<JToken>("/GetMarket/" + NormalizeSymbolForUrl(marketSymbol));
-            return ParseTicker(result);
+            return await ParseTickerAsync(result);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             JToken result = await MakeJsonRequestAsync<JToken>("/GetMarkets");
-            foreach (JToken token in result) tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["Label"].ToStringInvariant(), ParseTicker(token)));
+            foreach (JToken token in result)
+            {
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["Label"].ToStringInvariant(), await ParseTickerAsync(token)));
+            }
             return tickers;
         }
 
@@ -423,11 +426,11 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(JToken token)
+        private async Task<ExchangeTicker> ParseTickerAsync(JToken token)
         {
             // [{ "TradePairId":100,"Label":"LTC/BTC","AskPrice":0.00006000,"BidPrice":0.02000000,"Low":0.00006000,"High":0.00006000,"Volume":1000.05639978,"LastPrice":0.00006000,"BuyVolume":34455.678,"SellVolume":67003436.37658233,"Change":-400.00000000,"Open": 0.00000500,"Close": 0.00000600, "BaseVolume": 3.58675866,"BaseBuyVolume": 11.25364758, "BaseSellVolume": 3456.06746543 }, ... ]
             string marketSymbol = token["Label"].ToStringInvariant();
-            return this.ParseTicker(token, marketSymbol, "AskPrice", "BidPrice", "LastPrice", "Volume", "BaseVolume");
+            return await this.ParseTickerAsync(token, marketSymbol, "AskPrice", "BidPrice", "LastPrice", "Volume", "BaseVolume");
         }
 
         private ExchangeTrade ParseTrade(JToken token)

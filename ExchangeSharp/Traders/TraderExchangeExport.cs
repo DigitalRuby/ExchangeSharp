@@ -29,7 +29,7 @@ namespace ExchangeSharp
         /// <param name="basePath">Base path to export to, should not contain symbol, symbol will be appended</param>
         /// <param name="sinceDateTime">Start date to begin export at</param>
         /// <param name="callback">Callback if api is not null to notify of progress</param>
-        public static void ExportExchangeTrades(IExchangeAPI api, string marketSymbol, string basePath, DateTime sinceDateTime, Action<long> callback = null)
+        public static async Task ExportExchangeTrades(IExchangeAPI api, string marketSymbol, string basePath, DateTime sinceDateTime, Action<long> callback = null)
         {
             basePath = Path.Combine(basePath, marketSymbol);
             Directory.CreateDirectory(basePath);
@@ -62,7 +62,7 @@ namespace ExchangeSharp
                     }
                     return true;
                 }
-                api.GetHistoricalTradesAsync(innerCallback, marketSymbol, sinceDateTime).Sync();
+                await api.GetHistoricalTradesAsync(innerCallback, marketSymbol, sinceDateTime);
                 writer.Close();
                 callback?.Invoke(count);
             }

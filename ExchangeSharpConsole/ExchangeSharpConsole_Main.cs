@@ -19,18 +19,13 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-
+using System.Threading.Tasks;
 using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
     public static partial class ExchangeSharpConsoleMain
     {
-        public static int Main(string[] args)
-        {
-            return ExchangeSharpConsoleMain.ConsoleMain(args);
-        }
-
         private static void RequireArgs(Dictionary<string, string> dict, params string[] args)
         {
             bool fail = false;
@@ -65,7 +60,22 @@ namespace ExchangeSharpConsole
         {
         }
 
-        public static int ConsoleMain(string[] args)
+        /// <summary>
+        /// Console app main method
+        /// </summary>
+        /// <param name="args">Args</param>
+        /// <returns>Task</returns>
+        public static Task<int> Main(string[] args)
+        {
+            return ExchangeSharpConsoleMain.ConsoleMain(args);
+        }
+
+        /// <summary>
+        /// Console sub-main entry method
+        /// </summary>
+        /// <param name="args">Args</param>
+        /// <returns>Task</returns>
+        public static async Task<int> ConsoleMain(string[] args)
         {
             try
             {
@@ -80,7 +90,7 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("test"))
                 {
-                    RunPerformTests(argsDictionary);
+                    await RunPerformTests(argsDictionary);
                 }
                 else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("export"))
                 {
@@ -92,11 +102,11 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("stats"))
                 {
-                    RunShowExchangeStats(argsDictionary);
+                    await RunShowExchangeStats(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("example"))
                 {
-                    RunExample(argsDictionary);
+                    await RunExample(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("keys"))
                 {
@@ -104,15 +114,15 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.ContainsKey("websocket-ticker"))
                 {
-                    RunWebSocketTickers(argsDictionary);
+                    await RunWebSocketTickers(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("websocket-trades"))
                 {
-                    RunTradesWebSocket(argsDictionary);
+                    await RunTradesWebSocket(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("websocket-orderbook"))
                 {
-                    RunOrderBookWebSocket(argsDictionary);
+                    await RunOrderBookWebSocket(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("getExchangeNames"))
                 {
@@ -120,31 +130,31 @@ namespace ExchangeSharpConsole
                 }
                 else if (argsDictionary.ContainsKey("showHistoricalTrades"))
                 {
-                    RunGetHistoricalTrades(argsDictionary);
+                    await RunGetHistoricalTrades(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("getOrderHistory"))
                 {
-                    RunGetOrderHistory(argsDictionary);
+                    await RunGetOrderHistoryAsync(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("getOrderDetails"))
                 {
-                    RunGetOrderDetails(argsDictionary);
+                    await RunGetOrderDetailsAsync(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("symbols-metadata"))
                 {
-                    RunGetSymbolsMetadata(argsDictionary);
+                    await RunGetSymbolsMetadata(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("symbols"))
                 {
-                    RunGetMarketSymbols(argsDictionary);
+                    await RunGetMarketSymbols(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("tickers"))
                 {
-                    RunGetTickers(argsDictionary);
+                    await RunGetTickers(argsDictionary);
                 }
                 else if (argsDictionary.ContainsKey("candles"))
                 {
-                    RunGetCandles(argsDictionary);
+                    await RunGetCandles(argsDictionary);
                 }
                 else
                 {

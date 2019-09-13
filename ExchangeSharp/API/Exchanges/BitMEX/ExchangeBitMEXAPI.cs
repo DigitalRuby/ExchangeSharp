@@ -49,12 +49,12 @@ namespace ExchangeSharp
             RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
         }
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             throw new NotImplementedException();
         }
 
-        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             throw new NotImplementedException();
         }
@@ -224,7 +224,7 @@ namespace ExchangeSharp
             return markets;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             /*
 {"table":"trade","action":"partial","keys":[],
@@ -235,7 +235,7 @@ namespace ExchangeSharp
 "data":[{"timestamp":"2018-07-06T08:31:53.333Z","symbol":"XBTUSD","side":"Buy","size":10000,"price":6520,"tickDirection":"PlusTick","trdMatchID":"a296312f-c9a4-e066-2f9e-7f4cf2751f0a","grossValue":153370000,"homeNotional":1.5337,"foreignNotional":10000}]}
              */
 
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            return ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);
@@ -270,7 +270,7 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             /*
 {"info":"Welcome to the BitMEX Realtime API.","version":"2018-06-29T18:05:14.000Z","timestamp":"2018-07-05T14:22:26.267Z","docs":"https://www.bitmex.com/app/wsAPI","limit":{"remaining":39}}
@@ -280,9 +280,9 @@ namespace ExchangeSharp
 
             if (marketSymbols == null || marketSymbols.Length == 0)
             {
-                marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
             }
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);

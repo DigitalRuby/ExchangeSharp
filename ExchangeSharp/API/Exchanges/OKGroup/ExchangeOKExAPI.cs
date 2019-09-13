@@ -20,7 +20,7 @@ namespace ExchangeSharp
 		public override string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
 		public override string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
         public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:10442/ws/v3";
-		protected override bool isFuturesAndSwapEnabled { get; } = true;
+		protected override bool IsFuturesAndSwapEnabled { get; } = true;
 	}
 
 	public partial class ExchangeName { public const string OKEx = "OKEx"; }

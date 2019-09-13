@@ -115,18 +115,18 @@ namespace ExchangeSharp
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
 
-                while (!_manager.disposed)
+                while (!disposed && !_manager.disposed)
                 {
-                    await _manager.AddListener(functionName, callback, param);
-
-                    if (_manager.hubConnection.State != ConnectionState.Connected)
-                    {
-                        await Task.Delay(100);
-                        continue;
-                    }
-
                     try
                     {
+                        // performs any needed reconnect
+                        await _manager.AddListener(functionName, callback, param);
+
+                        while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
+                        {
+                            await Task.Delay(100);
+                        }
+
                         // ask for proxy after adding the listener, as the listener will force a connection if needed
                         IHubProxy _proxy = _manager.hubProxy;
                         if (_proxy == null)
@@ -141,12 +141,12 @@ namespace ExchangeSharp
                             {
                                 await Task.Delay(delayMilliseconds);
                             }
-                            bool result = await _proxy.Invoke<bool>(functionFullName, param[i]).ConfigureAwait(false);
-                            if (!result)
+                            if (!(await _proxy.Invoke<bool>(functionFullName, param[i])))
                             {
                                 throw new APIException("Invoke returned success code of false");
                             }
                         }
+                        ex = null;
                         break;
                     }
                     catch (Exception _ex)
@@ -168,7 +168,7 @@ namespace ExchangeSharp
                     }
                 }
 
-                if (ex == null)
+                if (ex == null && !disposed && !_manager.disposed)
                 {
                     this.callback = callback;
                     lock (_manager.sockets)
@@ -179,10 +179,13 @@ namespace ExchangeSharp
                     {
                         initialConnectFired = true;
 
-                        // kick off a connect event if this is the first time, the connect even can only get set after the open request is sent
-                        Task.Delay(1000).ContinueWith(async (t) => { await InvokeConnected(); }).ConfigureAwait(false).GetAwaiter();
+                        // kick off a connect event if this is the first time, the connect event can only get set after the open request is sent
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(1000); // give time for the caller to set a connected event
+                            await InvokeConnected();
+                        }).ConfigureAwait(false).GetAwaiter();
                     }
-                    return;
                 }
             }
 
@@ -222,7 +225,7 @@ namespace ExchangeSharp
                         manager.sockets.Remove(this);
                     }
                     manager.RemoveListener(functionFullName, callback);
-                    InvokeDisconnected().Sync();
+                    InvokeDisconnected().GetAwaiter();
                 }
                 catch
                 {
@@ -244,8 +247,9 @@ namespace ExchangeSharp
         {
             private IConnection connection;
             private string connectionData;
-			TimeSpan connectInterval;
-			TimeSpan keepAlive;
+			private readonly TimeSpan connectInterval;
+			private readonly TimeSpan keepAlive;
+
 			public ExchangeSharp.ClientWebSocket WebSocket { get; private set; }
 
             public override bool SupportsKeepAlive => true;
@@ -591,14 +595,21 @@ namespace ExchangeSharp
             // setup connect event
             customTransport.WebSocket.Connected += async (ws) =>
             {
-                SignalrSocketConnection[] socketsCopy;
-                lock (sockets)
+                try
                 {
-                    socketsCopy = sockets.ToArray();
+                    SignalrSocketConnection[] socketsCopy;
+                    lock (sockets)
+                    {
+                        socketsCopy = sockets.ToArray();
+                    }
+                    foreach (SignalrSocketConnection socket in socketsCopy)
+                    {
+                        await socket.InvokeConnected();
+                    }
                 }
-                foreach (SignalrSocketConnection socket in socketsCopy)
+                catch (Exception ex)
                 {
-                    await socket.InvokeConnected();
+                    Logger.Info(ex.ToString());
                 }
             };
 
@@ -631,22 +642,33 @@ namespace ExchangeSharp
                     Logger.Info(ex.ToString());
                 }
             };
-            await hubConnection.Start(autoTransport);
 
-            // get list of listeners quickly to limit lock
-            HubListener[] listeners;
-            lock (this.listeners)
+            try
             {
-                listeners = this.listeners.Values.ToArray();
-            }
+                // it's possible for the hub connection to disconnect during this code if connection is crappy
+                // so we simply catch the exception and log an info message, the disconnect/reconnect loop will
+                // catch the close and re-initiate this whole method again
+                await hubConnection.Start(autoTransport);
 
-            // re-call the end point to enable messages
-            foreach (var listener in listeners)
-            {
-                foreach (object[] p in listener.Param)
+                // get list of listeners quickly to limit lock
+                HubListener[] listeners;
+                lock (this.listeners)
                 {
-                    await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                    listeners = this.listeners.Values.ToArray();
                 }
+
+                // re-call the end point to enable messages
+                foreach (var listener in listeners)
+                {
+                    foreach (object[] p in listener.Param)
+                    {
+                        await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Info(ex.ToString());
             }
         }
 

@@ -239,7 +239,7 @@ namespace ExchangeSharp
         {
             JToken ticker = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + marketSymbol);
             //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-            return this.ParseTicker(ticker[0], marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(ticker[0], marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -251,7 +251,7 @@ namespace ExchangeSharp
             {
                 marketSymbol = ticker["MarketName"].ToStringInvariant();
                 //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-                ExchangeTicker tickerObj = this.ParseTicker(ticker, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+                ExchangeTicker tickerObj = await this.ParseTickerAsync(ticker, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, tickerObj));
             }
             return tickerList;

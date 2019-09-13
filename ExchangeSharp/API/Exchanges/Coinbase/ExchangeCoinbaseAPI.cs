@@ -230,7 +230,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken ticker = await MakeJsonRequestAsync<JToken>("/products/" + marketSymbol + "/ticker");
-            return this.ParseTicker(ticker, marketSymbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(ticker, marketSymbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
@@ -265,7 +265,7 @@ namespace ExchangeSharp
             List<string> symbols = (await GetMarketSymbolsAsync()).ToList();
 
             // stupid Coinbase does not have a one shot API call for tickers outside of web sockets
-            using (var socket = GetTickersWebSocket((t) =>
+            using (var socket = await GetTickersWebSocketAsync((t) =>
             {
                 lock (tickers)
                 {
@@ -293,9 +293,9 @@ namespace ExchangeSharp
             }
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 string message = msg.ToStringFromUTF8();
                 var book = new ExchangeOrderBook();
@@ -362,17 +362,16 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
-            return ConnectWebSocket("/", (_socket, msg) =>
+            return await ConnectWebSocketAsync("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["type"].ToStringInvariant() == "ticker")
                 {
-                    ExchangeTicker ticker = this.ParseTicker(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601);
+                    ExchangeTicker ticker = await this.ParseTickerAsync(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601);
                     callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
                 }
-                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
@@ -393,13 +392,13 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-            return ConnectWebSocket("/", async (_socket, msg) =>
+            return await ConnectWebSocketAsync("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["type"].ToStringInvariant() == "error")

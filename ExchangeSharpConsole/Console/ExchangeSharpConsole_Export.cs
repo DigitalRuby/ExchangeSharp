@@ -12,13 +12,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+
 using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsoleMain
     {
-        public static void RunGetHistoricalTrades(Dictionary<string, string> dict)
+        public static async Task RunGetHistoricalTrades(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchangeName", "marketSymbol");
 
@@ -36,14 +38,14 @@ namespace ExchangeSharpConsole
             {
                 endDate = DateTime.Parse(dict["endDate"]).ToUniversalTime();
             }
-            api.GetHistoricalTradesAsync((IEnumerable<ExchangeTrade> trades) =>
+            await api.GetHistoricalTradesAsync((IEnumerable<ExchangeTrade> trades) =>
             {
                 foreach (ExchangeTrade trade in trades)
                 {
                     Console.WriteLine("Trade at timestamp {0}: {1}/{2}/{3}", trade.Timestamp.ToLocalTime(), trade.Id, trade.Price, trade.Amount);
                 }
                 return true;
-            }, marketSymbol, startDate, endDate).Sync();
+            }, marketSymbol, startDate, endDate);
         }
 
         public static void RunExportData(Dictionary<string, string> dict)

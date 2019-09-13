@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using ExchangeSharp;
 
@@ -196,11 +197,11 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void GetOpenOrderDetails_Unfilled_IsCorrect()
+        public async Task GetOpenOrderDetails_Unfilled_IsCorrect()
         {
             var polo = CreatePoloniexAPI(Unfilled);
 
-            IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetailsAsync("ETH_BCH").Sync();
+            IEnumerable<ExchangeOrderResult> orders = await polo.GetOpenOrderDetailsAsync("ETH_BCH");
             ExchangeOrderResult order = orders.Single();
             order.OrderId.Should().Be("35329211614");
             order.IsBuy.Should().BeTrue();
@@ -213,11 +214,11 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void GetOpenOrderDetails_AllUnfilled_IsCorrect()
+        public async Task GetOpenOrderDetails_AllUnfilled_IsCorrect()
         {
             var polo = CreatePoloniexAPI(AllUnfilledOrders);
 
-            IEnumerable<ExchangeOrderResult> orders = polo.GetOpenOrderDetailsAsync().Sync(); // all
+            IEnumerable<ExchangeOrderResult> orders = await polo.GetOpenOrderDetailsAsync(); // all
             ExchangeOrderResult order = orders.Single();
             order.OrderId.Should().Be("35329211614");
             order.IsBuy.Should().BeTrue();
@@ -230,10 +231,10 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void GetOrderDetails_HappyPath()
+        public async Task GetOrderDetails_HappyPath()
         {
             var polo = CreatePoloniexAPI(ReturnOrderTrades_SimpleBuy);
-            ExchangeOrderResult order = polo.GetOrderDetailsAsync("1").Sync();
+            ExchangeOrderResult order = await polo.GetOrderDetailsAsync("1");
 
             order.OrderId.Should().Be("1");
             order.Amount.Should().Be(19096.46996880m);
@@ -252,7 +253,7 @@ namespace ExchangeSharpTests
         {
             const string response = @"{""error"":""Order not found, or you are not the person who placed it.""}";
             var polo = CreatePoloniexAPI(response);
-            void a() => polo.GetOrderDetailsAsync("1").Sync();
+            async Task a() => await polo.GetOrderDetailsAsync("1");
             Invoking(a).Should().Throw<APIException>();
         }
 
@@ -262,15 +263,15 @@ namespace ExchangeSharpTests
             const string response = @"{""error"":""Big scary error.""}";
             var polo = CreatePoloniexAPI(response);
 
-            void a() => polo.GetOrderDetailsAsync("1").Sync();
+            async Task a() => await polo.GetOrderDetailsAsync("1");
             Invoking(a).Should().Throw<APIException>();
         }
 
         [TestMethod]
-        public void GetCompletedOrderDetails_MultipleOrders()
+        public async Task GetCompletedOrderDetails_MultipleOrders()
         {
             var polo = CreatePoloniexAPI(ReturnOrderTrades_AllGas);
-            IEnumerable<ExchangeOrderResult> orders = polo.GetCompletedOrderDetailsAsync("ETH_GAS").Sync();
+            IEnumerable<ExchangeOrderResult> orders = await polo.GetCompletedOrderDetailsAsync("ETH_GAS");
             orders.Should().HaveCount(2);
             ExchangeOrderResult sellorder = orders.Single(x => !x.IsBuy);
             sellorder.AveragePrice.Should().Be(0.04123m);
@@ -288,11 +289,11 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void GetCompletedOrderDetails_AllSymbols()
+        public async Task GetCompletedOrderDetails_AllSymbols()
         {
             // {"BTC_MAID": [ { "globalTradeID": 29251512, "tradeID": "1385888", "date": "2016-05-03 01:29:55", "rate": "0.00014243", "amount": "353.74692925", "total": "0.05038417", "fee": "0.00200000", "orderNumber": "12603322113", "type": "buy", "category": "settlement" }, { "globalTradeID": 29251511, "tradeID": "1385887", "date": "2016-05-03 01:29:55", "rate": "0.00014111", "amount": "311.24262497", "total": "0.04391944", "fee": "0.00200000", "orderNumber": "12603319116", "type": "sell", "category": "marginTrade" }
             var polo = CreatePoloniexAPI(GetCompletedOrderDetails_AllSymbolsOrders);
-            ExchangeOrderResult order = polo.GetCompletedOrderDetailsAsync().Sync().First();
+            ExchangeOrderResult order = (await polo.GetCompletedOrderDetailsAsync()).First();
             order.MarketSymbol.Should().Be("BTC_MAID");
             order.OrderId.Should().Be("12603322113");
             order.OrderDate.Should().Be(new DateTime(2016, 5, 3, 1, 29, 55));
@@ -304,14 +305,23 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void OnGetDepositHistory_DoesNotFailOnMinTimestamp()
+        public async Task OnGetDepositHistory_DoesNotFailOnMinTimestamp()
         {
             var polo = CreatePoloniexAPI(null);
-            Invoking(() => polo.GetDepositHistoryAsync("doesntmatter").Sync()).Should().Throw<APIException>().And.Message.Should().Contain("No result");
+            try
+            {
+                await polo.GetDepositHistoryAsync("doesntmatter");
+            }
+            catch (APIException ex)
+            {
+                Assert.IsTrue(ex.Message.Contains("No result"));
+                return;
+            }
+            Assert.Fail("Expected APIException with message containing 'No result'");
         }
 
         [TestMethod]
-        public void GetExchangeMarketFromCache_SymbolsMetadataCacheRefreshesWhenSymbolNotFound()
+        public async Task GetExchangeMarketFromCache_SymbolsMetadataCacheRefreshesWhenSymbolNotFound()
         {
             var polo = CreatePoloniexAPI(Resources.PoloniexGetSymbolsMetadata1);
             int requestCount = 0;
@@ -324,24 +334,24 @@ namespace ExchangeSharpTests
             };
 
             // retrieve without BTC_BCH in the result
-            polo.GetExchangeMarketFromCacheAsync("XMR_LTC").Sync().Should().NotBeNull();
+            (await polo.GetExchangeMarketFromCacheAsync("XMR_LTC")).Should().NotBeNull();
             requestCount.Should().Be(1);
-            polo.GetExchangeMarketFromCacheAsync("BTC_BCH").Sync().Should().BeNull();
+            (await polo.GetExchangeMarketFromCacheAsync("BTC_BCH")).Should().BeNull();
             requestCount.Should().Be(2);
 
             // now many moons later we request BTC_BCH, which wasn't in the first request but is in the latest exchange result
             (polo.RequestMaker as MockAPIRequestMaker).GlobalResponse = Resources.PoloniexGetSymbolsMetadata2;
-            polo.GetExchangeMarketFromCacheAsync("BTC_BCH").Sync().Should().NotBeNull();
+            (await polo.GetExchangeMarketFromCacheAsync("BTC_BCH")).Should().NotBeNull();
             requestCount.Should().Be(3);
 
             // and lets make sure it doesn't return something for null and garbage symbols
-            polo.GetExchangeMarketFromCacheAsync(null).Sync().Should().BeNull();
-            polo.GetExchangeMarketFromCacheAsync(string.Empty).Sync().Should().BeNull();
-            polo.GetExchangeMarketFromCacheAsync("324235!@^%Q@#%^").Sync().Should().BeNull();
-            polo.GetExchangeMarketFromCacheAsync("NOCOIN_NORESULT").Sync().Should().BeNull();
+            (await polo.GetExchangeMarketFromCacheAsync(null)).Should().BeNull();
+            (await polo.GetExchangeMarketFromCacheAsync(string.Empty)).Should().BeNull();
+            (await polo.GetExchangeMarketFromCacheAsync("324235!@^%Q@#%^")).Should().BeNull();
+            (await polo.GetExchangeMarketFromCacheAsync("NOCOIN_NORESULT")).Should().BeNull();
         }
 
-        private static Action Invoking(Action action) => action;
+        private static Func<Task> Invoking(Func<Task> action) => action;
 
         #region RealResponseJSON
         private const string SingleMarketTradeHistory = @"[{

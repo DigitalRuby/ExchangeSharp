@@ -109,12 +109,12 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances) => throw new NotImplementedException();
         protected virtual Task<ExchangeMarginPositionResult> OnGetOpenPositionAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
-        protected virtual IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
-		protected virtual IWebSocket OnUserDataWebSocket(Action<object> callback, string listenKey) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+        protected virtual Task<IWebSocket> OnGetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback) => throw new NotImplementedException();
+		protected virtual Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback, string listenKey) => throw new NotImplementedException();
 
 		#endregion API implementation
 
@@ -154,7 +154,7 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Exchange market symbol</param>
         /// <param name="separator">Separator</param>
         /// <returns>Global symbol</returns>
-        protected string ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(string marketSymbol, char separator = GlobalMarketSymbolSeparator)
+        protected async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(string marketSymbol, char separator = GlobalMarketSymbolSeparator)
         {
             if (string.IsNullOrEmpty(marketSymbol))
             {
@@ -163,9 +163,9 @@ namespace ExchangeSharp
             string[] pieces = marketSymbol.Split(separator);
             if (MarketSymbolIsReversed)
             {
-                return ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant() + GlobalMarketSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant();
+                return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant();
             }
-            return ExchangeCurrencyToGlobalCurrency(pieces[1]).ToUpperInvariant() + GlobalMarketSymbolSeparator + ExchangeCurrencyToGlobalCurrency(pieces[0]).ToUpperInvariant();
+            return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant();
         }
 
         /// <summary>
@@ -341,14 +341,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="currency">Exchange currency</param>
         /// <returns>Global currency</returns>
-        public string ExchangeCurrencyToGlobalCurrency(string currency)
+        public Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
         {
             currency = (currency ?? string.Empty);
             foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
             {
                 currency = currency.Replace(kv.Key, kv.Value);
             }
-            return currency.ToUpperInvariant();
+            return Task.FromResult(currency.ToUpperInvariant());
         }
 
         /// <summary>
@@ -399,7 +399,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Exchange symbol</param>
         /// <returns>Global symbol</returns>
-        public virtual string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public virtual async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             string modifiedMarketSymbol = marketSymbol;
             char separator;
@@ -408,7 +408,7 @@ namespace ExchangeSharp
             if (string.IsNullOrWhiteSpace(MarketSymbolSeparator))
             {
                 // we must look it up via metadata, most often this call will be cached and fast
-                ExchangeMarket marketSymbolMetadata = GetExchangeMarketFromCacheAsync(marketSymbol).Sync();
+                ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(marketSymbol);
                 if (marketSymbolMetadata == null)
                 {
                     throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
@@ -420,7 +420,7 @@ namespace ExchangeSharp
             {
                 separator = MarketSymbolSeparator[0];
             }
-            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(modifiedMarketSymbol, separator);
+            return await ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(modifiedMarketSymbol, separator);
         }
 
         /// <summary>
@@ -440,7 +440,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Market symbol</param>
         /// <returns>Base and quote currency</returns>
-        public virtual (string baseCurrency, string quoteCurrency) ExchangeMarketSymbolToCurrencies(string marketSymbol)
+        public virtual async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
         {
             marketSymbol.ThrowIfNullOrWhitespace(nameof(marketSymbol));
 
@@ -450,7 +450,7 @@ namespace ExchangeSharp
                 try
                 {
                     // we must look it up via metadata, most often this call will be cached and fast
-                    ExchangeMarket marketSymbolMetadata = GetExchangeMarketFromCacheAsync(marketSymbol).Sync();
+                    ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(marketSymbol);
                     if (marketSymbolMetadata == null)
                     {
                         throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
@@ -472,7 +472,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Global market symbol</param>
         /// <returns>Exchange market symbol</returns>
-        public virtual string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        public virtual Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             if (string.IsNullOrWhiteSpace(marketSymbol))
             {
@@ -491,7 +491,7 @@ namespace ExchangeSharp
             {
                 marketSymbol = GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(pos + 1)) + MarketSymbolSeparator + GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(0, pos));
             }
-            return (MarketSymbolIsUppercase ? marketSymbol.ToUpperInvariant() : marketSymbol.ToLowerInvariant());
+            return Task.FromResult(MarketSymbolIsUppercase ? marketSymbol.ToUpperInvariant() : marketSymbol.ToLowerInvariant());
         }
 
         /// <summary>
@@ -851,10 +851,10 @@ namespace ExchangeSharp
 		/// <param name="callback">Callback</param>
 		/// <param name="symbols"></param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		public virtual IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+		public virtual Task<IWebSocket> GetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-            return OnGetTickersWebSocket(callback, symbols);
+            return OnGetTickersWebSocketAsync(callback, symbols);
         }
 
         /// <summary>
@@ -863,10 +863,10 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="marketSymbols">Market Symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        public virtual Task<IWebSocket> GetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-            return OnGetTradesWebSocket(callback, marketSymbols);
+            return OnGetTradesWebSocketAsync(callback, marketSymbols);
         }
 
         /// <summary>
@@ -876,10 +876,10 @@ namespace ExchangeSharp
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <param name="marketSymbols">Market symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        public virtual Task<IWebSocket> GetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-            return OnGetDeltaOrderBookWebSocket(callback, maxCount, marketSymbols);
+            return OnGetDeltaOrderBookWebSocketAsync(callback, maxCount, marketSymbols);
         }
 
         /// <summary>
@@ -887,10 +887,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        public virtual Task<IWebSocket> GetOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-            return OnGetOrderDetailsWebSocket(callback);
+            return OnGetOrderDetailsWebSocketAsync(callback);
         }
 
         /// <summary>
@@ -898,16 +898,22 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public virtual IWebSocket GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        public virtual Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback)
         {
             callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-            return OnGetCompletedOrderDetailsWebSocket(callback);
+            return OnGetCompletedOrderDetailsWebSocketAsync(callback);
         }
 
-        public virtual IWebSocket GetUserDataWebSocket(Action<object> callback, string listenKey)
+        /// <summary>
+        /// Get user detail over web socket
+        /// </summary>
+        /// <param name="callback">Callback</param>
+        /// <param name="listenKey">Listen key</param>
+        /// <returns>Web socket, call Dispose to close</returns>
+        public virtual Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback, string listenKey)
         {
 	        callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-	        return OnUserDataWebSocket(callback, listenKey);
+	        return OnUserDataWebSocketAsync(callback, listenKey);
         }
 		#endregion Web Socket API
 	}

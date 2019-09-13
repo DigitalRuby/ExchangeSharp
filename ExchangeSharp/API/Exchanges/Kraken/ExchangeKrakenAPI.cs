@@ -47,37 +47,41 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
         }
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             if (exchangeSymbolToNormalizedSymbol.TryGetValue(marketSymbol, out string normalizedSymbol))
             {
                 int pos;
                 if (marketSymbol.StartsWith("WAVES"))
+                {
                     pos = 5;
+                }
                 else
+                {
                     pos = (normalizedSymbol.Length == 6 ? 3 : (normalizedSymbol.Length == 7 ? 4 : throw new InvalidOperationException("Cannot normalize symbol " + normalizedSymbol)));
-                return base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
+                }
+                return await base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
             }
 
             # region if the initial fails, we try to use another method
-            var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
+            var symbols = (await GetMarketSymbolsMetadataAsync()).ToList();
             var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
             string _marketSymbol = symbol.BaseCurrency + symbol.QuoteCurrency;
             if (exchangeSymbolToNormalizedSymbol.TryGetValue(_marketSymbol, out normalizedSymbol))
             {
                 int pos = (normalizedSymbol.Length == 6 ? 3 : (normalizedSymbol.Length == 7 ? 4 : throw new InvalidOperationException("Cannot normalize symbol " + normalizedSymbol)));
-                return base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
+                return await base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
             }
             #endregion
 
             throw new ArgumentException($"Symbol {marketSymbol} not found in Kraken lookup table");
         }
 
-        public override string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol)
+        public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             if (normalizedSymbolToExchangeSymbol.TryGetValue(marketSymbol.Replace(GlobalMarketSymbolSeparator.ToString(), string.Empty), out string exchangeSymbol))
             {
-                return exchangeSymbol;
+                return Task.FromResult(exchangeSymbol);
             }
 
             // not found, reverse the pair
@@ -85,7 +89,7 @@ namespace ExchangeSharp
             marketSymbol = marketSymbol.Substring(idx + 1) + marketSymbol.Substring(0, idx);
             if (normalizedSymbolToExchangeSymbol.TryGetValue(marketSymbol.Replace(GlobalMarketSymbolSeparator.ToString(), string.Empty), out exchangeSymbol))
             {
-                return exchangeSymbol;
+                return Task.FromResult(exchangeSymbol);
             }
 
             throw new ArgumentException($"Symbol {marketSymbol} not found in Kraken lookup table");
@@ -235,7 +239,7 @@ namespace ExchangeSharp
             return orderResult;
         }
 
-        private ExchangeOrderResult ParseHistoryOrder(string orderId, JToken order)
+        private async Task<ExchangeOrderResult> ParseHistoryOrder(string orderId, JToken order)
         {
 //            //{{
 //            "ordertxid": "ONKWWN-3LWZ7-4SDZVJ",
@@ -253,9 +257,7 @@ namespace ExchangeSharp
 //}
 //    }
 
-    ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
-           
-
+            ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
             orderResult.Result = ExchangeAPIOrderResult.Filled;
             orderResult.Message = "";
             orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
@@ -270,7 +272,7 @@ namespace ExchangeSharp
             orderResult.AmountFilled = order["vol"].ConvertInvariant<decimal>();
             orderResult.FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
 
-            string[] pairs = ExchangeMarketSymbolToGlobalMarketSymbol(order["pair"].ToStringInvariant()).Split('-');
+            string[] pairs = (await ExchangeMarketSymbolToGlobalMarketSymbolAsync(order["pair"].ToStringInvariant())).Split('-');
             orderResult.FeesCurrency = pairs[1];
 
             return orderResult;
@@ -332,7 +334,7 @@ namespace ExchangeSharp
                 {
                     if (normalizedSymbol == null || order.Value["pair"].ToStringInvariant() == symbol.ToUpperInvariant())
                     {
-                        orders.Add(ParseHistoryOrder(order.Name, order.Value));
+                        orders.Add(await ParseHistoryOrder(order.Name, order.Value));
                     }
                 }
             }
@@ -340,7 +342,7 @@ namespace ExchangeSharp
             {
                 foreach (JProperty order in result)
                 {
-                    orders.Add(ParseHistoryOrder(order.Name, order.Value));
+                    orders.Add(await ParseHistoryOrder(order.Name, order.Value));
                 }
             }
 
@@ -572,7 +574,7 @@ namespace ExchangeSharp
                 if (ticker == null)
                 {
                     // Some pairs like USDTZUSD are not found, but they can be found using Metadata.
-                    var symbols = GetMarketSymbolsMetadataAsync().Sync().ToList();
+                    var symbols = (await GetMarketSymbolsMetadataAsync()).ToList();
                     var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
                     ticker = apiTickers[symbol.BaseCurrency + symbol.QuoteCurrency];
                 }
@@ -580,7 +582,7 @@ namespace ExchangeSharp
 
                 try
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ConvertToExchangeTicker(marketSymbol, ticker)));
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ConvertToExchangeTickerAsync(marketSymbol, ticker)));
                 }
                 catch
                 {
@@ -594,13 +596,13 @@ namespace ExchangeSharp
         {
             JToken apiTickers = await MakeJsonRequestAsync<JToken>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", NormalizeMarketSymbol(marketSymbol) } });
             JToken ticker = apiTickers[marketSymbol];
-            return ConvertToExchangeTicker(marketSymbol, ticker);
+            return await ConvertToExchangeTickerAsync(marketSymbol, ticker);
         }
 
-        private ExchangeTicker ConvertToExchangeTicker(string symbol, JToken ticker)
+        private async Task<ExchangeTicker> ConvertToExchangeTickerAsync(string symbol, JToken ticker)
         {
             decimal last = ticker["c"][0].ConvertInvariant<decimal>();
-            var (baseCurrency, quoteCurrency) = ExchangeMarketSymbolToCurrencies(symbol);
+            var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
             return new ExchangeTicker
             {
                 MarketSymbol = symbol,
@@ -828,13 +830,13 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token.Type == JTokenType.Array && token[2].ToStringInvariant() == "trade")

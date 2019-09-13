@@ -124,7 +124,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>("/api?method=getticker");
             foreach (JProperty prop in token)
             {
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(prop.Name, this.ParseTicker(prop.First, prop.Name, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(prop.Name, await this.ParseTickerAsync(prop.First, prop.Name, "lowestAsk", "highestBid", "last", "baseVolume", "quoteVolume", idKey: "id")));
             }
             return tickers;
         }

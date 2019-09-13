@@ -45,18 +45,18 @@ namespace ExchangeSharp
             return new Tuple<JToken, string>(obj, marketSymbol);
         }
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data)
+        private async Task<ExchangeTicker> ParseTickerAsync(string symbol, JToken data)
         {
             // {{"ticker":{"vol":"18202.5979","last":"6698.2","sell":"6703.21","buy":"6693.2","high":"6757.69","low":"6512.69"},"date":"1531822098779"}}
-            ExchangeTicker ticker = this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol");
+            ExchangeTicker ticker = await this.ParseTickerAsync(data["ticker"], symbol, "sell", "buy", "last", "vol");
             ticker.Volume.Timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(data["date"].ConvertInvariant<long>());
             return ticker;
         }
 
-        private ExchangeTicker ParseTickerV2(string symbol, JToken data)
+        private async Task<ExchangeTicker> ParseTickerV2Async(string symbol, JToken data)
         {
             //{"hpybtc":{ "vol":"500450.0","last":"0.0000013949","sell":"0.0000013797","buy":"0.0000012977","high":"0.0000013949","low":"0.0000011892"}}
-            return this.ParseTicker(data.First, symbol, "sell", "buy", "last", "vol");
+            return await this.ParseTickerAsync(data.First, symbol, "sell", "buy", "last", "vol");
         }
 
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
@@ -113,7 +113,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             var data = await MakeRequestZBcomAsync(marketSymbol, "/ticker?market=$SYMBOL$");
-            return ParseTicker(data.Item2, data.Item1);
+            return await ParseTickerAsync(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -143,19 +143,19 @@ namespace ExchangeSharp
                 //for some reason when returning tickers, the api doesn't include the symbol separator like it does everywhere else so we need to convert it to the correct format
                 if (symbolLookup.Value.TryGetValue(token.Path, out string marketSymbol))
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV2(marketSymbol, token)));
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerV2Async(marketSymbol, token)));
                 }
             }
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["dataType"].ToStringInvariant() == "trades")

@@ -37,7 +37,7 @@ namespace ExchangeSharp
         /// parameter</param>
         /// <param name="symbols">Order book symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public static IWebSocket GetFullOrderBookWebSocket(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        public static async Task<IWebSocket> GetFullOrderBookWebSocketAsync(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (api.WebSocketOrderBookType == WebSocketOrderBookType.None)
             {
@@ -170,7 +170,7 @@ namespace ExchangeSharp
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetDeltaOrderBookWebSocket(async (b) =>
+            IWebSocket socket = await api.GetDeltaOrderBookWebSocketAsync(async (b) =>
             {
                 try
                 {
@@ -441,7 +441,7 @@ namespace ExchangeSharp
         /// <param name="quoteCurrencyKey">Quote currency key</param>
         /// <param name="idKey">Id key</param>
         /// <returns>ExchangeTicker</returns>
-        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string marketSymbol,
+        internal static async Task<ExchangeTicker> ParseTickerAsync(this ExchangeAPI api, JToken token, string marketSymbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
             object quoteVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
             object baseCurrencyKey = null, object quoteCurrencyKey = null, object idKey = null)
@@ -472,7 +472,7 @@ namespace ExchangeSharp
             }
             else
             {
-                (baseCurrency, quoteCurrency) = api.ExchangeMarketSymbolToCurrencies(marketSymbol);
+                (baseCurrency, quoteCurrency) = await api.ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
             }
 
             // create the ticker and return it

@@ -155,7 +155,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken ticker = await MakeJsonRequestAsync<JToken>("/ticker/t" + marketSymbol);
-            return this.ParseTicker(ticker, marketSymbol, 2, 0, 6, 7);
+            return await this.ParseTickerAsync(ticker, marketSymbol, 2, 0, 6, 7);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -213,10 +213,10 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
@@ -226,7 +226,7 @@ namespace ExchangeSharp
                         List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
                         if (channelIdToSymbol.TryGetValue(array[0].ConvertInvariant<int>(), out string symbol))
                         {
-                            ExchangeTicker ticker = ParseTickerWebSocket(symbol, array);
+                            ExchangeTicker ticker = await ParseTickerWebSocketAsync(symbol, array);
                             if (ticker != null)
                             {
                                 callback(new KeyValuePair<string, ExchangeTicker>[] { new KeyValuePair<string, ExchangeTicker>(symbol, ticker) });
@@ -240,7 +240,6 @@ namespace ExchangeSharp
                     int channelId = token["chanId"].ConvertInvariant<int>();
                     channelIdToSymbol[channelId] = token["pair"].ToStringInvariant();
                 }
-                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
@@ -251,14 +250,14 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
             Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-            return ConnectWebSocket("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
+            return await ConnectWebSocketAsync("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token is JArray array)
@@ -534,9 +533,9 @@ namespace ExchangeSharp
             return await GetOrderDetailsInternalV1(new string[] { marketSymbol }, afterDate);
         }
 
-        protected override IWebSocket OnGetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback)
+        protected override Task<IWebSocket> OnGetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback)
         {
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token[1].ToStringInvariant() == "hb")
@@ -1000,9 +999,9 @@ namespace ExchangeSharp
             };
         }
 
-        private ExchangeTicker ParseTickerWebSocket(string symbol, JToken token)
+        private async Task<ExchangeTicker> ParseTickerWebSocketAsync(string symbol, JToken token)
         {
-            return this.ParseTicker(token, symbol, 3, 1, 7, 8);
+            return await this.ParseTickerAsync(token, symbol, 3, 1, 7, 8);
         }
 
         /// <summary>Gets the withdrawal fees for various currencies.</summary>
