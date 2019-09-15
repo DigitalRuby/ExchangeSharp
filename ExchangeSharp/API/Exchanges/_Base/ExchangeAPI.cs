@@ -447,20 +447,13 @@ namespace ExchangeSharp
             // no separator logic...
             if (string.IsNullOrWhiteSpace(MarketSymbolSeparator))
             {
-                try
+                // we must look it up via metadata, most often this call will be cached and fast
+                ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(marketSymbol);
+                if (marketSymbolMetadata == null)
                 {
-                    // we must look it up via metadata, most often this call will be cached and fast
-                    ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(marketSymbol);
-                    if (marketSymbolMetadata == null)
-                    {
-                        throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
-                    }
-                    return (marketSymbolMetadata.BaseCurrency, marketSymbolMetadata.QuoteCurrency);
+                    throw new InvalidDataException($"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}");
                 }
-                catch (Exception e)
-                {
-                    throw new InvalidOperationException($"Failed to retrieve symbol metadata for exchange {Name}.", e);
-                }
+                return (marketSymbolMetadata.BaseCurrency, marketSymbolMetadata.QuoteCurrency);
             }
 
             // default behavior with separator
