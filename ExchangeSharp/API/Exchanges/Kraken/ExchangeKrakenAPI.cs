@@ -133,6 +133,17 @@ namespace ExchangeSharp
             throw new ArgumentException("Unable to determine Kraken currencies for symbol " + marketSymbol);
         }
 
+        public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
+        {
+            var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
+            if (exchangeCurrencyToNormalizedCurrency.TryGetValue(baseCurrency, out string baseCurrencyNormalized) &&
+                exchangeCurrencyToNormalizedCurrency.TryGetValue(quoteCurrency, out string quoteCurrencyNormalized))
+            {
+                return baseCurrencyNormalized + GlobalMarketSymbolSeparatorString + quoteCurrencyNormalized;
+            }
+            throw new ArgumentException("Unable to find normalzied symbols for market symbol " + marketSymbol);
+        }
+
         public override async Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             await PopulateExchangeAndNormalizedCurrencyDictionarie();
@@ -383,9 +394,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
-            return (from prop in result.Children<JProperty>()
-					where !prop.Name.Contains(".d")
-					select prop.Value["wsname"].ToStringInvariant()).ToArray();
+            return result.Children<JProperty>().Where(p => !p.Name.Contains(".d")).Select(p => p.Name).ToArray();
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
@@ -493,8 +502,7 @@ namespace ExchangeSharp
                 var market = new ExchangeMarket
                 {
                     IsActive = !prop.Name.Contains(".d"),
-                    MarketSymbol = (pair["wsname"].ToStringInvariant() != "" ? 
-						pair["wsname"].ToStringInvariant() : pair["altname"].ToStringInvariant()).Replace("/", string.Empty),
+                    MarketSymbol = prop.Name,
                     MinTradeSize = quantityStepSize,
                     MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
                     BaseCurrency = pair["base"].ToStringInvariant(),
