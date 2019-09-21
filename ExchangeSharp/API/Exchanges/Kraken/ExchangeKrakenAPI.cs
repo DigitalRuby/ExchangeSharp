@@ -40,12 +40,21 @@ namespace ExchangeSharp
         private IReadOnlyDictionary<string, string> normalizedCurrencyToExchangeCurrency = new Dictionary<string, string>();
         private IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>();
         private IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>();
-        private IReadOnlyList<string> exchangeCurrencies = new List<string>();
+        private IReadOnlyDictionary<string, string> exchangeCurrenciesToMarketSymbol = new Dictionary<string, string>();
+
+        static ExchangeKrakenAPI()
+        {
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangeKrakenAPI)] = new KeyValuePair<string, string>[]
+            {
+                new KeyValuePair<string, string>("XBT", "BTC"),
+                new KeyValuePair<string, string>("XDG", "DOGE")
+            };
+        }
 
         private async Task PopulateExchangeAndNormalizedCurrencyDictionarie()
         {
-            CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>> dicts =
-                await Cache.Get<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>>
+            CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>> dicts =
+                await Cache.Get<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>>
                 (nameof(PopulateExchangeAndNormalizedCurrencyDictionarie), async () =>
             {
                 IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
@@ -54,11 +63,11 @@ namespace ExchangeSharp
                 Dictionary<string, string> d2 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 Dictionary<string, string> d3 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 Dictionary<string, string> d4 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                List<string> l1 = new List<string>();
+                Dictionary<string, string> d5 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
                 if (markets == null || markets.Length == 0)
                 {
-                    return new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>>();
+                    return new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>>();
                 }
                 foreach (KeyValuePair<string, ExchangeCurrency> kv in currencies)
                 {
@@ -69,30 +78,27 @@ namespace ExchangeSharp
                         case "xbt": altName = "BTC"; break;
                         case "xdg": altName = "DOGE"; break;
                     }
-                    l1.Add(kv.Value.Name);
                     d1[kv.Value.Name] = altName;
                     d2[altName] = kv.Value.Name;
                 }
 
-                // sort in descending length order for parsing out symbols, wtf kraken use a separator...
-                l1.Sort((s1, s2) => s2.Length.CompareTo(s1.Length));
-
-                foreach (ExchangeMarket market in markets)
+                foreach (ExchangeMarket market in markets.Where(m => !m.MarketSymbol.Contains(".d")))
                 {
                     string baseSymbol = market.BaseCurrency;
                     string quoteSymbol = market.QuoteCurrency;
-                    string baseNorm = d1[market.BaseCurrency.Replace(".d", "d")];
-                    string quoteNorm = d1[market.QuoteCurrency.Replace(".d", "d")];
-                    string marketSymbol = baseSymbol + quoteSymbol;
+                    string baseNorm = d1[market.BaseCurrency];
+                    string quoteNorm = d1[market.QuoteCurrency];
                     string marketSymbolNorm = baseNorm + quoteNorm;
+                    string marketSymbol = market.MarketSymbol;
                     d3[marketSymbol] = marketSymbolNorm;
                     d4[marketSymbolNorm] = marketSymbol;
+                    d5[baseSymbol + quoteSymbol] = marketSymbol;
                 }
 
-                Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>> tuple =
-                    new Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>(d1, d2, d3, d4, l1);
-                CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>> result =
-                    new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>>(tuple, CryptoUtility.UtcNow.AddHours(4.0));
+                Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>> tuple =
+                    new Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>(d1, d2, d3, d4, d5);
+                CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>> result =
+                    new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>>(tuple, CryptoUtility.UtcNow.AddHours(4.0));
                 return result;
             });
             if (dicts.Found)
@@ -101,66 +107,57 @@ namespace ExchangeSharp
                 normalizedCurrencyToExchangeCurrency = dicts.Value.Item2;
                 exchangeSymbolToNormalizedSymbol = dicts.Value.Item3;
                 normalizedSymbolToExchangeSymbol = dicts.Value.Item4;
-                exchangeCurrencies = dicts.Value.Item5;
+                exchangeCurrenciesToMarketSymbol = dicts.Value.Item5;
             }
         }
 
         public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
         {
-            await PopulateExchangeAndNormalizedCurrencyDictionarie();
-            string baseCurrency = null;
-            string quoteCurrency = null;
-            foreach (string currency in exchangeCurrencies)
+            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
+            if (market == null)
             {
-                if (marketSymbol.StartsWith(currency))
-                {
-                    baseCurrency = currency;
-                    break;
-                }
+                throw new ArgumentException("Unable to get currencies for market symbol " + marketSymbol);
             }
-            foreach (string currency in exchangeCurrencies)
-            {
-                if (marketSymbol.EndsWith(currency))
-                {
-                    quoteCurrency = currency;
-                    break;
-                }
-            }
-            if (baseCurrency != null && quoteCurrency != null)
-            {
-                return (baseCurrency, quoteCurrency);
-            }
-            throw new ArgumentException("Unable to determine Kraken currencies for symbol " + marketSymbol);
+            return (market.BaseCurrency, market.QuoteCurrency);
         }
 
         public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
+            await PopulateExchangeAndNormalizedCurrencyDictionarie();
             var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
-            if (exchangeCurrencyToNormalizedCurrency.TryGetValue(baseCurrency, out string baseCurrencyNormalized) &&
-                exchangeCurrencyToNormalizedCurrency.TryGetValue(quoteCurrency, out string quoteCurrencyNormalized))
+            if (!exchangeCurrencyToNormalizedCurrency.TryGetValue(baseCurrency, out string baseCurrencyNormalized))
             {
-                return baseCurrencyNormalized + GlobalMarketSymbolSeparatorString + quoteCurrencyNormalized;
+                baseCurrencyNormalized = baseCurrency;
             }
-            throw new ArgumentException("Unable to find normalzied symbols for market symbol " + marketSymbol);
+            if (!exchangeCurrencyToNormalizedCurrency.TryGetValue(quoteCurrency, out string quoteCurrencyNormalized))
+            {
+                quoteCurrencyNormalized = quoteCurrency;
+            }
+            return baseCurrencyNormalized + GlobalMarketSymbolSeparatorString + quoteCurrencyNormalized;
         }
 
         public override async Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
             await PopulateExchangeAndNormalizedCurrencyDictionarie();
-            if (normalizedSymbolToExchangeSymbol.TryGetValue(marketSymbol.Replace(GlobalMarketSymbolSeparator.ToString(), string.Empty), out string exchangeSymbol))
+            string[] pieces = marketSymbol.Split('-');
+            if (pieces.Length < 2)
             {
-                return exchangeSymbol;
+                throw new ArgumentException("Market symbol must be at least two pieces");
             }
-
-            // not found, reverse the pair
-            int idx = marketSymbol.IndexOf(GlobalMarketSymbolSeparator);
-            marketSymbol = marketSymbol.Substring(idx + 1) + marketSymbol.Substring(0, idx);
-            if (normalizedSymbolToExchangeSymbol.TryGetValue(marketSymbol.Replace(GlobalMarketSymbolSeparator.ToString(), string.Empty), out exchangeSymbol))
+            string marketSymbol2 = pieces[0] + pieces[1];
+            if (!normalizedCurrencyToExchangeCurrency.TryGetValue(pieces[0], out string baseCurrencyExchange))
             {
-                return exchangeSymbol;
+                baseCurrencyExchange = pieces[0];
             }
-
-            throw new ArgumentException($"Symbol {marketSymbol} not found in Kraken lookup table");
+            if (!normalizedCurrencyToExchangeCurrency.TryGetValue(pieces[1], out string quoteCurrencyExchange))
+            {
+                quoteCurrencyExchange = pieces[1];
+            }
+            if (!exchangeCurrenciesToMarketSymbol.TryGetValue(baseCurrencyExchange + quoteCurrencyExchange, out string exchangeMarketSymbol))
+            {
+                throw new ArgumentException("Unable to find exchange market for global market symbol " + marketSymbol);
+            }
+            return exchangeMarketSymbol;
         }
 
         protected override JToken CheckJsonResponse(JToken json)
@@ -495,7 +492,7 @@ namespace ExchangeSharp
             JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
             var res = (from prop in allPairs.Children<JProperty>() select prop).ToArray();
 
-            foreach (JProperty prop in res)
+            foreach (JProperty prop in res.Where(p => !p.Name.EndsWith(".d")))
             {
                 JToken pair = prop.Value;
                 var quantityStepSize = Math.Pow(0.1, pair["lot_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>();
