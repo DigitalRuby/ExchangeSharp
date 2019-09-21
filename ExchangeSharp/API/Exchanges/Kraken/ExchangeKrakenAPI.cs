@@ -27,17 +27,6 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
 		public override string BaseUrlWebSocket { get; set; } = "wss://ws.kraken.com";
-		static ExchangeKrakenAPI()
-        {
-            Dictionary<string, string> d = normalizedSymbolToExchangeSymbol as Dictionary<string, string>;
-            foreach (KeyValuePair<string, string> kv in exchangeSymbolToNormalizedSymbol)
-            {
-                if (!d.ContainsKey(kv.Value))
-                {
-                    d.Add(kv.Value, kv.Key);
-                }
-            }
-        }
 
         public ExchangeKrakenAPI()
         {
@@ -47,41 +36,109 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixMilliseconds;
         }
 
-        public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
+        private IReadOnlyDictionary<string, string> exchangeCurrencyToNormalizedCurrency = new Dictionary<string, string>();
+        private IReadOnlyDictionary<string, string> normalizedCurrencyToExchangeCurrency = new Dictionary<string, string>();
+        private IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>();
+        private IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>();
+        private IReadOnlyList<string> exchangeCurrencies = new List<string>();
+
+        private async Task PopulateExchangeAndNormalizedCurrencyDictionarie()
         {
-            if (exchangeSymbolToNormalizedSymbol.TryGetValue(marketSymbol, out string normalizedSymbol))
+            CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>> dicts =
+                await Cache.Get<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>>
+                (nameof(PopulateExchangeAndNormalizedCurrencyDictionarie), async () =>
             {
-                int pos;
-                if (marketSymbol.StartsWith("WAVES"))
-                {
-                    pos = 5;
-                }
-                else
-                {
-                    pos = (normalizedSymbol.Length == 6 ? 3 : (normalizedSymbol.Length == 7 ? 4 : throw new InvalidOperationException("Cannot normalize symbol " + normalizedSymbol)));
-                }
-                return await base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
-            }
+                IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
+                ExchangeMarket[] markets = (await GetMarketSymbolsMetadataAsync())?.ToArray();
+                Dictionary<string, string> d1 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> d2 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> d3 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> d4 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                List<string> l1 = new List<string>();
 
-            # region if the initial fails, we try to use another method
-            var symbols = (await GetMarketSymbolsMetadataAsync()).ToList();
-            var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
-            string _marketSymbol = symbol.BaseCurrency + symbol.QuoteCurrency;
-            if (exchangeSymbolToNormalizedSymbol.TryGetValue(_marketSymbol, out normalizedSymbol))
+                if (markets == null || markets.Length == 0)
+                {
+                    return new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>>();
+                }
+                foreach (KeyValuePair<string, ExchangeCurrency> kv in currencies)
+                {
+                    string altName = kv.Value.AltName;
+                    switch (altName.ToLowerInvariant())
+                    {
+                        // wtf kraken...
+                        case "xbt": altName = "BTC"; break;
+                        case "xdg": altName = "DOGE"; break;
+                    }
+                    l1.Add(kv.Value.Name);
+                    d1[kv.Value.Name] = altName;
+                    d2[altName] = kv.Value.Name;
+                }
+
+                // sort in descending length order for parsing out symbols, wtf kraken use a separator...
+                l1.Sort((s1, s2) => s2.Length.CompareTo(s1.Length));
+
+                foreach (ExchangeMarket market in markets)
+                {
+                    string baseSymbol = market.BaseCurrency;
+                    string quoteSymbol = market.QuoteCurrency;
+                    string baseNorm = d1[market.BaseCurrency.Replace(".d", "d")];
+                    string quoteNorm = d1[market.QuoteCurrency.Replace(".d", "d")];
+                    string marketSymbol = baseSymbol + quoteSymbol;
+                    string marketSymbolNorm = baseNorm + quoteNorm;
+                    d3[marketSymbol] = marketSymbolNorm;
+                    d4[marketSymbolNorm] = marketSymbol;
+                }
+
+                Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>> tuple =
+                    new Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>(d1, d2, d3, d4, l1);
+                CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>> result =
+                    new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyList<string>>>(tuple, CryptoUtility.UtcNow.AddHours(4.0));
+                return result;
+            });
+            if (dicts.Found)
             {
-                int pos = (normalizedSymbol.Length == 6 ? 3 : (normalizedSymbol.Length == 7 ? 4 : throw new InvalidOperationException("Cannot normalize symbol " + normalizedSymbol)));
-                return await base.ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(normalizedSymbol.Substring(0, pos) + GlobalMarketSymbolSeparator + normalizedSymbol.Substring(pos), GlobalMarketSymbolSeparator);
+                exchangeCurrencyToNormalizedCurrency = dicts.Value.Item1;
+                normalizedCurrencyToExchangeCurrency = dicts.Value.Item2;
+                exchangeSymbolToNormalizedSymbol = dicts.Value.Item3;
+                normalizedSymbolToExchangeSymbol = dicts.Value.Item4;
+                exchangeCurrencies = dicts.Value.Item5;
             }
-            #endregion
-
-            throw new ArgumentException($"Symbol {marketSymbol} not found in Kraken lookup table");
         }
 
-        public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
+        public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
         {
+            await PopulateExchangeAndNormalizedCurrencyDictionarie();
+            string baseCurrency = null;
+            string quoteCurrency = null;
+            foreach (string currency in exchangeCurrencies)
+            {
+                if (marketSymbol.StartsWith(currency))
+                {
+                    baseCurrency = currency;
+                    break;
+                }
+            }
+            foreach (string currency in exchangeCurrencies)
+            {
+                if (marketSymbol.EndsWith(currency))
+                {
+                    quoteCurrency = currency;
+                    break;
+                }
+            }
+            if (baseCurrency != null && quoteCurrency != null)
+            {
+                return (baseCurrency, quoteCurrency);
+            }
+            throw new ArgumentException("Unable to determine Kraken currencies for symbol " + marketSymbol);
+        }
+
+        public override async Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
+        {
+            await PopulateExchangeAndNormalizedCurrencyDictionarie();
             if (normalizedSymbolToExchangeSymbol.TryGetValue(marketSymbol.Replace(GlobalMarketSymbolSeparator.ToString(), string.Empty), out string exchangeSymbol))
             {
-                return Task.FromResult(exchangeSymbol);
+                return exchangeSymbol;
             }
 
             // not found, reverse the pair
@@ -89,122 +146,11 @@ namespace ExchangeSharp
             marketSymbol = marketSymbol.Substring(idx + 1) + marketSymbol.Substring(0, idx);
             if (normalizedSymbolToExchangeSymbol.TryGetValue(marketSymbol.Replace(GlobalMarketSymbolSeparator.ToString(), string.Empty), out exchangeSymbol))
             {
-                return Task.FromResult(exchangeSymbol);
+                return exchangeSymbol;
             }
 
             throw new ArgumentException($"Symbol {marketSymbol} not found in Kraken lookup table");
         }
-
-        /// <summary>
-        /// Change Kraken symbols to more common sense symbols
-        /// </summary>
-        private static readonly IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-		   { "ADACAD" , "adacad" },
-			{ "ADAETH" , "adaeth" },
-			{ "ADAEUR" , "adaeur" },
-			{ "ADAUSD" , "adausd" },
-			{ "ADAXBT" , "adabtc" },
-            { "ATOMCAD", "atomcad" },
-            { "ATOMETH", "atometh" },
-            { "ATOMEUR", "atomeur" },
-            { "ATOMUSD", "atomusd" },
-            { "ATOMXBT", "atombtc" },
-            { "BATETH", "bateth" },
-            { "BATEUR", "bateur" },
-            { "BATUSD", "batusd" },
-            { "BATXBT", "batbtc" },
-            { "BCHEUR" , "bcheur" },
-			{ "BCHUSD" , "bchusd" },
-			{ "BCHXBT" , "bchbtc" },
-			{ "BSVEUR" , "bsveur" },
-			{ "BSVUSD" , "bsvusd" },
-			{ "BSVXBT" , "bsvbtc" },
-			{ "DASHEUR" , "dasheur" },
-			{ "DASHUSD" , "dashusd" },
-			{ "DASHXBT" , "dashbtc" },
-			{ "EOSETH" , "eoseth" },
-			{ "EOSEUR" , "eoseur" },
-			{ "EOSUSD" , "eosusd" },
-			{ "EOSXBT" , "eosbtc" },
-            { "ETCETH" , "etceth" },
-            { "ETCEUR" , "etceur" },
-            { "ETCUSD" , "etcusd" },
-            { "ETCXBT" , "etcbtc" },
-            { "ETHCAD" , "ethcad" },
-            { "GNOETH" , "gnoeth" },
-			{ "GNOEUR" , "gnoeur" },
-			{ "GNOUSD" , "gnousd" },
-			{ "GNOXBT" , "gnobtc" },
-			{ "QTUMCAD" , "qtumcad" },
-			{ "QTUMETH" , "qtumeth" },
-			{ "QTUMEUR" , "qtumeur" },
-			{ "QTUMUSD" , "qtumusd" },
-			{ "QTUMXBT" , "qtumbtc" },
-            { "USDTZUSD" , "usdtusd" },
-            { "WAVESETH" , "waveseth" },
-            { "WAVESEUR" , "waveseur" },
-            { "WAVESUSD" , "wavesusd" },
-            { "WAVESXBT" , "wavesbtc" },
-            { "XETCXETH" , "etceth" },
-			{ "XETCXXBT" , "etcbtc" },
-			{ "XETCZEUR" , "etceur" },
-			{ "XETCZUSD" , "etcusd" },
-			{ "XETHXXBT" , "ethbtc" },
-			{ "XETHXXBT.d" , "ethbtcd" },
-			{ "XETHZCAD" , "ethcad" },
-			{ "XETHZCAD.d" , "ethcadd" },
-			{ "XETHZEUR" , "etheur" },
-			{ "XETHZEUR.d" , "etheurd" },
-			{ "XETHZGBP" , "ethgbp" },
-			{ "XETHZGBP.d" , "ethgbpd" },
-			{ "XETHZJPY" , "ethjpy" },
-			{ "XETHZJPY.d" , "ethjpyd" },
-			{ "XETHZUSD" , "ethusd" },
-			{ "XETHZUSD.d" , "ethusdd" },
-			{ "XLTCXXBT" , "ltcbtc" },
-			{ "XLTCZEUR" , "ltceur" },
-			{ "XLTCZUSD" , "ltcusd" },
-			{ "XMLNXETH" , "mlneth" },
-			{ "XMLNXXBT" , "mlnbtc" },
-			{ "XREPXETH" , "repeth" },
-			{ "XREPXXBT" , "repbtc" },
-			{ "XREPZEUR" , "repeur" },
-			{ "XREPZUSD" , "repusd" },
-			{ "XTZCAD" , "xtzcad" },
-			{ "XTZETH" , "xtzeth" },
-			{ "XTZEUR" , "xtzeur" },
-			{ "XTZUSD" , "xtzusd" },
-			{ "XTZXBT" , "xtzbtc" },
-			{ "XXBTZCAD" , "btccad" },
-			{ "XXBTZCAD.d" , "btccadd" },
-			{ "XXBTZEUR" , "btceur" },
-			{ "XXBTZEUR.d" , "btceurd" },
-			{ "XXBTZGBP" , "btcgbp" },
-			{ "XXBTZGBP.d" , "btcgbpd" },
-			{ "XXBTZJPY" , "btcjpy" },
-			{ "XXBTZJPY.d" , "btcjpyd" },
-			{ "XXBTZUSD" , "btcusd" },
-			{ "XXBTZUSD.d" , "btcusdd" },
-			{ "XXDGXXBT" , "xdgbtc" },
-			{ "XXLMXXBT" , "xlmbtc" },
-			{ "XXLMZEUR" , "xlmeur" },
-			{ "XXLMZUSD" , "xlmusd" },
-			{ "XXMRXXBT" , "xmrbtc" },
-			{ "XXMRZEUR" , "xmreur" },
-			{ "XXMRZUSD" , "xmrusd" },
-			{ "XXRPXXBT" , "xrpbtc" },
-			{ "XXRPZCAD" , "xrpcad" },
-			{ "XXRPZEUR" , "xrpeur" },
-			{ "XXRPZJPY" , "xrpjpy" },
-			{ "XXRPZUSD" , "xrpusd" },
-			{ "XZECXXBT" , "zecbtc" },
-			{ "XZECZEUR" , "zeceur" },
-			{ "XZECZJPY" , "zecjpy" },
-			{ "XZECZUSD" , "zecusd" }
-		};
-
-        private static readonly IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         protected override JToken CheckJsonResponse(JToken json)
         {
@@ -280,6 +226,7 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
+            await PopulateExchangeAndNormalizedCurrencyDictionarie();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["open"];
@@ -299,6 +246,7 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryClosedOrdersAsync(string symbol, string path)
         {
+            await PopulateExchangeAndNormalizedCurrencyDictionarie();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["closed"];
@@ -325,6 +273,7 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryHistoryOrdersAsync(string symbol, string path)
         {
+            await PopulateExchangeAndNormalizedCurrencyDictionarie();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["trades"];
@@ -421,7 +370,8 @@ namespace ExchangeSharp
                 {
                     CoinType = token.Value["aclass"].ToStringInvariant(),
                     Name = token.Name,
-                    FullName = token.Value["altname"].ToStringInvariant()
+                    FullName = token.Name,
+                    AltName = token.Value["altname"].ToStringInvariant()
                 };
 
                 currencies[coin.Name] = coin;
