@@ -15,8 +15,8 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = order book, O = private orders)
 
-|Exchange Name     |Public REST|Private REST |Web Socket |
-| ---------------- | --------- | ----------- | --------- |
+|Exchange Name     |Public REST|Private REST |Web Socket | Notes
+| ---------------- | --------- | ----------- | --------- | ---------
 | Binance          | x         | x           | T R B     |
 | Bitbank          | x         | x           |           |
 | Bitfinex         | x         | x           | T R   O   |
@@ -31,7 +31,7 @@ The following cryptocurrency exchanges are supported:
 | Gemini           | x         | x           |   R       |
 | HitBTC           | x         | x           |   R       |
 | Huobi            | x         | x           |   R B     |
-| Kraken           | x         | x           |   R       |
+| Kraken           | x         | x           |   R       | Dark order symbols not supported
 | KuCoin           | x         | x           | T R       |
 | LBank            | x         | x           |           |
 | Livecoin         | x         | x           |           |
