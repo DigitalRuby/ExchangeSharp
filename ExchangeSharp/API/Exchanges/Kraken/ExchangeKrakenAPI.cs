@@ -495,7 +495,7 @@ namespace ExchangeSharp
                 var quantityStepSize = Math.Pow(0.1, pair["lot_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>();
                 var market = new ExchangeMarket
                 {
-                    IsActive = !prop.Name.Contains(".d"),
+                    IsActive = true,
                     MarketSymbol = prop.Name,
                     MinTradeSize = quantityStepSize,
                     MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
