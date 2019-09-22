@@ -51,9 +51,13 @@ namespace ExchangeSharp
             };
         }
 
-        private async Task PopulateExchangeAndNormalizedCurrencyDictionarie()
+        /// <summary>
+        /// Populate dictionaries to deal with Kraken weirdness in currency and market names, will use cache if it exists
+        /// </summary>
+        /// <returns>Task</returns>
+        private async Task PopulateLookupTables()
         {
-            await Cache.Get<object>(nameof(PopulateExchangeAndNormalizedCurrencyDictionarie), async () =>
+            await Cache.Get<object>(nameof(PopulateLookupTables), async () =>
             {
                 IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
                 ExchangeMarket[] markets = (await GetMarketSymbolsMetadataAsync())?.ToArray();
@@ -116,7 +120,7 @@ namespace ExchangeSharp
 
         public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
-            await PopulateExchangeAndNormalizedCurrencyDictionarie();
+            await PopulateLookupTables();
             var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
             if (!exchangeCurrencyToNormalizedCurrency.TryGetValue(baseCurrency, out string baseCurrencyNormalized))
             {
@@ -131,7 +135,7 @@ namespace ExchangeSharp
 
         public override async Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
-            await PopulateExchangeAndNormalizedCurrencyDictionarie();
+            await PopulateLookupTables();
             string[] pieces = marketSymbol.Split('-');
             if (pieces.Length < 2)
             {
@@ -227,7 +231,7 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
         {
-            await PopulateExchangeAndNormalizedCurrencyDictionarie();
+            await PopulateLookupTables();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["open"];
@@ -247,7 +251,7 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryClosedOrdersAsync(string symbol, string path)
         {
-            await PopulateExchangeAndNormalizedCurrencyDictionarie();
+            await PopulateLookupTables();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["closed"];
@@ -274,7 +278,7 @@ namespace ExchangeSharp
 
         private async Task<IEnumerable<ExchangeOrderResult>> QueryHistoryOrdersAsync(string symbol, string path)
         {
-            await PopulateExchangeAndNormalizedCurrencyDictionarie();
+            await PopulateLookupTables();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
             result = result["trades"];
