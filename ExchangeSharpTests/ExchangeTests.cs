@@ -73,6 +73,10 @@ namespace ExchangeSharpTests
                         // WIP
                         continue;
                     }
+                    else if (api is ExchangeKrakenAPI)
+                    {
+                        int a = 5; a++;
+                    }
 
                     bool isBithumb = (api.Name == ExchangeName.Bithumb);
                     string exchangeMarketSymbol = await api.GlobalMarketSymbolToExchangeMarketSymbolAsync(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);

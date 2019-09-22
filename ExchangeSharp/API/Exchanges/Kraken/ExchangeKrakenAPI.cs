@@ -96,6 +96,7 @@ namespace ExchangeSharp
                     exchangeSymbolToNormalizedSymbolNew[marketSymbol] = marketSymbolNorm;
                     normalizedSymbolToExchangeSymbolNew[marketSymbolNorm] = marketSymbol;
                     exchangeCurrenciesToMarketSymbolNew[baseSymbol + quoteSymbol] = marketSymbol;
+                    exchangeCurrenciesToMarketSymbolNew[quoteSymbol + baseSymbol] = marketSymbol;
                 }
 
                 exchangeCurrencyToNormalizedCurrency = exchangeCurrencyToNormalizedCurrencyNew;
@@ -129,6 +130,11 @@ namespace ExchangeSharp
             if (!exchangeCurrencyToNormalizedCurrency.TryGetValue(quoteCurrency, out string quoteCurrencyNormalized))
             {
                 quoteCurrencyNormalized = quoteCurrency;
+            }
+            if (quoteCurrencyNormalized == "BTC")
+            {
+                // prefer BTC in front
+                return quoteCurrencyNormalized + GlobalMarketSymbolSeparatorString + baseCurrencyNormalized;
             }
             return baseCurrencyNormalized + GlobalMarketSymbolSeparatorString + quoteCurrencyNormalized;
         }
