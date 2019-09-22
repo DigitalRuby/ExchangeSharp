@@ -429,10 +429,10 @@ namespace ExchangeSharp
         /// <param name="baseCurrency">Base currency</param>
         /// <param name="quoteCurrency">Quote currency</param>
         /// <returns>Exchange market symbol</returns>
-        public virtual string CurrenciesToExchangeMarketSymbol(string baseCurrency, string quoteCurrency)
+        public virtual Task<string> CurrenciesToExchangeMarketSymbol(string baseCurrency, string quoteCurrency)
         {
             string symbol = (MarketSymbolIsReversed ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}");
-            return (MarketSymbolIsUppercase ? symbol.ToUpperInvariant() : symbol);
+            return Task.FromResult(MarketSymbolIsUppercase ? symbol.ToUpperInvariant() : symbol);
         }
 
         /// <summary>
