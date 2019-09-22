@@ -53,22 +53,21 @@ namespace ExchangeSharp
 
         private async Task PopulateExchangeAndNormalizedCurrencyDictionarie()
         {
-            CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>> dicts =
-                await Cache.Get<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>>
-                (nameof(PopulateExchangeAndNormalizedCurrencyDictionarie), async () =>
+            await Cache.Get<object>(nameof(PopulateExchangeAndNormalizedCurrencyDictionarie), async () =>
             {
                 IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
                 ExchangeMarket[] markets = (await GetMarketSymbolsMetadataAsync())?.ToArray();
-                Dictionary<string, string> d1 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, string> d2 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, string> d3 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, string> d4 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                Dictionary<string, string> d5 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
                 if (markets == null || markets.Length == 0)
                 {
-                    return new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>>();
+                    return new CachedItem<object>();
                 }
+
+                Dictionary<string, string> exchangeCurrencyToNormalizedCurrencyNew = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> normalizedCurrencyToExchangeCurrencyNew = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> exchangeSymbolToNormalizedSymbolNew = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> normalizedSymbolToExchangeSymbolNew = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, string> exchangeCurrenciesToMarketSymbolNew = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
                 foreach (KeyValuePair<string, ExchangeCurrency> kv in currencies)
                 {
                     string altName = kv.Value.AltName;
@@ -78,37 +77,31 @@ namespace ExchangeSharp
                         case "xbt": altName = "BTC"; break;
                         case "xdg": altName = "DOGE"; break;
                     }
-                    d1[kv.Value.Name] = altName;
-                    d2[altName] = kv.Value.Name;
+                    exchangeCurrencyToNormalizedCurrencyNew[kv.Value.Name] = altName;
+                    normalizedCurrencyToExchangeCurrencyNew[altName] = kv.Value.Name;
                 }
 
                 foreach (ExchangeMarket market in markets.Where(m => !m.MarketSymbol.Contains(".d")))
                 {
                     string baseSymbol = market.BaseCurrency;
                     string quoteSymbol = market.QuoteCurrency;
-                    string baseNorm = d1[market.BaseCurrency];
-                    string quoteNorm = d1[market.QuoteCurrency];
+                    string baseNorm = exchangeCurrencyToNormalizedCurrencyNew[market.BaseCurrency];
+                    string quoteNorm = exchangeCurrencyToNormalizedCurrencyNew[market.QuoteCurrency];
                     string marketSymbolNorm = baseNorm + quoteNorm;
                     string marketSymbol = market.MarketSymbol;
-                    d3[marketSymbol] = marketSymbolNorm;
-                    d4[marketSymbolNorm] = marketSymbol;
-                    d5[baseSymbol + quoteSymbol] = marketSymbol;
+                    exchangeSymbolToNormalizedSymbolNew[marketSymbol] = marketSymbolNorm;
+                    normalizedSymbolToExchangeSymbolNew[marketSymbolNorm] = marketSymbol;
+                    exchangeCurrenciesToMarketSymbolNew[baseSymbol + quoteSymbol] = marketSymbol;
                 }
 
-                Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>> tuple =
-                    new Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>(d1, d2, d3, d4, d5);
-                CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>> result =
-                    new CachedItem<Tuple<IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>>>(tuple, CryptoUtility.UtcNow.AddHours(4.0));
-                return result;
+                exchangeCurrencyToNormalizedCurrency = exchangeCurrencyToNormalizedCurrencyNew;
+                normalizedCurrencyToExchangeCurrency = normalizedCurrencyToExchangeCurrencyNew;
+                exchangeSymbolToNormalizedSymbol = exchangeSymbolToNormalizedSymbolNew;
+                normalizedSymbolToExchangeSymbol = normalizedSymbolToExchangeSymbolNew;
+                exchangeCurrenciesToMarketSymbol = exchangeCurrenciesToMarketSymbolNew;
+
+                return new CachedItem<object>(new object(), CryptoUtility.UtcNow.AddHours(4.0));
             });
-            if (dicts.Found)
-            {
-                exchangeCurrencyToNormalizedCurrency = dicts.Value.Item1;
-                normalizedCurrencyToExchangeCurrency = dicts.Value.Item2;
-                exchangeSymbolToNormalizedSymbol = dicts.Value.Item3;
-                normalizedSymbolToExchangeSymbol = dicts.Value.Item4;
-                exchangeCurrenciesToMarketSymbol = dicts.Value.Item5;
-            }
         }
 
         public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
