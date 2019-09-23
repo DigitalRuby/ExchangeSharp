@@ -93,14 +93,14 @@ namespace ExchangeSharp
         [SuppressUnmanagedCodeSecurity]
         [DllImport("crypt32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CryptProtectData(ref DATA_BLOB pDataIn, string szDataDescr, ref DATA_BLOB pOptionalEntropy, IntPtr pvReserved, ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct, CryptProtectFlags dwFlags, ref DATA_BLOB pDataOut);
+        private static extern bool CryptProtectData(ref DATA_BLOB pDataIn, string? szDataDescr, ref DATA_BLOB pOptionalEntropy, IntPtr pvReserved, ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct, CryptProtectFlags dwFlags, ref DATA_BLOB pDataOut);
 
         [SuppressUnmanagedCodeSecurity]
         [DllImport("crypt32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CryptUnprotectData(ref DATA_BLOB pDataIn, string szDataDescr, ref DATA_BLOB pOptionalEntropy, IntPtr pvReserved, ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct, CryptProtectFlags dwFlags, ref DATA_BLOB pDataOut);
+        private static extern bool CryptUnprotectData(ref DATA_BLOB pDataIn, string? szDataDescr, ref DATA_BLOB pOptionalEntropy, IntPtr pvReserved, ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct, CryptProtectFlags dwFlags, ref DATA_BLOB pDataOut);
 
-        private static byte[] CryptOperationWindows(bool protect, byte[] data, byte[] optionalEntropy, DataProtectionScope scope)
+        private static byte[] CryptOperationWindows(bool protect, byte[] data, byte[]? optionalEntropy, DataProtectionScope scope)
         {
             GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
             GCHandle handleEntropy = (optionalEntropy != null && optionalEntropy.Length != 0 ? GCHandle.Alloc(optionalEntropy, GCHandleType.Pinned) : new GCHandle());
@@ -229,22 +229,20 @@ namespace ExchangeSharp
                 Rijndael aes = Rijndael.Create();
                 aes.KeySize = 128;
 
-                byte[] encdata = null;
+                byte[]? encdata = null;
                 using (MemoryStream ms = new MemoryStream())
                 {
                     ICryptoTransform t = aes.CreateEncryptor();
-                    using (CryptoStream cs = new CryptoStream(ms, t, CryptoStreamMode.Write))
-                    {
-                        cs.Write(userData, 0, userData.Length);
-                        cs.Close();
-                        encdata = ms.ToArray();
-                    }
+                    using CryptoStream cs = new CryptoStream(ms, t, CryptoStreamMode.Write);
+                    cs.Write(userData, 0, userData.Length);
+                    cs.Close();
+                    encdata = ms.ToArray();
                 }
 
-                byte[] key = null;
-                byte[] iv = null;
-                byte[] secret = null;
-                byte[] header = null;
+                byte[]? key = null;
+                byte[]? iv = null;
+                byte[]? secret = null;
+                byte[]? header = null;
                 SHA256 hash = SHA256.Create();
 
                 try
@@ -314,7 +312,7 @@ namespace ExchangeSharp
                 if (encryptedData == null)
                     throw new ArgumentNullException("encryptedData");
 
-                byte[] decdata = null;
+                byte[]? decdata = null;
 
                 Rijndael aes = Rijndael.Create();
                 RSA rsa = GetKey(scope);
@@ -326,14 +324,13 @@ namespace ExchangeSharp
                 byte[] header = new byte[headerSize];
                 Buffer.BlockCopy(encryptedData, 0, header, 0, headerSize);
 
-                byte[] secret = null;
-                byte[] key = null;
-                byte[] iv = null;
+                byte[]? secret = null;
+                byte[]? key = null;
+                byte[]? iv = null;
                 bool valid2 = false;
                 bool valid3 = false;
                 bool valid4 = false;
-                SHA256 hash = SHA256.Create();
-
+                using SHA256 hash = SHA256.Create();
                 try
                 {
                     try
@@ -351,7 +348,7 @@ namespace ExchangeSharp
                         secret = new byte[68];
 
                     // known values for structure (version 1 or 2)
-                    valid3 = ((secret[1] == 16) && (secret[18] == 16) && (secret[35] == 32));
+                    valid3 = ((secret![1] == 16) && (secret[18] == 16) && (secret[35] == 32));
 
                     key = new byte[16];
                     Buffer.BlockCopy(secret, 2, key, 0, 16);
@@ -484,7 +481,7 @@ namespace ExchangeSharp
             if (File.Exists(xmlFile))
             {
                 byte[] xmlBytes = File.ReadAllBytes(xmlFile);
-                xmlBytes = CryptoUtility.AesDecryption(xmlBytes, esp, esl);
+                xmlBytes = CryptoUtility.AesDecryption(xmlBytes, esp, esl) ?? throw new InvalidDataException("Unable to decrypt file " + xmlFile);
                 rsa = new RSACryptoServiceProvider();
                 RSAKeyExtensions.FromXmlString(rsa, CryptoUtility.UTF8EncodingNoPrefix.GetString(xmlBytes));
             }
@@ -503,7 +500,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="data">Data to protect</param>
         /// <returns>Protected data</returns>
-        public static byte[] Protect(byte[] data, byte[] optionalEntropy = null, DataProtectionScope scope = DataProtectionScope.CurrentUser)
+        public static byte[] Protect(byte[] data, byte[]? optionalEntropy = null, DataProtectionScope scope = DataProtectionScope.CurrentUser)
         {
             if (CryptoUtility.IsWindows)
             {
@@ -520,7 +517,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="data">Data to unprotect</param>
         /// <returns>Unprotected data</returns>
-        public static byte[] Unprotect(byte[] data, byte[] optionalEntropy = null, DataProtectionScope scope = DataProtectionScope.CurrentUser)
+        public static byte[] Unprotect(byte[] data, byte[]? optionalEntropy = null, DataProtectionScope scope = DataProtectionScope.CurrentUser)
         {
             if (CryptoUtility.IsWindows)
             {

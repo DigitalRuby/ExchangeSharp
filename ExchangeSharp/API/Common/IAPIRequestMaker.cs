@@ -52,12 +52,13 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
-        Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null);
+        /// <exception cref="System.Exception">Request fails</exception>
+        Task<string> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null);
 
         /// <summary>
         /// An action to execute when a request has been made (this request and state and object (response or exception))
         /// </summary>
-        Action<IAPIRequestMaker, RequestMakerState, object> RequestStateChanged { get; set; }
+        Action<IAPIRequestMaker, RequestMakerState, object>? RequestStateChanged { get; set; }
     }
 
     /// <summary>
@@ -130,7 +131,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload);
+        Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload);
 
         /// <summary>
         /// Additional handling for response
@@ -145,7 +146,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload</param>
         /// <param name="method">Method</param>
         /// <returns>Updated url</returns>
-        Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method);
+        Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object>? payload, string method);
 
         /// <summary>
         /// Base url for the request

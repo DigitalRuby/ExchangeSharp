@@ -33,7 +33,7 @@ namespace ExchangeSharp
 
             public InternalHttpWebRequest(Uri fullUri)
             {
-                request = HttpWebRequest.Create(fullUri) as HttpWebRequest;
+                request = (HttpWebRequest.Create(fullUri) as HttpWebRequest ?? throw new NullReferenceException("Failed to create HttpWebRequest"));
                 request.KeepAlive = false;
             }
 
@@ -145,22 +145,18 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default. Example: 'GET' or 'POST'.</param>
         /// <returns>Raw response</returns>
-        public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
+        public async Task<string> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null)
         {
             await new SynchronizationContextRemover();
-
             await api.RateLimit.WaitToProceedAsync();
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                return null;
-            }
-            else if (url[0] != '/')
+
+            if (url[0] != '/')
             {
                 url = "/" + url;
             }
 
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
-            method = method ?? api.RequestMethod;
+            method ??= api.RequestMethod;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload, method);
             InternalHttpWebRequest request = new InternalHttpWebRequest(uri)
             {
@@ -171,8 +167,8 @@ namespace ExchangeSharp
             request.AddHeader("user-agent", BaseAPI.RequestUserAgent);
             request.Timeout = request.ReadWriteTimeout = (int)api.RequestTimeout.TotalMilliseconds;
             await api.ProcessRequestAsync(request, payload);
-            HttpWebResponse response = null;
-            string responseString = null;
+            HttpWebResponse? response = null;
+            string responseString;
 
             try
             {
@@ -194,21 +190,19 @@ namespace ExchangeSharp
                     }
                 }
                 using (Stream responseStream = response.GetResponseStream())
+                using (StreamReader responseStreamReader = new StreamReader(responseStream))
+                responseString = responseStreamReader.ReadToEnd();
+                if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    responseString = new StreamReader(responseStream).ReadToEnd();
-                    if (response.StatusCode != HttpStatusCode.OK)
+                    // 404 maybe return empty responseString
+                    if (string.IsNullOrWhiteSpace(responseString))
                     {
-                        // 404 maybe return empty responseString
-                        if (string.IsNullOrWhiteSpace(responseString))
-                        {
-                            throw new APIException(string.Format("{0} - {1}",
-                                response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
-                        }
-                        throw new APIException(responseString);
+                        throw new APIException(string.Format("{0} - {1}", response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
                     }
-                    api.ProcessResponse(new InternalHttpWebResponse(response));
-                    RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
+                    throw new APIException(responseString);
                 }
+                api.ProcessResponse(new InternalHttpWebResponse(response));
+                RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
             }
             catch (Exception ex)
             {
@@ -225,6 +219,6 @@ namespace ExchangeSharp
         /// <summary>
         /// An action to execute when a request has been made (this request and state and object (response or exception))
         /// </summary>
-        public Action<IAPIRequestMaker, RequestMakerState, object> RequestStateChanged { get; set; }
+        public Action<IAPIRequestMaker, RequestMakerState, object>? RequestStateChanged { get; set; }
     }
 }

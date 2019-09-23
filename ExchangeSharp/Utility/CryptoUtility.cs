@@ -72,7 +72,7 @@ namespace ExchangeSharp
         /// <param name="obj">Object</param>
         /// <param name="name">Parameter name</param>
         /// <param name="message">Message</param>
-        public static void ThrowIfNull(this object obj, string name, string message = null)
+        public static void ThrowIfNull(this object obj, string? name, string? message = null)
         {
             if (obj == null)
             {
@@ -86,7 +86,7 @@ namespace ExchangeSharp
         /// <param name="obj">Object</param>
         /// <param name="name">Parameter name</param>
         /// <param name="message">Message</param>
-        public static void ThrowIfNullOrWhitespace(this string obj, string name, string message = null)
+        public static void ThrowIfNullOrWhitespace(this string obj, string name, string? message = null)
         {
             if (string.IsNullOrWhiteSpace(obj))
             {
@@ -289,7 +289,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
-        public static byte[] ToUnsecureBytesUTF8(this SecureString s)
+        public static byte[]? ToUnsecureBytesUTF8(this SecureString? s)
         {
             if (s == null)
             {
@@ -303,7 +303,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString in base64 format</param>
         /// <returns>Binary data</returns>
-        public static byte[] ToBytesBase64Decode(this SecureString s)
+        public static byte[]? ToBytesBase64Decode(this SecureString? s)
         {
             if (s == null)
             {
@@ -1075,37 +1075,39 @@ namespace ExchangeSharp
         /// <param name="password">Password</param>
         /// <param name="salt">Salt</param>
         /// <returns>Decrypted data</returns>
-        public static byte[] AesDecryption(byte[] input, byte[] password, byte[] salt)
+        public static byte[]? AesDecryption(byte[] input, byte[] password, byte[] salt)
         {
             if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
             {
                 return null;
             }
             MemoryStream decrypted = new MemoryStream();
-            var AES = new RijndaelManaged()
+            using (RijndaelManaged AES = new RijndaelManaged()
             {
                 KeySize = 256,
                 BlockSize = 128,
                 Padding = PaddingMode.PKCS7,
-            };
-            var key = new Rfc2898DeriveBytes(password, salt, 1024);
-            AES.Key = key.GetBytes(AES.KeySize / 8);
-            AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CBC;
-            MemoryStream encrypted = new MemoryStream(input);
-            byte[] saltMatch = new byte[salt.Length];
-            if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
+            })
             {
-                throw new InvalidOperationException("Invalid salt");
+                var key = new Rfc2898DeriveBytes(password, salt, 1024);
+                AES.Key = key.GetBytes(AES.KeySize / 8);
+                AES.IV = key.GetBytes(AES.BlockSize / 8);
+                AES.Mode = CipherMode.CBC;
+                MemoryStream encrypted = new MemoryStream(input);
+                byte[] saltMatch = new byte[salt.Length];
+                if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
+                {
+                    throw new InvalidOperationException("Invalid salt");
+                }
+                var cs = new CryptoStream(encrypted, AES.CreateDecryptor(), CryptoStreamMode.Read);
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = cs.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    decrypted.Write(buffer, 0, count);
+                }
+                return decrypted.ToArray();
             }
-            var cs = new CryptoStream(encrypted, AES.CreateDecryptor(), CryptoStreamMode.Read);
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = cs.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                decrypted.Write(buffer, 0, count);
-            }
-            return decrypted.ToArray();
         }
 
         /// <summary>
@@ -1362,7 +1364,7 @@ namespace ExchangeSharp
         /// <param name="method">Method implementation</param>
         /// <param name="arguments">Function arguments - function name and then param name, value, name, value, etc.</param>
         /// <returns></returns>
-        public static async Task<T> CacheMethod<T>(this ICache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object[] arguments) where T : class
+        public static async Task<T> CacheMethod<T>(this ICache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object?[] arguments) where T : class
         {
             await new SynchronizationContextRemover();
             methodCachePolicy.ThrowIfNull(nameof(methodCachePolicy));
@@ -1370,11 +1372,11 @@ namespace ExchangeSharp
             {
                 throw new ArgumentException("Must pass function name and then name and value of each argument");
             }
-            string methodName = arguments[0].ToStringInvariant();
+            string methodName = (arguments[0] ?? string.Empty).ToStringInvariant();
             string cacheKey = methodName;
             for (int i = 1; i < arguments.Length;)
             {
-                cacheKey += "|" + arguments[i++].ToStringInvariant() + "=" + arguments[i++].ToStringInvariant("(null)");
+                cacheKey += "|" + (arguments[i++] ?? string.Empty).ToStringInvariant() + "=" + (arguments[i++] ?? string.Empty).ToStringInvariant("(null)");
             }
             if (methodCachePolicy.TryGetValue(methodName, out TimeSpan cacheTime))
             {

@@ -164,14 +164,14 @@ namespace ExchangeSharp
         /// <param name="orderId">order id</param>
         /// <param name="marketSymbol">Market Symbol</param>
         /// <returns>Order details</returns>
-        Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null);
+        Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null);
 
         /// <summary>
         /// Get the details of all open orders
         /// </summary>
         /// <param name="marketSymbol">Market symbol to get open orders for or null for all</param>
         /// <returns>All open order details for the specified symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string marketSymbol = null);
+        Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string? marketSymbol = null);
 
         /// <summary>
         /// Get the details of all completed orders
@@ -179,14 +179,14 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Market symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null);
+        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null);
 
         /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <param name="marketSymbol">Market symbol of the order to cancel (not required for most exchanges)</param>
-        Task CancelOrderAsync(string orderId, string marketSymbol = null);
+        Task CancelOrderAsync(string orderId, string? marketSymbol = null);
 
         /// <summary>
         /// Get margin amounts available to trade, symbol / amount dictionary

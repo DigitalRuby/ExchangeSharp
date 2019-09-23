@@ -50,7 +50,7 @@ namespace ExchangeSharp
             ConcurrentDictionary<string, ExchangeOrderBook> fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
             Dictionary<string, Queue<ExchangeOrderBook>> partialOrderBookQueues = new Dictionary<string, Queue<ExchangeOrderBook>>();
 
-            void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
+            static void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
             {
                 foreach (ExchangeOrderPrice record in deltaValues.Values)
                 {
@@ -65,7 +65,7 @@ namespace ExchangeSharp
                 }
             }
 
-            void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
+            static void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
             {
                 lock (fullOrderBook)
                 {
