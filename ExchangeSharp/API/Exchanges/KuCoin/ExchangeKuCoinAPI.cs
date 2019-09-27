@@ -513,8 +513,9 @@ namespace ExchangeSharp
 					int tunnelInt = 0;
 					while (marketSymbolsList.Count > 0)
 					{ // can only subscribe to 100 symbols per session (started w/ API 2.0)
-						var nextBatch = marketSymbolsList.GetRange(index: 0, count: 100);
-						marketSymbolsList.RemoveRange(index: 0, count: 100);
+						var batchSize = marketSymbolsList.Count > 100 ? 100 : marketSymbolsList.Count;
+						var nextBatch = marketSymbolsList.GetRange(index: 0, count: batchSize);
+						marketSymbolsList.RemoveRange(index: 0, count: batchSize);
 						// create a new tunnel
 						await _socket.SendMessageAsync(new
 						{
