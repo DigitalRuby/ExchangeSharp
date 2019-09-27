@@ -213,7 +213,7 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // [0]-Timestamp [1]-OrderType [2]-Price [3]-Amount [4]-Volume
             // [[1506037604000,"SELL",5210,48600633397,2532093],... ]
-            JToken token = await MakeJsonRequestAsync<JToken>("/orders?status=active&symbol=" + marketSymbol);
+            JToken token = await MakeJsonRequestAsync<JToken>("/orders?status=active&symbol=" + marketSymbol, payload: await GetNoncePayloadAsync());
             foreach (JToken trade in token)
             {
                 trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds, idKey: "tradeId"));
