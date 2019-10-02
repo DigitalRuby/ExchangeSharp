@@ -28,14 +28,15 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.hitbtc.com/api/2/ws";
 
-        public ExchangeHitBTCAPI()
-        {
-            RequestContentType = "application/json";
-            NonceStyle = NonceStyle.UnixMillisecondsString;
-            MarketSymbolSeparator = string.Empty;
-        }
+		public ExchangeHitBTCAPI()
+		{ // https://api.hitbtc.com/
+			RateLimit = new RateGate(100, TimeSpan.FromSeconds(1));
+			RequestContentType = "application/json";
+			NonceStyle = NonceStyle.UnixMillisecondsString;
+			MarketSymbolSeparator = string.Empty;
+		}
 
-        public override string PeriodSecondsToString(int seconds)
+		public override string PeriodSecondsToString(int seconds)
         {
             switch (seconds)
             {
