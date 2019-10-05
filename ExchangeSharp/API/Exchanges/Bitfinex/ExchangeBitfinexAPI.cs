@@ -63,38 +63,6 @@ namespace ExchangeSharp
             };
 
             MarketSymbolSeparator = string.Empty;
-            MarketSymbolIsUppercase = false;
-        }
-
-        public string NormalizeMarketSymbolV1(string marketSymbol)
-        {
-            return (marketSymbol ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant();
-        }
-
-        public async Task<IEnumerable<ExchangeOrderResult>> GetOrderDetailsInternalV2(string url, string marketSymbol = null)
-        {
-            Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["limit"] = 250;
-            payload["start"] = CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
-            payload["end"] = CryptoUtility.UtcNow.UnixTimestampFromDateTimeMilliseconds();
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload);
-            Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
-            if (result is JArray array)
-            {
-                foreach (JToken token in array)
-                {
-                    if (marketSymbol == null || token[1].ToStringInvariant() == "t" + marketSymbol.ToUpperInvariant())
-                    {
-                        string lookup = token[1].ToStringInvariant().Substring(1).ToLowerInvariant();
-                        if (!trades.TryGetValue(lookup, out List<JToken> tradeList))
-                        {
-                            tradeList = trades[lookup] = new List<JToken>();
-                        }
-                        tradeList.Add(token);
-                    }
-                }
-            }
-            return ParseOrderV2(trades);
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -105,7 +73,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             var m = await GetMarketSymbolsMetadataAsync();
-            return m.Select(x => x.MarketSymbol);
+            return m.Select(x => NormalizeMarketSymbol(x.MarketSymbol));
         }
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
@@ -338,7 +306,7 @@ namespace ExchangeSharp
         {
             ExchangeOrderBook orders = new ExchangeOrderBook();
             decimal[][] books = await MakeJsonRequestAsync<decimal[][]>("/book/t" + marketSymbol +
-	        "/P0?limit_bids=" + maxCount.ToStringInvariant() + "limit_asks=" + maxCount.ToStringInvariant());
+	            "/P0?limit_bids=" + maxCount.ToStringInvariant() + "limit_asks=" + maxCount.ToStringInvariant());
             foreach (decimal[] book in books)
             {
                 if (book[2] > 0m)
@@ -467,9 +435,7 @@ namespace ExchangeSharp
                 }
             }
             return lookup;
-        }
-        
-        
+        }        
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
@@ -819,6 +785,37 @@ namespace ExchangeSharp
             throw new NotSupportedException("Bitfinex does not provide data about its currencies via the API");
         }
 
+        private string NormalizeMarketSymbolV1(string marketSymbol)
+        {
+            return (marketSymbol ?? string.Empty).Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        private async Task<IEnumerable<ExchangeOrderResult>> GetOrderDetailsInternalV2(string url, string marketSymbol = null)
+        {
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            payload["limit"] = 250;
+            payload["start"] = CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(365.0)).UnixTimestampFromDateTimeMilliseconds();
+            payload["end"] = CryptoUtility.UtcNow.UnixTimestampFromDateTimeMilliseconds();
+            JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload);
+            Dictionary<string, List<JToken>> trades = new Dictionary<string, List<JToken>>(StringComparer.OrdinalIgnoreCase);
+            if (result is JArray array)
+            {
+                foreach (JToken token in array)
+                {
+                    if (string.IsNullOrWhiteSpace(marketSymbol) || token[1].ToStringInvariant() == "t" + marketSymbol)
+                    {
+                        string lookup = token[1].ToStringInvariant().Substring(1).ToLowerInvariant();
+                        if (!trades.TryGetValue(lookup, out List<JToken> tradeList))
+                        {
+                            tradeList = trades[lookup] = new List<JToken>();
+                        }
+                        tradeList.Add(token);
+                    }
+                }
+            }
+            return ParseOrderV2(trades);
+        }
+
         private async Task<IEnumerable<ExchangeOrderResult>> GetOrderDetailsInternalAsync(string url, string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
@@ -842,7 +839,7 @@ namespace ExchangeSharp
             Dictionary<string, ExchangeOrderResult> orders = new Dictionary<string, ExchangeOrderResult>(StringComparer.OrdinalIgnoreCase);
             foreach (string marketSymbol in marketSymbols)
             {
-                string normalizedSymbol = NormalizeMarketSymbol(marketSymbol);
+                string normalizedSymbol = NormalizeMarketSymbolV1(marketSymbol);
                 Dictionary<string, object> payload = await GetNoncePayloadAsync();
                 payload["symbol"] = normalizedSymbol;
                 payload["limit_trades"] = 250;

@@ -38,7 +38,7 @@ namespace ExchangeSharpConsole
         {
             string GetSymbol(IExchangeAPI api)
             {
-                if (api is ExchangeCryptopiaAPI || api is ExchangeLivecoinAPI || api is ExchangeZBcomAPI)
+                if (api is ExchangeLivecoinAPI || api is ExchangeZBcomAPI)
                 {
                     return "LTC-BTC";
                 }
@@ -58,10 +58,6 @@ namespace ExchangeSharpConsole
                 else if (api is ExchangeYobitAPI || api is ExchangeBitBankAPI)
                 {
                     return "LTC-BTC";
-                }
-                else if (api is ExchangeTuxExchangeAPI)
-                {
-                    return "BTC-ETH";
                 }
                 else if (api is ExchangeBitMEXAPI)
                 {
