@@ -26,7 +26,6 @@ The following cryptocurrency exchanges are supported:
 | Bittrex          | x         | x           | T R       |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
-| Cryptopia        | x         | x           |           |
 | Digifinex        | x         | x           |   R B     |
 | Gemini           | x         | x           |   R       |
 | HitBTC           | x         | x           |   R       |
@@ -38,7 +37,6 @@ The following cryptocurrency exchanges are supported:
 | OKCoin           | x         | x           |   R B     |
 | OKEx             | x         | x           |   R B     |
 | Poloniex         | x         | x           | T R B     |
-| TuxExchange      | x         | x           |           |
 | YoBit            | x         | x           |           |
 | ZB.com           | wip       |             |   R       |
 
