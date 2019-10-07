@@ -62,14 +62,14 @@ namespace ExchangeSharp.API.Exchanges.Bl3p
 
 			return new ExchangeTicker
 			{
-				Ask = result.Value<decimal>("ask"),
-				Bid = result.Value<decimal>("bid"),
-				Last = result.Value<decimal>("last"),
+				Ask = result["ask"].ConvertInvariant<decimal>(),
+				Bid = result["bid"].ConvertInvariant<decimal>(),
+				Last = result["last"].ConvertInvariant<decimal>(),
 				Volume = new ExchangeVolume
 				{
 					Timestamp = CryptoUtility.UtcNow,
 					BaseCurrency = marketSymbol.Substring(0, 3),
-					BaseCurrencyVolume = result["volume"].Value<decimal>("24h")
+					BaseCurrencyVolume = result["volume"]["24h"].ConvertInvariant<decimal>()
 				},
 				MarketSymbol = marketSymbol
 			};
