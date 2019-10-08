@@ -4,17 +4,19 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace ExchangeSharp.API.Exchanges.Bl3p
+// ReSharper disable once CheckNamespace
+namespace ExchangeSharp
 {
-	public sealed class ExchangeBl3pAPI : ExchangeAPI
+	// ReSharper disable once InconsistentNaming
+	public sealed class ExchangeBL3PAPI : ExchangeAPI
 	{
 		public override string BaseUrl { get; set; } = "https://api.bl3p.eu/";
 
-		public ExchangeBl3pAPI()
+		public ExchangeBL3PAPI()
 		{
 		}
 
-		public ExchangeBl3pAPI(ref string publicApiKey, ref string privateApiKey)
+		public ExchangeBL3PAPI(ref string publicApiKey, ref string privateApiKey)
 		{
 			if (publicApiKey == null)
 				throw new ArgumentNullException(nameof(publicApiKey));
