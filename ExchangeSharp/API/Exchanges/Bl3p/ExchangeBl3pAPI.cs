@@ -10,7 +10,7 @@ namespace ExchangeSharp
 	// ReSharper disable once InconsistentNaming
 	public sealed class ExchangeBL3PAPI : ExchangeAPI
 	{
-		public override string BaseUrl { get; set; } = "https://api.bl3p.eu/";
+		public override string BaseUrl { get; set; } = "https://api.bl3p.eu/1/";
 
 		public ExchangeBL3PAPI()
 		{
@@ -41,7 +41,7 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
-			var result = await MakeJsonRequestAsync<JObject>($"/1/{marketSymbol}/ticker");
+			var result = await MakeJsonRequestAsync<JObject>($"/{marketSymbol}/ticker");
 
 			return ParseTickerResponse(result, marketSymbol);
 		}
