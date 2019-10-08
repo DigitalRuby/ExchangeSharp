@@ -79,7 +79,7 @@ namespace ExchangeSharp
 
 		public partial class ExchangeName
 		{
-			public const string Bl3p = "BL3P";
+			public const string BL3p = "BL3P";
 		}
 	}
 }
