@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -66,7 +66,7 @@ namespace ExchangeSharpTests
         public async Task GlobalSymbolTest()
         {
             // if tests fail, uncomment this and it will save a new test file
-            //string allSymbolsJson = GetAllSymbolsJsonAsync().Sync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
+            // string allSymbolsJson = GetAllSymbolsJsonAsync().Sync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
 
             string globalMarketSymbol = "BTC-ETH";
             string globalMarketSymbolAlt = "KRW-BTC"; // WTF Bitthumb...
@@ -101,7 +101,12 @@ namespace ExchangeSharpTests
                                 "then apply this new string to Resources.AllSymbolsJson");
                         }
                         string[] symbols = allSymbols[api.Name];
-                        Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
+
+						// BL3P does not have usd
+						if (api.Name != ExchangeName.BL3P)
+						{
+							Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
+						}
                     }
                     catch
                     {

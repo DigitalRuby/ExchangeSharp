@@ -76,10 +76,7 @@ namespace ExchangeSharp
 				MarketSymbol = marketSymbol
 			};
 		}
-
-		public partial class ExchangeName
-		{
-			public const string BL3p = "BL3P";
-		}
 	}
+
+	public partial class ExchangeName { public const string BL3P = "BL3P"; }
 }
