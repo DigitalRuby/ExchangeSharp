@@ -1,10 +1,9 @@
 using System;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.Converters
+namespace ExchangeSharp.API.Exchanges.Ndax.Converters
 {
     public class BoolConverter : JsonConverter
-
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 
@@ -12,14 +11,12 @@ namespace ExchangeSharp.Converters
             writer.WriteValue(((bool) value) ? 1 : 0);
         }
 
-
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
 
         {
             return reader.Value.ToString() == "1";
         }
-
 
         public override bool CanConvert(Type objectType)
 

@@ -1,10 +1,10 @@
 using System;
-using ExchangeSharp.Converters;
+using ExchangeSharp.API.Exchanges.Ndax.Converters;
 using Newtonsoft.Json;
 
 namespace ExchangeSharp.API.Exchanges.Ndax.Models
 {
-    public partial class NdaxTicker
+    public class NdaxTicker
 
     {
         [JsonProperty("isFrozen")]
