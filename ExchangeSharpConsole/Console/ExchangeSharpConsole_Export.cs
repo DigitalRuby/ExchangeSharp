@@ -48,7 +48,7 @@ namespace ExchangeSharpConsole
             }, marketSymbol, startDate, endDate);
         }
 
-        public static void RunExportData(Dictionary<string, string> dict)
+        public static Task RunExportData(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "exchange", "symbol", "path", "sinceDateTime");
             string exchange = dict["exchange"];
@@ -59,6 +59,7 @@ namespace ExchangeSharpConsole
                 Console.Write("Exporting {0}: {1}     \r", exchange, total);
             });
             Console.WriteLine("{0}Finished Exporting {1}: {2}     \r", Environment.NewLine, exchange, total);
+            return Task.CompletedTask;
         }
     }
 }

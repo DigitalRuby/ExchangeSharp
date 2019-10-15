@@ -12,16 +12,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 using System;
-using System.Collections.Generic;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsoleMain
     {
-        public static void RunShowHelp(Dictionary<string, string> dict)
+        public static void ShowHelp()
         {
             Console.WriteLine("------------------------------------------------------------");
-            Console.WriteLine("ExchangeSharpConsole v. {0}", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version);
+            Console.WriteLine("ExchangeSharpConsole v. {0}", Assembly.GetExecutingAssembly().GetName().Version);
             Console.WriteLine("------------------------------------------------------------");
             Console.WriteLine("Command line arguments should be key=value pairs, separated by space. Please add quotes around any key=value pair with a space in it.");
             Console.WriteLine();
@@ -47,7 +48,7 @@ namespace ExchangeSharpConsole
             Console.WriteLine("  keys mode=create path=pathToKeyFile.bin keylist=key1,key2,key3,key4,etc.");
             Console.WriteLine("  The keys parameter is comma separated and may contain any number of keys in any order.");
             Console.WriteLine(" Display a key file:");
-            Console.WriteLine("  keys mode=display path=pathToKeyFile.bin");               
+            Console.WriteLine("  keys mode=display path=pathToKeyFile.bin");
             Console.WriteLine();
             Console.WriteLine("showHistoricalTrades - output historical trades to console");
             Console.WriteLine(" showHistoricalTrades exchangeName=Binance symbol=btcusdt \"startDate=2018-05-17T11:00:00\" \"endDate=2018-05-17T12:00:00\"");

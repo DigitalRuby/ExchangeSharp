@@ -12,11 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Security;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -34,7 +30,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        private static async Task TestExchanges(string nameRegex = null, string functionRegex = null)
+        internal static async Task TestExchanges(string nameRegex = null, string functionRegex = null)
         {
             string GetSymbol(IExchangeAPI api)
             {

@@ -21,7 +21,7 @@ namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsoleMain
     {
-        public static async Task RunExample(Dictionary<string, string> dict)
+        public static async Task RunExample()
         {
             ExchangeKrakenAPI api = new ExchangeKrakenAPI();
             ExchangeTicker ticker = await api.GetTickerAsync("XXBTZUSD");
@@ -125,7 +125,7 @@ namespace ExchangeSharpConsole
             }
         }
 
-        private static async Task RunWebSocketTickers(Dictionary<string, string> dict)
+        internal static async Task RunWebSocketTickers(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict, false);
             await RunWebSocket(dict, async (api) =>
@@ -144,7 +144,7 @@ namespace ExchangeSharpConsole
             });
         }
 
-        private static async Task RunTradesWebSocket(Dictionary<string, string> dict)
+        internal static async Task RunTradesWebSocket(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict);
             await RunWebSocket(dict, async (api) =>
@@ -158,7 +158,7 @@ namespace ExchangeSharpConsole
             });
         }
 
-        private static async Task RunOrderBookWebSocket(Dictionary<string, string> dict)
+        internal static async Task RunOrderBookWebSocket(Dictionary<string, string> dict)
         {
             string[] symbols = GetMarketSymbols(dict);
             await RunWebSocket(dict, async (api) =>
@@ -174,7 +174,7 @@ namespace ExchangeSharpConsole
             });
         }
 
-        public static void RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)
+        public static Task RunProcessEncryptedAPIKeys(Dictionary<string, string> dict)
         {
             RequireArgs(dict, "path", "mode");
             if (dict["mode"].Equals("create", StringComparison.OrdinalIgnoreCase))
@@ -194,6 +194,8 @@ namespace ExchangeSharpConsole
             {
                 throw new ArgumentException("Invalid mode: " + dict["mode"]);
             }
+
+            return Task.CompletedTask;
         }
 
         public static async Task RunGetSymbolsMetadata(Dictionary<string, string> dict)
@@ -279,7 +281,7 @@ namespace ExchangeSharpConsole
                     {
                         tickers = await api.GetTickersAsync();
                     }
-                    
+
                     foreach (var ticker in tickers)
                     {
                         Logger.Info(ticker.ToString());
@@ -308,7 +310,7 @@ namespace ExchangeSharpConsole
                 {
                     var marketSymbol = dict["marketSymbol"];
                     var candles = await api.GetCandlesAsync(marketSymbol, 1800, CryptoUtility.UtcNow.AddDays(-12), CryptoUtility.UtcNow);
-                    
+
                     foreach (var candle in candles)
                     {
                         Logger.Info(candle.ToString());

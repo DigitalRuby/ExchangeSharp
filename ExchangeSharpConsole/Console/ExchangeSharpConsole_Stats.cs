@@ -11,7 +11,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,7 +21,7 @@ namespace ExchangeSharpConsole
 {
 	public static partial class ExchangeSharpConsoleMain
     {
-        public static async Task RunShowExchangeStats(Dictionary<string, string> dict)
+        public static async Task RunShowExchangeStats(int interval = 5000)
         {
             string marketSymbol = "BTC-USD";
             string marketSymbol2 = "XXBTZUSD";
@@ -66,7 +65,7 @@ namespace ExchangeSharpConsole
                 Console.WriteLine("GEMI: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker2.Last, ticker2.Volume.QuoteCurrencyVolume, askAmountSum2, askPriceSum2, bidAmountSum2, bidPriceSum2);
                 Console.WriteLine("KRAK: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker3.Last, ticker3.Volume.QuoteCurrencyVolume, askAmountSum3, askPriceSum3, bidAmountSum3, bidPriceSum3);
                 Console.WriteLine("BITF: {0:0.00}, {1:0.00}, {2:0.00}, {3:0.00}, {4:0.00}, {5:0.00}", ticker4.Last, ticker4.Volume.QuoteCurrencyVolume, askAmountSum4, askPriceSum4, bidAmountSum4, bidPriceSum4);
-                Thread.Sleep(5000);
+                Thread.Sleep(interval);
             }
         }
     }
