@@ -10,7 +10,7 @@ namespace ExchangeSharp
     public sealed partial class ExchangeNdaxAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.ndax.io:8443/AP";
-//        public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
+        public override string BaseUrlWebSocket { get; set; } = "wss://apindaxstage.cdnhop.net/WSGateway";
         
         private AuthenticateResult authenticationDetails = null;
         public override string Name => ExchangeName.Ndax;
@@ -263,47 +263,6 @@ namespace ExchangeSharp
 
             }).Where(candle => !endDate.HasValue || candle.Timestamp <= endDate);
         }
-
-//        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
-//        {
-//            
-//            await EnsureProductIdsAvailable();
-//            var template = await MakeJsonRequestAsync<WithdrawTemplates>("GetWithdrawTemplateTypes", null,
-//                new Dictionary<string, object>()
-//                {
-//                    {"nonce", await GenerateNonceAsync()},
-//                    {"ProductId", await GetProductIdFromCryptoCode(withdrawalRequest.Currency)},
-//                    
-//                }, "POST");
-//            if (!template.Result)
-//            {
-//                throw  new APIException($"{template.ErrorCode}:{template.ErrorMsg}");
-//            }
-//            
-//            if (!template.TemplateTypes.Any())
-//            {
-//                throw  new APIException($"No withdraw template available for {withdrawalRequest.Currency}");
-//            }
-//            var result = await MakeJsonRequestAsync<GenericResponse>("CreateWithdrawTicket", null,
-//                new Dictionary<string, object>()
-//                {
-//                    {"nonce", await GenerateNonceAsync()},
-//                    {"ProductId", await GetProductIdFromCryptoCode(withdrawalRequest.Currency)},
-//                    {"Amount", withdrawalRequest.Amount},
-//                    {"TemplateForm", new
-//                    {
-//                        TemplateType = template.TemplateTypes.First(),
-//                        Comment = withdrawalRequest.Description,
-//                        ExternalAddress = withdrawalRequest.Address
-//                        
-//                    }}
-//                }, "POST");
-//
-//            if (!result.Result)
-//            {
-//                throw  new APIException($"{result.ErrorCode}:{result.ErrorMsg}");
-//            }
-//        }
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
