@@ -301,8 +301,6 @@ namespace ExchangeSharp
 
             return false;
         }
-
-
         private async Task Authenticate()
         {
             authenticationDetails = await MakeJsonRequestAsync<AuthenticateResult>("Authenticate", null,
@@ -352,46 +350,6 @@ namespace ExchangeSharp
             return null;
         }
 
-//        internal async Task<T> QueryAsync<T>(string functionName, object payload = null)
-//        {
-//            if (string.IsNullOrWhiteSpace(functionName))
-//                throw new ArgumentNullException(nameof(functionName));
-//
-//            // Wrap all calls in a frame object.
-//            var frame = new MessageFrame
-//            {
-//                FunctionName = functionName,
-//                MessageType = MessageType.Request,
-//                SequenceNumber = GetNextSequenceNumber(),
-//                Payload = JsonConvert.SerializeObject(payload)
-//            };
-//            
-//            var tcs = new TaskCompletionSource<T>();
-//            var handlerFinished = tcs.Task;
-//            using (ConnectWebSocketAsync("", (socket, bytes) =>
-//            {
-//                var messageFrame = JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
-//                tcs.SetResult(messageFrame.PayloadAs<T>());
-//                return Task.CompletedTask;
-//            }, async socket =>
-//            {
-//               await  socket.SendMessageAsync(frame);
-//            }))
-//            {
-//                return await handlerFinished;
-//            }
-//        }
-
-//        private long GetNextSequenceNumber()
-//        {
-//            // Best practice is to carry an even sequence number.
-//            Interlocked.Add(ref _sequenceNumber, 2);
-//
-//            return _sequenceNumber;
-//        }
-//        
-//        private long _sequenceNumber;
-//        
     }
 
 
