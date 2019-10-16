@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ExchangeSharp.API.Exchanges.Ndax.Models;
+using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -35,12 +36,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
-            var result = await MakeJsonRequestAsync<Dictionary<string, NdaxTicker>>("returnticker",
-                "https://ndax.io/api", new Dictionary<string, object>()
-                {
-                    {"InstrumentId", await GetInstrumentIdFromMarketSymbol(symbol)}
-                });
-            return result[symbol].ToExchangeTicker(symbol);
+            return (await GetTickersAsync()).Single(pair => pair.Key.Equals(symbol, StringComparison.InvariantCultureIgnoreCase)).Value;
         }
 
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
@@ -237,6 +233,35 @@ namespace ExchangeSharp
             {
                 throw new APIException($"{result.ErrorCode}:{result.ErrorMsg}");
             }
+        }
+        
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null,
+            int? limit = null)
+        {
+            var payload = new Dictionary<string, object>()
+            {
+                {"InstrumentId", await GetInstrumentIdFromMarketSymbol(marketSymbol)}
+            };
+            if (startDate.HasValue)
+            {
+                payload.Add("FromDate", new DateTimeOffset( startDate.Value).ToUniversalTime().ToUnixTimeMilliseconds());
+            }
+            
+            var result = await MakeJsonRequestAsync<IEnumerable<IEnumerable<JToken>>>("GetTickerHistory", null, payload
+               , "POST");
+
+            return result.Select(enumerable => new MarketCandle()
+            {
+                Name = marketSymbol,
+                ExchangeName = ExchangeName.Ndax,
+                Timestamp = enumerable.ElementAt(0).Value<long>().UnixTimeStampToDateTimeMilliseconds(),
+                HighPrice = enumerable.ElementAt(1).Value<decimal>(),
+                LowPrice = enumerable.ElementAt(2).Value<decimal>(),
+                OpenPrice = enumerable.ElementAt(3).Value<decimal>(),
+                ClosePrice = enumerable.ElementAt(4).Value<decimal>(),
+                BaseCurrencyVolume = enumerable.ElementAt(5).Value<double>(),
+
+            }).Where(candle => !endDate.HasValue || candle.Timestamp <= endDate);
         }
 
 //        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
