@@ -1,8 +1,11 @@
+using System;
+using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp.API.Exchanges.Ndax.Models
 {
-    public partial class DepositInfo
+    public partial class NdaxDepositInfo
     {
         [JsonProperty("AssetManagerId")]
         public long AssetManagerId { get; set; }
@@ -17,13 +20,13 @@ namespace ExchangeSharp.API.Exchanges.Ndax.Models
         public long ProviderId { get; set; }
 
         [JsonProperty("DepositInfo")]
-        public string DepositInfoDepositInfo { get; set; }
+        public string DepositInfo { get; set; }
 
         [JsonProperty("result")]
         public bool Result { get; set; }
 
         [JsonProperty("errormsg")]
-        public object Errormsg { get; set; }
+        public string Errormsg { get; set; }
 
         [JsonProperty("statuscode")]
         public long Statuscode { get; set; }
@@ -34,9 +37,20 @@ namespace ExchangeSharp.API.Exchanges.Ndax.Models
             {
                 throw new APIException($"{Errormsg}");
             }
+
+            var depositInfo = JsonConvert.DeserializeObject(DepositInfo) as JArray;
+            var address = depositInfo.Last().ToStringInvariant();
+            var addressTag = string.Empty;
+            var split = address.Split(new []{"?dt=", "?memoid="}, StringSplitOptions.RemoveEmptyEntries);
+            if (split.Length > 1)
+            {
+                address = split[0];
+                addressTag = split[1];
+            }
             return new ExchangeDepositDetails()
             {
-                Address = null,
+                Address = address,
+                AddressTag = addressTag,
                 Currency = cryptoCode
             };
             

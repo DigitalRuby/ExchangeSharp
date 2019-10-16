@@ -11,15 +11,15 @@ namespace ExchangeSharp.API.Exchanges.Ndax.Models
         [JsonConverter(typeof(BoolConverter))]
         public bool IsFrozen { get; set; }
 
-        [JsonProperty("lowestAsk")] public decimal LowestAsk { get; set; }
-        [JsonProperty("highestBid")] public decimal HighestBid { get; set; }
-        [JsonProperty("last")] public decimal Last { get; set; }
-        [JsonProperty("high24hr")] public decimal High24Hr { get; set; }
-        [JsonProperty("low24hr")] public decimal Low24Hr { get; set; }
+        [JsonProperty("lowestAsk")] public decimal? LowestAsk { get; set; }
+        [JsonProperty("highestBid")] public decimal? HighestBid { get; set; }
+        [JsonProperty("last")] public decimal? Last { get; set; }
+        [JsonProperty("high24hr")] public decimal? High24Hr { get; set; }
+        [JsonProperty("low24hr")] public decimal? Low24Hr { get; set; }
         [JsonProperty("id")] public long Id { get; set; }
-        [JsonProperty("percentChange")] public decimal PercentChange { get; set; }
-        [JsonProperty("baseVolume")] public decimal BaseVolume { get; set; }
-        [JsonProperty("quoteVolume")] public decimal QuoteVolume { get; set; }
+        [JsonProperty("percentChange")] public decimal? PercentChange { get; set; }
+        [JsonProperty("baseVolume")] public decimal? BaseVolume { get; set; }
+        [JsonProperty("quoteVolume")] public decimal? QuoteVolume { get; set; }
 
         public ExchangeTicker ToExchangeTicker(string currencyPair)
         {
@@ -27,16 +27,16 @@ namespace ExchangeSharp.API.Exchanges.Ndax.Models
             return new ExchangeTicker()
             {
                 MarketSymbol = currencyPair,
-                Ask = LowestAsk,
-                Bid = HighestBid,
+                Ask = LowestAsk.GetValueOrDefault(),
+                Bid = HighestBid.GetValueOrDefault(),
                 Id = Id.ToStringInvariant(),
-                Last = Last,
+                Last = Last.GetValueOrDefault(),
                 Volume = new ExchangeVolume()
                 {
                     BaseCurrency = currencyParts[0],
                     QuoteCurrency = currencyParts[1],
-                    BaseCurrencyVolume = BaseVolume,
-                    QuoteCurrencyVolume = QuoteVolume
+                    BaseCurrencyVolume = BaseVolume.GetValueOrDefault(),
+                    QuoteCurrencyVolume = QuoteVolume.GetValueOrDefault()
                 }
             };
         }

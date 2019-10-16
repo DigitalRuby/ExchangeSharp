@@ -10,7 +10,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.ndax.io:8443/AP";
 //        public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
-
+        
         private AuthenticateResult authenticationDetails = null;
         public override string Name => ExchangeName.Ndax;
 
@@ -19,13 +19,15 @@ namespace ExchangeSharp
 
         public ExchangeNdaxAPI()
         {
+            RequestContentType = "application/json";
             MarketSymbolSeparator = "_";
+            RequestMethod = "POST";
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             var result =
-                await MakeJsonRequestAsync<Dictionary<string, NdaxTicker>>("returnticker", "https://ndax.io/api");
+                await MakeJsonRequestAsync<Dictionary<string, NdaxTicker>>("returnticker", "https://ndax.io/api", null, "GET");
             _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key, pair => pair.Value.Id);
             return result.Select(pair =>
                 new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(pair.Key)));
@@ -50,7 +52,7 @@ namespace ExchangeSharp
         {
             var result = await MakeJsonRequestAsync<IEnumerable<NDaxProduct>>("GetProducts", null,
                 new Dictionary<string, object>()
-                    { }, "POST");
+                    { {"OMSId", 1}}, "POST");
             _symbolToProductId = result.ToDictionary(product => product.Product, product => product.ProductId);
             return result.ToDictionary(product => product.Product, product => product.ToExchangeCurrency());
         }
@@ -59,7 +61,7 @@ namespace ExchangeSharp
         {
             var result = await MakeJsonRequestAsync<IEnumerable<Instrument>>("GetInstruments", null,
                 new Dictionary<string, object>()
-                    { }, "POST");
+                    { {"OMSId", 1}}, "POST");
 
             return result.Select(instrument => instrument.ToExchangeMarket());
         }
@@ -67,8 +69,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null,
             DateTime? afterDate = null)
         {
-            
-                
             var payload = new Dictionary<string, object>()
             {
                 {"nonce", await GenerateNonceAsync()}
@@ -93,10 +93,13 @@ namespace ExchangeSharp
 
             var payload = new Dictionary<string, object>()
             {
-                {"ProductId", await GetProductIdFromCryptoCode(marketSymbol)},
-                {"GenerateNewKey", true},
                 {"nonce", await GenerateNonceAsync()}
             };
+            
+            if (marketSymbol != null)
+            {
+                payload.Add("InstrumentId", await GetInstrumentIdFromMarketSymbol(marketSymbol));
+            }
 
             if (startDate.HasValue)
             {
@@ -115,11 +118,11 @@ namespace ExchangeSharp
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol,
             bool forceRegenerate = false)
         {
-            var result = await MakeJsonRequestAsync<DepositInfo>("GetDepositInfo", null,
+            var result = await MakeJsonRequestAsync<NdaxDepositInfo>("GetDepositInfo", null,
                 new Dictionary<string, object>()
                 {
                     {"ProductId", await GetProductIdFromCryptoCode(symbol)},
-                    {"GenerateNewKey", true},
+                    {"GenerateNewKey", forceRegenerate},
                     {"nonce", await GenerateNonceAsync()}
                 }, "POST");
 
@@ -153,20 +156,20 @@ namespace ExchangeSharp
             var side = order.IsBuy? 0: 1;
             switch (order.OrderType)
             {
-                case OrderType.Limit:
-                    orderType = 2;
-                    break;
                 case OrderType.Market:
                     orderType = 1;
                     break;
+                case OrderType.Limit:
+                    orderType = 2;
+                    break;
+
                 case OrderType.Stop:
                     orderType = 3;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            
-            
+
             var result = await MakeJsonRequestAsync<SendOrderResponse>("SendOrder", null,
                 new Dictionary<string, object>()
                 {
@@ -215,7 +218,10 @@ namespace ExchangeSharp
                 {
                     {"nonce", await GenerateNonceAsync()}
                 }, "POST");
-            return result.Select(order => order.ToExchangeOrderResult(_marketSymbolToInstrumentIdMapping));
+            return result.Select(order => order.ToExchangeOrderResult(_marketSymbolToInstrumentIdMapping)).Where(
+                orderResult =>
+                    symbol == null ||
+                    orderResult.MarketSymbol.Equals(symbol, StringComparison.InvariantCultureIgnoreCase));
         }
 
 
@@ -288,10 +294,12 @@ namespace ExchangeSharp
                 request.AddHeader("apToken", authenticationDetails.Token);
                 payload.Add("OMSId", authenticationDetails.OMSId);
                 payload.Add("AccountId", authenticationDetails.AccountId);
-                if (request.Method == "POST")
-                {
-                    await request.WritePayloadJsonToRequestAsync(payload);
-                }
+                
+            }
+            
+            if (request.Method == "POST")
+            {
+                await request.WritePayloadJsonToRequestAsync(payload);
             }
         }
 

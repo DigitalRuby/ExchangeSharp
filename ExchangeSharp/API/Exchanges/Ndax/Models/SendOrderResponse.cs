@@ -5,7 +5,7 @@ namespace ExchangeSharp.API.Exchanges.Ndax.Models
     public class SendOrderResponse
     {
         [JsonProperty("errormsg")]
-        public bool ErrorMsg { get; set; }
+        public string ErrorMsg { get; set; }
         [JsonProperty("status")]
         public string Status { get; set; }
         [JsonProperty("OrderId")]

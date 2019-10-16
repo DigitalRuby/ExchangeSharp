@@ -7,7 +7,7 @@ namespace ExchangeSharp.API.Exchanges.Ndax.Models
         [JsonProperty("result")]
         public bool Result { get; set; }
         [JsonProperty("errormsg")]
-        public bool ErrorMsg { get; set; }
+        public string ErrorMsg { get; set; }
         [JsonProperty("errorcode")]
         public int ErrorCode { get; set; }
         [JsonProperty("detail")]
