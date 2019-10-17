@@ -32,6 +32,8 @@ namespace ExchangeSharpConsole.Options
 
 		private void DisplayKeyContents()
 		{
+			Logger.Info($"Reading file with keys in \"{System.IO.Path.GetFullPath(Path)}\".");
+
 			var secureStrings = CryptoUtility.LoadProtectedStringsFromFile(Path);
 
 			foreach (var s in secureStrings)
@@ -45,6 +47,8 @@ namespace ExchangeSharpConsole.Options
 			var keyList = await ReadKeysAsync();
 
 			CryptoUtility.SaveUnprotectedStringsToFile(Path, keyList);
+
+			Logger.Info($"Created file in \"{System.IO.Path.GetFullPath(Path)}\".");
 		}
 
 		private async Task<string[]> ReadKeysAsync()
@@ -55,12 +59,12 @@ namespace ExchangeSharpConsole.Options
 				return stdinData.Split(Environment.NewLine);
 			}
 
-			if (KeyList is null || KeyList.Length == 0)
+			if (string.IsNullOrWhiteSpace(KeyList))
 			{
 				throw new ArgumentException("The argument key-list is empty.");
 			}
 
-			return KeyList;
+			return KeyList.Split(',');
 		}
 
 		[Option('m', "mode", Required = true,
@@ -70,9 +74,9 @@ namespace ExchangeSharpConsole.Options
 			           "\t\tdisplay: Displays the protected pair.")]
 		public string Mode { get; set; }
 
-		[Option("key-list", SetName = "key-interactive", Separator = ',',
+		[Option("key-list", SetName = "key-interactive",
 			HelpText = "Comma separated list of keys to be stored.")]
-		public string[] KeyList { get; set; }
+		public string KeyList { get; set; }
 
 		[Option("key-stdin", SetName = "key-not-interactive",
 			HelpText = "Switch to enable reading the key from the stdin.")]
