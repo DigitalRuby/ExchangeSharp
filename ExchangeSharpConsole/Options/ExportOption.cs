@@ -14,7 +14,7 @@ namespace ExchangeSharpConsole.Options
 		"Please note that not all exchanges will let you do this and may ban your IP if you try to grab to much data at once. " +
 		"I've added sensible sleep statements to limit request rates.\n" +
 		"Example: export -e gemini --since 20150101 -s btcusd -o \"./data/gemini\"")]
-	public class ExportOption : BaseOption, IOptionPerExchange, IOptionPerSymbol, IOptionWithOutput,
+	public class ExportOption : BaseOption, IOptionPerExchange, IOptionPerMarketSymbol, IOptionWithIO,
 		IOptionWithStartDate
 	{
 		public override Task RunCommand()
@@ -23,7 +23,7 @@ namespace ExchangeSharpConsole.Options
 
 			TraderExchangeExport.ExportExchangeTrades(
 				ExchangeAPI.GetExchangeAPI(ExchangeName),
-				Symbol,
+				MarketSymbol,
 				Path,
 				DateTime.Parse(SinceDateString, CultureInfo.InvariantCulture),
 				count =>
@@ -39,8 +39,11 @@ namespace ExchangeSharpConsole.Options
 		}
 
 		public string ExchangeName { get; set; }
-		public string Symbol { get; set; }
+
+		public string MarketSymbol { get; set; }
+
 		public string Path { get; set; }
+
 		public string SinceDateString { get; set; }
 	}
 }

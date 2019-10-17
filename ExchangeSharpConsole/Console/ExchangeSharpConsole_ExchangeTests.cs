@@ -38,36 +38,33 @@ namespace ExchangeSharpConsole
                 {
                     return "LTC-BTC";
                 }
-                else if (api is ExchangeKrakenAPI)
+
+                if (api is ExchangeKrakenAPI)
                 {
-                    return "XXBTZ-USD";
+	                return "XXBTZ-USD";
                 }
-                else if (api is ExchangeBittrexAPI || api is ExchangePoloniexAPI)
+                if (api is ExchangeBittrexAPI || api is ExchangePoloniexAPI)
                 {
-                    return "BTC-LTC";
+	                return "BTC-LTC";
                 }
-                else if (api is ExchangeBinanceAPI || api is ExchangeOKExAPI ||/* api is ExchangeBleutradeAPI ||*/
+                if (api is ExchangeBinanceAPI || api is ExchangeOKExAPI ||/* api is ExchangeBleutradeAPI ||*/
                     api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI)
                 {
-                    return "ETH-BTC";
+	                return "ETH-BTC";
                 }
-                else if (api is ExchangeYobitAPI || api is ExchangeBitBankAPI)
+                if (api is ExchangeYobitAPI || api is ExchangeBitBankAPI)
                 {
-                    return "LTC-BTC";
+	                return "LTC-BTC";
                 }
-                else if (api is ExchangeBitMEXAPI)
+                if (api is ExchangeBitMEXAPI)
                 {
-                    return "XBT-USD";
+	                return "XBT-USD";
                 }
+
                 return "BTC-USD";
             }
 
             ExchangeTrade[] trades = null;
-            bool histTradeCallback(IEnumerable<ExchangeTrade> tradeEnum)
-            {
-                trades = tradeEnum.ToArray();
-                return true;
-            }
 
             IExchangeAPI[] apis = ExchangeAPI.GetExchangeAPIs();
             foreach (IExchangeAPI api in apis)
@@ -77,9 +74,10 @@ namespace ExchangeSharpConsole
                 {
                     continue;
                 }
-                else if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
+
+                if (nameRegex != null && !Regex.IsMatch(api.Name, nameRegex, RegexOptions.IgnoreCase))
                 {
-                    continue;
+	                continue;
                 }
 
                 // test all public API for each exchange
@@ -147,7 +145,11 @@ namespace ExchangeSharpConsole
                         try
                         {
                             Console.Write("Test {0} GetHistoricalTradesAsync... ", api.Name);
-                            await api.GetHistoricalTradesAsync(histTradeCallback, marketSymbol);
+                            await api.GetHistoricalTradesAsync(tradeEnum =>
+                            {
+	                            trades = tradeEnum.ToArray();
+	                            return true;
+                            }, marketSymbol);
                             Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
                             Console.WriteLine($"OK ({trades.Length})");
 

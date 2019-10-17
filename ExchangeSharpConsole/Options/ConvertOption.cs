@@ -9,15 +9,16 @@ namespace ExchangeSharpConsole.Options
 		"Converts csv exchange data to bin files for optimized reading.\n" +
 		"Files are converted in place and csv files are left as is.\n" +
 		"Example: convert --symbol btcusd --path ../../data/gemini")]
-	public class ConvertOption : BaseOption, IOptionWithOutput, IOptionPerSymbol
+	public class ConvertOption : BaseOption, IOptionWithIO, IOptionPerMarketSymbol
 	{
-		public string Symbol { get; set; }
-		public string Path { get; set; }
-
 		public override Task RunCommand()
 		{
-			TraderExchangeExport.ExportExchangeTrades(null, Symbol, Path, CryptoUtility.UtcNow);
+			TraderExchangeExport.ExportExchangeTrades(null, MarketSymbol, Path, CryptoUtility.UtcNow);
 			return Task.CompletedTask;
 		}
+
+		public string MarketSymbol { get; set; }
+
+		public string Path { get; set; }
 	}
 }

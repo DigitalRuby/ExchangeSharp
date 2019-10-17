@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using CommandLine;
+using ExchangeSharp;
 
 namespace ExchangeSharpConsole.Options
 {
@@ -8,12 +10,8 @@ namespace ExchangeSharpConsole.Options
 	{
 		public override async Task RunCommand()
 		{
-			await ExchangeSharpConsoleMain.ShowSupportedExchanges();
+			Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));
+			await Task.CompletedTask;
 		}
-	}
-
-	[Verb("getExchangeNames", HelpText = "Backwards-compatible version of \"supported-exchanges\"")]
-	public class ObsoleteSupportedExchangesOption : SupportedExchangesOption
-	{
 	}
 }

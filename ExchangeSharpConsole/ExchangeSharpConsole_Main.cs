@@ -1,4 +1,4 @@
-/*
+﻿/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -38,18 +38,21 @@ namespace ExchangeSharpConsole
 			}
 		}
 
-        private static Dictionary<string, string> ParseCommandLine(string[] args)
-        {
-            Dictionary<string, string> dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string a in args)
-            {
-                int idx = a.IndexOf('=');
-                string key = (idx < 0 ? a.Trim('-') : a.Substring(0, idx)).ToLowerInvariant();
-                string value = (idx < 0 ? string.Empty : a.Substring(idx + 1));
-                dict[key] = value;
-            }
-            return dict;
-        }
+		private static Dictionary<string, string> ParseCommandLine(string[] args)
+		{
+			var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			foreach (var a in args)
+			{
+				var arg = a.TrimStart('-');
+				var idx = arg.IndexOf('=');
+				var hasDivider = idx > 0;
+				var key = (hasDivider ? arg.Substring(0, idx) : arg).ToLowerInvariant();
+				var value = hasDivider ? arg.Substring(idx + 1) : string.Empty;
+				dict[key] = value;
+			}
+
+			return dict;
+		}
 
 		/// <summary>
 		/// Console app main method
@@ -76,31 +79,31 @@ namespace ExchangeSharpConsole
 				Dictionary<string, string> argsDictionary = ParseCommandLine(args);
 				if (argsDictionary.Count == 0 || argsDictionary.ContainsKey("help"))
 				{
-					ShowHelp();
+//					ShowHelp();
 				}
 				else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("test"))
 				{
-					await RunPerformTests(argsDictionary);
+//					await RunPerformTests(argsDictionary);
 				}
 				else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("export"))
 				{
-					await RunExportData(argsDictionary);
+//					await RunExportData(argsDictionary);
 				}
 				else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("convert"))
 				{
-					await RunConvertData(argsDictionary);
+//					await RunConvertData(argsDictionary);
 				}
 				else if (argsDictionary.Count >= 1 && argsDictionary.ContainsKey("stats"))
 				{
-					await RunShowExchangeStats();
+//					await RunShowExchangeStats();
 				}
 				else if (argsDictionary.ContainsKey("example"))
 				{
-					await RunExample();
+//					await RunExample();
 				}
 				else if (argsDictionary.ContainsKey("keys"))
 				{
-					await RunProcessEncryptedAPIKeys(argsDictionary);
+//					await RunProcessEncryptedAPIKeys(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("websocket-ticker"))
 				{
@@ -116,19 +119,19 @@ namespace ExchangeSharpConsole
 				}
 				else if (argsDictionary.ContainsKey("getExchangeNames"))
 				{
-					await ShowSupportedExchanges();
+//					await ShowSupportedExchanges();
 				}
 				else if (argsDictionary.ContainsKey("showHistoricalTrades"))
 				{
-					await RunGetHistoricalTrades(argsDictionary);
+//					await RunGetHistoricalTrades(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("getOrderHistory"))
 				{
-					await RunGetOrderHistoryAsync(argsDictionary);
+//					await RunGetOrderHistoryAsync(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("getOrderDetails"))
 				{
-					await RunGetOrderDetailsAsync(argsDictionary);
+//					await RunGetOrderDetailsAsync(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("symbols-metadata"))
 				{
@@ -136,11 +139,11 @@ namespace ExchangeSharpConsole
 				}
 				else if (argsDictionary.ContainsKey("symbols"))
 				{
-					await RunGetMarketSymbols(argsDictionary);
+//					await RunGetMarketSymbols(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("tickers"))
 				{
-					await RunGetTickers(argsDictionary);
+//					await RunGetTickers(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("candles"))
 				{
@@ -163,12 +166,6 @@ namespace ExchangeSharpConsole
 			{
 				Logger.Info("ExchangeSharp console finished.");
 			}
-		}
-
-		public static Task ShowSupportedExchanges()
-		{
-			Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));
-			return Task.CompletedTask;
 		}
 	}
 }

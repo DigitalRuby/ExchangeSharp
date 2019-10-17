@@ -57,7 +57,7 @@ namespace ExchangeSharpConsole
             Console.ReadLine();
         }
 
-        private static void Authenticate(IExchangeAPI api)
+        internal static void Authenticate(IExchangeAPI api)
         {
             Console.Write("Enter Public Api Key: ");
             var publicApiKey = GetSecureInput();
@@ -73,7 +73,7 @@ namespace ExchangeSharpConsole
             Console.WriteLine();
         }
 
-        private static SecureString GetSecureInput()
+        internal static SecureString GetSecureInput()
         {
             var pwd = new SecureString();
             while (true)

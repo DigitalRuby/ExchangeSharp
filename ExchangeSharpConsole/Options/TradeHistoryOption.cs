@@ -9,12 +9,12 @@ namespace ExchangeSharpConsole.Options
 {
 	[Verb("trade-history", HelpText = "Print trade history from an Exchange to output.\n" +
 	                                  "Example: trade-history -e Binance -s btcusdt --since \"20180517\" --to \"20180518\"")]
-	public class TradeHistoryOption : BaseOption, IOptionPerExchange, IOptionPerSymbol, IOptionWithStartDate,
+	public class TradeHistoryOption : BaseOption, IOptionPerExchange, IOptionPerMarketSymbol, IOptionWithStartDate,
 		IOptionWithEndDate
 	{
 		public override async Task RunCommand()
 		{
-			var api = ExchangeAPI.GetExchangeAPI(ExchangeName);
+			using var api = GetExchangeInstance(ExchangeName);
 
 			Logger.Info($"Showing historical trades for exchange {ExchangeName}...");
 
@@ -33,7 +33,7 @@ namespace ExchangeSharpConsole.Options
 
 			await api.GetHistoricalTradesAsync(
 				PrintTrades,
-				Symbol,
+				MarketSymbol,
 				startDate,
 				endDate
 			);
@@ -53,8 +53,11 @@ namespace ExchangeSharpConsole.Options
 		}
 
 		public string ExchangeName { get; set; }
-		public string Symbol { get; set; }
+
+		public string MarketSymbol { get; set; }
+
 		public string SinceDateString { get; set; }
+
 		public string ToDateString { get; set; }
 	}
 }

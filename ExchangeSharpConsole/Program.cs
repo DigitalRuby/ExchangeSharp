@@ -32,30 +32,48 @@ namespace ExchangeSharpConsole
 			var help = false;
 			var optionList = new List<BaseOption>();
 
-			void ValidateErrors(IEnumerable<Error> errs)
-			{
-				error = true;
-
-				foreach (var err in errs)
-				{
-					switch (err.Tag)
-					{
-						case ErrorType.HelpVerbRequestedError:
-						case ErrorType.HelpRequestedError:
-							error = false;
-							help = true;
-							break;
-					}
-				}
-			}
-
 			parser
-				.ParseArguments<ConvertOption, ExportOption, StatsOption, SupportedExchangesOption,
-					ObsoleteSupportedExchangesOption, TestOption, TradeHistoryOption>(args)
-				.WithParsed(opt => { optionList.Add((BaseOption) opt); })
-				.WithNotParsed(ValidateErrors);
+				.ParseArguments(
+					args,
+					typeof(ConvertOption),
+					typeof(ExampleOption),
+					typeof(ExportOption),
+					typeof(KeysOption),
+					typeof(MarketSymbolsOption),
+					typeof(OrderDetailsOption),
+					typeof(OrderHistoryOption),
+					typeof(StatsOption),
+					typeof(SupportedExchangesOption),
+					typeof(TestOption),
+					typeof(TickerOption),
+					typeof(TradeHistoryOption)
+				)
+				.WithParsed(opt => optionList.Add((BaseOption) opt))
+				.WithNotParsed(errs => (error, help) = ValidateParseErrors(errs));
 
 			options = optionList;
+
+			return (error, help);
+		}
+
+		private (bool error, bool help) ValidateParseErrors(IEnumerable<Error> errs)
+		{
+			var error = false;
+			var help = false;
+
+			foreach (var err in errs)
+			{
+				switch (err.Tag)
+				{
+					case ErrorType.HelpVerbRequestedError:
+					case ErrorType.HelpRequestedError:
+						help = true;
+						break;
+					default:
+						error = true;
+						break;
+				}
+			}
 
 			return (error, help);
 		}
