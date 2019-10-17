@@ -29,11 +29,11 @@ namespace ExchangeSharpConsole.Options
 				count =>
 				{
 					total = count;
-					Logger.Info($"Exporting {ExchangeName}: {total}");
+					Console.WriteLine($"Exporting {ExchangeName}: {total}");
 				}
 			);
 
-			Logger.Info($"Finished Exporting {ExchangeName}: {total}");
+			Console.WriteLine($"Finished Exporting {ExchangeName}: {total}");
 
 			return Task.CompletedTask;
 		}

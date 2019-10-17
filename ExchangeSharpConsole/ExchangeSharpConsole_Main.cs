@@ -13,7 +13,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
@@ -27,7 +26,7 @@ namespace ExchangeSharpConsole
 			{
 				if (!dict.ContainsKey(arg))
 				{
-					Logger.Error("Argument {0} is required.", arg);
+					Console.Error.WriteLine("Argument {0} is required.", arg);
 					fail = true;
 				}
 			}
@@ -75,7 +74,7 @@ namespace ExchangeSharpConsole
 			{
 				// swap out to external web socket implementation for older Windows pre 8.1
 				// ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());
-				Logger.Info("ExchangeSharp console started.");
+				Console.WriteLine("ExchangeSharp console started.");
 				Dictionary<string, string> argsDictionary = ParseCommandLine(args);
 				if (argsDictionary.Count == 0 || argsDictionary.ContainsKey("help"))
 				{
@@ -115,7 +114,7 @@ namespace ExchangeSharpConsole
 				}
 				else if (argsDictionary.ContainsKey("websocket-orderbook"))
 				{
-					await RunOrderBookWebSocket(argsDictionary);
+//					await RunOrderBookWebSocket(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("getExchangeNames"))
 				{
@@ -135,7 +134,7 @@ namespace ExchangeSharpConsole
 				}
 				else if (argsDictionary.ContainsKey("symbols-metadata"))
 				{
-					await RunGetSymbolsMetadata(argsDictionary);
+//					await RunGetSymbolsMetadata(argsDictionary);
 				}
 				else if (argsDictionary.ContainsKey("symbols"))
 				{
@@ -147,11 +146,11 @@ namespace ExchangeSharpConsole
 				}
 				else if (argsDictionary.ContainsKey("candles"))
 				{
-					await RunGetCandles(argsDictionary);
+//					await RunGetCandles(argsDictionary);
 				}
 				else
 				{
-					Logger.Error("Unrecognized command line arguments.");
+					Console.Error.WriteLine("Unrecognized command line arguments.");
 					return -1;
 				}
 
@@ -159,12 +158,12 @@ namespace ExchangeSharpConsole
 			}
 			catch (Exception ex)
 			{
-				Logger.Error(ex);
+				Console.Error.WriteLine(ex);
 				return -99;
 			}
 			finally
 			{
-				Logger.Info("ExchangeSharp console finished.");
+				Console.WriteLine("ExchangeSharp console finished.");
 			}
 		}
 	}

@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using ExchangeSharp;
 
 namespace ExchangeSharpConsole
 {
@@ -17,20 +16,14 @@ namespace ExchangeSharpConsole
 			if (error)
 				return -1;
 
-			Logger.Info("ExchangeSharp console started.");
-
 			try
 			{
 				await program.Run(options);
 			}
 			catch (Exception ex)
 			{
-				Logger.Error(ex);
+				Console.Error.WriteLine(ex);
 				return -99;
-			}
-			finally
-			{
-				Logger.Info("ExchangeSharp console finished.");
 			}
 
 			return 0;

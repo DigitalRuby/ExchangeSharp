@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using CommandLine;
-using ExchangeSharp;
 using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options

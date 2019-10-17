@@ -25,9 +25,10 @@ namespace ExchangeSharpConsole
         {
             ExchangeKrakenAPI api = new ExchangeKrakenAPI();
             ExchangeTicker ticker = await api.GetTickerAsync("XXBTZUSD");
-            Logger.Info("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
+            Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
             // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
+            //TODO: Make this a parameter
             api.LoadAPIKeys("keys.bin");
 
             /// place limit order for 0.01 bitcoin at ticker.Ask USD
@@ -46,7 +47,7 @@ namespace ExchangeSharpConsole
             await Task.Delay(500);
             result = await api.GetOrderDetailsAsync(result.OrderId);
 
-            Logger.Info("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+            Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
         }
 
         private static void WaitForKey()
@@ -89,12 +90,12 @@ namespace ExchangeSharpConsole
         {
             socket.Connected += (s) =>
             {
-                Logger.Info("Web socket connected");
+                Console.WriteLine("Web socket connected");
                 return Task.CompletedTask;
             };
             socket.Disconnected += (s) =>
             {
-                Logger.Info("Web socket disconnected");
+                Console.WriteLine("Web socket disconnected");
                 return Task.CompletedTask;
             };
         }
@@ -110,7 +111,7 @@ namespace ExchangeSharpConsole
                 }
                 try
                 {
-                    Logger.Info("Connecting web socket to {0}...", api.Name);
+                    Console.WriteLine("Connecting web socket to {0}...", api.Name);
                     using (var socket = await func(api))
                     {
                         SetWebSocketEvents(socket);
@@ -120,7 +121,7 @@ namespace ExchangeSharpConsole
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex);
+                    Console.Error.WriteLine(ex);
                 }
             }
         }
@@ -138,7 +139,7 @@ namespace ExchangeSharpConsole
                 {
                     foreach (KeyValuePair<string, ExchangeTicker> kvp in freshTickers)
                     {
-                        Logger.Info($"market {kvp.Key}, ticker {kvp.Value}");
+                        Console.WriteLine($"market {kvp.Key}, ticker {kvp.Value}");
                     }
                 }, symbols);
             });
@@ -152,7 +153,7 @@ namespace ExchangeSharpConsole
                 symbols = await ValidateMarketSymbolsAsync(api, symbols);
                 return await api.GetTradesWebSocketAsync(message =>
                 {
-                    Logger.Info($"{message.Key}: {message.Value}");
+                    Console.WriteLine($"{message.Key}: {message.Value}");
                     return Task.CompletedTask;
                 }, symbols);
             });
@@ -169,7 +170,7 @@ namespace ExchangeSharpConsole
                    //print the top bid and ask with amount
                    var topBid = message.Bids.FirstOrDefault();
                    var topAsk = message.Asks.FirstOrDefault();
-                   Logger.Info($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
+                   Console.WriteLine($"[{message.MarketSymbol}:{message.SequenceId}] {topBid.Value.Price} ({topBid.Value.Amount}) | {topAsk.Value.Price} ({topAsk.Value.Amount})");
                 }, symbols: symbols);
             });
         }
@@ -187,7 +188,7 @@ namespace ExchangeSharpConsole
                 System.Security.SecureString[] secureStrings = CryptoUtility.LoadProtectedStringsFromFile(dict["path"]);
                 foreach (System.Security.SecureString s in secureStrings)
                 {
-                    Logger.Info(CryptoUtility.ToUnsecureString(s));
+                    Console.WriteLine(CryptoUtility.ToUnsecureString(s));
                 }
             }
             else
@@ -214,7 +215,7 @@ namespace ExchangeSharpConsole
 
                     foreach (var marketSymbol in marketSymbols)
                     {
-                        Logger.Info(marketSymbol.ToString());
+                        Console.WriteLine(marketSymbol.ToString());
                     }
 
                     Console.WriteLine("Press any key to quit.");
@@ -222,7 +223,7 @@ namespace ExchangeSharpConsole
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex);
+                    Console.Error.WriteLine(ex);
                 }
             }
         }
@@ -243,14 +244,14 @@ namespace ExchangeSharpConsole
 
                     foreach (var marketSymbol in marketSymbols)
                     {
-                        Logger.Info(marketSymbol);
+                        Console.WriteLine(marketSymbol);
                     }
 
                     WaitForKey();
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex);
+                    Console.Error.WriteLine(ex);
                 }
             }
         }
@@ -284,14 +285,14 @@ namespace ExchangeSharpConsole
 
                     foreach (var ticker in tickers)
                     {
-                        Logger.Info(ticker.ToString());
+                        Console.WriteLine(ticker.ToString());
                     }
 
                     WaitForKey();
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex);
+                    Console.Error.WriteLine(ex);
                 }
             }
         }
@@ -313,14 +314,14 @@ namespace ExchangeSharpConsole
 
                     foreach (var candle in candles)
                     {
-                        Logger.Info(candle.ToString());
+                        Console.WriteLine(candle.ToString());
                     }
 
                     WaitForKey();
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex);
+                    Console.Error.WriteLine(ex);
                 }
             }
         }

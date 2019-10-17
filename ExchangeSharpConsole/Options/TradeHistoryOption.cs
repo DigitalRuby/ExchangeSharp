@@ -16,7 +16,7 @@ namespace ExchangeSharpConsole.Options
 		{
 			using var api = GetExchangeInstance(ExchangeName);
 
-			Logger.Info($"Showing historical trades for exchange {ExchangeName}...");
+			Console.WriteLine($"Showing historical trades for exchange {ExchangeName}...");
 
 			DateTime? startDate = null;
 			DateTime? endDate = null;
@@ -43,7 +43,7 @@ namespace ExchangeSharpConsole.Options
 		{
 			foreach (var trade in trades)
 			{
-				Logger.Info(
+				Console.WriteLine(
 					$"Trade at timestamp {trade.Timestamp.ToLocalTime()}: "
 					+ $"{trade.Id}/{trade.Price}/{trade.Amount}"
 				);

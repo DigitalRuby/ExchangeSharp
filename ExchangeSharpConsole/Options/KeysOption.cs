@@ -32,13 +32,13 @@ namespace ExchangeSharpConsole.Options
 
 		private void DisplayKeyContents()
 		{
-			Logger.Info($"Reading file with keys in \"{System.IO.Path.GetFullPath(Path)}\".");
+			Console.WriteLine($"Reading file with keys in \"{System.IO.Path.GetFullPath(Path)}\".");
 
 			var secureStrings = CryptoUtility.LoadProtectedStringsFromFile(Path);
 
 			foreach (var s in secureStrings)
 			{
-				Logger.Info(s.ToUnsecureString());
+				Console.WriteLine(s.ToUnsecureString());
 			}
 		}
 
@@ -48,7 +48,7 @@ namespace ExchangeSharpConsole.Options
 
 			CryptoUtility.SaveUnprotectedStringsToFile(Path, keyList);
 
-			Logger.Info($"Created file in \"{System.IO.Path.GetFullPath(Path)}\".");
+			Console.WriteLine($"Created file in \"{System.IO.Path.GetFullPath(Path)}\".");
 		}
 
 		private async Task<string[]> ReadKeysAsync()

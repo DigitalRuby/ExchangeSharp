@@ -32,14 +32,14 @@ namespace ExchangeSharpConsole.Options
 
 				foreach (var ticker in tickers)
 				{
-					Logger.Info(ticker.ToString());
+					Console.WriteLine(ticker.ToString());
 				}
 
 				WaitInteractively();
 			}
 			catch (Exception ex)
 			{
-				Logger.Error(ex);
+				Console.Error.WriteLine(ex);
 			}
 		}
 

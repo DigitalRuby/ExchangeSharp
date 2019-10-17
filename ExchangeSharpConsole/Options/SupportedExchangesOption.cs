@@ -10,7 +10,11 @@ namespace ExchangeSharpConsole.Options
 	{
 		public override async Task RunCommand()
 		{
-			Console.WriteLine("Supported exchanges: {0}", string.Join(", ", ExchangeName.ExchangeNames));
+			foreach (var exchangeName in ExchangeName.ExchangeNames)
+			{
+				Console.WriteLine(exchangeName);
+			}
+
 			await Task.CompletedTask;
 		}
 	}

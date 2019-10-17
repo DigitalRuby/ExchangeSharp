@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Threading.Tasks;
 using CommandLine;
@@ -35,10 +36,12 @@ namespace ExchangeSharpConsole
 			parser
 				.ParseArguments(
 					args,
+					typeof(CandlesOption),
 					typeof(ConvertOption),
 					typeof(ExampleOption),
 					typeof(ExportOption),
 					typeof(KeysOption),
+					typeof(MarketSymbolsMetadataOption),
 					typeof(MarketSymbolsOption),
 					typeof(OrderDetailsOption),
 					typeof(OrderHistoryOption),
@@ -46,7 +49,8 @@ namespace ExchangeSharpConsole
 					typeof(SupportedExchangesOption),
 					typeof(TestOption),
 					typeof(TickerOption),
-					typeof(TradeHistoryOption)
+					typeof(TradeHistoryOption),
+					typeof(WebSocketsOrderbookOption)
 				)
 				.WithParsed(opt => optionList.Add((BaseOption) opt))
 				.WithNotParsed(errs => (error, help) = ValidateParseErrors(errs));
@@ -71,6 +75,7 @@ namespace ExchangeSharpConsole
 						break;
 					default:
 						error = true;
+						Debugger.Break();
 						break;
 				}
 			}
@@ -82,7 +87,18 @@ namespace ExchangeSharpConsole
 		{
 			foreach (var action in actions)
 			{
-				await action.RunCommand();
+#if DEBUG
+				await action.CheckDebugger();
+#endif
+
+				try
+				{
+					await action.RunCommand();
+				}
+				catch (Exception e)
+				{
+					Console.Error.WriteLine(e);
+				}
 			}
 		}
 	}

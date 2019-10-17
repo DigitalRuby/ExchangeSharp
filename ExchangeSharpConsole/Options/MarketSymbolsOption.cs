@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using CommandLine;
-using ExchangeSharp;
 using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
@@ -19,14 +18,14 @@ namespace ExchangeSharpConsole.Options
 
 				foreach (var marketSymbol in marketSymbols)
 				{
-					Logger.Info(marketSymbol);
+					Console.WriteLine(marketSymbol);
 				}
 
 				WaitInteractively();
 			}
 			catch (Exception ex)
 			{
-				Logger.Error(ex);
+				Console.Error.WriteLine(ex);
 			}
 		}
 
