@@ -289,8 +289,8 @@ namespace ExchangeSharp
                     // find an API with the right name
                     foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
                     {
-                        api = Activator.CreateInstance(type) as IExchangeAPI;
-                        if (api.Name == exchangeName)
+                        api = (IExchangeAPI) Activator.CreateInstance(type);
+                        if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
                         {
                             // found one with right name, add it to the API dictionary
                             apis[exchangeName] = api;
@@ -298,12 +298,10 @@ namespace ExchangeSharp
                             // break out, we are done
                             break;
                         }
-                        else
-                        {
-                            // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
-                            api.Dispose();
-                            api = null;
-                        }
+
+                        // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
+                        api.Dispose();
+                        api = null;
                     }
                 }
                 return api;
@@ -788,7 +786,7 @@ namespace ExchangeSharp
             withdrawalRequest.Currency = NormalizeMarketSymbol(withdrawalRequest.Currency);
             return await OnWithdrawAsync(withdrawalRequest);
         }
-        
+
         /// <summary>
         /// Gets the withdraw history for a symbol
         /// </summary>
@@ -832,7 +830,7 @@ namespace ExchangeSharp
             return await OnCloseMarginPositionAsync(NormalizeMarketSymbol(marketSymbol));
         }
 
-   
+
 
 		#endregion REST API
 
