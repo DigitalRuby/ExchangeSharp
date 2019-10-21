@@ -10,7 +10,7 @@ namespace ExchangeSharpConsole.Options
 {
 	[Verb("ws-orderbook", HelpText =
 		"Connects to the given exchange websocket and keeps printing the first bid and ask prices and amounts for the given market symbols." +
-		"If no market symbol is unset then uses all.")]
+		"If market symbol is not set then uses all.")]
 	public class WebSocketsOrderbookOption : BaseOption, IOptionPerExchange, IOptionWithMultipleMarketSymbol
 	{
 		public override async Task RunCommand()

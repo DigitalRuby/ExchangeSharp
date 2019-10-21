@@ -50,7 +50,9 @@ namespace ExchangeSharpConsole
 					typeof(TestOption),
 					typeof(TickerOption),
 					typeof(TradeHistoryOption),
-					typeof(WebSocketsOrderbookOption)
+					typeof(WebSocketsOrderbookOption),
+					typeof(WebSocketsTickersOption),
+					typeof(WebSocketsTradesOption)
 				)
 				.WithParsed(opt => optionList.Add((BaseOption) opt))
 				.WithNotParsed(errs => (error, help) = ValidateParseErrors(errs));
