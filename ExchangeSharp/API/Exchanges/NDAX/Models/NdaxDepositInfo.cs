@@ -3,9 +3,9 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ExchangeSharp.API.Exchanges.Ndax.Models
+namespace ExchangeSharp.NDAX
 {
-    public partial class NdaxDepositInfo
+    public partial class NDAXDepositInfo
     {
         [JsonProperty("AssetManagerId")]
         public long AssetManagerId { get; set; }

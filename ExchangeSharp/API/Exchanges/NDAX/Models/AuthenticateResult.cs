@@ -1,4 +1,4 @@
-namespace ExchangeSharp.API.Exchanges.Ndax.Models
+namespace ExchangeSharp.NDAX
 {
     public class AuthenticateResult
     {

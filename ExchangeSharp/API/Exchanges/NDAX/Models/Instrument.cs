@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.Ndax.Models
+namespace ExchangeSharp.NDAX
 {
     public partial class Instrument
     {

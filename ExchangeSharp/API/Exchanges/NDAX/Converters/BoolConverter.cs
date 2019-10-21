@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.Ndax.Converters
+namespace ExchangeSharp.NDAX
 {
     public class BoolConverter : JsonConverter
     {

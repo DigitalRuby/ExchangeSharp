@@ -1,24 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using ExchangeSharp.API.Exchanges.Ndax.Models;
+using ExchangeSharp.NDAX;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public sealed partial class ExchangeNdaxAPI : ExchangeAPI
+    public sealed partial class ExchangeNDAXAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.ndax.io:8443/AP";
         public override string BaseUrlWebSocket { get; set; } = "wss://apindaxstage.cdnhop.net/WSGateway";
         
         private AuthenticateResult authenticationDetails = null;
-        public override string Name => ExchangeName.Ndax;
+        public override string Name => ExchangeName.NDAX;
 
         private static Dictionary<string, long> _marketSymbolToInstrumentIdMapping;
         private static Dictionary<string, long> _symbolToProductId;
 
-        public ExchangeNdaxAPI()
+        public ExchangeNDAXAPI()
         {
             RequestContentType = "application/json";
             MarketSymbolSeparator = "_";
@@ -28,7 +30,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             var result =
-                await MakeJsonRequestAsync<Dictionary<string, NdaxTicker>>("returnticker", "https://ndax.io/api", null, "GET");
+                await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("returnticker", "https://ndax.io/api", null, "GET");
             _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key, pair => pair.Value.Id);
             return result.Select(pair =>
                 new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(pair.Key)));
@@ -114,7 +116,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol,
             bool forceRegenerate = false)
         {
-            var result = await MakeJsonRequestAsync<NdaxDepositInfo>("GetDepositInfo", null,
+            var result = await MakeJsonRequestAsync<NDAXDepositInfo>("GetDepositInfo", null,
                 new Dictionary<string, object>()
                 {
                     {"ProductId", await GetProductIdFromCryptoCode(symbol)},
@@ -253,7 +255,7 @@ namespace ExchangeSharp
             return result.Select(enumerable => new MarketCandle()
             {
                 Name = marketSymbol,
-                ExchangeName = ExchangeName.Ndax,
+                ExchangeName = ExchangeName.NDAX,
                 Timestamp = enumerable.ElementAt(0).Value<long>().UnixTimeStampToDateTimeMilliseconds(),
                 HighPrice = enumerable.ElementAt(1).Value<decimal>(),
                 LowPrice = enumerable.ElementAt(2).Value<decimal>(),
@@ -301,6 +303,7 @@ namespace ExchangeSharp
 
             return false;
         }
+        
         private async Task Authenticate()
         {
             authenticationDetails = await MakeJsonRequestAsync<AuthenticateResult>("Authenticate", null,
@@ -350,11 +353,78 @@ namespace ExchangeSharp
             return null;
         }
 
+        protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
+        {
+            return base.OnGetTickersWebSocketAsync(tickers, marketSymbols);
+        }
+        
+        internal Task<IWebSocket> SubscribeWebsocketAsync<T>(Action<T> callback, string functionName, object messageFramepayload = null)
+        {
+            if (string.IsNullOrWhiteSpace(functionName))
+                throw new ArgumentNullException(nameof(functionName));
+
+            // Wrap all calls in a frame object.
+            var frame = new MessageFrame
+            {
+                FunctionName = functionName,
+                MessageType = MessageType.SubscribeToEvent,
+                SequenceNumber = GetNextSequenceNumber(),
+                Payload = JsonConvert.SerializeObject(messageFramepayload)
+            };
+
+            return ConnectWebSocketAsync("", (socket, bytes) =>
+            {
+                var messageFrame = JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
+                callback.Invoke(messageFrame.PayloadAs<T>());
+                return Task.CompletedTask;
+            }, async socket => { await socket.SendMessageAsync(frame); });
+        }
+
+        internal async Task<T> QueryWebsocketOneCallAsync<T>(string functionName, object payload = null)
+        {
+            if (string.IsNullOrWhiteSpace(functionName))
+                throw new ArgumentNullException(nameof(functionName));
+
+            // Wrap all calls in a frame object.
+            var frame = new MessageFrame
+            {
+                FunctionName = functionName,
+                MessageType = MessageType.Request,
+                SequenceNumber = GetNextSequenceNumber(),
+                Payload = JsonConvert.SerializeObject(payload)
+            };
+            
+            var tcs = new TaskCompletionSource<T>();
+            var handlerFinished = tcs.Task;
+            using (ConnectWebSocketAsync("", (socket, bytes) =>
+            {
+                var messageFrame = JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
+                tcs.SetResult(messageFrame.PayloadAs<T>());
+                return Task.CompletedTask;
+            }, async socket =>
+            {
+               await  socket.SendMessageAsync(frame);
+            }))
+            {
+                return await handlerFinished;
+            }
+        }
+
+        private long GetNextSequenceNumber()
+        {
+            // Best practice is to carry an even sequence number.
+            Interlocked.Add(ref _sequenceNumber, 2);
+
+            return _sequenceNumber;
+        }
+        
+        private long _sequenceNumber;
+        
     }
 
 
     public partial class ExchangeName
     {
-        public const string Ndax = "Ndax";
+        public const string NDAX = "NDAX";
     }
 }

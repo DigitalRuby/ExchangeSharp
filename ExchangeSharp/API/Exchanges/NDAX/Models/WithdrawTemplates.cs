@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.Ndax.Models
+namespace ExchangeSharp.NDAX
 {
     public class WithdrawTemplates : GenericResponse
     {
