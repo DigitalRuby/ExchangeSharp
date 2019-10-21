@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security;
-using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using ExchangeSharp;
 using ExchangeSharpConsole.Utilities;
@@ -47,7 +45,18 @@ namespace ExchangeSharpConsole.Options
 
 		protected void Authenticate(IExchangeAPI api)
 		{
-			ExchangeSharpConsoleMain.Authenticate(api);
+			Console.Write("Enter Public Api Key: ");
+			var publicApiKey = GetSecureInput();
+			api.PublicApiKey = publicApiKey;
+			Console.WriteLine();
+			Console.Write("Enter Private Api Key: ");
+			var privateApiKey = GetSecureInput();
+			api.PrivateApiKey = privateApiKey;
+			Console.WriteLine();
+			Console.Write("Enter Passphrase: ");
+			var passphrase = GetSecureInput();
+			api.Passphrase = passphrase;
+			Console.WriteLine();
 		}
 
 		protected SecureString GetSecureInput()
@@ -59,7 +68,40 @@ namespace ExchangeSharpConsole.Options
 				);
 			}
 
-			return ExchangeSharpConsoleMain.GetSecureInput();
+			var pwd = new SecureString();
+			while (true)
+			{
+				var i = Console.ReadKey(true);
+				if (i.Key == ConsoleKey.Enter)
+				{
+					break;
+				}
+
+				if (i.Key == ConsoleKey.Backspace)
+				{
+					if (pwd.Length <= 0)
+						continue;
+
+					pwd.RemoveAt(pwd.Length - 1);
+					Console.Write("\b \b");
+				}
+				// KeyChar == '\u0000' if the key pressed does not correspond to a printable character, e.g. F1, Pause-Break, etc
+				else if (i.KeyChar != '\u0000')
+				{
+					pwd.AppendChar(i.KeyChar);
+					Console.Write("*");
+				}
+			}
+
+			return pwd;
+		}
+
+		protected void Assert(bool expression)
+		{
+			if (!expression)
+			{
+				throw new ApplicationException("Test failure, unexpected result");
+			}
 		}
 
 		protected void WaitInteractively()
@@ -70,7 +112,6 @@ namespace ExchangeSharpConsole.Options
 				return;
 			}
 
-			//TODO: Implement check to ignore interactive actions when the console doesn't support it
 			Console.Write("Press any key to continue...");
 			Console.ReadKey(true);
 			Console.CursorLeft = 0;

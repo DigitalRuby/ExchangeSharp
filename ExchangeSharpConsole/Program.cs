@@ -27,7 +27,7 @@ namespace ExchangeSharpConsole
 			});
 		}
 
-		private (bool error, bool help) ParseArgs(string[] args, out List<BaseOption> options)
+		private (bool error, bool help) ParseArguments(string[] args, out List<BaseOption> options)
 		{
 			var error = false;
 			var help = false;
