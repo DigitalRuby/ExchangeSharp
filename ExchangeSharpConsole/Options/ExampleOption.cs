@@ -22,7 +22,7 @@ namespace ExchangeSharpConsole.Options
 				// load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
 				api.LoadAPIKeys(KeyPath);
 			}
-			catch (ArgumentException e)
+			catch (ArgumentException)
 			{
 				Console.Error.WriteLine(
 					"Invalid key file.\n" +

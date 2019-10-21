@@ -133,22 +133,31 @@ namespace ExchangeSharpConsole.Options
 			// ReSharper disable once AccessToModifiedClosure
 			var disposable = KeepSessionAlive(() => socket?.Dispose());
 
-			socket = await getWebSocket(api);
-
-			socket.Connected += _ =>
+			try
 			{
-				Console.WriteLine("Web socket connected.");
-				return Task.CompletedTask;
-			};
-			socket.Disconnected += _ =>
-			{
-				Console.WriteLine("Web socket disconnected.");
+				socket = await getWebSocket(api);
 
+				socket.Connected += _ =>
+				{
+					Console.WriteLine("Web socket connected.");
+					return Task.CompletedTask;
+				};
+				socket.Disconnected += _ =>
+				{
+					Console.WriteLine("Web socket disconnected.");
+
+					// ReSharper disable once AccessToDisposedClosure
+					disposable.Dispose();
+					WaitInteractively();
+
+					return Task.CompletedTask;
+				};
+			}
+			catch
+			{
 				disposable.Dispose();
-				WaitInteractively();
-
-				return Task.CompletedTask;
-			};
+				throw;
+			}
 		}
 
 
