@@ -96,7 +96,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{ // {"base_decimals": 8, "minimum_order": "5.0 USD", "name": "LTC/USD", "counter_decimals": 2, "trading": "Enabled", "url_symbol": "ltcusd", "description": "Litecoin / U.S. dollar"}
 			List<ExchangeMarket> symbols = new List<ExchangeMarket>();
 			foreach (JToken token in (await MakeBitstampRequestAsync("/trading-pairs-info")))
@@ -302,7 +302,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols 
+            // TODO: Bitstamp bug: bad request if url contains symbol, so temporarily using url for all symbols
             // string url = string.IsNullOrWhiteSpace(symbol) ? "/open_orders/all/" : "/open_orders/" + symbol;
             string url = "/open_orders/all/";
             JArray result = await MakeJsonRequestAsync<JArray>(url, null, await GetNoncePayloadAsync(), "POST");
@@ -326,7 +326,7 @@ namespace ExchangeSharp
             }
             return orders;
         }
-        
+
         public class BitstampTransaction
         {
             public BitstampTransaction(string id, DateTime dateTime, int type, string symbol, decimal fees, string orderId, decimal quantity, decimal price, bool isBuy)
@@ -443,7 +443,7 @@ namespace ExchangeSharp
                 orders.Add(order);
             }
             // at this point one transaction transformed into one order, we need to consolidate parts into order
-            // group by order id  
+            // group by order id
             var groupings = orders.GroupBy(o => o.OrderId);
             List<ExchangeOrderResult> orders2 = new List<ExchangeOrderResult>();
             foreach (var group in groupings)
@@ -517,14 +517,14 @@ namespace ExchangeSharp
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["event"].ToStringInvariant() == "bts:error")
-				{ // {{"event": "bts:error", "channel": "", 
+				{ // {{"event": "bts:error", "channel": "",
 				  // "data": {"code": null, "message": "Bad subscription string." }	}}
 					token = token["data"];
-					Logger.Info(token["code"].ToStringInvariant() + " " 
+					Logger.Info(token["code"].ToStringInvariant() + " "
 						+ token["message"].ToStringInvariant());
 				}
 				else if (token["event"].ToStringInvariant() == "trade")
-				{ 
+				{
 					//{{
 					//	"data": {
 					//	"microtimestamp": "1563418286809203",

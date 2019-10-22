@@ -25,7 +25,7 @@ namespace ExchangeSharp
             NonceStyle = NonceStyle.UnixSeconds;
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         protected override async Task OnGetNonceOffset()
         {
@@ -122,7 +122,7 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("markets");
             JToken data = obj["data"];
@@ -406,7 +406,7 @@ namespace ExchangeSharp
             {
                 // {
                 //    "method": "trades.update",
-                //    "params": 
+                //    "params":
                 //        [
                 //             true,
                 //             [

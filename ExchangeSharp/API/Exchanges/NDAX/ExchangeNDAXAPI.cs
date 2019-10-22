@@ -55,7 +55,7 @@ namespace ExchangeSharp
             return result.ToDictionary(product => product.Product, product => product.ToExchangeCurrency());
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             var result = await MakeJsonRequestAsync<IEnumerable<Instrument>>("GetInstruments", null,
                 new Dictionary<string, object>()
@@ -93,7 +93,7 @@ namespace ExchangeSharp
             {
                 {"nonce", await GenerateNonceAsync()}
             };
-            
+
             if (marketSymbol != null)
             {
                 payload.Add("InstrumentId", await GetInstrumentIdFromMarketSymbol(marketSymbol));
@@ -126,7 +126,7 @@ namespace ExchangeSharp
 
             return result.ToExchangeDepositDetails(symbol);
         }
-        
+
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
@@ -236,7 +236,7 @@ namespace ExchangeSharp
                 throw new APIException($"{result.ErrorCode}:{result.ErrorMsg}");
             }
         }
-        
+
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null,
             int? limit = null)
         {
@@ -248,7 +248,7 @@ namespace ExchangeSharp
             {
                 payload.Add("FromDate", new DateTimeOffset( startDate.Value).ToUniversalTime().ToUnixTimeMilliseconds());
             }
-            
+
             var result = await MakeJsonRequestAsync<IEnumerable<IEnumerable<JToken>>>("GetTickerHistory", null, payload
                , "POST");
 
@@ -280,9 +280,9 @@ namespace ExchangeSharp
                 request.AddHeader("apToken", authenticationDetails.Token);
                 payload.Add("OMSId", authenticationDetails.OMSId);
                 payload.Add("AccountId", authenticationDetails.AccountId);
-                
+
             }
-            
+
             if (request.Method == "POST")
             {
                 await request.WritePayloadJsonToRequestAsync(payload);
@@ -303,7 +303,7 @@ namespace ExchangeSharp
 
             return false;
         }
-        
+
         private async Task Authenticate()
         {
             authenticationDetails = await MakeJsonRequestAsync<AuthenticateResult>("Authenticate", null,
@@ -312,7 +312,7 @@ namespace ExchangeSharp
                     {"skipauthrequest", true}
                 }, "POST");
         }
-        
+
         private async Task EnsureProductIdsAvailable()
         {
             if (_symbolToProductId == null)
@@ -352,12 +352,12 @@ namespace ExchangeSharp
 
             return null;
         }
-        
+
         private async Task<long?[]> GetInstrumentIdFromMarketSymbol(string[] marketSymbols)
         {
             return await Task.WhenAll(marketSymbols.Select(GetInstrumentIdFromMarketSymbol));
         }
-        
+
         private async Task<string> GetMarketSymbolFromInstrumentId(long instrumentId)
         {
             await EnsureInstrumentIdsAvailable();
@@ -487,9 +487,9 @@ namespace ExchangeSharp
 
             return _sequenceNumber;
         }
-        
+
         private long _sequenceNumber;
-        
+
     }
 
 

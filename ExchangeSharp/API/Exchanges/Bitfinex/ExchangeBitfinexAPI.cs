@@ -76,7 +76,7 @@ namespace ExchangeSharp
             return m.Select(x => NormalizeMarketSymbol(x.MarketSymbol));
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
             JToken allPairs = await MakeJsonRequestAsync<JToken>("/symbols_details", BaseUrlV1);
@@ -394,7 +394,7 @@ namespace ExchangeSharp
         {
             return await OnGetAmountsAsync("exchange");
         }
-        
+
         public async Task<Dictionary<string, decimal>> OnGetAmountsAsync(string type)
         {
             Dictionary<string, decimal> lookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
@@ -412,7 +412,7 @@ namespace ExchangeSharp
             }
             return lookup;
         }
-        
+
         protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(
             bool includeZeroBalances = false)
         {
@@ -435,7 +435,7 @@ namespace ExchangeSharp
                 }
             }
             return lookup;
-        }        
+        }
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
@@ -532,7 +532,7 @@ namespace ExchangeSharp
                 await _socket.SendMessageAsync(payloadJSON);
             });
         }
- 
+
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();

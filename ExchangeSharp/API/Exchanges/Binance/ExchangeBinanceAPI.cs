@@ -113,7 +113,7 @@ namespace ExchangeSharp
 			return symbols;
 		}
 
-		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
 			/*
              *         {

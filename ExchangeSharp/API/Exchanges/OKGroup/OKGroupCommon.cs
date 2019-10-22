@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 using System.Threading;
 
 // different namespace for this since we don't want this to be easily accessible publically
-namespace ExchangeSharp.OKGroup 
+namespace ExchangeSharp.OKGroup
 {
 	public abstract partial class OKGroupCommon : ExchangeAPI
 	{
@@ -116,7 +116,7 @@ namespace ExchangeSharp.OKGroup
             var m = await GetMarketSymbolsMetadataAsync();
             return m.Select(x => x.MarketSymbol);
         }
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
 			/* V3 spot sample
 			[
@@ -172,7 +172,7 @@ namespace ExchangeSharp.OKGroup
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{ // V3: /api/swap/v3/instruments/BTC-USD-SWAP/ticker
-			var data = await MakeRequestOkexAsync(marketSymbol, 
+			var data = await MakeRequestOkexAsync(marketSymbol,
 				"/swap/v3/instruments/$SYMBOL$/ticker", baseUrl: BaseUrlV3);
             return await ParseTickerV3Async(data.Item2, data.Item1);
         }
@@ -220,7 +220,7 @@ namespace ExchangeSharp.OKGroup
 							"timestamp": "2018-12-17T09:48:41.903Z",
 							"trade_id": "126518511769403393"
 					  }]
-				 } 
+				 }
 			 */
 			return await ConnectWebSocketOkexAsync(async (_socket) =>
 			{
@@ -239,7 +239,7 @@ namespace ExchangeSharp.OKGroup
 			/*
 			 request:
 			{"op": "subscribe", "args": ["swap/depth:BTC-USD-SWAP"]}
-			
+
 			 response-snapshot:
 			 {
 			    "table": "swap/depth",
@@ -269,7 +269,7 @@ namespace ExchangeSharp.OKGroup
 			        "checksum": -1200119424
 			    }]
 			}
-			 
+
 			 */
 
 			return await ConnectWebSocketOkexAsync(async (_socket) =>
@@ -287,7 +287,7 @@ namespace ExchangeSharp.OKGroup
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(marketSymbol, $"/spot/v3/instruments/{marketSymbol}/book", BaseUrlV3);
-            
+
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
@@ -348,8 +348,8 @@ namespace ExchangeSharp.OKGroup
 				"funds": {
 				  "borrow": {
 					"ssc": "0",
-                
-                
+
+
 					"xlm": "0",
 					"swftc": "0",
 					"hmc": "0"
@@ -362,7 +362,7 @@ namespace ExchangeSharp.OKGroup
 				  },
 				  "freezed": {
 					"ssc": "0",
-                
+
 					"xlm": "0",
 					"swftc": "0",
 					"hmc": "0"
@@ -413,7 +413,7 @@ namespace ExchangeSharp.OKGroup
                 payload["type"] += "_market";
                 if (order.IsBuy)
                 {
-                    // for market buy orders, the price is to total amount you want to buy, 
+                    // for market buy orders, the price is to total amount you want to buy,
                     // and it must be higher than the current price of 0.01 BTC (minimum buying unit), 0.1 LTC or 0.01 ETH
                     payload["price"] = outputQuantity;
                 }
@@ -538,8 +538,8 @@ namespace ExchangeSharp.OKGroup
 				}
 			]
 			*/
-			return await this.ParseTickerAsync(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last", 
-				baseVolumeKey: "base_volume_24h", quoteVolumeKey: "quote_volume_24h", 
+			return await this.ParseTickerAsync(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last",
+				baseVolumeKey: "base_volume_24h", quoteVolumeKey: "quote_volume_24h",
 				timestampKey: "timestamp", timestampType: TimestampType.Iso8601);
 		}
 
