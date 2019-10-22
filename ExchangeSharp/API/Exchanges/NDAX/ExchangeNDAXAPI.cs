@@ -47,7 +47,7 @@ namespace ExchangeSharp
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
-            var result = await MakeJsonRequestAsync<IEnumerable<NDaxProduct>>("GetProducts", null,
+            var result = await MakeJsonRequestAsync<IEnumerable<NDAXProduct>>("GetProducts", null,
                 new Dictionary<string, object>()
                     { {"OMSId", 1}}, "POST");
             _symbolToProductId = result.ToDictionary(product => product.Product, product => product.ProductId);
@@ -79,7 +79,7 @@ namespace ExchangeSharp
             {
                 payload.Add("InstrumentId", await GetInstrumentIdFromMarketSymbol(symbol));
             }
-            var result = await MakeJsonRequestAsync<IEnumerable<Order>>("GetOrdersHistory", null,
+            var result = await MakeJsonRequestAsync<IEnumerable<Order>>("GetOrderHistory", null,
                 payload, "POST");
 
             return result.Select(order => order.ToExchangeOrderResult(_marketSymbolToInstrumentIdMapping));
@@ -351,62 +351,58 @@ namespace ExchangeSharp
 
             return null;
         }
-
-        protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
+        
+        private async Task<long?[]> GetInstrumentIdFromMarketSymbol(string[] marketSymbols)
         {
-            return base.OnGetTickersWebSocketAsync(tickers, marketSymbols);
+            return await Task.WhenAll(marketSymbols.Select(GetInstrumentIdFromMarketSymbol));
         }
         
-        internal Task<IWebSocket> SubscribeWebsocketAsync<T>(Action<T> callback, string functionName, object messageFramepayload = null)
+        private async Task<string> GetMarketSymbolFromInstrumentId(long instrumentId)
         {
-            if (string.IsNullOrWhiteSpace(functionName))
-                throw new ArgumentNullException(nameof(functionName));
-
-            // Wrap all calls in a frame object.
-            var frame = new MessageFrame
-            {
-                FunctionName = functionName,
-                MessageType = MessageType.SubscribeToEvent,
-                SequenceNumber = GetNextSequenceNumber(),
-                Payload = JsonConvert.SerializeObject(messageFramepayload)
-            };
-
-            return ConnectWebSocketAsync("", (socket, bytes) =>
-            {
-                var messageFrame = JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
-                callback.Invoke(messageFrame.PayloadAs<T>());
-                return Task.CompletedTask;
-            }, async socket => { await socket.SendMessageAsync(frame); });
+            await EnsureInstrumentIdsAvailable();
+            var match = _marketSymbolToInstrumentIdMapping.Where(pair => pair.Value == instrumentId);
+            return match.Any() ? match.First().Key : null;
         }
 
-        internal async Task<T> QueryWebsocketOneCallAsync<T>(string functionName, object payload = null)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
         {
-            if (string.IsNullOrWhiteSpace(functionName))
-                throw new ArgumentNullException(nameof(functionName));
+            var instrumentIds = await GetInstrumentIdFromMarketSymbol(marketSymbols);
 
-            // Wrap all calls in a frame object.
-            var frame = new MessageFrame
-            {
-                FunctionName = functionName,
-                MessageType = MessageType.Request,
-                SequenceNumber = GetNextSequenceNumber(),
-                Payload = JsonConvert.SerializeObject(payload)
-            };
-            
-            var tcs = new TaskCompletionSource<T>();
-            var handlerFinished = tcs.Task;
-            using (ConnectWebSocketAsync("", (socket, bytes) =>
-            {
-                var messageFrame = JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
-                tcs.SetResult(messageFrame.PayloadAs<T>());
-                return Task.CompletedTask;
-            }, async socket =>
-            {
-               await  socket.SendMessageAsync(frame);
-            }))
-            {
-                return await handlerFinished;
-            }
+            return await ConnectWebSocketAsync("", async (socket, bytes) =>
+                {
+                    var messageFrame =
+                        JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
+
+                    if (messageFrame.FunctionName.Equals("SubscribeLevel1", StringComparison.InvariantCultureIgnoreCase)
+                        || messageFrame.FunctionName.Equals("Level1UpdateEvent",
+                            StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        var rawPayload = messageFrame.PayloadAs<Level1Data>();
+                        var symbol = await GetMarketSymbolFromInstrumentId(rawPayload.InstrumentId);
+                        tickers.Invoke(new[]
+                        {
+                            new KeyValuePair<string, ExchangeTicker>(symbol, rawPayload.ToExchangeTicker(symbol)),
+                        });
+                    }
+                },
+                async socket =>
+                {
+                    foreach (var instrumentId in instrumentIds)
+                    {
+                        await socket.SendMessageAsync(new MessageFrame
+                        {
+                            FunctionName = "SubscribeLevel1",
+                            MessageType = MessageType.Request,
+                            SequenceNumber = GetNextSequenceNumber(),
+                            Payload = JsonConvert.SerializeObject(new
+                            {
+                                OMSId = 1,
+                                InstrumentId = instrumentId,
+
+                            })
+                        });
+                    }
+                });
         }
 
         private long GetNextSequenceNumber()

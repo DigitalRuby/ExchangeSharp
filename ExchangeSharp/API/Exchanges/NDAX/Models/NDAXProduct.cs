@@ -4,7 +4,7 @@ namespace ExchangeSharp
 {
 	public sealed partial class ExchangeNDAXAPI
 	{
-		class NDaxProduct
+		class NDAXProduct
 		{
 			[JsonProperty("OMSId")]
 			public long OmsId { get; set; }
