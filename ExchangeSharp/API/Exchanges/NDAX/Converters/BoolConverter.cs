@@ -1,27 +1,30 @@
 using System;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.NDAX
+namespace ExchangeSharp
 {
-    public class BoolConverter : JsonConverter
-    {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+	public sealed partial class ExchangeNDAXAPI
+	{
+		class BoolConverter : JsonConverter
+		{
+			public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 
-        {
-            writer.WriteValue(((bool) value) ? 1 : 0);
-        }
+			{
+				writer.WriteValue(((bool)value) ? 1 : 0);
+			}
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
-            JsonSerializer serializer)
+			public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+				JsonSerializer serializer)
 
-        {
-            return reader.Value.ToString() == "1";
-        }
+			{
+				return reader.Value.ToString() == "1";
+			}
 
-        public override bool CanConvert(Type objectType)
+			public override bool CanConvert(Type objectType)
 
-        {
-            return objectType == typeof(bool);
-        }
-    }
+			{
+				return objectType == typeof(bool);
+			}
+		}
+	}
 }
