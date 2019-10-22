@@ -47,7 +47,7 @@ namespace ExchangeSharp
 
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
-            var result = await MakeJsonRequestAsync<IEnumerable<NDaxProduct>>("GetProducts", null,
+            var result = await MakeJsonRequestAsync<IEnumerable<NDAXProduct>>("GetProducts", null,
                 new Dictionary<string, object>()
                     { {"OMSId", 1}}, "POST");
             _symbolToProductId = result.ToDictionary(product => product.Product, product => product.ProductId);
