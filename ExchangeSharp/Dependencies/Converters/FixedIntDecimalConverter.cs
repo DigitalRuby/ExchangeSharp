@@ -6,20 +6,21 @@ namespace ExchangeSharp
 {
 	public class FixedIntDecimalConverter : JsonConverter
 	{
-		private readonly decimal dec;
+		private readonly decimal multiplier;
 
 		public FixedIntDecimalConverter()
 		{
 		}
 
-		public FixedIntDecimalConverter(int dec)
+		public FixedIntDecimalConverter(int multiplier)
 		{
-			this.dec = decimal.Parse(1.ToString().PadRight(dec + 1, '0'));
+			this.multiplier = decimal.Parse(1.ToString().PadRight(multiplier + 1, '0'));
 		}
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			throw new NotImplementedException();
+			var valueLong = (decimal) value * multiplier;
+			writer.WriteValue((long) valueLong);
 		}
 
 		public override object ReadJson(
@@ -29,8 +30,8 @@ namespace ExchangeSharp
 			JsonSerializer serializer
 		)
 		{
-			var valueInt = Convert.ToInt64(reader.Value);
-			return valueInt / dec;
+			var valueDec = Convert.ToDecimal(reader.Value);
+			return valueDec / multiplier;
 		}
 
 		public override bool CanConvert(Type objectType)
@@ -40,6 +41,6 @@ namespace ExchangeSharp
 
 		public override bool CanRead { get; } = true;
 
-		public override bool CanWrite { get; } = false;
+		public override bool CanWrite { get; } = true;
 	}
 }

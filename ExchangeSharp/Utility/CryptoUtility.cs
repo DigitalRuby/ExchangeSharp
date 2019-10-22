@@ -261,6 +261,20 @@ namespace ExchangeSharp
 				.ToArray();
 		}
 
+		public static string ToHexString(this byte[] bytes)
+		{
+			var sb = new StringBuilder();
+
+			// Loop through each byte of the hashed data
+			// and format each one as a hexadecimal string.
+			for (int i = 0; i < bytes.Length; i++)
+			{
+				sb.Append(bytes[i].ToString("x2"));
+			}
+
+			return sb.ToString();
+		}
+
 		/// <summary>
 		/// Covnert a secure string to a non-secure string
 		/// </summary>
@@ -962,10 +976,15 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-            var hmac = new HMACSHA512(key.ToBytesUTF8());
-            var messagebyte = message.ToBytesUTF8();
-            var hashmessage = hmac.ComputeHash(messagebyte);
-            return BitConverter.ToString(hashmessage).Replace("-", "");
+	        byte[] hashmessage;
+
+	        using (var hmac = new HMACSHA512(key.ToBytesUTF8()))
+	        {
+		        var messagebyte = message.ToBytesUTF8();
+		        hashmessage = hmac.ComputeHash(messagebyte);
+	        }
+
+	        return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -976,10 +995,14 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, byte[] key)
         {
-            var hmac = new HMACSHA512(key);
-            var messagebyte = message.ToBytesUTF8();
-            var hashmessage = hmac.ComputeHash(messagebyte);
-            return BitConverter.ToString(hashmessage).Replace("-", "");
+	        byte[] hashmessage;
+	        using (var hmac = new HMACSHA512(key))
+	        {
+		        var messagebyte = message.ToBytesUTF8();
+		        hashmessage = hmac.ComputeHash(messagebyte);
+	        }
+
+	        return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
