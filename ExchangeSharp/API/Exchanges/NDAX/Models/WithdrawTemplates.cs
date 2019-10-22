@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.NDAX
+namespace ExchangeSharp
 {
-    public class WithdrawTemplates : GenericResponse
-    {
-        [JsonProperty("TemplateTypes")]
-        public IEnumerable<string> TemplateTypes { get; set; }
-    }
+	public sealed partial class ExchangeNDAXAPI
+	{
+		class WithdrawTemplates : GenericResponse
+		{
+			[JsonProperty("TemplateTypes")]
+			public IEnumerable<string> TemplateTypes { get; set; }
+		}
+	}
 }
