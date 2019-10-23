@@ -66,7 +66,8 @@ namespace ExchangeSharp
 					IsActive = SessionStatus.Equals("running", StringComparison.InvariantCultureIgnoreCase),
 					MarginEnabled = false,
 					MarketId = InstrumentId.ToStringInvariant(),
-					MarketSymbol = Symbol
+					MarketSymbol = Symbol,
+					AltMarketSymbol = InstrumentId.ToStringInvariant(),
 				};
 			}
 		}

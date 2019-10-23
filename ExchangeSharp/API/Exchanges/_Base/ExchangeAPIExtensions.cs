@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -20,6 +20,7 @@ using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
 using ExchangeSharp.KuCoin;
 using Newtonsoft.Json.Linq;
+using ExchangeSharp.NDAX;
 
 namespace ExchangeSharp
 {
@@ -593,15 +594,29 @@ namespace ExchangeSharp
 			return trade;
 		}
 
+		internal static ExchangeTrade ParseTradeNDAX(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<NDAXTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.Order1Id = token[4].ConvertInvariant<long>();
+			trade.Order2Id = token[5].ConvertInvariant<long>();
+			trade.Direction = (Direction)token[7].ConvertInvariant<byte>();
+			trade.IsBlockTrade = token[9].ConvertInvariant<bool>();
+			trade.ClientOrderId = token[10].ConvertInvariant<long>();
+			return trade;
+		}
+
 		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
 			where T : ExchangeTrade, new()
 		{
+			var isBuy = token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue);
 			T trade = new T
 			{
 				Amount = token[amountKey].ConvertInvariant<decimal>(),
 				Price = token[priceKey].ConvertInvariant<decimal>(),
-				IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue)),
+				IsBuy = isBuy,
 			};
 			trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
 			if (idKey == null)
@@ -619,6 +634,7 @@ namespace ExchangeSharp
 					Logger.Info("error parsing trade ID: " + token.ToStringInvariant());
 				}
 			}
+			trade.Flags = isBuy ? ExchangeTradeFlags.IsBuy : default;
 			return trade;
 		}
 		#endregion

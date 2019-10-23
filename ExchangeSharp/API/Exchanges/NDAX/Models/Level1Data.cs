@@ -5,6 +5,9 @@ namespace ExchangeSharp
 {
 	public sealed partial class ExchangeNDAXAPI
 	{
+		/// <summary>
+		/// For use in SubscribeLevel1 OnGetTickersWebSocketAsync()
+		/// </summary>
 		class Level1Data
 		{
 			[JsonProperty("OMSId")]

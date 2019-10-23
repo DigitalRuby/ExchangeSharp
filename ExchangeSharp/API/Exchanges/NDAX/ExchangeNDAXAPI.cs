@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ExchangeSharp.NDAX;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -11,7 +12,7 @@ namespace ExchangeSharp
     public sealed partial class ExchangeNDAXAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.ndax.io:8443/AP";
-        public override string BaseUrlWebSocket { get; set; } = "wss://apindaxstage.cdnhop.net/WSGateway";
+        public override string BaseUrlWebSocket { get; set; } = "wss://api.ndax.io/WSGateway";
         
         private AuthenticateResult authenticationDetails = null;
         public override string Name => ExchangeName.NDAX;
@@ -366,9 +367,11 @@ namespace ExchangeSharp
 
         protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
         {
-            var instrumentIds = await GetInstrumentIdFromMarketSymbol(marketSymbols);
+			var instrumentIds = marketSymbols == null || marketSymbols.Length == 0 ?
+				(await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray() :
+				await GetInstrumentIdFromMarketSymbol(marketSymbols);
 
-            return await ConnectWebSocketAsync("", async (socket, bytes) =>
+			return await ConnectWebSocketAsync("", async (socket, bytes) =>
                 {
                     var messageFrame =
                         JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
@@ -377,14 +380,20 @@ namespace ExchangeSharp
                         || messageFrame.FunctionName.Equals("Level1UpdateEvent",
                             StringComparison.InvariantCultureIgnoreCase))
                     {
-                        var rawPayload = messageFrame.PayloadAs<Level1Data>();
-                        var symbol = await GetMarketSymbolFromInstrumentId(rawPayload.InstrumentId);
-                        tickers.Invoke(new[]
-                        {
-                            new KeyValuePair<string, ExchangeTicker>(symbol, rawPayload.ToExchangeTicker(symbol)),
-                        });
-                    }
-                },
+						var token = JToken.Parse(messageFrame.Payload);
+						if (token["errormsg"] == null)
+						{
+							var rawPayload = messageFrame.PayloadAs<Level1Data>();
+							var symbol = await GetMarketSymbolFromInstrumentId(rawPayload.InstrumentId);
+							tickers.Invoke(new[]
+							{
+								new KeyValuePair<string, ExchangeTicker>(symbol, rawPayload.ToExchangeTicker(symbol)),
+							});
+						}
+						else // "{\"result\":false,\"errormsg\":\"Resource Not Found\",\"errorcode\":104,\"detail\":\"Instrument not Found\"}"
+							Logger.Info(messageFrame.Payload);
+					}
+				},
                 async socket =>
                 {
                     foreach (var instrumentId in instrumentIds)
@@ -405,7 +414,73 @@ namespace ExchangeSharp
                 });
         }
 
-        private long GetNextSequenceNumber()
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			var instrumentIds = marketSymbols == null || marketSymbols.Length == 0 ?
+				(await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray() :
+				await GetInstrumentIdFromMarketSymbol(marketSymbols);
+
+			return await ConnectWebSocketAsync("", async (socket, bytes) =>
+				{
+					var messageFrame =
+						JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
+
+					if (messageFrame.FunctionName.Equals("SubscribeTrades", StringComparison.InvariantCultureIgnoreCase)
+						|| messageFrame.FunctionName.Equals("OrderTradeEvent", StringComparison.InvariantCultureIgnoreCase)
+						|| messageFrame.FunctionName.Equals("TradeDataUpdateEvent", StringComparison.InvariantCultureIgnoreCase))
+					{
+						if (messageFrame.Payload != "[]")
+						{
+							var token = JToken.Parse(messageFrame.Payload);
+							if (token.Type == JTokenType.Array)
+							{ // "[[34838,2,0.4656,10879.5,311801351,311801370,1570134695227,1,0,0,0],[34839,2,0.4674,10881.7,311801352,311801370,1570134695227,1,0,0,0]]"
+								var jArray = token as JArray;
+								for (int i = 0; i < jArray.Count; i++)
+								{
+									var tradesToken = jArray[i];
+									var symbol = await GetMarketSymbolFromInstrumentId(tradesToken[1].ConvertInvariant<long>());
+									var trade = tradesToken.ParseTradeNDAX(amountKey: 2, priceKey: 3,
+											typeKey: 8, timestampKey: 6,
+											TimestampType.UnixMilliseconds, idKey: 0,
+											typeKeyIsBuyValue: "0");
+									if (messageFrame.FunctionName.Equals("SubscribeTrades", StringComparison.InvariantCultureIgnoreCase))
+									{
+										trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
+										if (i == jArray.Count - 1)
+										{
+											trade.Flags |= ExchangeTradeFlags.IsLastFromSnapshot;
+										}
+									}
+									await callback(
+										new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+								}
+							}
+							else // "{\"result\":false,\"errormsg\":\"Invalid Request\",\"errorcode\":100,\"detail\":null}"
+								Logger.Info(messageFrame.Payload);
+						}
+					}
+				},
+				async socket =>
+				{
+					foreach (var instrumentId in instrumentIds)
+					{
+						await socket.SendMessageAsync(new MessageFrame
+						{
+							FunctionName = "SubscribeTrades",
+							MessageType = MessageType.Request,
+							SequenceNumber = GetNextSequenceNumber(),
+							Payload = JsonConvert.SerializeObject(new
+							{
+								OMSId = 1,
+								InstrumentId = instrumentId,
+								IncludeLastCount = 100,
+							})
+						});
+					}
+				});
+		}
+
+		private long GetNextSequenceNumber()
         {
             // Best practice is to carry an even sequence number.
             Interlocked.Add(ref _sequenceNumber, 2);
