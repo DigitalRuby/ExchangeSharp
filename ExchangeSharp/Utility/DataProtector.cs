@@ -151,7 +151,7 @@ namespace ExchangeSharp
         #region Non-Windows
 
         //
-        // ManagedProtection.cs - 
+        // ManagedProtection.cs -
         //	Protect (encrypt) data without (user involved) key management
         //
         // Author:
@@ -166,10 +166,10 @@ namespace ExchangeSharp
         // distribute, sublicense, and/or sell copies of the Software, and to
         // permit persons to whom the Software is furnished to do so, subject to
         // the following conditions:
-        // 
+        //
         // The above copyright notice and this permission notice shall be
         // included in all copies or substantial portions of the Software.
-        // 
+        //
         // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
         // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
         // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -189,7 +189,7 @@ namespace ExchangeSharp
         {
             private static readonly RSA user;
             private static readonly RSA machine;
-            
+
             static ManagedProtection()
             {
                 try
@@ -307,7 +307,7 @@ namespace ExchangeSharp
                 return result;
             }
 
-            // FIXME	[KeyContainerPermission (SecurityAction.Assert, KeyContainerName = "DAPI",
+            //TODO: FIXME	[KeyContainerPermission (SecurityAction.Assert, KeyContainerName = "DAPI",
             //			Flags = KeyContainerPermissionFlags.Open | KeyContainerPermissionFlags.Decrypt)]
             public static byte[] Unprotect(byte[] encryptedData, byte[] optionalEntropy, DataProtectionScope scope)
             {
@@ -529,7 +529,7 @@ namespace ExchangeSharp
             else
             {
                 return ManagedProtection.Unprotect(data, optionalEntropy, scope);
-            }            
+            }
         }
     }
 

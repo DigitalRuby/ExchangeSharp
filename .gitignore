@@ -451,3 +451,6 @@ modules.xml
 *.log*
 launchSettings.json
 **/PublishProfiles/*
+
+## Project specific
+**/keys.bin

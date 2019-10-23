@@ -313,7 +313,7 @@ namespace ExchangeSharp
             {
                 await OnGetNonceOffset();
             }
-            
+
             object nonce;
 
             while (true)
@@ -430,17 +430,26 @@ namespace ExchangeSharp
         /// <param name="encryptedFile">Encrypted file to load keys from</param>
         public void LoadAPIKeys(string encryptedFile)
         {
-            SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
-            if (strings.Length < 2)
-            {
-                throw new InvalidOperationException("Encrypted keys file should have at least a public and private key, and an optional pass phrase");
-            }
-            PublicApiKey = strings[0];
-            PrivateApiKey = strings[1];
-            if (strings.Length > 2)
-            {
-                Passphrase = strings[2];
-            }
+	        if (string.IsNullOrWhiteSpace(encryptedFile))
+		        throw new ArgumentNullException(nameof(encryptedFile));
+	        if (!File.Exists(encryptedFile))
+		        throw new ArgumentException("Invalid key file.", nameof(encryptedFile));
+
+	        var strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
+
+	        if (strings.Length < 2)
+	        {
+		        throw new InvalidOperationException(
+			        "Encrypted keys file should have at least a public and private key, and an optional pass phrase"
+		        );
+	        }
+
+	        PublicApiKey = strings[0];
+	        PrivateApiKey = strings[1];
+	        if (strings.Length > 2)
+	        {
+		        Passphrase = strings[2];
+	        }
         }
 
         /// <summary>
