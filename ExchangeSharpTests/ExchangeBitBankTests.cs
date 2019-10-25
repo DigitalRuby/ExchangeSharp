@@ -10,7 +10,7 @@ namespace ExchangeSharpTests
     [TestClass]
     public sealed class ExchangeBitBankTests
     {
-        private ExchangeBitBankAPI makeMockRequestMaker(string response = null)
+        private ExchangeBitBankAPI MakeMockRequestMaker(string response = null)
         {
             var requestMaker = new MockAPIRequestMaker();
             if (response != null)
@@ -38,7 +38,7 @@ namespace ExchangeSharpTests
                 }
             }
             ";
-            var api = makeMockRequestMaker(data);
+            var api = MakeMockRequestMaker(data);
             var ticker = await api.GetTickerAsync("BTC-JPY");
             ticker.MarketSymbol.Should().Be("btc_jpy");
             ticker.Ask.Should().Be(395733m);
@@ -73,7 +73,7 @@ namespace ExchangeSharpTests
                 }
             }
             ";
-            var api = makeMockRequestMaker(data);
+            var api = MakeMockRequestMaker(data);
             ExchangeOrderBook resp = await api.GetOrderBookAsync("BTC-JPY");
             resp.MarketSymbol.Should().Be("btc_jpy");
             resp.Asks.Should().HaveCount(1);
@@ -114,7 +114,7 @@ namespace ExchangeSharpTests
                 }
             }
             ";
-            var api = makeMockRequestMaker(data);
+            var api = MakeMockRequestMaker(data);
             // starttime is required.
             // await Assert.ThrowsExceptionAsync<APIException>(async () => await api.GetCandlesAsync("BTC-JPY", 3600));
             var resp = await api.GetCandlesAsync("BTC-JPY", 3600, CryptoUtility.UtcNow);
@@ -157,7 +157,7 @@ namespace ExchangeSharpTests
                 }
             }
             ";
-            var api = makeMockRequestMaker(data);
+            var api = MakeMockRequestMaker(data);
             var resp = await api.GetAmountsAsync();
             resp.First().Key.Should().Equals("JPY");
             resp.First().Value.Should().Equals(3551.9501m);
@@ -185,7 +185,7 @@ namespace ExchangeSharpTests
                 }
             }
             ";
-            var api = makeMockRequestMaker(data);
+            var api = MakeMockRequestMaker(data);
             // Throws error when no Market Symbol
             var resp = await api.GetOrderDetailsAsync("558167000", "BTC-JPY");
             ExchangeOrderResult resp2 = await api.GetOrderDetailsAsync("58037954");
@@ -219,7 +219,7 @@ namespace ExchangeSharpTests
                 }
             }
             ";
-            var api = makeMockRequestMaker(data);
+            var api = MakeMockRequestMaker(data);
             var orderBooks = await api.GetOpenOrderDetailsAsync();
             ExchangeOrderResult order = orderBooks.First();
             order.IsBuy.Should().BeFalse();

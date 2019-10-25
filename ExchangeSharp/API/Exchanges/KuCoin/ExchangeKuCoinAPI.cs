@@ -213,7 +213,7 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // [0]-Timestamp [1]-OrderType [2]-Price [3]-Amount [4]-Volume
             // [[1506037604000,"SELL",5210,48600633397,2532093],... ]
-            JToken token = await MakeJsonRequestAsync<JToken>("/orders?status=active&symbol=" + marketSymbol);
+            JToken token = await MakeJsonRequestAsync<JToken>("/orders?status=active&symbol=" + marketSymbol, payload: await GetNoncePayloadAsync());
             foreach (JToken trade in token)
             {
                 trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds, idKey: "tradeId"));
@@ -513,8 +513,9 @@ namespace ExchangeSharp
 					int tunnelInt = 0;
 					while (marketSymbolsList.Count > 0)
 					{ // can only subscribe to 100 symbols per session (started w/ API 2.0)
-						var nextBatch = marketSymbolsList.GetRange(index: 0, count: 100);
-						marketSymbolsList.RemoveRange(index: 0, count: 100);
+						var batchSize = marketSymbolsList.Count > 100 ? 100 : marketSymbolsList.Count;
+						var nextBatch = marketSymbolsList.GetRange(index: 0, count: batchSize);
+						marketSymbolsList.RemoveRange(index: 0, count: batchSize);
 						// create a new tunnel
 						await _socket.SendMessageAsync(new
 						{

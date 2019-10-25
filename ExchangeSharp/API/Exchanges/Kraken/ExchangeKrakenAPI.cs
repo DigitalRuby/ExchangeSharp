@@ -498,11 +498,14 @@ namespace ExchangeSharp
             foreach (JProperty prop in res.Where(p => !p.Name.EndsWith(".d")))
             {
                 JToken pair = prop.Value;
+                JToken child = prop.Children().FirstOrDefault();
                 var quantityStepSize = Math.Pow(0.1, pair["lot_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>();
                 var market = new ExchangeMarket
                 {
                     IsActive = true,
                     MarketSymbol = prop.Name,
+					AltMarketSymbol = child["altname"].ToStringInvariant(),
+					AltMarketSymbol2 = child["wsname"].ToStringInvariant(),
                     MinTradeSize = quantityStepSize,
                     MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
                     BaseCurrency = pair["base"].ToStringInvariant(),
@@ -856,20 +859,38 @@ namespace ExchangeSharp
 				}
 			}, connectCallback: async (_socket) =>
 			{
-				//{
-				//  "event": "subscribe",
-				//  "pair": [
-				//    "XBT/USD","XBT/EUR"
-				//  ],
-				//  "subscription": {
-				//    "name": "ticker"
-				//  }
-				//}
-				await _socket.SendMessageAsync(new
+                //{
+                //  "event": "subscribe",
+                //  "pair": [
+                //    "XBT/USD","XBT/EUR"
+                //  ],
+                //  "subscription": {
+                //    "name": "ticker"
+                //  }
+                //}
+                Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
+                {
+                    ExchangeMarket market = await GetExchangeMarketFromCacheAsync(m);
+                    if (market == null)
+                    {
+                        return null;
+                    }
+                    return market.AltMarketSymbol2;
+                }).ToArray();
+                List<string> marketSymbolList = new List<string>();
+                foreach (Task<string> ms in marketSymbolsArray)
+                {
+                    string result = await ms;
+                    if (result != null)
+                    {
+                        marketSymbolList.Add(result);
+                    }
+                }
+                await _socket.SendMessageAsync(new
 				{
 					@event = "subscribe",
-					pair = marketSymbols,
-					subscription = new { name = "trade" },
+					pair = marketSymbolList,
+                    subscription = new { name = "trade" }
 				});
 			});
 		}

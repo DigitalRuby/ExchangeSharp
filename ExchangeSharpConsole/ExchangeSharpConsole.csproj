@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net472;netcoreapp2.2</TargetFrameworks>
-    <AssemblyVersion>0.6.1</AssemblyVersion>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <Version>0.6.2</Version>
+    <AssemblyVersion>0.6.2</AssemblyVersion>
     <FileVersion>0.6.1</FileVersion>
     <NeutralLanguage>en</NeutralLanguage>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,17 +15,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="nlog.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="WebSocket4Net" Version="0.15.2" />
+    <PackageReference Include="CommandLineParser" Version="2.6.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Program.Main.cs">
+      <DependentUpon>Program.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>

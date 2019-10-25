@@ -24,9 +24,9 @@ The following cryptocurrency exchanges are supported:
 | BitMEX           | x         | x           |   R   O   |
 | Bitstamp         | x         | x           |   R       |
 | Bittrex          | x         | x           | T R       |
+| BL3P             | x         |             |           |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
-| Cryptopia        | x         | x           |           |
 | Digifinex        | x         | x           |   R B     |
 | Gemini           | x         | x           |   R       |
 | HitBTC           | x         | x           |   R       |
@@ -38,9 +38,9 @@ The following cryptocurrency exchanges are supported:
 | OKCoin           | x         | x           |   R B     |
 | OKEx             | x         | x           |   R B     |
 | Poloniex         | x         | x           | T R B     |
-| TuxExchange      | x         | x           |           |
 | YoBit            | x         | x           |           |
 | ZB.com           | wip       |             |   R       |
+| NDAX             | x         | x           | T         |
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
@@ -69,7 +69,7 @@ You can also publish from Visual Studio (right click project, select publish), w
 
 ### Nuget
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.1 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.2 ```  
 </a> 
 
 ### Order Example

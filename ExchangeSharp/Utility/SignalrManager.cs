@@ -678,8 +678,15 @@ namespace ExchangeSharp
         /// </summary>
         public void Stop()
         {
-            hubConnection.Stop(TimeSpan.FromSeconds(0.1));
-        }
+			try
+			{
+				hubConnection.Stop(TimeSpan.FromSeconds(0.1));
+			}
+			catch (NullReferenceException) 
+			{ // bug in SignalR where Stop() throws a NRE if it times out
+			  // https://github.com/SignalR/SignalR/issues/3561
+			}
+		}
 
         /// <summary>
         /// Finalizer
@@ -701,7 +708,7 @@ namespace ExchangeSharp
             disposed = true;
             try
             {
-                hubConnection.Transport.Dispose();
+                hubConnection.Transport?.Dispose();
                 hubConnection.Dispose();
             }
             catch

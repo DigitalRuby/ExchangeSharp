@@ -292,7 +292,7 @@ namespace ExchangeSharp
                     {
                         if (!((api = Activator.CreateInstance(type) as IExchangeAPI) is null))
                         {
-                            if (api.Name == exchangeName)
+                            if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
                             {
                                 // found one with right name, add it to the API dictionary
                                 apis[exchangeName] = api;
@@ -791,7 +791,7 @@ namespace ExchangeSharp
             withdrawalRequest.Currency = NormalizeMarketSymbol(withdrawalRequest.Currency);
             return await OnWithdrawAsync(withdrawalRequest);
         }
-        
+
         /// <summary>
         /// Gets the withdraw history for a symbol
         /// </summary>
@@ -835,7 +835,7 @@ namespace ExchangeSharp
             return await OnCloseMarginPositionAsync(NormalizeMarketSymbol(marketSymbol));
         }
 
-   
+
 
 		#endregion REST API
 

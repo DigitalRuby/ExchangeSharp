@@ -9,20 +9,20 @@
     <Nullable>enable</Nullable>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
-    <PackageVersion>0.6.1</PackageVersion>
+    <PackageVersion>0.6.2</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
     <Summary>Supported exchanges: Abucoins, Binance, Bitfinex, Bithumb, Bitmex, Bitstamp, Bittrex, Bleutrade, Coinbase, Cryptopia, Gemini, Hitbtc, Huobi, Kraken, Kucoin, Livecoin, Okex, Poloniex, TuxExchange, Yobit, ZBcom. Pull request welcome.</Summary>
-    <PackageIconUrl>https://github.com/jjxtra/ExchangeSharp/raw/master/icon.png</PackageIconUrl>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>https://github.com/jjxtra/ExchangeSharp/releases</PackageReleaseNotes>
-    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Abucoins Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Coinbase Gdax Gemini Gitbtc Huobi Kraken Kucoin Livecoin OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
+    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex Bleutrade Cryptopia Coinbase(GDAX) Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
     <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
-
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
@@ -35,9 +35,7 @@
 
   <ItemGroup>
     <None Remove="API\Exchanges\PoloWithdrawalFields.csv" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <None Include="../icon.png" Pack="true" PackagePath="\" />
     <None Include="../LICENSE.txt" Link="LICENSE.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 

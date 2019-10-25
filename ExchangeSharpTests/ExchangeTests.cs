@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -41,10 +41,20 @@ namespace ExchangeSharpTests
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    string[] symbols = (await api.GetMarketSymbolsAsync()).ToArray();
-                    lock (allSymbols)
+                    try
                     {
-                        allSymbols[api.Name] = symbols;
+                        string[] symbols = (await api.GetMarketSymbolsAsync()).ToArray();
+                        lock (allSymbols)
+                        {
+                            allSymbols[api.Name] = symbols;
+                        }
+                    }
+                    catch (NotImplementedException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to get symbols for {0}, error: {1}", api, ex);
                     }
                 }));
             }
@@ -55,8 +65,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task GlobalSymbolTest()
         {
-            // if tests fail, uncomment this and add replace Resources.AllSymbolsJson
-            // string allSymbolsJson = GetAllSymbolsJson(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
+            // if tests fail, uncomment this and it will save a new test file
+            // string allSymbolsJson = GetAllSymbolsJsonAsync().Sync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
 
             string globalMarketSymbol = "BTC-ETH";
             string globalMarketSymbolAlt = "KRW-BTC"; // WTF Bitthumb...
@@ -68,14 +78,10 @@ namespace ExchangeSharpTests
                 try
                 {
                     if (api is ExchangeUfoDexAPI || api is ExchangeOKExAPI || api is ExchangeHitBTCAPI || api is ExchangeKuCoinAPI ||
-                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI)
+                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI || api is ExchangeNDAXAPI)
                     {
                         // WIP
                         continue;
-                    }
-                    else if (api is ExchangeKrakenAPI)
-                    {
-                        int a = 5; a++;
                     }
 
                     bool isBithumb = (api.Name == ExchangeName.Bithumb);
@@ -95,7 +101,12 @@ namespace ExchangeSharpTests
                                 "then apply this new string to Resources.AllSymbolsJson");
                         }
                         string[] symbols = allSymbols[api.Name];
-                        Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
+
+						// BL3P does not have usd
+						if (api.Name != ExchangeName.BL3P)
+						{
+							Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
+						}
                     }
                     catch
                     {
