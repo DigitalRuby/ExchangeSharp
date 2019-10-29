@@ -24,7 +24,7 @@ The following cryptocurrency exchanges are supported:
 | BitMEX           | x         | x           |   R   O   |
 | Bitstamp         | x         | x           |   R       |
 | Bittrex          | x         | x           | T R       |
-| BL3P             | x         |             |           |
+| BL3P             | x         |             |       O   |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
 | Digifinex        | x         | x           |   R B     |
