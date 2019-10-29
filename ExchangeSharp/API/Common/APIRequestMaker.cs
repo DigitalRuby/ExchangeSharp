@@ -1,4 +1,4 @@
-/*
+﻿/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -30,10 +30,24 @@ namespace ExchangeSharp
         private class InternalHttpWebRequest : IHttpWebRequest
         {
             internal readonly HttpWebRequest request;
+            private static WebProxy proxy;
+
+            static InternalHttpWebRequest()
+            {
+	            var httpProxy = Environment.GetEnvironmentVariable("http_proxy");
+	            httpProxy ??= Environment.GetEnvironmentVariable("HTTP_PROXY");
+
+	            if (string.IsNullOrEmpty(httpProxy))
+		            return;
+
+	            var uri = new Uri(httpProxy);
+	            proxy = new WebProxy(uri);
+            }
 
             public InternalHttpWebRequest(Uri fullUri)
             {
                 request = (HttpWebRequest.Create(fullUri) as HttpWebRequest ?? throw new NullReferenceException("Failed to create HttpWebRequest"));
+                request.Proxy = proxy;
                 request.KeepAlive = false;
             }
 
