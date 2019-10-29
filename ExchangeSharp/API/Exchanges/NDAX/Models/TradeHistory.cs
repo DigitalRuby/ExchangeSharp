@@ -5,6 +5,9 @@ namespace ExchangeSharp
 {
 	public sealed partial class ExchangeNDAXAPI
 	{
+		/// <summary>
+		/// For use in GetTradesHistory: OnGetHistoricalTradesAsync()
+		/// </summary>
 		class TradeHistory
 		{
 			[JsonProperty("TradeTimeMS")]
