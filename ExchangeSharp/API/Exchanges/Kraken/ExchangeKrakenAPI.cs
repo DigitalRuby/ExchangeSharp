@@ -859,16 +859,17 @@ namespace ExchangeSharp
 				}
 			}, connectCallback: async (_socket) =>
 			{
-                //{
-                //  "event": "subscribe",
-                //  "pair": [
-                //    "XBT/USD","XBT/EUR"
-                //  ],
-                //  "subscription": {
-                //    "name": "ticker"
-                //  }
-                //}
-                Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
+				//{
+				//  "event": "subscribe",
+				//  "pair": [
+				//    "XBT/USD","XBT/EUR"
+				//  ],
+				//  "subscription": {
+				//    "name": "ticker"
+				//  }
+				//}
+				await PopulateLookupTables(); // prime cache
+				Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
                 {
                     ExchangeMarket market = await GetExchangeMarketFromCacheAsync(m);
                     if (market == null)
