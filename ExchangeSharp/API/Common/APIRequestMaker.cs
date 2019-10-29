@@ -191,16 +191,19 @@ namespace ExchangeSharp
                 }
                 using (Stream responseStream = response.GetResponseStream())
                 using (StreamReader responseStreamReader = new StreamReader(responseStream))
-                responseString = responseStreamReader.ReadToEnd();
+                    responseString = responseStreamReader.ReadToEnd();
+
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    // 404 maybe return empty responseString
-                    if (string.IsNullOrWhiteSpace(responseString))
-                    {
+	                // 404 maybe return empty responseString
+	                if (string.IsNullOrWhiteSpace(responseString))
+	                {
                         throw new APIException(string.Format("{0} - {1}", response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
-                    }
-                    throw new APIException(responseString);
+	                }
+
+	                throw new APIException(responseString);
                 }
+
                 api.ProcessResponse(new InternalHttpWebResponse(response));
                 RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
             }

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using ExchangeSharp.API.Exchanges.BL3P;
 using ExchangeSharp.API.Exchanges.BL3P.Enums;
 using ExchangeSharp.API.Exchanges.BL3P.Models;
+using ExchangeSharp.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -17,7 +18,11 @@ namespace ExchangeSharp
 	// ReSharper disable once InconsistentNaming
 	public sealed class ExchangeBL3PAPI : ExchangeAPI
 	{
-		public override string BaseUrl { get; set; } = "https://api.bl3p.eu/";
+		private readonly FixedIntDecimalConverter converterToEight;
+
+		private readonly FixedIntDecimalConverter converterToFive;
+
+		public override string BaseUrl { get; set; } = "https://api.bl3p.eu/1";
 
 		public override string BaseUrlWebSocket { get; set; } = "wss://api.bl3p.eu/1/";
 
@@ -33,8 +38,12 @@ namespace ExchangeSharp
 			MarketSymbolIsReversed = true;
 			MarketSymbolSeparator = string.Empty;
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
+			RequestContentType = "application/x-www-form-urlencoded";
 
 			RateLimit = new RateGate(600, TimeSpan.FromMinutes(10));
+
+			converterToEight = new FixedIntDecimalConverter(8);
+			converterToFive = new FixedIntDecimalConverter(5);
 		}
 
 		public ExchangeBL3PAPI(ref string publicApiKey, ref string privateApiKey)
@@ -151,74 +160,86 @@ namespace ExchangeSharp
 			);
 		}
 
-		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
 		{
-			request.AddHeader("Content-Type", "application/x-www-form-urlencoded");
-
-			//TODO: Override this method
-			if (CanMakeAuthenticatedRequest(payload))
-			{
-				//TODO: Check if payload is being added to uri.Query
-				request.AddHeader("Rest-Key", PublicApiKey.ToUnsecureString());
-			}
-
-			var postdata = $"{request.RequestUri.AbsolutePath}\0{request.RequestUri.Query}";
-			var decoded = Convert.FromBase64String(PrivateApiKey.ToUnsecureString());
-			byte[] hashBytes;
-			using (var hmacSha512 = new HMACSHA512(decoded))
-			{
-				hashBytes = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(postdata));
-			}
-
-
-			var signKey1 = CryptoUtility.SHA512Sign(postdata, decoded);
-			var signKey = hashBytes.ToHexString();
-
-			request.AddHeader("Rest-Sign", signKey);
-
-			//TODO: Calculate
-			request.AddHeader("Content-Length", (request.RequestUri.PathAndQuery.Length * sizeof(char)).ToString());
-
-			return base.ProcessRequestAsync(request, payload);
+			return !(PublicApiKey is null) && !(PrivateApiKey is null);
 		}
 
-		protected override (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(
-			string marketSymbol)
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
-			//TODO: Implement
-			return base.OnSplitMarketSymbolToCurrencies(marketSymbol);
+			var formData = await request.WritePayloadFormToRequestAsync(payload)
+				.ConfigureAwait(false);
+
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				request.AddHeader("Rest-Key", PublicApiKey.ToUnsecureString());
+
+				var signKey = GetSignKey(request, formData);
+				request.AddHeader("Rest-Sign", signKey);
+			}
+		}
+
+		private string GetSignKey(IHttpWebRequest request, string formData)
+		{
+			//TODO: Use csharp8 ranges
+			var index = Array.IndexOf(request.RequestUri.Segments, "1/");
+			var callPath = string.Join(string.Empty, request.RequestUri.Segments.Skip(index + 1)).TrimStart('/');
+			var postData = $"{callPath}\0{formData}";
+			var privBase64 = Convert.FromBase64String(PrivateApiKey.ToUnsecureString());
+
+			byte[] hashBytes;
+			using (var hmacSha512 = new HMACSHA512(privBase64))
+			{
+				hashBytes = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(postData));
+			}
+
+			return Convert.ToBase64String(hashBytes);
 		}
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			var amountInt = (long) (order.RoundAmount() * 100000000L);
+			var roundedAmount = order.RoundAmount();
+			var amountInt = converterToEight.FromDecimal(roundedAmount);
+
+			var feeCurrency = (order.ExtraParameters.ContainsKey("fee_currency")
+					? order.ExtraParameters["fee_currency"] ?? DefaultFeeCurrency
+					: DefaultFeeCurrency)
+				.ToString()
+				.ToUpperInvariant();
 
 			var data = new Dictionary<string, object>
 			{
 				{"amount_int", amountInt},
 				{"type", order.IsBuy ? "bid" : "ask"},
-				{"fee_currency", (order.ExtraParameters["fee_currency"] ?? DefaultFeeCurrency).ToString()},
+				{"fee_currency", feeCurrency},
 			};
 
 			switch (order.OrderType)
 			{
 				case OrderType.Limit:
-					data["price_int"] = (long) (order.Price * 100000L);
+					data["price_int"] = converterToFive.FromDecimal(order.Price);
 					break;
 				case OrderType.Market:
-					data["amount_funds_int"] = (long) ((order.RoundAmount() * order.Price) / 100000L);
+					data["amount_funds_int"] = converterToFive.FromDecimal(roundedAmount * order.Price);
 					break;
 				default:
 					throw new NotSupportedException($"{order.OrderType} is not supported");
 			}
 
-			var result = await MakeRequestAsync($"/{order.MarketSymbol}/money/order/add", payload: data, method: "POST")
+			var resultBody = await MakeRequestAsync(
+					$"/{order.MarketSymbol}/money/order/add",
+					payload: data,
+					method: "POST"
+				)
 				.ConfigureAwait(false);
+			var result = JsonConvert.DeserializeObject<BL3POrderAddResponse>(resultBody);
 
-
-			//TODO: Result
+			//TODO: Get data for result
 			return new ExchangeOrderResult
 			{
+				OrderId = result.OrderId,
+				Amount = order.Amount,
+				AmountFilled = 0M,
 			};
 		}
 

@@ -1,26 +1,28 @@
 using System;
+using ExchangeSharp.Utility;
 using Newtonsoft.Json;
 
 // ReSharper disable once CheckNamespace
 namespace ExchangeSharp
 {
-	public class FixedIntDecimalConverter : JsonConverter
+	public class FixedIntDecimalJsonConverter : JsonConverter
 	{
-		private readonly decimal multiplier;
+		private readonly FixedIntDecimalConverter converter;
 
-		public FixedIntDecimalConverter()
+		public FixedIntDecimalJsonConverter()
+			: this(1)
 		{
 		}
 
-		public FixedIntDecimalConverter(int multiplier)
+		public FixedIntDecimalJsonConverter(int multiplier)
 		{
-			this.multiplier = decimal.Parse(1.ToString().PadRight(multiplier + 1, '0'));
+			converter = new FixedIntDecimalConverter(multiplier);
 		}
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			var valueLong = (decimal) value * multiplier;
-			writer.WriteValue((long) valueLong);
+			var valueDecimal = converter.ToDecimal((long) value);
+			writer.WriteValue((long) valueDecimal);
 		}
 
 		public override object ReadJson(
@@ -31,7 +33,7 @@ namespace ExchangeSharp
 		)
 		{
 			var valueDec = Convert.ToDecimal(reader.Value);
-			return valueDec / multiplier;
+			return converter.FromDecimal(valueDec);
 		}
 
 		public override bool CanConvert(Type objectType)
