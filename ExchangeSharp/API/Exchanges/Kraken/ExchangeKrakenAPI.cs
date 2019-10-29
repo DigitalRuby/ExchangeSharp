@@ -868,7 +868,7 @@ namespace ExchangeSharp
 				//    "name": "ticker"
 				//  }
 				//}
-				await GetExchangeMarketFromCacheAsync(marketSymbols[0]); // prime cache
+				await PopulateLookupTables(); // prime cache
 				Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
                 {
                     ExchangeMarket market = await GetExchangeMarketFromCacheAsync(m);
