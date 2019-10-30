@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -443,8 +443,8 @@ namespace ExchangeSharp
         /// <returns>ExchangeTicker</returns>
         internal static async Task<ExchangeTicker> ParseTickerAsync(this ExchangeAPI api, JToken token, string marketSymbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
-            object quoteVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
-            object baseCurrencyKey = null, object quoteCurrencyKey = null, object idKey = null)
+            object? quoteVolumeKey = null, object? timestampKey = null, TimestampType timestampType = TimestampType.None,
+            object? baseCurrencyKey = null, object? quoteCurrencyKey = null, object? idKey = null)
         {
             if (token == null || !token.HasValues)
             {
@@ -632,7 +632,7 @@ namespace ExchangeSharp
 		/// <param name="last">Last volume value</param>
 		/// <param name="baseCurrencyVolume">Receive base currency volume</param>
 		/// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
-		internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
+		internal static void ParseVolumes(this JToken token, object baseVolumeKey, object? quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
         {
             // parse out volumes, handle cases where one or both do not exist
             if (baseVolumeKey == null)
@@ -679,7 +679,7 @@ namespace ExchangeSharp
         /// <param name="weightedAverageKey">Weighted average key</param>
         /// <returns>MarketCandle</returns>
         internal static MarketCandle ParseCandle(this INamed named, JToken token, string marketSymbol, int periodSeconds, object openKey, object highKey, object lowKey,
-            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object quoteVolumeKey = null, object weightedAverageKey = null)
+            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object? quoteVolumeKey = null, object? weightedAverageKey = null)
         {
             MarketCandle candle = new MarketCandle
             {

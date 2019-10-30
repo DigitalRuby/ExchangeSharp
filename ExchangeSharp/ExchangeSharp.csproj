@@ -6,7 +6,6 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     <PackageId>DigitalRuby.ExchangeSharp</PackageId>
     <Title>ExchangeSharp - C# API for cryptocurrency exchanges</Title>
     <PackageVersion>0.6.2</PackageVersion>

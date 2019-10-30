@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -128,7 +128,7 @@ namespace ExchangeSharp
 		/// <returns>Clamped price</returns>
 		protected async Task<decimal> ClampOrderPrice(string marketSymbol, decimal outputPrice)
         {
-            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
+            ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
         }
 
@@ -140,7 +140,7 @@ namespace ExchangeSharp
         /// <returns>Clamped quantity</returns>
         protected async Task<decimal> ClampOrderQuantity(string marketSymbol, decimal outputQuantity)
         {
-            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
+            ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 
