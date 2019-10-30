@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -43,7 +43,7 @@ namespace ExchangeSharp
 
         #region Private methods
 
-        private static readonly Dictionary<string, IExchangeAPI> apis = new Dictionary<string, IExchangeAPI>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, IExchangeAPI?> apis = new Dictionary<string, IExchangeAPI?>(StringComparer.OrdinalIgnoreCase);
         private bool disposed;
 
         #endregion Private methods
@@ -100,10 +100,10 @@ namespace ExchangeSharp
         protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) => throw new NotImplementedException();
-        protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null) => throw new NotImplementedException();
-        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null) => throw new NotImplementedException();
-        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
-        protected virtual Task OnCancelOrderAsync(string orderId, string marketSymbol = null) => throw new NotImplementedException();
+        protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string? marketSymbol = null) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string? marketSymbol = null) => throw new NotImplementedException();
+        protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null) => throw new NotImplementedException();
+        protected virtual Task OnCancelOrderAsync(string orderId, string? marketSymbol = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency) => throw new NotImplementedException();
         protected virtual Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances) => throw new NotImplementedException();
@@ -128,7 +128,7 @@ namespace ExchangeSharp
 		/// <returns>Clamped price</returns>
 		protected async Task<decimal> ClampOrderPrice(string marketSymbol, decimal outputPrice)
         {
-            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
+            ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
         }
 
@@ -140,7 +140,7 @@ namespace ExchangeSharp
         /// <returns>Clamped quantity</returns>
         protected async Task<decimal> ClampOrderQuantity(string marketSymbol, decimal outputQuantity)
         {
-            ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
+            ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 
@@ -205,8 +205,9 @@ namespace ExchangeSharp
                 // we don't want to pro-actively create all of these becanse an API
                 // may be running a timer or other house-keeping which we don't want
                 // the overhead of if a user is only using one or a handful of the apis
-                using (ExchangeAPI api = Activator.CreateInstance(type) as ExchangeAPI)
+                if ((Activator.CreateInstance(type) is ExchangeAPI api))
                 {
+                    api.Dispose();
                     apis[api.Name] = null;
                 }
 
@@ -274,13 +275,13 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="exchangeName">Exchange name</param>
         /// <returns>Exchange API or null if not found</returns>
-        public static IExchangeAPI GetExchangeAPI(string exchangeName)
+        public static IExchangeAPI? GetExchangeAPI(string exchangeName)
         {
             // note: this method will be slightly slow (milliseconds) the first time it is called and misses the cache
             // subsequent calls with cache hits will be nanoseconds
             lock (apis)
             {
-                if (!apis.TryGetValue(exchangeName, out IExchangeAPI api))
+                if (!apis.TryGetValue(exchangeName, out IExchangeAPI? api))
                 {
                     throw new ArgumentException("No API available with name " + exchangeName);
                 }
@@ -289,19 +290,23 @@ namespace ExchangeSharp
                     // find an API with the right name
                     foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
                     {
-                        api = (IExchangeAPI) Activator.CreateInstance(type);
-                        if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
+                        if (!((api = Activator.CreateInstance(type) as IExchangeAPI) is null))
                         {
-                            // found one with right name, add it to the API dictionary
-                            apis[exchangeName] = api;
+                            if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                // found one with right name, add it to the API dictionary
+                                apis[exchangeName] = api;
 
-                            // break out, we are done
-                            break;
+                                // break out, we are done
+                                break;
+                            }
+                            else
+                            {
+                                // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
+                                api.Dispose();
+                                api = null;
+                            }
                         }
-
-                        // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
-                        api.Dispose();
-                        api = null;
                     }
                 }
                 return api;
@@ -373,7 +378,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Symbol</param>
         /// <returns>Normalized symbol</returns>
-        public virtual string NormalizeMarketSymbol(string marketSymbol)
+        public virtual string NormalizeMarketSymbol(string? marketSymbol)
         {
             marketSymbol = (marketSymbol ?? string.Empty).Trim();
             marketSymbol = marketSymbol.Replace("-", MarketSymbolSeparator)
@@ -529,7 +534,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">The market symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
         /// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
-        public virtual async Task<ExchangeMarket> GetExchangeMarketFromCacheAsync(string marketSymbol)
+        public virtual async Task<ExchangeMarket?> GetExchangeMarketFromCacheAsync(string marketSymbol)
         {
             try
             {
@@ -733,7 +738,7 @@ namespace ExchangeSharp
         /// <param name="orderId">Order id to get details for</param>
         /// <param name="marketSymbol">Symbol of order (most exchanges do not require this)</param>
         /// <returns>Order details</returns>
-        public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null)
+        public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null)
         {
             marketSymbol = NormalizeMarketSymbol(marketSymbol);
             return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOrderDetailsAsync(orderId, marketSymbol), nameof(GetOrderDetailsAsync), nameof(orderId), orderId, nameof(marketSymbol), marketSymbol);
@@ -744,7 +749,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Symbol to get open orders for or null for all</param>
         /// <returns>All open order details</returns>
-        public virtual async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string marketSymbol = null)
+        public virtual async Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string? marketSymbol = null)
         {
             marketSymbol = NormalizeMarketSymbol(marketSymbol);
             return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetOpenOrderDetailsAsync(marketSymbol), nameof(GetOpenOrderDetailsAsync), nameof(marketSymbol), marketSymbol);
@@ -756,7 +761,7 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        public virtual async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+        public virtual async Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null)
         {
             marketSymbol = NormalizeMarketSymbol(marketSymbol);
             return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetCompletedOrderDetailsAsync(marketSymbol, afterDate)).ToArray(), nameof(GetCompletedOrderDetailsAsync),
@@ -768,7 +773,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <param name="marketSymbol">Symbol of order (most exchanges do not require this)</param>
-        public virtual async Task CancelOrderAsync(string orderId, string marketSymbol = null)
+        public virtual async Task CancelOrderAsync(string orderId, string? marketSymbol = null)
         {
             // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();

@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 #define HAS_SIGNALR
 
 #if HAS_SIGNALR
@@ -103,14 +103,14 @@ namespace ExchangeSharp
             /// <param name="delayMilliseconds">Delay after invoking each object[] in param, used if the server will disconnect you for too many invoke too fast</param>
             /// <param name="param">End point parameters, each array of strings is a separate call to the end point function. For no parameters, pass null.</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
+            public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][]? param = null)
             {
                 callback.ThrowIfNull(nameof(callback), "Callback must not be null");
 
                 SignalrManager _manager = this.manager;
                 _manager.ThrowIfNull(nameof(manager), "Manager is null");
 
-                Exception ex = null;
+                Exception? ex = null;
                 param = (param ?? new object[][] { new object[0] });
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
@@ -257,9 +257,9 @@ namespace ExchangeSharp
             public WebsocketCustomTransport(IHttpClient client, TimeSpan connectInterval, TimeSpan keepAlive) 
 				: base(client, "webSockets")
             {
-				this.connectInterval = connectInterval;
-				this.keepAlive = keepAlive;
                 WebSocket = new ExchangeSharp.ClientWebSocket();
+                this.connectInterval = connectInterval;
+				this.keepAlive = keepAlive;
             }
 
             ~WebsocketCustomTransport()
@@ -326,9 +326,9 @@ namespace ExchangeSharp
             private void DisposeWebSocket()
             {
                 WebSocket.Dispose();
-                WebSocket = null;
             }
 
+            /*
             private void WebSocketOnClosed()
             {
                 connection.Stop();
@@ -338,6 +338,7 @@ namespace ExchangeSharp
             {
                 connection.OnError(e);
             }
+            */
 
             private Task WebSocketOnBinaryMessageReceived(IWebSocket socket, byte[] data)
             {
@@ -365,9 +366,9 @@ namespace ExchangeSharp
         private readonly List<SignalrSocketConnection> sockets = new List<SignalrSocketConnection>();
         private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
 
-		private WebsocketCustomTransport customTransport;
-		private HubConnection hubConnection;
-        private IHubProxy hubProxy;
+		private WebsocketCustomTransport? customTransport;
+		private HubConnection? hubConnection;
+        private IHubProxy? hubProxy;
         private bool disposed;
 
 		private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
