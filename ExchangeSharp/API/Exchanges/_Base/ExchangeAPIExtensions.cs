@@ -457,7 +457,9 @@ namespace ExchangeSharp
             token.ParseVolumes(baseVolumeKey, quoteVolumeKey, last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume);
 
             // pull out timestamp
-            DateTime timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+            DateTime timestamp = timestampKey == null
+	            ? CryptoUtility.UtcNow
+	            : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType);
 
             // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
             string baseCurrency;
@@ -665,7 +667,10 @@ namespace ExchangeSharp
             }
             else
             {
-                baseCurrencyVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
+	            baseCurrencyVolume = (token is JObject jObj
+			            ? jObj.SelectToken((string) baseVolumeKey)
+			            : token[baseVolumeKey]
+		            ).ConvertInvariant<decimal>();
                 if (quoteVolumeKey == null)
                 {
                     quoteCurrencyVolume = baseCurrencyVolume * last;

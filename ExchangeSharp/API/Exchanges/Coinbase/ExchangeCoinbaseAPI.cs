@@ -36,7 +36,7 @@ namespace ExchangeSharp
         /// The response will contain a CB-BEFORE header which will return the cursor id to use in your next request for the page before the current one. The page before is a newer page and not one that happened before in chronological time.
         /// </summary>
         private string cursorBefore;
-         
+
         private ExchangeOrderResult ParseFill(JToken result)
         {
             decimal amount = result["size"].ConvertInvariant<decimal>();
@@ -47,18 +47,18 @@ namespace ExchangeSharp
 
             ExchangeOrderResult order = new ExchangeOrderResult
             {
-                TradeId = result["trade_id"].ToStringInvariant(), 
-                Amount = amount, 
-                AmountFilled = amount, 
+                TradeId = result["trade_id"].ToStringInvariant(),
+                Amount = amount,
+                AmountFilled = amount,
                 Price = price,
                 Fees = fees,
                 AveragePrice = price,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ToDateTimeInvariant(),
                 MarketSymbol = symbol,
-                OrderId = result["order_id"].ToStringInvariant(), 
+                OrderId = result["order_id"].ToStringInvariant(),
             };
-             
+
             return order;
         }
 
@@ -109,7 +109,7 @@ namespace ExchangeSharp
                     break;
                 case "done":
                 case "settled":
-                    switch (result["done_reason"].ToStringInvariant()) 
+                    switch (result["done_reason"].ToStringInvariant())
                     {
                         case "cancelled":
                         case "canceled":
@@ -180,7 +180,7 @@ namespace ExchangeSharp
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
             JToken products = await MakeJsonRequestAsync<JToken>("/products");
@@ -235,7 +235,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654 + using Fiddler 
+            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654 + using Fiddler
 
             // Get coinbase accounts
             JArray accounts = await this.MakeJsonRequestAsync<JArray>("/coinbase-accounts", null, await GetNoncePayloadAsync(), "GET");
@@ -571,13 +571,13 @@ namespace ExchangeSharp
                     // to place non-post-only limit order one can set and pass order.ExtraParameters["post_only"]="false"
                     payload["post_only"] = order.ExtraParameters.TryGetValueOrDefault("post_only", "true");
                     break;
-                    
+
                 case OrderType.Stop:
                     payload["stop"] = (order.IsBuy ? "entry" : "loss");
                     payload["stop_price"] = order.StopPrice.ToStringInvariant();
                     payload["type"] = order.Price > 0m ? "limit" : "market";
                     break;
-                    
+
                 case OrderType.Market:
                 default:
                     break;

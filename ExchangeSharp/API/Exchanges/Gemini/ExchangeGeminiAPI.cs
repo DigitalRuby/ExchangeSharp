@@ -91,7 +91,7 @@ namespace ExchangeSharp
             return await MakeJsonRequestAsync<string[]>("/symbols");
         }
 
-		protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
 			List<ExchangeMarket> hardcodedSymbols = new List<ExchangeMarket>()
 			{

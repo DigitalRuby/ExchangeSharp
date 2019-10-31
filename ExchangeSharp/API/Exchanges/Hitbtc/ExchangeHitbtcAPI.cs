@@ -108,7 +108,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // [ {"id": "ETHBTC","baseCurrency": "ETH","quoteCurrency": "BTC", "quantityIncrement": "0.001", "tickSize": "0.000001", "takeLiquidityRate": "0.001", "provideLiquidityRate": "-0.0001", "feeCurrency": "BTC"  } ... ]
@@ -304,7 +304,7 @@ namespace ExchangeSharp
             }
             order.ExtraParameters.CopyTo(payload);
 
-            // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  } 
+            // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  }
             JToken token = await MakeJsonRequestAsync<JToken>("/order", null, payload, "POST");
             ExchangeOrderResult result = new ExchangeOrderResult
             {
@@ -379,7 +379,7 @@ namespace ExchangeSharp
 
 
         /// <summary>
-        /// This returns both Deposit and Withdawl history for the Bank and Trading Accounts. Currently returning everything and not filtering. 
+        /// This returns both Deposit and Withdawl history for the Bank and Trading Accounts. Currently returning everything and not filtering.
         /// There is no support for retrieving by Symbol, so we'll filter that after reteiving all symbols
         /// </summary>
         /// <param name="currency"></param>
@@ -562,7 +562,7 @@ namespace ExchangeSharp
 		#endregion
 
 		#region Hitbtc Public Functions outside the ExchangeAPI
-		// HitBTC has two accounts per client: the main bank and trading 
+		// HitBTC has two accounts per client: the main bank and trading
 		// Coins deposited from this API go into the bank, and must be withdrawn from there as well
 		// Trading only takes place from the trading account.
 		// You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
@@ -609,7 +609,7 @@ namespace ExchangeSharp
 
         private ExchangeOrderResult ParseCompletedOrder(JToken token)
         {
-            //[ { "id": 9535486, "clientOrderId": "f8dbaab336d44d5ba3ff578098a68454", "orderId": 816088377, "symbol": "ETHBTC", "side": "sell", "quantity": "0.061", "price": "0.045487", "fee": "0.000002775", "timestamp": "2017-05-17T12:32:57.848Z" }, 
+            //[ { "id": 9535486, "clientOrderId": "f8dbaab336d44d5ba3ff578098a68454", "orderId": 816088377, "symbol": "ETHBTC", "side": "sell", "quantity": "0.061", "price": "0.045487", "fee": "0.000002775", "timestamp": "2017-05-17T12:32:57.848Z" },
             return new ExchangeOrderResult()
             {
                 OrderId = token["orderId"].ToStringInvariant(),

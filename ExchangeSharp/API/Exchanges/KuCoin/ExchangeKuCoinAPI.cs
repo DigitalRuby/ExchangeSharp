@@ -130,7 +130,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // [{"symbol":"REQ-ETH","quoteMaxSize":"99999999","enableTrading":true,"priceIncrement":"0.0000001","baseMaxSize":"1000000","baseCurrency":"REQ","quoteCurrency":"ETH","market":"ETH","quoteIncrement":"0.0000001","baseMinSize":"1","quoteMinSize":"0.00001","name":"REQ-ETH","baseIncrement":"0.0001"}, ... ]
@@ -506,7 +506,7 @@ namespace ExchangeSharp
 					}
                 }, async (_socket) =>
                 {
-					List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ? 
+					List<string> marketSymbolsList = new List<string>(marketSymbols == null || marketSymbols.Length == 0 ?
 						await GetMarketSymbolsAsync() : marketSymbols);
 					StringBuilder symbolsSB = new StringBuilder();
 					var id = CryptoUtility.UtcNow.Ticks; // just needs to be a "Unique string to mark the request"
@@ -671,7 +671,7 @@ namespace ExchangeSharp
 					["pingTimeout"] = 10000, } } },
 				//["token"] = "vYNlCtbz4XNJ1QncwWilJnBtmmfe4geLQDUA62kKJsDChc6I4bRDQc73JfIrlFaVYIAE0Gv2",
 			};
-			var jsonRequestTask = MakeJsonRequestAsync<JToken>("/bullet-public", 
+			var jsonRequestTask = MakeJsonRequestAsync<JToken>("/bullet-public",
 				baseUrl: BaseUrl, payload: payload, requestMethod: "POST");
             // wait for one second before timing out so we don't hold up the thread
             jsonRequestTask.Wait(TimeSpan.FromSeconds(1));

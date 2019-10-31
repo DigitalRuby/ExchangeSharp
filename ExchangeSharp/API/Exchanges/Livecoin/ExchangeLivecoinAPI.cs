@@ -80,7 +80,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // {"success": true,"minBtcVolume": 0.0005,"restrictions": [{"currencyPair": "BTC/USD","priceScale": 5}, ... ]}

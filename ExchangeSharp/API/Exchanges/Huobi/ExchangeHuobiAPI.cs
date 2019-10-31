@@ -60,7 +60,7 @@ namespace ExchangeSharp
             return CryptoUtility.SecondsToPeriodStringLong(seconds);
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -121,7 +121,7 @@ namespace ExchangeSharp
             return m.Select(x => x.MarketSymbol);
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             /*
              {
@@ -141,8 +141,8 @@ namespace ExchangeSharp
                     "price-precision": 2,
                     "amount-precision": 4,
                     "symbol-partition": "main"
-                }, 
-             
+                },
+
              */
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allMarketSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
@@ -313,14 +313,14 @@ namespace ExchangeSharp
         8268.29,
         0.8248
       ],
-      
+
     ],
     "asks": [
       [
         8275.07,
         0.1961
       ],
-	  
+
       [
         8337.1,
         0.5803
@@ -523,7 +523,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             /*
-             
+
   "status": "ok",
   "data": {
     "id": 3274515,
@@ -751,7 +751,7 @@ namespace ExchangeSharp
                 case "unknown":
                     return TransactionStatus.Unknown;
                 default:
-                    throw new InvalidOperationException($"Unknown status: {status}"); 
+                    throw new InvalidOperationException($"Unknown status: {status}");
             }
         }
 

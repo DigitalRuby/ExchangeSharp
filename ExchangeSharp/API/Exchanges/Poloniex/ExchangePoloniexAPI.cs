@@ -302,7 +302,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             //https://poloniex.com/public?command=returnOrderBook&currencyPair=all&depth=0
             /*
@@ -974,7 +974,7 @@ namespace ExchangeSharp
                 return true;
             }
 
-            // Cannot find currency in master list. 
+            // Cannot find currency in master list.
             // Stay safe and don't return a possibly half-baked deposit address missing a tag
             return false;
 

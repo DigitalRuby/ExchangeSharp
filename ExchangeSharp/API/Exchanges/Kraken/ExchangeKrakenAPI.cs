@@ -278,7 +278,7 @@ namespace ExchangeSharp
                     orders.Add(ParseOrder(order.Name, order.Value));
                 }
             }
-           
+
             return orders;
         }
 
@@ -397,7 +397,7 @@ namespace ExchangeSharp
             return result.Children<JProperty>().Where(p => !p.Name.Contains(".d")).Select(p => p.Name).ToArray();
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {   //{"ADACAD": {
 			//  "altname": "ADACAD",
 			//  "wsname": "ADA/CAD",
