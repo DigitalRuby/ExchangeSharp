@@ -1,11 +1,11 @@
 using ExchangeSharp.API.Exchanges.BL3P.Models;
-using ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Add;
 using ExchangeSharp.Dependencies.Converters;
 using Newtonsoft.Json;
 
 namespace ExchangeSharp.API.Exchanges.BL3P.Converters
 {
-	internal class OrderAddResponseConverter : JsonComplexObjectConverter<BL3PResponsePayload>
+	internal class BL3PResponseConverter<TSuccess> : JsonComplexObjectConverter<BL3PResponsePayload>
+		where TSuccess : BL3PResponsePayload, new()
 	{
 		protected override BL3PResponsePayload Create(JsonReader reader)
 		{
@@ -20,10 +20,11 @@ namespace ExchangeSharp.API.Exchanges.BL3P.Converters
 
 				switch (prop)
 				{
-					case "order_id":
-						return new BL3POrderAddSuccess();
+					// this is the first prop on an error object
 					case "code":
 						return new BL3PResponsePayloadError();
+					default:
+						return new TSuccess();
 				}
 			}
 

@@ -24,7 +24,7 @@ namespace ExchangeSharp.API.Exchanges.BL3P.Models
 		public BL3PResponseType Result { get; set; }
 
 		[JsonProperty("data", Required = Required.Always)]
-		public virtual TSuccess Data { get; set; }
+		public abstract TSuccess Data { get; set; }
 
 		/// <summary>
 		/// Returns TSuccess or nothing
