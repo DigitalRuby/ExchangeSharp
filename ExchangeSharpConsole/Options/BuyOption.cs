@@ -11,7 +11,7 @@ namespace ExchangeSharpConsole.Options
 	                        "Be sure to test it first with a dry-run.")]
 	public class BuyOption : BaseOption,
 		IOptionPerExchange, IOptionWithDryRun,
-		IOptionWithKey, IOptionWithInterval, IOptionWithOrderInfo
+		IOptionWithKey, IOptionWithInterval, IOptionWithWait, IOptionWithOrderInfo
 	{
 		public override async Task RunCommand()
 		{
@@ -86,11 +86,17 @@ namespace ExchangeSharpConsole.Options
 			Console.WriteLine($"Order Id:      {orderResult.OrderId}");
 			Console.WriteLine($"Trade Id:      {orderResult.TradeId}");
 			Console.WriteLine($"Order Date:    {orderResult.OrderDate:R}");
-			Console.WriteLine("---");
-			Console.WriteLine($"Message:       {orderResult.Message}");
+			Console.WriteLine($"Fill Date:     {orderResult.FillDate:R}");
+			Console.WriteLine($"Type:          {(orderResult.IsBuy ? "Bid" : "Ask")}");
+			Console.WriteLine($"Market symbol: {orderResult.MarketSymbol}");
+			Console.WriteLine($"Status:        {orderResult.Result}");
+			Console.WriteLine($"Price:         {orderResult.Price:N}");
+			Console.WriteLine($"Amount:        {orderResult.Amount:N}");
+			Console.WriteLine($"Amount Filled: {orderResult.AmountFilled:N}");
 			Console.WriteLine($"Fees:          {orderResult.Fees:N}");
 			Console.WriteLine($"Fees currency: {orderResult.FeesCurrency}");
-			Console.WriteLine($"Result:        {orderResult.Result}");
+			Console.WriteLine($"Message:       {orderResult.Message}");
+			Console.WriteLine($"Average Price: {orderResult.AveragePrice:N}");
 		}
 
 		private void DumpRequest(ExchangeOrderRequest orderRequest)
@@ -109,7 +115,6 @@ namespace ExchangeSharpConsole.Options
 
 		public string ExchangeName { get; set; }
 
-		[Option('w', "wait", Default = true, HelpText = "Waits for the order to be fulfilled.")]
 		public bool Wait { get; set; }
 
 		public bool IsDryRun { get; set; }
