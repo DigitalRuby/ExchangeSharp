@@ -183,7 +183,9 @@ namespace ExchangeSharp
 
 		private string GetSignKey(IHttpWebRequest request, string formData)
 		{
-			var callPath = string.Join(string.Empty, request.RequestUri.Segments[2..]).TrimStart('/');
+			//TODO: Use csharp8 ranges
+			var index = Array.IndexOf(request.RequestUri.Segments, "1/");
+			var callPath = string.Join(string.Empty, request.RequestUri.Segments.Skip(index + 1)).TrimStart('/');
 			var postData = $"{callPath}\0{formData}";
 			var privateKeyBase64 = Convert.FromBase64String(PrivateApiKey.ToUnsecureString());
 
