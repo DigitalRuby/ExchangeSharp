@@ -10,8 +10,10 @@ namespace ExchangeSharp.API.Exchanges.BL3P
 		public string ErrorCode { get; }
 
 		internal BL3PException(BL3PResponsePayloadError error)
-			: this(error.Message)
+			: this(error?.Message)
 		{
+			if (error == null)
+				throw new ArgumentNullException(nameof(error));
 			ErrorCode = error.ErrorCode;
 		}
 

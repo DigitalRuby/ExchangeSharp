@@ -265,8 +265,8 @@ namespace ExchangeSharp
 
 		public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null)
 		{
-			if (marketSymbol == null)
-				throw new ArgumentNullException(nameof(marketSymbol));
+			if (string.IsNullOrWhiteSpace(marketSymbol))
+				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
 
 			var data = new Dictionary<string, object>
 			{
