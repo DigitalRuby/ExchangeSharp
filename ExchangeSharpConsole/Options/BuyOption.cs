@@ -11,7 +11,7 @@ namespace ExchangeSharpConsole.Options
 	                        "Be sure to test it first with a dry-run.")]
 	public class BuyOption : BaseOption,
 		IOptionPerExchange, IOptionWithDryRun,
-		IOptionWithKey, IOptionWithOrderInfo
+		IOptionWithKey, IOptionWithInterval, IOptionWithOrderInfo
 	{
 		public override async Task RunCommand()
 		{
@@ -35,7 +35,8 @@ namespace ExchangeSharpConsole.Options
 
 			if (Wait)
 			{
-				WaitForOrder(result);
+				await WaitForOrder(result, api)
+					.ConfigureAwait(false);
 			}
 			else
 			{
@@ -43,9 +44,22 @@ namespace ExchangeSharpConsole.Options
 			}
 		}
 
-		private void WaitForOrder(ExchangeOrderResult result)
+		private async Task WaitForOrder(ExchangeOrderResult order, IExchangeAPI api)
 		{
-			throw new NotImplementedException();
+			while (order.Result == ExchangeAPIOrderResult.Pending)
+			{
+				Console.Clear();
+				Console.WriteLine(order);
+
+				await Task.Delay(IntervalMs)
+					.ConfigureAwait(false);
+
+				order = await api.GetOrderDetailsAsync(order.OrderId, order.MarketSymbol);
+			}
+
+			Console.Clear();
+			Console.WriteLine(order);
+			Console.WriteLine($"Your order changed the status to \"{order.Result}\"");
 		}
 
 		private ExchangeOrderRequest GetExchangeOrderRequest(bool isBuyOrder, IExchangeAPI api)
@@ -115,5 +129,7 @@ namespace ExchangeSharpConsole.Options
 		public bool ShouldRoundAmount { get; set; }
 
 		public string MarketSymbol { get; set; }
+
+		public int IntervalMs { get; set; }
 	}
 }

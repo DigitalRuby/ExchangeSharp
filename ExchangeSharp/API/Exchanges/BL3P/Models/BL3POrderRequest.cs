@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 namespace ExchangeSharp.API.Exchanges.BL3P.Models
 {
 	// ReSharper disable once InconsistentNaming
-	public class BL3POrderRequest
+	internal class BL3POrderRequest
 	{
 		[JsonProperty("price_int")]
 		[JsonConverter(typeof(FixedIntDecimalJsonConverter), 5)]

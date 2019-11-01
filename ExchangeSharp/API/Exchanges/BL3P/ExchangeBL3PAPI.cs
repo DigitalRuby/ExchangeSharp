@@ -7,7 +7,10 @@ using System.Text;
 using System.Threading.Tasks;
 using ExchangeSharp.API.Exchanges.BL3P;
 using ExchangeSharp.API.Exchanges.BL3P.Enums;
+using ExchangeSharp.API.Exchanges.BL3P.Extensions;
 using ExchangeSharp.API.Exchanges.BL3P.Models;
+using ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Add;
+using ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Result;
 using ExchangeSharp.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -173,7 +176,6 @@ namespace ExchangeSharp
 			if (CanMakeAuthenticatedRequest(payload))
 			{
 				request.AddHeader("Rest-Key", PublicApiKey.ToUnsecureString());
-
 				var signKey = GetSignKey(request, formData);
 				request.AddHeader("Rest-Sign", signKey);
 			}
@@ -181,14 +183,12 @@ namespace ExchangeSharp
 
 		private string GetSignKey(IHttpWebRequest request, string formData)
 		{
-			//TODO: Use csharp8 ranges
-			var index = Array.IndexOf(request.RequestUri.Segments, "1/");
-			var callPath = string.Join(string.Empty, request.RequestUri.Segments.Skip(index + 1)).TrimStart('/');
+			var callPath = string.Join(string.Empty, request.RequestUri.Segments[2..]).TrimStart('/');
 			var postData = $"{callPath}\0{formData}";
-			var privBase64 = Convert.FromBase64String(PrivateApiKey.ToUnsecureString());
+			var privateKeyBase64 = Convert.FromBase64String(PrivateApiKey.ToUnsecureString());
 
 			byte[] hashBytes;
-			using (var hmacSha512 = new HMACSHA512(privBase64))
+			using (var hmacSha512 = new HMACSHA512(privateKeyBase64))
 			{
 				hashBytes = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(postData));
 			}
@@ -232,14 +232,53 @@ namespace ExchangeSharp
 					method: "POST"
 				)
 				.ConfigureAwait(false);
-			var result = JsonConvert.DeserializeObject<BL3POrderAddResponse>(resultBody);
 
-			//TODO: Get data for result
+			var result = JsonConvert.DeserializeObject<BL3POrderAddResponse>(resultBody)
+				.Except();
+
+			var orderDetails = await GetOrderDetailsAsync(result.OrderId, order.MarketSymbol)
+				.ConfigureAwait(false);
+
+			return orderDetails;
+		}
+
+		public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		{
+			if (marketSymbol == null)
+				throw new ArgumentNullException(nameof(marketSymbol));
+
+			var data = new Dictionary<string, object>
+			{
+				{"order_id", orderId}
+			};
+
+			var resultBody = await MakeRequestAsync(
+					$"/{marketSymbol}/money/order/result",
+					payload: data,
+					method: "POST"
+				)
+				.ConfigureAwait(false);
+
+
+			var result = JsonConvert.DeserializeObject<BL3POrderResultResponse>(resultBody)
+				.Except();
+
 			return new ExchangeOrderResult
 			{
+				Amount = result.Amount.Value,
+				Fees = result.TotalFee.Value,
+				Message = $"Order created via: \"{result.APIKeyLabel}\"",
+				Price = result.Price.Value,
+				Result = result.Status.ToResult(result.TotalAmount),
+				AmountFilled = result.TotalAmount.Value,
+				AveragePrice = result.AverageCost?.Value ?? 0M,
+				FeesCurrency = result.TotalFee.Currency,
+				FillDate = result.DateClosed ?? DateTime.MinValue,
+				IsBuy = result.Type == BL3POrderType.Bid,
+				MarketSymbol = marketSymbol,
+				OrderDate = result.Date,
 				OrderId = result.OrderId,
-				Amount = order.Amount,
-				AmountFilled = 0M,
+				TradeId = result.TradeId
 			};
 		}
 

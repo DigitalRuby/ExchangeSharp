@@ -12,9 +12,9 @@ namespace ExchangeSharp.Utility
 		}
 
 		public long FromDecimal(decimal value)
-			=> (long) (value / multiplier);
+			=> (long) (value * multiplier);
 
 		public decimal ToDecimal(long value)
-			=> value * multiplier;
+			=> value / multiplier;
 	}
 }
