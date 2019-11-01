@@ -37,6 +37,7 @@ namespace ExchangeSharpConsole
 				.ParseArguments(
 					args,
 					typeof(BuyOption),
+					typeof(CancelOrderOption),
 					typeof(CandlesOption),
 					typeof(ConvertOption),
 					typeof(ExampleOption),

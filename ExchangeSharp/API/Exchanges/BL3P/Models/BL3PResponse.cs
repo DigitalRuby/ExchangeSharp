@@ -3,6 +3,13 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp.API.Exchanges.BL3P.Models
 {
+	internal class BL3PEmptyResponse
+		: BL3PResponse<BL3PResponsePayload, BL3PResponsePayloadError>
+	{
+		[JsonProperty("data")]
+		public override BL3PResponsePayload Data { get; set; }
+	}
+
 	internal abstract class BL3PResponse<TSuccess>
 		: BL3PResponse<TSuccess, BL3PResponsePayloadError>
 		where TSuccess : BL3PResponsePayload

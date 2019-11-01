@@ -18,6 +18,7 @@ using Newtonsoft.Json.Linq;
 // ReSharper disable once CheckNamespace
 namespace ExchangeSharp
 {
+#nullable enable
 	// ReSharper disable once InconsistentNaming
 	public sealed class ExchangeBL3PAPI : ExchangeAPI
 	{
@@ -42,6 +43,7 @@ namespace ExchangeSharp
 			MarketSymbolSeparator = string.Empty;
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
 			RequestContentType = "application/x-www-form-urlencoded";
+			RequestMethod = "POST";
 
 			RateLimit = new RateGate(600, TimeSpan.FromMinutes(10));
 
@@ -230,8 +232,7 @@ namespace ExchangeSharp
 
 			var resultBody = await MakeRequestAsync(
 					$"/{order.MarketSymbol}/money/order/add",
-					payload: data,
-					method: "POST"
+					payload: data
 				)
 				.ConfigureAwait(false);
 
@@ -242,6 +243,24 @@ namespace ExchangeSharp
 				.ConfigureAwait(false);
 
 			return orderDetails;
+		}
+
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		{
+			if (string.IsNullOrWhiteSpace(marketSymbol))
+				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
+
+			var resultBody = await MakeRequestAsync(
+					$"/{marketSymbol}/money/order/cancel",
+					payload: new Dictionary<string, object>
+					{
+						{"order_id", orderId}
+					}
+				)
+				.ConfigureAwait(false);
+
+			JsonConvert.DeserializeObject<BL3PEmptyResponse>(resultBody)
+				.Except();
 		}
 
 		public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null)
@@ -256,8 +275,7 @@ namespace ExchangeSharp
 
 			var resultBody = await MakeRequestAsync(
 					$"/{marketSymbol}/money/order/result",
-					payload: data,
-					method: "POST"
+					payload: data
 				)
 				.ConfigureAwait(false);
 
@@ -293,4 +311,5 @@ namespace ExchangeSharp
 			return Task.WhenAll(order.Select(OnPlaceOrderAsync));
 		}
 	}
+#nullable disable
 }
