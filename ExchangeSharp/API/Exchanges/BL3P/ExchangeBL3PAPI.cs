@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ExchangeSharp.API.Exchanges.BL3P;
-using ExchangeSharp.API.Exchanges.BL3P.Models;
+using ExchangeSharp.BL3P;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -11,7 +10,7 @@ using Newtonsoft.Json.Linq;
 namespace ExchangeSharp
 {
 	// ReSharper disable once InconsistentNaming
-	public sealed class ExchangeBL3PAPI : ExchangeAPI
+	public sealed partial class ExchangeBL3PAPI : ExchangeAPI
 	{
 		public override string BaseUrl { get; set; } = "https://api.bl3p.eu/";
 

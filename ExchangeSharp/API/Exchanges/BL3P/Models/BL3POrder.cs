@@ -1,26 +1,29 @@
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.BL3P.Models
+namespace ExchangeSharp
 {
-	// ReSharper disable once InconsistentNaming
-	public class BL3POrder
+	public sealed partial class ExchangeBL3PAPI : ExchangeAPI
 	{
-		[JsonProperty("price_int")]
-		[JsonConverter(typeof(FixedIntDecimalConverter), 5)]
-		public decimal Price { get; set; }
-
-
-		[JsonProperty("amount_int")]
-		[JsonConverter(typeof(FixedIntDecimalConverter), 8)]
-		public decimal Amount { get; set; }
-
-		public ExchangeOrderPrice ToExchangeOrder()
+		// ReSharper disable once InconsistentNaming
+		class BL3POrder
 		{
-			return new ExchangeOrderPrice
+			[JsonProperty("price_int")]
+			[JsonConverter(typeof(FixedIntDecimalConverter), 5)]
+			public decimal Price { get; set; }
+
+
+			[JsonProperty("amount_int")]
+			[JsonConverter(typeof(FixedIntDecimalConverter), 8)]
+			public decimal Amount { get; set; }
+
+			public ExchangeOrderPrice ToExchangeOrder()
 			{
-				Amount = Amount,
-				Price = Price
-			};
+				return new ExchangeOrderPrice
+				{
+					Amount = Amount,
+					Price = Price
+				};
+			}
 		}
 	}
 }
