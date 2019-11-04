@@ -7,7 +7,7 @@ namespace ExchangeSharp.API.Exchanges.BL3P.Models
 		: BL3PResponse<BL3PResponsePayload, BL3PResponsePayloadError>
 	{
 		[JsonProperty("data")]
-		public override BL3PResponsePayload Data { get; set; }
+		protected override BL3PResponsePayload Data { get; set; }
 	}
 
 	internal abstract class BL3PResponse<TSuccess>
@@ -24,7 +24,13 @@ namespace ExchangeSharp.API.Exchanges.BL3P.Models
 		public BL3PResponseType Result { get; set; }
 
 		[JsonProperty("data", Required = Required.Always)]
-		public abstract TSuccess Data { get; set; }
+		protected abstract BL3PResponsePayload Data { get; set; }
+
+		[JsonIgnore]
+		public virtual TSuccess Success => (TSuccess) Data;
+
+		[JsonIgnore]
+		public virtual TFail Error => (TFail) Data;
 
 		/// <summary>
 		/// Returns TSuccess or nothing
@@ -33,7 +39,7 @@ namespace ExchangeSharp.API.Exchanges.BL3P.Models
 		{
 			return Result switch
 			{
-				BL3PResponseType.Success => Data,
+				BL3PResponseType.Success => Success,
 				_ => null
 			};
 		}
@@ -46,8 +52,8 @@ namespace ExchangeSharp.API.Exchanges.BL3P.Models
 		{
 			return Result switch
 			{
-				BL3PResponseType.Success => Data,
-				_ => throw new BL3PException(Data as TFail)
+				BL3PResponseType.Success => Success,
+				_ => throw new BL3PException(Error)
 			};
 		}
 	}

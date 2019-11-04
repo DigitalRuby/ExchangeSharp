@@ -5,7 +5,7 @@ using ExchangeSharp.API.Exchanges.BL3P.Models;
 namespace ExchangeSharp.API.Exchanges.BL3P
 {
 	[Serializable]
-	public class BL3PException : Exception
+	internal class BL3PException : Exception
 	{
 		public string ErrorCode { get; }
 
