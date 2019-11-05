@@ -21,8 +21,8 @@ namespace ExchangeSharp
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			var valueDecimal = converter.ToDecimal((long) value);
-			writer.WriteValue((long) valueDecimal);
+			var valueLong = converter.FromDecimal((decimal) value);
+			writer.WriteValue(valueLong);
 		}
 
 		public override object ReadJson(
@@ -32,13 +32,14 @@ namespace ExchangeSharp
 			JsonSerializer serializer
 		)
 		{
-			var valueDec = Convert.ToDecimal(reader.Value);
-			return converter.FromDecimal(valueDec);
+			var valueLong = Convert.ToInt64(reader.Value);
+			return converter.ToDecimal(valueLong);
 		}
 
 		public override bool CanConvert(Type objectType)
 		{
-			return objectType == typeof(decimal);
+			return objectType == typeof(decimal)
+				|| objectType == typeof(long);
 		}
 
 		public override bool CanRead { get; } = true;

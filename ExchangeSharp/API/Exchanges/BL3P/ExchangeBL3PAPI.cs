@@ -127,6 +127,11 @@ namespace ExchangeSharp
 			params string[] marketSymbols
 		)
 		{
+			if (marketSymbols == null)
+				throw new ArgumentNullException(nameof(marketSymbols));
+			if (marketSymbols.Length == 0)
+				throw new ArgumentException("Value cannot be an empty collection.", nameof(marketSymbols));
+
 			Task MessageCallback(IWebSocket _, byte[] msg)
 			{
 				var bl3POrderBook = JsonConvert.DeserializeObject<BL3POrderBook>(msg.ToStringFromUTF8());
