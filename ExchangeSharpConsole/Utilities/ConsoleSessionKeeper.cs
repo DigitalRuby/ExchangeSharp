@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace ExchangeSharpConsole.Utilities
@@ -12,6 +13,8 @@ namespace ExchangeSharpConsole.Utilities
 		public ConsoleSessionKeeper(Action callback = null)
 		{
 			this.callback = callback;
+
+			Console.WriteLine("Press CTRL-C or Q to quit");
 
 			threadCheckKey = new Thread(CheckKeyCombination)
 			{
@@ -43,13 +46,14 @@ namespace ExchangeSharpConsole.Utilities
 				cki = Console.ReadKey(true);
 			} while (!(cki.Key == ConsoleKey.Q || cki.Key == ConsoleKey.Escape));
 
+			Debug.WriteLine("Q pressed.");
 			callback?.Invoke();
 			Dispose();
 		}
 
 		private void OnConsoleOnCancelKeyPress(object sender, ConsoleCancelEventArgs args)
 		{
-			Console.WriteLine("CTRL-C pressed.");
+			Debug.WriteLine("CTRL-C pressed.");
 			args.Cancel = true;
 			callback?.Invoke();
 			Dispose();

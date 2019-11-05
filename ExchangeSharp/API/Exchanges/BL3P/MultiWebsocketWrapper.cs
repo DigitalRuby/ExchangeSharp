@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ExchangeSharp.BL3P
+namespace ExchangeSharp.API.Exchanges.BL3P
 {
 	internal sealed class MultiWebsocketWrapper : IWebSocket
 	{

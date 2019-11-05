@@ -89,7 +89,10 @@ namespace ExchangeSharp
 
         private class ClientWebSocketImplementation : IClientWebSocketImplementation
         {
-            private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket();
+            private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket()
+            {
+	            Options = { Proxy = APIRequestMaker.InternalHttpWebRequest.Proxy }
+            };
 
             public WebSocketState State
             {
@@ -316,7 +319,7 @@ namespace ExchangeSharp
                 });
                 return Task.FromResult<bool>(true);
             }
-            return Task.FromResult<bool>(false); 
+            return Task.FromResult<bool>(false);
         }
 
         private void QueueActions(params Func<IWebSocket, Task>[] actions)
@@ -423,7 +426,7 @@ namespace ExchangeSharp
                             {
                                 if (result.MessageType == WebSocketMessageType.Close)
                                 {
-                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, 
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
 										string.Empty, new CancellationToken()); // if it's closing, then let it complete
                                     QueueActions(InvokeDisconnected);
                                 }

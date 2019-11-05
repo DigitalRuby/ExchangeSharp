@@ -22,7 +22,7 @@ namespace ExchangeSharpConsole
 				c.ParsingCulture = CultureInfo.InvariantCulture;
 				c.HelpWriter = Console.Out;
 				c.EnableDashDash = true;
-				c.IgnoreUnknownArguments = true;
+				c.IgnoreUnknownArguments = false;
 				c.CaseInsensitiveEnumValues = true;
 			});
 		}
@@ -36,6 +36,8 @@ namespace ExchangeSharpConsole
 			parser
 				.ParseArguments(
 					args,
+					typeof(BuyOption),
+					typeof(CancelOrderOption),
 					typeof(CandlesOption),
 					typeof(ConvertOption),
 					typeof(ExampleOption),
@@ -45,6 +47,7 @@ namespace ExchangeSharpConsole
 					typeof(MarketSymbolsOption),
 					typeof(OrderDetailsOption),
 					typeof(OrderHistoryOption),
+					typeof(SellOption),
 					typeof(StatsOption),
 					typeof(SupportedExchangesOption),
 					typeof(TestOption),
@@ -99,8 +102,7 @@ namespace ExchangeSharpConsole
 				}
 				catch (Exception e)
 				{
-					Console.Error.WriteLine(e);
-
+					Console.Error.WriteLine(e.Message);
 					Environment.Exit(ExitCodeError);
 					return;
 				}

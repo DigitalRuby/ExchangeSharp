@@ -1,9 +1,7 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using ExchangeSharp;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NSubstitute;
 
 namespace ExchangeSharpTests
 {
@@ -23,26 +21,6 @@ namespace ExchangeSharpTests
 				RequestMaker = requestMaker
 			};
 			return api;
-		}
-
-		[TestMethod]
-		public async Task OnGetMarketSymbolsAsync_ShouldRetrieveInfoFromOnGetMarketSymbolsMetadataAsync()
-		{
-			var api = Substitute.ForPartsOf<ExchangeBL3PAPI>();
-			api.OnGetMarketSymbolsMetadataAsync()
-				.Returns(new[]
-				{
-					new ExchangeMarket {MarketSymbol = "test"}
-				});
-
-			var result = await api.GetMarketSymbolsAsync();
-
-			var enumerated = result as string[] ?? result.ToArray();
-
-			enumerated.Should().NotBeNull();
-			enumerated.Should().ContainSingle(em => em.Equals("test"));
-
-			await api.Received(1).OnGetMarketSymbolsMetadataAsync();
 		}
 
 		[TestMethod]

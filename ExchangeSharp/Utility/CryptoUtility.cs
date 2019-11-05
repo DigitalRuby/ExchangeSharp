@@ -261,6 +261,20 @@ namespace ExchangeSharp
 				.ToArray();
 		}
 
+		public static string ToHexString(this byte[] bytes)
+		{
+			var sb = new StringBuilder();
+
+			// Loop through each byte of the hashed data
+			// and format each one as a hexadecimal string.
+			for (int i = 0; i < bytes.Length; i++)
+			{
+				sb.Append(bytes[i].ToString("x2"));
+			}
+
+			return sb.ToString();
+		}
+
 		/// <summary>
 		/// Covnert a secure string to a non-secure string
 		/// </summary>
@@ -962,10 +976,15 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-            var hmac = new HMACSHA512(key.ToBytesUTF8());
-            var messagebyte = message.ToBytesUTF8();
-            var hashmessage = hmac.ComputeHash(messagebyte);
-            return BitConverter.ToString(hashmessage).Replace("-", "");
+	        byte[] hashmessage;
+
+	        using (var hmac = new HMACSHA512(key.ToBytesUTF8()))
+	        {
+		        var messagebyte = message.ToBytesUTF8();
+		        hashmessage = hmac.ComputeHash(messagebyte);
+	        }
+
+	        return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -976,10 +995,14 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, byte[] key)
         {
-            var hmac = new HMACSHA512(key);
-            var messagebyte = message.ToBytesUTF8();
-            var hashmessage = hmac.ComputeHash(messagebyte);
-            return BitConverter.ToString(hashmessage).Replace("-", "");
+	        byte[] hashmessage;
+	        using (var hmac = new HMACSHA512(key))
+	        {
+		        var messagebyte = message.ToBytesUTF8();
+		        hashmessage = hmac.ComputeHash(messagebyte);
+	        }
+
+	        return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -1194,23 +1217,21 @@ namespace ExchangeSharp
         /// <returns>Protected data</returns>
         public static SecureString[] LoadProtectedStringsFromFile(string path)
         {
-            byte[] bytes = File.ReadAllBytes(path);
+            var bytes = File.ReadAllBytes(path);
 
             // while unprotectedBytes is populated, app is vulnerable - we clear this array ASAP to remove sensitive data from memory
-            byte[] unprotectedBytes = DataProtector.Unprotect(bytes);
+            var unprotectedBytes = DataProtector.Unprotect(bytes);
 
-            MemoryStream memory = new MemoryStream(unprotectedBytes);
-            BinaryReader reader = new BinaryReader(memory, Encoding.UTF8);
-            SecureString current;
-            int len;
-            List<SecureString> strings = new List<SecureString>();
+            using var memory = new MemoryStream(unprotectedBytes);
+            using var reader = new BinaryReader(memory, Encoding.UTF8);
+            var strings = new List<SecureString>();
 
             while (memory.Position != memory.Length)
             {
                 // copy char by char into secure string to avoid making additional string copies of sensitive data
-                current = new SecureString();
+                var current = new SecureString();
                 strings.Add(current);
-                len = reader.ReadInt32();
+                var len = reader.ReadInt32();
                 while (len-- > 0)
                 {
                     current.AppendChar(reader.ReadChar());
