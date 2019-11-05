@@ -14,7 +14,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -27,10 +26,10 @@ namespace ExchangeSharp
     {
         private readonly IAPIRequestHandler api;
 
-        private class InternalHttpWebRequest : IHttpWebRequest
+        internal class InternalHttpWebRequest : IHttpWebRequest
         {
-            internal readonly HttpWebRequest request;
-            private static WebProxy proxy;
+            internal readonly HttpWebRequest Request;
+            internal static WebProxy Proxy;
 
             static InternalHttpWebRequest()
             {
@@ -41,14 +40,14 @@ namespace ExchangeSharp
 		            return;
 
 	            var uri = new Uri(httpProxy);
-	            proxy = new WebProxy(uri);
+	            Proxy = new WebProxy(uri);
             }
 
             public InternalHttpWebRequest(Uri fullUri)
             {
-                request = (HttpWebRequest.Create(fullUri) as HttpWebRequest ?? throw new NullReferenceException("Failed to create HttpWebRequest"));
-                request.Proxy = proxy;
-                request.KeepAlive = false;
+                Request = (HttpWebRequest.Create(fullUri) as HttpWebRequest ?? throw new NullReferenceException("Failed to create HttpWebRequest"));
+                Request.Proxy = Proxy;
+                Request.KeepAlive = false;
             }
 
             public void AddHeader(string header, string value)
@@ -56,64 +55,64 @@ namespace ExchangeSharp
                 switch (header.ToStringLowerInvariant())
                 {
                     case "content-type":
-                        request.ContentType = value;
+                        Request.ContentType = value;
                         break;
 
                     case "content-length":
-                        request.ContentLength = value.ConvertInvariant<long>();
+                        Request.ContentLength = value.ConvertInvariant<long>();
                         break;
 
                     case "user-agent":
-                        request.UserAgent = value;
+                        Request.UserAgent = value;
                         break;
 
                     case "accept":
-                        request.Accept = value;
+                        Request.Accept = value;
                         break;
 
                     case "connection":
-                        request.Connection = value;
+                        Request.Connection = value;
                         break;
 
                     default:
-                        request.Headers[header] = value;
+                        Request.Headers[header] = value;
                         break;
                 }
             }
 
             public Uri RequestUri
             {
-                get { return request.RequestUri; }
+                get { return Request.RequestUri; }
             }
 
             public string Method
             {
-                get { return request.Method; }
-                set { request.Method = value; }
+                get { return Request.Method; }
+                set { Request.Method = value; }
             }
 
             public int Timeout
             {
-                get { return request.Timeout; }
-                set { request.Timeout = value; }
+                get { return Request.Timeout; }
+                set { Request.Timeout = value; }
             }
 
             public int ReadWriteTimeout
             {
-                get { return request.ReadWriteTimeout; }
-                set { request.ReadWriteTimeout = value; }
+                get { return Request.ReadWriteTimeout; }
+                set { Request.ReadWriteTimeout = value; }
             }
 
             public async Task WriteAllAsync(byte[] data, int index, int length)
             {
-                using (Stream stream = await request.GetRequestStreamAsync())
+                using (Stream stream = await Request.GetRequestStreamAsync())
                 {
                     await stream.WriteAsync(data, 0, data.Length);
                 }
             }
         }
 
-        private class InternalHttpWebResponse : IHttpWebResponse
+        internal class InternalHttpWebResponse : IHttpWebResponse
         {
             private readonly HttpWebResponse response;
 
@@ -189,7 +188,7 @@ namespace ExchangeSharp
                 try
                 {
                     RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
-                    response = await request.request.GetResponseAsync() as HttpWebResponse;
+                    response = await request.Request.GetResponseAsync() as HttpWebResponse;
                     if (response == null)
                     {
                         throw new APIException("Unknown response from server");
