@@ -131,27 +131,7 @@ namespace ExchangeSharp
 			{
 				var bl3POrderBook = JsonConvert.DeserializeObject<BL3POrderBook>(msg.ToStringFromUTF8());
 
-				var exchangeOrderBook = new ExchangeOrderBook
-				{
-					MarketSymbol = bl3POrderBook.MarketSymbol,
-					LastUpdatedUtc = CryptoUtility.UtcNow
-				};
-
-				var asks = bl3POrderBook.Asks
-					.OrderBy(b => b.Price, exchangeOrderBook.Asks.Comparer)
-					.Take(maxCount);
-				foreach (var ask in asks)
-				{
-					exchangeOrderBook.Asks.Add(ask.Price, ask.ToExchangeOrder());
-				}
-
-				var bids = bl3POrderBook.Bids
-					.OrderBy(b => b.Price, exchangeOrderBook.Bids.Comparer)
-					.Take(maxCount);
-				foreach (var bid in bids)
-				{
-					exchangeOrderBook.Bids.Add(bid.Price, bid.ToExchangeOrder());
-				}
+				var exchangeOrderBook = ConvertToExchangeOrderBook(maxCount, bl3POrderBook);
 
 				callback(exchangeOrderBook);
 
@@ -188,6 +168,33 @@ namespace ExchangeSharp
 					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/trades", MessageCallback))
 				).ConfigureAwait(false)
 			);
+		}
+
+		private static ExchangeOrderBook ConvertToExchangeOrderBook(int maxCount, BL3POrderBook bl3POrderBook)
+		{
+			var exchangeOrderBook = new ExchangeOrderBook
+			{
+				MarketSymbol = bl3POrderBook.MarketSymbol,
+				LastUpdatedUtc = CryptoUtility.UtcNow
+			};
+
+			var asks = bl3POrderBook.Asks
+				.OrderBy(b => b.Price, exchangeOrderBook.Asks.Comparer)
+				.Take(maxCount);
+			foreach (var ask in asks)
+			{
+				exchangeOrderBook.Asks.Add(ask.Price, ask.ToExchangeOrder());
+			}
+
+			var bids = bl3POrderBook.Bids
+				.OrderBy(b => b.Price, exchangeOrderBook.Bids.Comparer)
+				.Take(maxCount);
+			foreach (var bid in bids)
+			{
+				exchangeOrderBook.Bids.Add(bid.Price, bid.ToExchangeOrder());
+			}
+
+			return exchangeOrderBook;
 		}
 
 		protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
@@ -268,6 +275,22 @@ namespace ExchangeSharp
 				.ConfigureAwait(false);
 
 			return orderDetails;
+		}
+
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+		{
+			if (string.IsNullOrWhiteSpace(marketSymbol))
+				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
+
+			var resultBody = await MakeRequestAsync($"/{marketSymbol}/money/depth/full")
+				.ConfigureAwait(false);
+
+			var bl3pOrderBook = JsonConvert.DeserializeObject<BL3PReponseFullOrderBook>(resultBody)
+				.Except();
+
+			bl3pOrderBook.MarketSymbol??= marketSymbol;
+
+			return ConvertToExchangeOrderBook(maxCount, bl3pOrderBook);
 		}
 
 		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
