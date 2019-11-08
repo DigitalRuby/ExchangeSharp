@@ -214,5 +214,27 @@ namespace ExchangeSharpConsole.Options
 				);
 			}
 		}
+
+		protected void PrintOrderBook(ExchangeOrderBook orderBook)
+		{
+			Console.WriteLine($"{"BID",-22} | {"ASK",22}");
+
+			Console.WriteLine("---");
+
+			var length = orderBook.Asks.Count;
+
+			if (orderBook.Bids.Count > length)
+			{
+				length = orderBook.Bids.Count;
+			}
+
+			for (var i = 0; i < length; i++)
+			{
+				var (_, ask) = orderBook.Asks.ElementAtOrDefault(i);
+				var (_, bid) = orderBook.Bids.ElementAtOrDefault(i);
+				Console.WriteLine($"{bid.Price,10} ({bid.Amount,9:N2}) | " +
+				                  $"{ask.Price,10} ({ask.Amount,9:N})");
+			}
+		}
 	}
 }

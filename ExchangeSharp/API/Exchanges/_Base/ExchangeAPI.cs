@@ -62,16 +62,20 @@ namespace ExchangeSharp
             return tickers;
         }
 
-        protected virtual async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
+        protected virtual async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(
+	        int maxCount = 100
+        )
         {
-            List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
-            var marketSymbols = await GetMarketSymbolsAsync();
-            foreach (string marketSymbol in marketSymbols)
-            {
-                var book = await GetOrderBookAsync(marketSymbol);
-                books.Add(new KeyValuePair<string, ExchangeOrderBook>(marketSymbol, book));
-            }
-            return books;
+	        var marketSymbols = await GetMarketSymbolsAsync();
+	        var orderBooks = await Task.WhenAll(
+		        marketSymbols.Select(async ms =>
+		        {
+			        var orderBook = await GetOrderBookAsync(ms, maxCount);
+			        orderBook.MarketSymbol ??= ms;
+			        return orderBook;
+		        })
+	        ).ConfigureAwait(false);
+	        return orderBooks.ToDictionary(k => k.MarketSymbol, v => v);
         }
 
         protected virtual async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)

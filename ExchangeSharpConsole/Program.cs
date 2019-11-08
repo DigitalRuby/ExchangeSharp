@@ -24,6 +24,7 @@ namespace ExchangeSharpConsole
 			typeof(KeysOption),
 			typeof(MarketSymbolsMetadataOption),
 			typeof(MarketSymbolsOption),
+			typeof(OrderBookOption),
 			typeof(OrderDetailsOption),
 			typeof(OrderHistoryOption),
 			typeof(SellOption),
