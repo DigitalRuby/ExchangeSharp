@@ -1,7 +1,6 @@
-using ExchangeSharp.API.Exchanges.BL3P.Converters;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Result
+namespace ExchangeSharp.BL3P
 {
 	internal class BL3POrderResultResponse : BL3PResponse<BL3POrderResultSuccess>
 	{

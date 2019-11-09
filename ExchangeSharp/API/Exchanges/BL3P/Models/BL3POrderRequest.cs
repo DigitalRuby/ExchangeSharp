@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.BL3P.Models
+namespace ExchangeSharp.BL3P
 {
 	// ReSharper disable once InconsistentNaming
 	internal class BL3POrderRequest

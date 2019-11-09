@@ -532,7 +532,7 @@ namespace ExchangeSharp
 		/// <param name="typeKeyIsBuyValue">Type key buy value</param>
 		/// <returns>Trade</returns>
 		internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
-			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+			object timestampKey, TimestampType timestampType, object? idKey, string typeKeyIsBuyValue = "buy")
 		{
 			return ParseTradeComponents<ExchangeTrade>(token, amountKey, priceKey, typeKey,
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
@@ -610,7 +610,7 @@ namespace ExchangeSharp
 		}
 
 		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
-			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+			object timestampKey, TimestampType timestampType, object? idKey, string typeKeyIsBuyValue = "buy")
 			where T : ExchangeTrade, new()
 		{
 			var isBuy = token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue);

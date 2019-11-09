@@ -1,4 +1,4 @@
-namespace ExchangeSharp.API.Exchanges.BL3P.Enums
+namespace ExchangeSharp.BL3P
 {
 	internal enum BL3PResponseType
 	{

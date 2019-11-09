@@ -1,4 +1,4 @@
-namespace ExchangeSharp.API.Exchanges.BL3P.Models
+namespace ExchangeSharp.BL3P
 {
 	internal class BL3PResponsePayload
 	{

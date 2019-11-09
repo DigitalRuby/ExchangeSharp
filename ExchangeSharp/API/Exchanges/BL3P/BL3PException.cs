@@ -1,8 +1,7 @@
 using System;
 using System.Runtime.Serialization;
-using ExchangeSharp.API.Exchanges.BL3P.Models;
 
-namespace ExchangeSharp.API.Exchanges.BL3P
+namespace ExchangeSharp.BL3P
 {
 	[Serializable]
 	internal class BL3PException : Exception

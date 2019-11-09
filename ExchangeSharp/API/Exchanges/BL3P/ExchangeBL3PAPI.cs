@@ -5,12 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using ExchangeSharp.API.Exchanges.BL3P;
-using ExchangeSharp.API.Exchanges.BL3P.Enums;
-using ExchangeSharp.API.Exchanges.BL3P.Extensions;
-using ExchangeSharp.API.Exchanges.BL3P.Models;
-using ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Add;
-using ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Result;
+using ExchangeSharp.BL3P;
 using ExchangeSharp.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -127,10 +122,10 @@ namespace ExchangeSharp
 			params string[] marketSymbols
 		)
 		{
-			if (marketSymbols == null)
-				throw new ArgumentNullException(nameof(marketSymbols));
-			if (marketSymbols.Length == 0)
-				throw new ArgumentException("Value cannot be an empty collection.", nameof(marketSymbols));
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
 
 			Task MessageCallback(IWebSocket _, byte[] msg)
 			{
@@ -166,6 +161,31 @@ namespace ExchangeSharp
 			return new MultiWebsocketWrapper(
 				await Task.WhenAll(
 					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/orderbook", MessageCallback))
+				).ConfigureAwait(false)
+			);
+		}
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			Task MessageCallback(IWebSocket _, byte[] msg)
+			{ // {{	"date": 1573255932, "marketplace": "BTCEUR", "price_int": 802466000, "type": "buy", "amount_int": 6193344 }	}
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				var symbol = token["marketplace"].ToStringInvariant();
+				ExchangeTrade trade = token.ParseTrade(amountKey: "amount_int", priceKey: "price_int", typeKey: "type", timestampKey: "date",
+					timestampType: TimestampType.UnixSeconds,
+					idKey: null, // + TODO: add Id Key when BL3P starts providing this info
+					typeKeyIsBuyValue: "buy");
+				callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+				return Task.CompletedTask;
+			}
+
+			return new MultiWebsocketWrapper(
+				await Task.WhenAll(
+					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/trades", MessageCallback))
 				).ConfigureAwait(false)
 			);
 		}
