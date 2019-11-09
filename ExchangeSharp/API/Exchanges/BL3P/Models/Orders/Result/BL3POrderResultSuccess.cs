@@ -1,9 +1,8 @@
 using System;
-using ExchangeSharp.API.Exchanges.BL3P.Enums;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace ExchangeSharp.API.Exchanges.BL3P.Models.Orders.Result
+namespace ExchangeSharp.BL3P
 {
 	internal class BL3POrderResultSuccess : BL3PResponsePayload
 	{

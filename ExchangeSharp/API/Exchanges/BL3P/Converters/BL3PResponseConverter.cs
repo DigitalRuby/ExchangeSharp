@@ -1,8 +1,7 @@
-using ExchangeSharp.API.Exchanges.BL3P.Models;
 using ExchangeSharp.Dependencies.Converters;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.BL3P.Converters
+namespace ExchangeSharp.BL3P
 {
 	internal class BL3PResponseConverter<TSuccess> : JsonComplexObjectConverter<BL3PResponsePayload>
 		where TSuccess : BL3PResponsePayload, new()

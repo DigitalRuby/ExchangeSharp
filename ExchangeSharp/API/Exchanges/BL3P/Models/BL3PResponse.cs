@@ -1,7 +1,6 @@
-using ExchangeSharp.API.Exchanges.BL3P.Enums;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.BL3P.Models
+namespace ExchangeSharp.BL3P
 {
 	internal class BL3PEmptyResponse
 		: BL3PResponse<BL3PResponsePayload, BL3PResponsePayloadError>

@@ -1,7 +1,4 @@
-using ExchangeSharp.API.Exchanges.BL3P.Enums;
-using ExchangeSharp.API.Exchanges.BL3P.Models;
-
-namespace ExchangeSharp.API.Exchanges.BL3P.Extensions
+namespace ExchangeSharp.BL3P
 {
 	internal static class BL3PExtensions
 	{
