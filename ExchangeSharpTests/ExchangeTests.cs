@@ -78,7 +78,8 @@ namespace ExchangeSharpTests
                 try
                 {
                     if (api is ExchangeUfoDexAPI || api is ExchangeOKExAPI || api is ExchangeHitBTCAPI || api is ExchangeKuCoinAPI ||
-                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI || api is ExchangeNDAXAPI || api is ExchangeBL3PAPI)
+                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI || api is ExchangeNDAXAPI || api is ExchangeBL3PAPI ||
+						api is ExchangeBinanceUSAPI || api is ExchangeBinanceDEXAPI || api is ExchangeBitMEXAPI)
                     {
                         // WIP
                         continue;

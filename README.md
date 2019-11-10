@@ -18,13 +18,15 @@ The following cryptocurrency exchanges are supported:
 |Exchange Name     |Public REST|Private REST |Web Socket | Notes
 | ---------------- | --------- | ----------- | --------- | ---------
 | Binance          | x         | x           | T R B     |
+| Binance.US       | x         | x           | T R B     |
+| Binance DEX      |           |             |   R       |
 | Bitbank          | x         | x           |           |
 | Bitfinex         | x         | x           | T R   O   |
 | Bithumb          | x         |             |           |
 | BitMEX           | x         | x           |   R   O   |
 | Bitstamp         | x         | x           |   R       |
 | Bittrex          | x         | x           | T R       |
-| BL3P             | x         |             |       O   |
+| BL3P             | x         |             |   R   O   |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
 | Digifinex        | x         | x           |   R B     |

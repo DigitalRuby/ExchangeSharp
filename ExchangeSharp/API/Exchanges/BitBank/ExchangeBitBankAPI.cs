@@ -20,7 +20,7 @@ namespace ExchangeSharp
 
         static ExchangeBitBankAPI()
         {
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBinanceAPI)] = new KeyValuePair<string, string>[]
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBitBankAPI)] = new KeyValuePair<string, string>[]
             {
                 new KeyValuePair<string, string>("BCC", "BCH")
             };

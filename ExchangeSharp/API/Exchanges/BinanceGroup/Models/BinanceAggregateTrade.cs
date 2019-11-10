@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -10,16 +10,15 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace ExchangeSharp.Binance
+namespace ExchangeSharp.BinanceGroup
 {
-    using Newtonsoft.Json;
-
-    internal class MultiDepthStream
-    {
-        [JsonProperty("stream")]
-        public string Stream { get; set; }
-
-        [JsonProperty("data")]
-        public MarketDepthDiffUpdate Data { get; set; }
-    }
+	public class BinanceAggregateTrade : ExchangeTrade
+	{
+		public long FirstTradeId { get; set; }
+		public long LastTradeId { get; set; }
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2}", base.ToString(), FirstTradeId, LastTradeId);
+		}
+	}
 }

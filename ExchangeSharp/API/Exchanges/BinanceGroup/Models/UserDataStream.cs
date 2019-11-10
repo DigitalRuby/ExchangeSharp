@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.Binance
+namespace ExchangeSharp.BinanceGroup
 {
-	public class ExecutionReport
+	internal class ExecutionReport
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }
@@ -75,7 +75,7 @@ namespace ExchangeSharp.Binance
 
 	}
 
-	public class Order
+	internal class Order
 	{
 		[JsonProperty("s")]
 		public string Symbol { get; set; }
@@ -90,7 +90,7 @@ namespace ExchangeSharp.Binance
 		}
 	}
 
-	public class ListStatus
+	internal class ListStatus
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }
@@ -121,7 +121,7 @@ namespace ExchangeSharp.Binance
 		}
 	}
 
-	public class Balance
+	internal class Balance
 	{
 		[JsonProperty("a")]
 		public string Asset { get; set; }
@@ -136,7 +136,7 @@ namespace ExchangeSharp.Binance
 		}
 	}
 
-	public class OutboundAccount
+	internal class OutboundAccount
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }

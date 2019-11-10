@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -10,33 +10,26 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace ExchangeSharp.Binance
+namespace ExchangeSharp.BinanceGroup
 {
-    using System.Collections.Generic;
+	/// <summary>
+	/// Binance DEX doesn't suppport streaming aggregate trades like Binance/US
+	/// </summary>
+	public class BinanceDEXTrade : ExchangeTrade
+	{
+		public string BuyerOrderId { get; set; }
+		public string SellerOrderId { get; set; }
+		public string BuyerAddress { get; set; }
+		public string SellerAddress { get; set; }
+		public TickerType TickerType { get; set; }
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2},{3},{4},{5}", base.ToString(), BuyerOrderId, SellerOrderId, BuyerAddress, SellerAddress, TickerType);
+		}
+	}
 
-    using Newtonsoft.Json;
-
-    internal class MarketDepthDiffUpdate
-    {
-        [JsonProperty("e")]
-        public string EventType { get; set; }
-
-        [JsonProperty("E")]
-        public long EventTime { get; set; }
-
-        [JsonProperty("s")]
-        public string MarketSymbol { get; set; }
-
-        [JsonProperty("U")]
-        public int FirstUpdate { get; set; }
-
-        [JsonProperty("u")]
-        public int FinalUpdate { get; set; }
-
-        [JsonProperty("b")]
-        public List<List<object>> Bids { get; set; }
-
-        [JsonProperty("a")]
-        public List<List<object>> Asks { get; set; }
-    }
+	public enum TickerType : byte
+	{ // tiekertype 0: Unknown 1: SellTaker 2: BuyTaker 3: BuySurplus 4: SellSurplus 5: Neutral
+		Unknown = 0, SellTaker = 1, BuyTaker = 2, BuySurplus = 3, SellSurplus = 4, Neutral = 5
+	}
 }

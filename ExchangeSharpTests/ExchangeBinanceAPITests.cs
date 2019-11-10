@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ExchangeSharp;
-using ExchangeSharp.Binance;
+using ExchangeSharp.BinanceGroup;
 
 using FluentAssertions;
 
@@ -100,7 +100,7 @@ namespace ExchangeSharpTests
         public async Task CurrenciesParsedCorrectly()
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
-            requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, ExchangeBinanceAPI.BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
+            requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, new ExchangeBinanceAPI().BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
             var binance = new ExchangeBinanceAPI { RequestMaker = requestMaker };
             IReadOnlyDictionary<string, ExchangeCurrency> currencies = await binance.GetCurrenciesAsync();
             currencies.Should().HaveCount(3);

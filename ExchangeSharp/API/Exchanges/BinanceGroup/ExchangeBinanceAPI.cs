@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -10,21 +10,18 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ExchangeSharp.BinanceGroup;
 
-namespace ExchangeSharp.Binance
+namespace ExchangeSharp
 {
-	public class BinanceAggregateTrade : ExchangeTrade
+	public sealed class ExchangeBinanceAPI : BinanceGroupCommon
 	{
-		public long FirstTradeId { get; set; }
-		public long LastTradeId { get; set; }
-		public override string ToString()
-		{
-			return string.Format("{0},{1},{2}", base.ToString(), FirstTradeId, LastTradeId);
-		}
+		public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
+		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
+		public override string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
+		public override string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
+		public override string BaseWebUrl { get; set; } = "https://www.binance.com";
 	}
+
+	public partial class ExchangeName { public const string Binance = "Binance"; }
 }
