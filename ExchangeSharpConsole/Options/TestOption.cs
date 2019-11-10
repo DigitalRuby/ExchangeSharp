@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CommandLine;
 using ExchangeSharp;
+using ExchangeSharp.BinanceGroup;
 using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
@@ -211,7 +212,7 @@ namespace ExchangeSharpConsole.Options
 				return "BTC-LTC";
 			}
 
-			if (api is BinaceGroupCommon || api is ExchangeOKExAPI || /* api is ExchangeBleutradeAPI ||*/
+			if (api is BinanceGroupCommon || api is ExchangeOKExAPI || /* api is ExchangeBleutradeAPI ||*/
 			    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI)
 			{
 				return "ETH-BTC";
