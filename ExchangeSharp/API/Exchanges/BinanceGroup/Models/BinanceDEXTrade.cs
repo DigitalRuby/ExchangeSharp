@@ -24,7 +24,7 @@ namespace ExchangeSharp.BinanceGroup
 		public TickerType TickerType { get; set; }
 		public override string ToString()
 		{
-			return string.Format("{0},{1},{2},{3},{4}", base.ToString(), BuyerOrderId, SellerOrderId, BuyerAddress, SellerAddress, TickerType);
+			return string.Format("{0},{1},{2},{3},{4},{5}", base.ToString(), BuyerOrderId, SellerOrderId, BuyerAddress, SellerAddress, TickerType);
 		}
 	}
 
