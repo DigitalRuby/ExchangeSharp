@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -10,33 +10,18 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-namespace ExchangeSharp.Binance
+using ExchangeSharp.BinanceGroup;
+
+namespace ExchangeSharp
 {
-    using System.Collections.Generic;
+	public sealed class ExchangeBinanceUSAPI : BinanceGroupCommon
+	{
+		public override string BaseUrl { get; set; } = "https://api.binance.us/api/v1";
+		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.us:9443";
+		public override string BaseUrlPrivate { get; set; } = "https://api.binance.us/api/v3";
+		public override string WithdrawalUrlPrivate { get; set; } = "https://api.binance.us/wapi/v3";
+		public override string BaseWebUrl { get; set; } = "https://www.binance.us";
+	}
 
-    using Newtonsoft.Json;
-
-    internal class MarketDepthDiffUpdate
-    {
-        [JsonProperty("e")]
-        public string EventType { get; set; }
-
-        [JsonProperty("E")]
-        public long EventTime { get; set; }
-
-        [JsonProperty("s")]
-        public string MarketSymbol { get; set; }
-
-        [JsonProperty("U")]
-        public int FirstUpdate { get; set; }
-
-        [JsonProperty("u")]
-        public int FinalUpdate { get; set; }
-
-        [JsonProperty("b")]
-        public List<List<object>> Bids { get; set; }
-
-        [JsonProperty("a")]
-        public List<List<object>> Asks { get; set; }
-    }
+	public partial class ExchangeName { public const string BinanceUS = "BinanceUS"; }
 }

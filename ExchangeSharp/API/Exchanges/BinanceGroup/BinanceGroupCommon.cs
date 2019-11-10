@@ -10,42 +10,36 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #nullable enable
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
-using ExchangeSharp.Binance;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
-namespace ExchangeSharp
+namespace ExchangeSharp.BinanceGroup
 {
-	using ExchangeSharp.Binance;
-
-	public sealed partial class ExchangeBinanceAPI : ExchangeAPI
+	public abstract class BinanceGroupCommon : ExchangeAPI
 	{
-		public override string BaseUrl { get; set; } = "https://api.binance.com/api/v1";
-		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
-		public string BaseUrlPrivate { get; set; } = "https://api.binance.com/api/v3";
-		public string WithdrawalUrlPrivate { get; set; } = "https://api.binance.com/wapi/v3";
-
-		// base address for APIs used by the Binance website and not published in the API docs
-		public const string BaseWebUrl = "https://www.binance.com";
+		public abstract string BaseUrlPrivate { get; set; }
+		public abstract string WithdrawalUrlPrivate { get; set; }
+		/// <summary>
+		/// base address for APIs used by the Binance website and not published in the API docs
+		/// </summary>
+		public abstract string BaseWebUrl { get; set; }
 
 		public const string GetCurrenciesUrl = "/assetWithdraw/getAllAsset.html";
 
-		static ExchangeBinanceAPI()
+		static BinanceGroupCommon()
 		{
-			ExchangeGlobalCurrencyReplacements[typeof(ExchangeBinanceAPI)] = new KeyValuePair<string, string>[]
+			ExchangeGlobalCurrencyReplacements[typeof(BinanceGroupCommon)] = new KeyValuePair<string, string>[]
 			{
 				new KeyValuePair<string, string>("BCC", "BCH")
 			};
 		}
 
-		private async Task<string> GetWebSocketStreamUrlForSymbolsAsync(string suffix, params string[] marketSymbols)
+		protected async Task<string> GetWebSocketStreamUrlForSymbolsAsync(string suffix, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
@@ -65,7 +59,7 @@ namespace ExchangeSharp
 			return streams.ToString();
 		}
 
-		public ExchangeBinanceAPI()
+		protected BinanceGroupCommon()
 		{
 			// give binance plenty of room to accept requests
 			RequestWindow = TimeSpan.FromMilliseconds(60000);  // 60000 is max value = max request time window of 60 seconds
@@ -287,7 +281,7 @@ namespace ExchangeSharp
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			string url = await GetWebSocketStreamUrlForSymbolsAsync("@aggTrade", marketSymbols);
-			return await ConnectWebSocketAsync(url, async (_socket, msg) =>
+			return await ConnectWebSocketAsync(url, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				string name = token["stream"].ToStringInvariant();
@@ -296,7 +290,10 @@ namespace ExchangeSharp
 
 				// buy=0 -> m = true (The buyer is maker, while the seller is taker).
 				// buy=1 -> m = false(The seller is maker, while the buyer is taker).
-				await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, token.ParseTradeBinance("q", "p", "m", "E", TimestampType.UnixMilliseconds, "a", "false")));
+				await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol,
+					token.ParseTradeBinance(amountKey: "q", priceKey: "p", typeKey: "m",
+						timestampKey: "T", // use trade time (T) instead of event time (E)
+						timestampType: TimestampType.UnixMilliseconds, idKey: "a", typeKeyIsBuyValue: "false")));
 			});
 		}
 
@@ -1095,6 +1092,4 @@ namespace ExchangeSharp
 			return listenKey;
 		}
 	}
-
-	public partial class ExchangeName { public const string Binance = "Binance"; }
 }

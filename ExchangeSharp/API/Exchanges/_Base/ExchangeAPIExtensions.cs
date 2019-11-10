@@ -15,7 +15,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ExchangeSharp.Kraken;
-using ExchangeSharp.Binance;
+using ExchangeSharp.BinanceGroup;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
 using ExchangeSharp.KuCoin;
@@ -546,6 +546,19 @@ namespace ExchangeSharp
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
 			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBinanceDEX(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BinanceDEXTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.BuyerOrderId = token["b"].ToStringInvariant();
+			trade.SellerOrderId = token["a"].ToStringInvariant();
+			trade.BuyerAddress = token["ba"].ToStringInvariant();
+			trade.SellerAddress = token["sa"].ToStringInvariant();
+			trade.TickerType = (TickerType)token["tt"].ConvertInvariant<byte>();
 			return trade;
 		}
 

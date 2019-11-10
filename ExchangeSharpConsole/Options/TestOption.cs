@@ -211,7 +211,7 @@ namespace ExchangeSharpConsole.Options
 				return "BTC-LTC";
 			}
 
-			if (api is ExchangeBinanceAPI || api is ExchangeOKExAPI || /* api is ExchangeBleutradeAPI ||*/
+			if (api is BinaceGroupCommon || api is ExchangeOKExAPI || /* api is ExchangeBleutradeAPI ||*/
 			    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI)
 			{
 				return "ETH-BTC";
