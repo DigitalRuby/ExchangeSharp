@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -91,7 +91,10 @@ namespace ExchangeSharp
         {
             private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket()
             {
-	            Options = { Proxy = APIRequestMaker.InternalHttpWebRequest.Proxy }
+	            Options =
+				{
+					Proxy = APIRequestMaker.Proxy
+				}
             };
 
             public WebSocketState State

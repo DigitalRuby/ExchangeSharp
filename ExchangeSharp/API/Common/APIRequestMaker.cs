@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -26,22 +26,32 @@ namespace ExchangeSharp
     {
         private readonly IAPIRequestHandler api;
 
-        internal class InternalHttpWebRequest : IHttpWebRequest
+		/// <summary>
+		/// Proxy for http requests, reads from HTTP_PROXY environment var by default
+		/// You can also set via code if you like
+		/// </summary>
+		public static WebProxy? Proxy { get; set; }
+
+		/// <summary>
+		/// Static constructor
+		/// </summary>
+		static APIRequestMaker()
+		{
+			var httpProxy = Environment.GetEnvironmentVariable("http_proxy");
+			httpProxy ??= Environment.GetEnvironmentVariable("HTTP_PROXY");
+
+			if (string.IsNullOrWhiteSpace(httpProxy))
+			{
+				return;
+			}
+
+			var uri = new Uri(httpProxy);
+			Proxy = new WebProxy(uri);
+
+		}
+		internal class InternalHttpWebRequest : IHttpWebRequest
         {
             internal readonly HttpWebRequest Request;
-            internal static WebProxy Proxy;
-
-            static InternalHttpWebRequest()
-            {
-	            var httpProxy = Environment.GetEnvironmentVariable("http_proxy");
-	            httpProxy ??= Environment.GetEnvironmentVariable("HTTP_PROXY");
-
-	            if (string.IsNullOrEmpty(httpProxy))
-		            return;
-
-	            var uri = new Uri(httpProxy);
-	            Proxy = new WebProxy(uri);
-            }
 
             public InternalHttpWebRequest(Uri fullUri)
             {
