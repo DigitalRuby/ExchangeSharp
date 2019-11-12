@@ -79,10 +79,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj">
-      <Project>{b4addaef-95bf-4fda-8b2f-8b899eda3f45}</Project>
-      <Name>ExchangeSharp</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\..\src\ExchangeSharp\ExchangeSharp.csproj"/>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
