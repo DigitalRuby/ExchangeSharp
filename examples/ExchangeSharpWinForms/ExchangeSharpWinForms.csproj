@@ -79,7 +79,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ExchangeSharp\ExchangeSharp.csproj"/>
+    <ProjectReference Include="..\..\src\ExchangeSharp.Forms\ExchangeSharp.Forms.csproj">
+      <Project>{0ea8de09-c8d4-410e-a345-d172a72ec77c}</Project>
+      <Name>ExchangeSharp.Forms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\ExchangeSharp\ExchangeSharp.csproj" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -32,6 +32,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{9E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpWinForms", "examples\ExchangeSharpWinForms\ExchangeSharpWinForms.csproj", "{571623F9-1652-4669-8E17-A6FAD1426181}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharp.Forms", "src\ExchangeSharp.Forms\ExchangeSharp.Forms.csproj", "{0EA8DE09-C8D4-410E-A345-D172A72EC77C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{571623F9-1652-4669-8E17-A6FAD1426181}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{571623F9-1652-4669-8E17-A6FAD1426181}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{571623F9-1652-4669-8E17-A6FAD1426181}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{0EA8DE09-C8D4-410E-A345-D172A72EC77C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0EA8DE09-C8D4-410E-A345-D172A72EC77C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0EA8DE09-C8D4-410E-A345-D172A72EC77C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0EA8DE09-C8D4-410E-A345-D172A72EC77C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,5 +72,6 @@ Global
 		{E9321D38-DBCF-4387-9547-47EABF60423F} = {51222217-63AE-4881-9972-E0966299D416}
 		{DF09A8D9-9BC2-4B50-BE45-A83C9D29B994} = {83784E6A-9582-4001-9491-C70BBA71334F}
 		{571623F9-1652-4669-8E17-A6FAD1426181} = {9E02A8EA-70EE-4C89-80C6-BD2EC51854CE}
+		{0EA8DE09-C8D4-410E-A345-D172A72EC77C} = {51222217-63AE-4881-9972-E0966299D416}
 	EndGlobalSection
 EndGlobal
