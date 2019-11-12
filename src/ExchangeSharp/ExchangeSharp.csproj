@@ -20,26 +20,13 @@
     <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade Cryptopia Coinbase(GDAX) Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
     <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
-
   <ItemGroup>
     <None Remove="API\Exchanges\PoloWithdrawalFields.csv" />
     <None Include="../../icon.png" Pack="true" PackagePath="\" />
     <None Include="../../LICENSE.txt" Link="LICENSE.txt" Pack="true" PackagePath="" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Properties\Resources\PoloniexWithdrawalFields.csv" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,30 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Properties\Resources\ExchangeSharpResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ExchangeSharpResources.resx</DependentUpon>
-    </Compile>
+    <None Remove="Properties\Resources\PoloniexWithdrawalFields.csv" />
+    <EmbeddedResource Include="Properties\Resources\PoloniexWithdrawalFields.csv" />
+    <None Remove="nlog.config" />
+    <EmbeddedResource Include="nlog.config" />
   </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources\ExchangeSharpResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>ExchangeSharpResources.Designer.cs</LastGenOutput>
-      <CustomToolNamespace>ExchangeSharp</CustomToolNamespace>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
-    <Reference Include="System.Runtime.InteropServices" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Windows.Forms.DataVisualization" />
-  </ItemGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net471'">
-    <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
-  </PropertyGroup>
 
 </Project>
