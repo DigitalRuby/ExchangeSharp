@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net471</TargetFramework>
+        <TargetFramework>net472</TargetFramework>
         <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
         <NeutralLanguage>en</NeutralLanguage>
         <LangVersion>8</LangVersion>
