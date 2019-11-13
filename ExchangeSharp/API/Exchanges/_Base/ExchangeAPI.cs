@@ -74,7 +74,7 @@ namespace ExchangeSharp
 			        orderBook.MarketSymbol ??= ms;
 			        return orderBook;
 		        })
-	        ).ConfigureAwait(false);
+	        );
 	        return orderBooks.ToDictionary(k => k.MarketSymbol, v => v);
         }
 

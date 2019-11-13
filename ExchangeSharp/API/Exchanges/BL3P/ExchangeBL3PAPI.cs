@@ -62,14 +62,13 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			return (await OnGetMarketSymbolsMetadataAsync().ConfigureAwait(false))
+			return (await OnGetMarketSymbolsMetadataAsync())
 				.Select(em => em.MarketSymbol);
 		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
-			var result = await MakeJsonRequestAsync<JObject>($"/{marketSymbol}/ticker")
-				.ConfigureAwait(false);
+			var result = await MakeJsonRequestAsync<JObject>($"/{marketSymbol}/ticker");
 
 			return await this.ParseTickerAsync(
 				result,
@@ -80,7 +79,7 @@ namespace ExchangeSharp
 				baseVolumeKey: "volume.24h",
 				timestampKey: "timestamp",
 				timestampType: TimestampType.UnixSeconds
-			).ConfigureAwait(false);
+			);
 		}
 
 		protected internal override Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
@@ -141,7 +140,7 @@ namespace ExchangeSharp
 			return new MultiWebsocketWrapper(
 				await Task.WhenAll(
 					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/orderbook", MessageCallback))
-				).ConfigureAwait(false)
+				)
 			);
 		}
 
@@ -153,9 +152,9 @@ namespace ExchangeSharp
 			}
 			Task MessageCallback(IWebSocket _, byte[] msg)
 			{ // {{	"date": 1573255932, "marketplace": "BTCEUR", "price_int": 802466000, "type": "buy", "amount_int": 6193344 }	}
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				var token = JToken.Parse(msg.ToStringFromUTF8());
 				var symbol = token["marketplace"].ToStringInvariant();
-				ExchangeTrade trade = token.ParseTrade(amountKey: "amount_int", priceKey: "price_int", typeKey: "type", timestampKey: "date",
+				var trade = token.ParseTrade(amountKey: "amount_int", priceKey: "price_int", typeKey: "type", timestampKey: "date",
 					timestampType: TimestampType.UnixSeconds,
 					idKey: null, // + TODO: add Id Key when BL3P starts providing this info
 					typeKeyIsBuyValue: "buy");
@@ -166,7 +165,7 @@ namespace ExchangeSharp
 			return new MultiWebsocketWrapper(
 				await Task.WhenAll(
 					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/trades", MessageCallback))
-				).ConfigureAwait(false)
+				)
 			);
 		}
 
@@ -265,14 +264,12 @@ namespace ExchangeSharp
 			var resultBody = await MakeRequestAsync(
 					$"/{order.MarketSymbol}/money/order/add",
 					payload: data
-				)
-				.ConfigureAwait(false);
+				);
 
 			var result = JsonConvert.DeserializeObject<BL3POrderAddResponse>(resultBody)
 				.Except();
 
-			var orderDetails = await GetOrderDetailsAsync(result.OrderId, order.MarketSymbol)
-				.ConfigureAwait(false);
+			var orderDetails = await GetOrderDetailsAsync(result.OrderId, order.MarketSymbol);
 
 			return orderDetails;
 		}
@@ -282,8 +279,7 @@ namespace ExchangeSharp
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
 
-			var resultBody = await MakeRequestAsync($"/{marketSymbol}/money/depth/full")
-				.ConfigureAwait(false);
+			var resultBody = await MakeRequestAsync($"/{marketSymbol}/money/depth/full");
 
 			var bl3pOrderBook = JsonConvert.DeserializeObject<BL3PReponseFullOrderBook>(resultBody)
 				.Except();
@@ -304,14 +300,13 @@ namespace ExchangeSharp
 					{
 						{"order_id", orderId}
 					}
-				)
-				.ConfigureAwait(false);
+				);
 
 			JsonConvert.DeserializeObject<BL3PEmptyResponse>(resultBody)
 				.Except();
 		}
 
-		public override async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
@@ -324,8 +319,7 @@ namespace ExchangeSharp
 			var resultBody = await MakeRequestAsync(
 					$"/{marketSymbol}/money/order/result",
 					payload: data
-				)
-				.ConfigureAwait(false);
+				);
 
 
 			var result = JsonConvert.DeserializeObject<BL3POrderResultResponse>(resultBody)
