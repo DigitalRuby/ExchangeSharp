@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -440,26 +440,27 @@ namespace ExchangeSharp
             var websocketUrlToken = GetWebsocketBulletToken();
             return await ConnectWebSocketAsync
             (
-                $"?bulletToken={websocketUrlToken}&format=json&resource=api", async (_socket, msg) =>
+                $"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
                 {
                     JToken token = JToken.Parse(msg.ToStringFromUTF8());
                     if (token["type"].ToStringInvariant() == "message")
                     {
-                        var dataToken = token["data"];
-                        var marketSymbol = dataToken["symbol"].ToStringInvariant();
-                        ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol, "sell", "buy", "lastDealPrice", "vol", "volValue", "datetime", TimestampType.UnixMilliseconds);
-                        callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
+						const string topicPrefix = "/market/ticker:";
+						var dataToken = token["data"];
+                        var marketSymbol = token["topic"].ToStringInvariant();
+						if (!marketSymbol.StartsWith(topicPrefix))
+							return;
+						marketSymbol = marketSymbol.Substring(topicPrefix.Length);
+						ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol,
+							"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
+						callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
                     }
                 }, async (_socket) =>
                 {
                     //need to subscribe to tickers one by one
                     marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
                     var id = CryptoUtility.UtcNow.Ticks;
-                    foreach (var marketSymbol in marketSymbols)
-                    {
-                        // subscribe to tick topic
-                        await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/{marketSymbol}_TICK" });
-                    }
+					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/ticker:{string.Join(",", marketSymbols)}" });
                 }
             );
         }
