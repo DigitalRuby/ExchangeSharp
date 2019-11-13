@@ -9,9 +9,11 @@ namespace ExchangeSharpConsole
 		internal const int ExitCodeOk = 0;
 		internal const int ExitCodeErrorParsing = -1;
 
+		public static Program Instance { get; } = new Program();
+
 		public static async Task<int> Main(string[] args)
 		{
-			var program = new Program();
+			var program = Instance;
 			var (error, help) = program.ParseArguments(args, out var options);
 
 			if (help)

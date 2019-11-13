@@ -129,9 +129,14 @@ namespace ExchangeSharpConsole.Options
 			Console.WriteLine("Connecting web socket to {0}...", api.Name);
 
 			IWebSocket socket = null;
+			var tcs = new TaskCompletionSource<bool>();
 
 			// ReSharper disable once AccessToModifiedClosure
-			var disposable = KeepSessionAlive(() => socket?.Dispose());
+			var disposable = KeepSessionAlive(() =>
+			{
+				socket?.Dispose();
+				tcs.TrySetResult(true);
+			});
 
 			try
 			{
@@ -148,10 +153,11 @@ namespace ExchangeSharpConsole.Options
 
 					// ReSharper disable once AccessToDisposedClosure
 					disposable.Dispose();
-					WaitInteractively();
 
 					return Task.CompletedTask;
 				};
+
+				await tcs.Task;
 			}
 			catch
 			{
