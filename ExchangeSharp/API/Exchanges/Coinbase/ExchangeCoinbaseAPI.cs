@@ -36,7 +36,7 @@ namespace ExchangeSharp
         /// The response will contain a CB-BEFORE header which will return the cursor id to use in your next request for the page before the current one. The page before is a newer page and not one that happened before in chronological time.
         /// </summary>
         private string cursorBefore;
-         
+
         private ExchangeOrderResult ParseFill(JToken result)
         {
             decimal amount = result["size"].ConvertInvariant<decimal>();
@@ -47,18 +47,18 @@ namespace ExchangeSharp
 
             ExchangeOrderResult order = new ExchangeOrderResult
             {
-                TradeId = result["trade_id"].ToStringInvariant(), 
-                Amount = amount, 
-                AmountFilled = amount, 
+                TradeId = result["trade_id"].ToStringInvariant(),
+                Amount = amount,
+                AmountFilled = amount,
                 Price = price,
                 Fees = fees,
                 AveragePrice = price,
                 IsBuy = (result["side"].ToStringInvariant() == "buy"),
                 OrderDate = result["created_at"].ToDateTimeInvariant(),
                 MarketSymbol = symbol,
-                OrderId = result["order_id"].ToStringInvariant(), 
+                OrderId = result["order_id"].ToStringInvariant(),
             };
-             
+
             return order;
         }
 
@@ -109,7 +109,7 @@ namespace ExchangeSharp
                     break;
                 case "done":
                 case "settled":
-                    switch (result["done_reason"].ToStringInvariant()) 
+                    switch (result["done_reason"].ToStringInvariant())
                     {
                         case "cancelled":
                         case "canceled":
@@ -180,7 +180,7 @@ namespace ExchangeSharp
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
             JToken products = await MakeJsonRequestAsync<JToken>("/products");
@@ -230,12 +230,12 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken ticker = await MakeJsonRequestAsync<JToken>("/products/" + marketSymbol + "/ticker");
-            return this.ParseTicker(ticker, marketSymbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(ticker, marketSymbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
         {
-            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654 + using Fiddler 
+            // Hack found here: https://github.com/coinbase/gdax-node/issues/91#issuecomment-352441654 + using Fiddler
 
             // Get coinbase accounts
             JArray accounts = await this.MakeJsonRequestAsync<JArray>("/coinbase-accounts", null, await GetNoncePayloadAsync(), "GET");
@@ -260,42 +260,42 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
             System.Threading.ManualResetEvent evt = new System.Threading.ManualResetEvent(false);
             List<string> symbols = (await GetMarketSymbolsAsync()).ToList();
 
             // stupid Coinbase does not have a one shot API call for tickers outside of web sockets
-            using (var socket = GetTickersWebSocket((t) =>
-                                                    {
-                                                        lock (tickers)
-                                                        {
-                                                            if (symbols.Count != 0)
-                                                            {
-                                                                foreach (var kv in t)
-                                                                {
-                                                                    if (!tickers.Exists(m => m.Key == kv.Key))
-                                                                    {
-                                                                        tickers.Add(kv);
-                                                                        symbols.Remove(kv.Key);
-                                                                    }
-                                                                }
-                                                                if (symbols.Count == 0)
-                                                                {
-                                                                    evt.Set();
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                ))
+            using (var socket = await GetTickersWebSocketAsync((t) =>
+            {
+                lock (tickers)
+                {
+                    if (symbols.Count != 0)
+                    {
+                        foreach (var kv in t)
+                        {
+                            if (!tickers.ContainsKey(kv.Key))
+                            {
+                                tickers[kv.Key] = kv.Value;
+                                symbols.Remove(kv.Key);
+                            }
+                        }
+                        if (symbols.Count == 0)
+                        {
+                            evt.Set();
+                        }
+                    }
+                }
+            }
+            ))
             {
                 evt.WaitOne(10000);
                 return tickers;
             }
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 string message = msg.ToStringFromUTF8();
                 var book = new ExchangeOrderBook();
@@ -362,17 +362,16 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
-            return ConnectWebSocket("/", (_socket, msg) =>
+            return await ConnectWebSocketAsync("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["type"].ToStringInvariant() == "ticker")
                 {
-                    ExchangeTicker ticker = this.ParseTicker(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601);
+                    ExchangeTicker ticker = await this.ParseTickerAsync(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601);
                     callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
                 }
-                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
@@ -393,13 +392,13 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-            return ConnectWebSocket("/", async (_socket, msg) =>
+            return await ConnectWebSocketAsync("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["type"].ToStringInvariant() == "error")
@@ -572,13 +571,13 @@ namespace ExchangeSharp
                     // to place non-post-only limit order one can set and pass order.ExtraParameters["post_only"]="false"
                     payload["post_only"] = order.ExtraParameters.TryGetValueOrDefault("post_only", "true");
                     break;
-                    
+
                 case OrderType.Stop:
                     payload["stop"] = (order.IsBuy ? "entry" : "loss");
                     payload["stop_price"] = order.StopPrice.ToStringInvariant();
                     payload["type"] = order.Price > 0m ? "limit" : "market";
                     break;
-                    
+
                 case OrderType.Market:
                 default:
                     break;

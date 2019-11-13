@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Security;
@@ -39,14 +39,14 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Exchange symbol</param>
         /// <returns>Global symbol</returns>
-        string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol);
+        Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol);
 
         /// <summary>
         /// Convert a global symbol into an exchange symbol, which will potentially be different from other exchanges.
         /// </summary>
         /// <param name="marketSymbol">Global symbol</param>
         /// <returns>Exchange symbol</returns>
-        string GlobalMarketSymbolToExchangeMarketSymbol(string marketSymbol);
+        Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol);
 
         /// <summary>
         /// Convert seconds to a period string, or throw exception if seconds invalid. Example: 60 seconds becomes 1m.
@@ -164,14 +164,14 @@ namespace ExchangeSharp
         /// <param name="orderId">order id</param>
         /// <param name="marketSymbol">Market Symbol</param>
         /// <returns>Order details</returns>
-        Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string marketSymbol = null);
+        Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null);
 
         /// <summary>
         /// Get the details of all open orders
         /// </summary>
         /// <param name="marketSymbol">Market symbol to get open orders for or null for all</param>
         /// <returns>All open order details for the specified symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string marketSymbol = null);
+        Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string? marketSymbol = null);
 
         /// <summary>
         /// Get the details of all completed orders
@@ -179,14 +179,14 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Market symbol to get completed orders for or null for all</param>
         /// <param name="afterDate">Only returns orders on or after the specified date/time</param>
         /// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null);
+        Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null);
 
         /// <summary>
         /// Cancel an order, an exception is thrown if failure
         /// </summary>
         /// <param name="orderId">Order id of the order to cancel</param>
         /// <param name="marketSymbol">Market symbol of the order to cancel (not required for most exchanges)</param>
-        Task CancelOrderAsync(string orderId, string marketSymbol = null);
+        Task CancelOrderAsync(string orderId, string? marketSymbol = null);
 
         /// <summary>
         /// Get margin amounts available to trade, symbol / amount dictionary
@@ -225,7 +225,7 @@ namespace ExchangeSharp
         /// <param name="callback">Callback</param>
         /// <param name="symbols">Symbols. If no symbols are specified, this will get the tickers for all symbols. NOTE: Some exchanges don't allow you to specify which symbols to return.</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols);
+        Task<IWebSocket> GetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols);
 
         /// <summary>
         /// Get information about trades via web socket
@@ -233,21 +233,21 @@ namespace ExchangeSharp
         /// <param name="callback">Callback (symbol and trade)</param>
         /// <param name="marketSymbols">Market symbols</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols);
+        Task<IWebSocket> GetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols);
 
         /// <summary>
         /// Get the details of all changed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        Task<IWebSocket> GetOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
 
         /// <summary>
         /// Get the details of all completed orders via web socket
         /// </summary>
         /// <param name="callback">Callback</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        IWebSocket GetCompletedOrderDetailsWebSocket(Action<ExchangeOrderResult> callback);
+        Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
 
         #endregion Web Socket
     }

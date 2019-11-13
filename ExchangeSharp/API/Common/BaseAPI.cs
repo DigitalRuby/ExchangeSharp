@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -148,28 +148,28 @@ namespace ExchangeSharp
         /// <summary>
         /// Base URL for the API for web sockets
         /// </summary>
-        public virtual string BaseUrlWebSocket { get; set; }
+        public virtual string BaseUrlWebSocket { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets the name of the API
         /// </summary>
-        public virtual string Name { get; private set; }
+        public virtual string Name { get; private set; } = string.Empty;
 
         /// <summary>
         /// Public API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// </summary>
-        public System.Security.SecureString PublicApiKey { get; set; }
+        public System.Security.SecureString? PublicApiKey { get; set; }
 
         /// <summary>
         /// Private API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// </summary>
-        public System.Security.SecureString PrivateApiKey { get; set; }
+        public System.Security.SecureString? PrivateApiKey { get; set; }
 
         /// <summary>
         /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// Most services do not require this, but Coinbase is an example of one that does
         /// </summary>
-        public System.Security.SecureString Passphrase { get; set; }
+        public System.Security.SecureString? Passphrase { get; set; }
 
         /// <summary>
         /// Rate limiter - set this to a new limit if you are seeing your ip get blocked by the API
@@ -209,12 +209,12 @@ namespace ExchangeSharp
         /// <summary>
         /// The nonce end point for pulling down a server timestamp - override OnGetNonceOffset if you need custom handling
         /// </summary>
-        public string NonceEndPoint { get; protected set; }
+        public string? NonceEndPoint { get; protected set; }
 
         /// <summary>
         /// The field in the json returned by the nonce end point to parse out - override OnGetNonceOffset if you need custom handling
         /// </summary>
-        public string NonceEndPointField { get; protected set; }
+        public string? NonceEndPointField { get; protected set; }
 
         /// <summary>
         /// The type of value in the nonce end point field - override OnGetNonceOffset if you need custom handling.
@@ -264,11 +264,11 @@ namespace ExchangeSharp
 
 #if HAS_WINDOWS_FORMS // NET47
 
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
 #else
 
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3;
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
 #endif
 
@@ -297,7 +297,7 @@ namespace ExchangeSharp
             }
             else
             {
-                Name = (nameAttributes[0] as ApiNameAttribute).Name;
+                Name = (nameAttributes[0] as ApiNameAttribute)?.Name ?? string.Empty;
             }
         }
 
@@ -314,11 +314,11 @@ namespace ExchangeSharp
                 await OnGetNonceOffset();
             }
 
-            lock (this)
-            {
-                object nonce;
+            object nonce;
 
-                while (true)
+            while (true)
+            {
+                lock (this)
                 {
                     // some API (Binance) have a problem with requests being after server time, subtract of offset can help
                     DateTime now = CryptoUtility.UtcNow - NonceOffset;
@@ -373,28 +373,28 @@ namespace ExchangeSharp
 
                         case NonceStyle.Int32File:
                         case NonceStyle.Int64File:
-                        {
-                            // why an API would use a persistent incrementing counter for nonce is beyond me, ticks is so much better with a sliding window...
-                            // making it required to increment by 1 is also a pain - especially when restarting a process or rebooting.
-                            string tempFile = Path.Combine(Path.GetTempPath(), PublicApiKey.ToUnsecureString() + ".nonce");
-                            if (!File.Exists(tempFile))
                             {
-                                File.WriteAllText(tempFile, "0");
-                            }
-                            unchecked
-                            {
-                                long longNonce = File.ReadAllText(tempFile).ConvertInvariant<long>() + 1;
-                                long maxValue = (NonceStyle == NonceStyle.Int32File ? int.MaxValue : long.MaxValue);
-                                if (longNonce < 1 || longNonce > maxValue)
+                                // why an API would use a persistent incrementing counter for nonce is beyond me, ticks is so much better with a sliding window...
+                                // making it required to increment by 1 is also a pain - especially when restarting a process or rebooting.
+                                string tempFile = Path.Combine(Path.GetTempPath(), (PublicApiKey?.ToUnsecureString() ?? "unknown_pub_key") + ".nonce");
+                                if (!File.Exists(tempFile))
                                 {
-                                    throw new APIException($"Nonce {longNonce.ToStringInvariant()} is out of bounds, valid ranges are 1 to {maxValue.ToStringInvariant()}, " +
-                                        $"please regenerate new API keys. Please contact {Name} API support and ask them to change to a sensible nonce algorithm.");
+                                    File.WriteAllText(tempFile, "0");
                                 }
-                                File.WriteAllText(tempFile, longNonce.ToStringInvariant());
-                                nonce = longNonce;
+                                unchecked
+                                {
+                                    long longNonce = File.ReadAllText(tempFile).ConvertInvariant<long>() + 1;
+                                    long maxValue = (NonceStyle == NonceStyle.Int32File ? int.MaxValue : long.MaxValue);
+                                    if (longNonce < 1 || longNonce > maxValue)
+                                    {
+                                        throw new APIException($"Nonce {longNonce.ToStringInvariant()} is out of bounds, valid ranges are 1 to {maxValue.ToStringInvariant()}, " +
+                                            $"please regenerate new API keys. Please contact {Name} API support and ask them to change to a sensible nonce algorithm.");
+                                    }
+                                    File.WriteAllText(tempFile, longNonce.ToStringInvariant());
+                                    nonce = longNonce;
+                                }
+                                break;
                             }
-                            break;
-                        }
 
                         case NonceStyle.ExpiresUnixMilliseconds:
                             nonce = (long)now.UnixTimestampFromDateTimeMilliseconds();
@@ -415,13 +415,13 @@ namespace ExchangeSharp
                         lastNonce = convertedNonce;
                         break;
                     }
-
-                    // wait 1 millisecond for a new nonce
-                    Task.Delay(1).Sync();
                 }
 
-                return nonce;
+                // wait 1 millisecond for a new nonce
+                await Task.Delay(1);
             }
+
+            return nonce;
         }
 
         /// <summary>
@@ -430,17 +430,26 @@ namespace ExchangeSharp
         /// <param name="encryptedFile">Encrypted file to load keys from</param>
         public void LoadAPIKeys(string encryptedFile)
         {
-            SecureString[] strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
-            if (strings.Length < 2)
-            {
-                throw new InvalidOperationException("Encrypted keys file should have at least a public and private key, and an optional pass phrase");
-            }
-            PublicApiKey = strings[0];
-            PrivateApiKey = strings[1];
-            if (strings.Length > 2)
-            {
-                Passphrase = strings[2];
-            }
+	        if (string.IsNullOrWhiteSpace(encryptedFile))
+		        throw new ArgumentNullException(nameof(encryptedFile));
+	        if (!File.Exists(encryptedFile))
+		        throw new ArgumentException("Invalid key file.", nameof(encryptedFile));
+
+	        var strings = CryptoUtility.LoadProtectedStringsFromFile(encryptedFile);
+
+	        if (strings.Length < 2)
+	        {
+		        throw new InvalidOperationException(
+			        "Encrypted keys file should have at least a public and private key, and an optional pass phrase"
+		        );
+	        }
+
+	        PublicApiKey = strings[0];
+	        PrivateApiKey = strings[1];
+	        if (strings.Length > 2)
+	        {
+		        Passphrase = strings[2];
+	        }
         }
 
         /// <summary>
@@ -449,7 +458,7 @@ namespace ExchangeSharp
         /// <param name="publicApiKey">Public Api Key</param>
         /// <param name="privateApiKey">Private Api Key</param>
         /// <param name="passPhrase">Pass phrase, null for none</param>
-        public void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null)
+        public void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string? passPhrase = null)
         {
             PublicApiKey = publicApiKey.ToSecureString();
             PrivateApiKey = privateApiKey.ToSecureString();
@@ -465,7 +474,7 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.
         /// <param name="method">Request method or null for default</param>
         /// <returns>Raw response</returns>
-        public Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null) => requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
+        public Task<string> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null) => requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
 
         /// <summary>
         /// Make a JSON request to an API end point
@@ -476,7 +485,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
-        public async Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null)
+        public async Task<T> MakeJsonRequestAsync<T>(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? requestMethod = null)
         {
             await new SynchronizationContextRemover();
 
@@ -496,12 +505,12 @@ namespace ExchangeSharp
         /// <param name="messageCallback">Callback for messages</param>
         /// <param name="connectCallback">Connect callback</param>
         /// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-        public IWebSocket ConnectWebSocket
+        public Task<IWebSocket> ConnectWebSocketAsync
         (
             string url,
             Func<IWebSocket, byte[], Task> messageCallback,
-            WebSocketConnectionDelegate connectCallback = null,
-            WebSocketConnectionDelegate disconnectCallback = null
+            WebSocketConnectionDelegate? connectCallback = null,
+            WebSocketConnectionDelegate? disconnectCallback = null
         )
         {
             if (messageCallback == null)
@@ -524,7 +533,7 @@ namespace ExchangeSharp
                 wrapper.Disconnected += disconnectCallback;
             }
             wrapper.Start();
-            return wrapper;
+            return Task.FromResult<IWebSocket>(wrapper);
         }
 
         /// <summary>
@@ -532,7 +541,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="payload">Payload to potentially send</param>
         /// <returns>True if an authenticated request can be made with the payload, false otherwise</returns>
-        protected virtual bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+        protected virtual bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object>? payload)
         {
             return (PrivateApiKey != null && PublicApiKey != null && payload != null && payload.ContainsKey("nonce"));
         }
@@ -543,7 +552,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
-        protected virtual Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+        protected virtual Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload)
         {
             return Task.CompletedTask;
         }
@@ -564,7 +573,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload</param>
         /// <param name="method">Method</param>
         /// <returns>Updated url</returns>
-        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+        protected virtual Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object>? payload, string? method)
         {
             return url.Uri;
         }
@@ -647,22 +656,14 @@ namespace ExchangeSharp
 
             try
             {
-                JToken token = await MakeJsonRequestAsync<JToken>(NonceEndPoint);
+                JToken token = await MakeJsonRequestAsync<JToken>(NonceEndPoint!);
                 JToken value = token[NonceEndPointField];
-                DateTime serverDate;
-                switch (NonceEndPointStyle)
+                DateTime serverDate = NonceEndPointStyle switch
                 {
-                    case NonceStyle.Iso8601:
-                        serverDate = value.ToDateTimeInvariant();
-                        break;
-
-                    case NonceStyle.UnixMilliseconds:
-                        serverDate = value.ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds();
-                        break;
-
-                    default:
-                        throw new ArgumentException("Invalid nonce end point style '" + NonceEndPointStyle + "' for exchange '" + Name + "'");
-                }
+                    NonceStyle.Iso8601 => value.ToDateTimeInvariant(),
+                    NonceStyle.UnixMilliseconds => value.ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+                    _ => throw new ArgumentException("Invalid nonce end point style '" + NonceEndPointStyle + "' for exchange '" + Name + "'"),
+                };
                 NonceOffset = (CryptoUtility.UtcNow - serverDate);
             }
             catch
@@ -672,7 +673,7 @@ namespace ExchangeSharp
             }
         }
 
-        async Task IAPIRequestHandler.ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+        async Task IAPIRequestHandler.ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload)
         {
             await ProcessRequestAsync(request, payload);
         }
@@ -682,7 +683,7 @@ namespace ExchangeSharp
             ProcessResponse(response);
         }
 
-        Uri IAPIRequestHandler.ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+        Uri IAPIRequestHandler.ProcessRequestUrl(UriBuilder url, Dictionary<string, object>? payload, string? method)
         {
             return ProcessRequestUrl(url, payload, method);
         }

@@ -41,7 +41,7 @@ namespace ExchangeSharp
             MarketSymbolSeparator = "_";
         }
 
-#region ProcessRequest 
+#region ProcessRequest
 
         protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -70,7 +70,7 @@ namespace ExchangeSharp
         protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
-            //{ "success" : true,"message" : "", "result" : [{"Currency" : "BTC","CurrencyLong" : "Bitcoin","MinConfirmation" : 2,"TxFee" : 0.00080000,"IsActive" : true, "CoinType" : "BITCOIN","MaintenanceMode" : false}, ... 
+            //{ "success" : true,"message" : "", "result" : [{"Currency" : "BTC","CurrencyLong" : "Bitcoin","MinConfirmation" : 2,"TxFee" : 0.00080000,"IsActive" : true, "CoinType" : "BITCOIN","MaintenanceMode" : false}, ...
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getcurrencies", null, null);
             foreach (JToken token in result)
             {
@@ -99,7 +99,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // "result" : [{"MarketCurrency" : "DOGE","BaseCurrency" : "BTC","MarketCurrencyLong" : "Dogecoin","BaseCurrencyLong" : "Bitcoin", "MinTradeSize" : 0.10000000, "MarketName" : "DOGE_BTC", "IsActive" : true, }, ...
@@ -146,7 +146,7 @@ namespace ExchangeSharp
             endDate = endDate ?? CryptoUtility.UtcNow.AddMinutes(1.0);
             startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
-            //market period(15m, 20m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 1d) count(default: 1000, max: 999999) lasthours(default: 24, max: 2160) 
+            //market period(15m, 20m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 1d) count(default: 1000, max: 999999) lasthours(default: 24, max: 2160)
             //"result":[{"TimeStamp":"2014-07-31 10:15:00","Open":"0.00000048","High":"0.00000050","Low":"0.00000048","Close":"0.00000049","Volume":"594804.73036048","BaseVolume":"0.11510368" }, ...
             JToken result = await MakeJsonRequestAsync<JToken>("/public/getcandles?market=" + marketSymbol + "&period=" + periodString + (limit == null ? string.Empty : "&lasthours=" + limit));
             foreach (JToken jsonCandle in result)
@@ -204,7 +204,7 @@ namespace ExchangeSharp
                 protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
                 {
                     Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-                    // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
+                    // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ...
                     JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await GetNoncePayloadAsync());
                     foreach (JToken token in result)
                     {
@@ -217,7 +217,7 @@ namespace ExchangeSharp
                 protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
                 {
                     Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-                    // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ... 
+                    // "result" : [{"Currency" : "DOGE","Balance" : 0.00000000,"Available" : 0.00000000,"Pending" : 0.00000000,"CryptoAddress" : "DBSwFELQiVrwxFtyHpVHbgVrNJXwb3hoXL", "IsActive" : true}, ...
                     JToken result = await MakeJsonRequestAsync<JToken>("/account/getbalances", null, await GetNoncePayloadAsync());
                     foreach (JToken token in result)
                     {

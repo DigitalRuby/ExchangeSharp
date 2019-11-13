@@ -46,7 +46,7 @@ namespace ExchangeSharp
             MarketSymbolIsUppercase = false;
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -79,7 +79,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // "pairs":{"ltc_btc":{"decimal_places":8,"min_price":0.00000001,"max_price":10000,"min_amount":0.0001,"hidden":0,"fee":0.2} ... }
@@ -105,7 +105,10 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/ticker/" + NormalizeMarketSymbol(marketSymbol), null, null, "POST");
-            if (token != null && token.HasValues) return ParseTicker(token.First as JProperty);
+            if (token != null && token.HasValues)
+            {
+                return await ParseTickerAsync(token.First as JProperty);
+            }
             return null;
         }
 
@@ -140,7 +143,7 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Not directly supported, but we'll return the max and filter if necessary
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + marketSymbol + "?limit=2000", null, null, "POST");
-            token = token.First.First;      // bunch of nested 
+            token = token.First.First;      // bunch of nested
             foreach (JToken prop in token)
             {
                 ExchangeTrade trade = ParseTrade(prop);
@@ -151,7 +154,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Yobit doesn't support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds 
+        /// Yobit doesn't support GetCandles. It is possible to get all trades since startdate (filter by enddate if needed) and then aggregate into MarketCandles by periodSeconds
         /// TODO: Aggregate Yobit Trades into Candles. This may not be worth the effort because the max we can retrieve is 2000 which may or may not be out of the range of start and end for aggregate
         /// </summary>
         /// <param name="marketSymbol"></param>
@@ -307,8 +310,8 @@ namespace ExchangeSharp
 
         /// <summary>
         /// Warning: Use with discretion
-        /// <rant> Yobit trading seems fine, their API is stable, but their deposits/withdraws are *VERY* problematic. 
-        /// I'm being kind. Waited as much as two-weeks for deposts to show up on Exchange, even though they were confirmed on the blockchain. 
+        /// <rant> Yobit trading seems fine, their API is stable, but their deposits/withdraws are *VERY* problematic.
+        /// I'm being kind. Waited as much as two-weeks for deposts to show up on Exchange, even though they were confirmed on the blockchain.
         /// </rant>
         /// </summary>
         /// <param name="withdrawalRequest"></param>
@@ -331,11 +334,11 @@ namespace ExchangeSharp
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(JProperty prop)
+        private async Task<ExchangeTicker> ParseTickerAsync(JProperty prop)
         {
             // "ltc_btc":{ "high":105.41,"low":104.67,"avg":105.04,"vol":43398.22251455,"vol_cur":4546.26962359,"last":105.11,"buy":104.2,"sell":105.11,"updated":1418654531 }
             string marketSymbol = prop.Name.ToUpperInvariant();
-            return this.ParseTicker(prop.First, marketSymbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSeconds);
+            return await this.ParseTickerAsync(prop.First, marketSymbol, "sell", "buy", "last", "vol", "vol_cur", "updated", TimestampType.UnixSeconds);
         }
 
         private ExchangeTrade ParseTrade(JToken prop)

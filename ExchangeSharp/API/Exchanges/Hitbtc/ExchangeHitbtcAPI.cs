@@ -28,14 +28,15 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.hitbtc.com/api/2";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.hitbtc.com/api/2/ws";
 
-        public ExchangeHitBTCAPI()
-        {
-            RequestContentType = "application/json";
-            NonceStyle = NonceStyle.UnixMillisecondsString;
-            MarketSymbolSeparator = string.Empty;
-        }
+		public ExchangeHitBTCAPI()
+		{ // https://api.hitbtc.com/
+			RateLimit = new RateGate(100, TimeSpan.FromSeconds(1));
+			RequestContentType = "application/json";
+			NonceStyle = NonceStyle.UnixMillisecondsString;
+			MarketSymbolSeparator = string.Empty;
+		}
 
-        public override string PeriodSecondsToString(int seconds)
+		public override string PeriodSecondsToString(int seconds)
         {
             switch (seconds)
             {
@@ -107,7 +108,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             // [ {"id": "ETHBTC","baseCurrency": "ETH","quoteCurrency": "BTC", "quantityIncrement": "0.001", "tickSize": "0.000001", "takeLiquidityRate": "0.001", "provideLiquidityRate": "-0.0001", "feeCurrency": "BTC"  } ... ]
@@ -131,7 +132,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/ticker/" + marketSymbol);
-            return ParseTicker(obj, marketSymbol);
+            return await ParseTickerAsync(obj, marketSymbol);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -141,7 +142,7 @@ namespace ExchangeSharp
             foreach (JToken token in obj)
             {
                 string marketSymbol = NormalizeMarketSymbol(token["symbol"].ToStringInvariant());
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTicker(token, marketSymbol)));
+                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(token, marketSymbol)));
             }
             return tickers;
         }
@@ -165,7 +166,10 @@ namespace ExchangeSharp
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Putting an arbitrary limit of 10 for 'recent'
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=10");
-            foreach (JToken token in obj) trades.Add(ParseExchangeTrade(token));
+            foreach (JToken token in obj)
+            {
+                trades.Add(ParseExchangeTrade(token));
+            }
             return trades;
         }
 
@@ -300,7 +304,7 @@ namespace ExchangeSharp
             }
             order.ExtraParameters.CopyTo(payload);
 
-            // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  } 
+            // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  }
             JToken token = await MakeJsonRequestAsync<JToken>("/order", null, payload, "POST");
             ExchangeOrderResult result = new ExchangeOrderResult
             {
@@ -375,7 +379,7 @@ namespace ExchangeSharp
 
 
         /// <summary>
-        /// This returns both Deposit and Withdawl history for the Bank and Trading Accounts. Currently returning everything and not filtering. 
+        /// This returns both Deposit and Withdawl history for the Bank and Trading Accounts. Currently returning everything and not filtering.
         /// There is no support for retrieving by Symbol, so we'll filter that after reteiving all symbols
         /// </summary>
         /// <param name="currency"></param>
@@ -440,13 +444,13 @@ namespace ExchangeSharp
 
 		// working on it. Hitbtc has extensive support for sockets, including trading
 
-		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return ConnectWebSocket(null, messageCallback: async (_socket, msg) =>
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["error"] != null)
@@ -558,7 +562,7 @@ namespace ExchangeSharp
 		#endregion
 
 		#region Hitbtc Public Functions outside the ExchangeAPI
-		// HitBTC has two accounts per client: the main bank and trading 
+		// HitBTC has two accounts per client: the main bank and trading
 		// Coins deposited from this API go into the bank, and must be withdrawn from there as well
 		// Trading only takes place from the trading account.
 		// You must transfer coin balances from the bank to trading in order to trade, and back again to withdaw
@@ -591,10 +595,10 @@ namespace ExchangeSharp
 
 		#region Private Functions
 
-		private ExchangeTicker ParseTicker(JToken token, string symbol)
+		private async Task<ExchangeTicker> ParseTickerAsync(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
-            return this.ParseTicker(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
         }
 
         private ExchangeTrade ParseExchangeTrade(JToken token)
@@ -605,7 +609,7 @@ namespace ExchangeSharp
 
         private ExchangeOrderResult ParseCompletedOrder(JToken token)
         {
-            //[ { "id": 9535486, "clientOrderId": "f8dbaab336d44d5ba3ff578098a68454", "orderId": 816088377, "symbol": "ETHBTC", "side": "sell", "quantity": "0.061", "price": "0.045487", "fee": "0.000002775", "timestamp": "2017-05-17T12:32:57.848Z" }, 
+            //[ { "id": 9535486, "clientOrderId": "f8dbaab336d44d5ba3ff578098a68454", "orderId": 816088377, "symbol": "ETHBTC", "side": "sell", "quantity": "0.061", "price": "0.045487", "fee": "0.000002775", "timestamp": "2017-05-17T12:32:57.848Z" },
             return new ExchangeOrderResult()
             {
                 OrderId = token["orderId"].ToStringInvariant(),

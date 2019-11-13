@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,17 +9,18 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ExchangeSharp.Kraken;
-using ExchangeSharp.Binance;
+using ExchangeSharp.BinanceGroup;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Coinbase;
 using ExchangeSharp.KuCoin;
 using Newtonsoft.Json.Linq;
+using ExchangeSharp.NDAX;
 
 namespace ExchangeSharp
 {
@@ -37,7 +38,7 @@ namespace ExchangeSharp
         /// parameter</param>
         /// <param name="symbols">Order book symbols or null/empty for all of them (if supported)</param>
         /// <returns>Web socket, call Dispose to close</returns>
-        public static IWebSocket GetFullOrderBookWebSocket(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
+        public static async Task<IWebSocket> GetFullOrderBookWebSocketAsync(this IOrderBookProvider api, Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] symbols)
         {
             if (api.WebSocketOrderBookType == WebSocketOrderBookType.None)
             {
@@ -50,7 +51,7 @@ namespace ExchangeSharp
             ConcurrentDictionary<string, ExchangeOrderBook> fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
             Dictionary<string, Queue<ExchangeOrderBook>> partialOrderBookQueues = new Dictionary<string, Queue<ExchangeOrderBook>>();
 
-            void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
+            static void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
             {
                 foreach (ExchangeOrderPrice record in deltaValues.Values)
                 {
@@ -65,7 +66,7 @@ namespace ExchangeSharp
                 }
             }
 
-            void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
+            static void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
             {
                 lock (fullOrderBook)
                 {
@@ -170,7 +171,7 @@ namespace ExchangeSharp
                 callback(fullOrderBook);
             }
 
-            IWebSocket socket = api.GetDeltaOrderBookWebSocket(async (b) =>
+            IWebSocket socket = await api.GetDeltaOrderBookWebSocketAsync(async (b) =>
             {
                 try
                 {
@@ -192,6 +193,44 @@ namespace ExchangeSharp
                 return Task.CompletedTask;
             };
             return socket;
+        }
+
+        /// <summary>
+        /// Get cache of symbols metadata and put into a dictionary. This method looks in the cache first, and if found, returns immediately, otherwise makes a network request and puts it in the cache
+        /// </summary>
+        /// <param name="api">Exchange API</param>
+        /// <returns>Dictionary of symbol name and market, or null if there was an error</returns>
+        public static async Task<Dictionary<string, ExchangeMarket>> GetExchangeMarketDictionaryFromCacheAsync(this ExchangeAPI api)
+        {
+            await new SynchronizationContextRemover();
+            CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await api.Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketDictionaryFromCacheAsync), async () =>
+            {
+                try
+                {
+                    Dictionary<string, ExchangeMarket> symbolsMetadataDictionary = new Dictionary<string, ExchangeMarket>(StringComparer.OrdinalIgnoreCase);
+                    IEnumerable<ExchangeMarket> symbolsMetadata = await api.GetMarketSymbolsMetadataAsync();
+
+                    // build a new lookup dictionary
+                    foreach (ExchangeMarket symbolMetadata in symbolsMetadata)
+                    {
+                        symbolsMetadataDictionary[symbolMetadata.MarketSymbol] = symbolMetadata;
+                    }
+
+                    // return the cached dictionary for 4 hours
+                    return new CachedItem<Dictionary<string, ExchangeMarket>>(symbolsMetadataDictionary, CryptoUtility.UtcNow.AddHours(4.0));
+                }
+                catch// (Exception ex)
+                {
+                    // if the network goes down this could log quite a lot of exceptions...
+                    //Logger.Error(ex);
+                    return new CachedItem<Dictionary<string, ExchangeMarket>>();
+                }
+            });
+            if (cacheResult.Found)
+            {
+                return cacheResult.Value;
+            }
+            return null;
         }
 
         /// <summary>
@@ -403,10 +442,10 @@ namespace ExchangeSharp
         /// <param name="quoteCurrencyKey">Quote currency key</param>
         /// <param name="idKey">Id key</param>
         /// <returns>ExchangeTicker</returns>
-        internal static ExchangeTicker ParseTicker(this ExchangeAPI api, JToken token, string marketSymbol,
+        internal static async Task<ExchangeTicker> ParseTickerAsync(this ExchangeAPI api, JToken token, string marketSymbol,
             object askKey, object bidKey, object lastKey, object baseVolumeKey,
-            object quoteVolumeKey = null, object timestampKey = null, TimestampType timestampType = TimestampType.None,
-            object baseCurrencyKey = null, object quoteCurrencyKey = null, object idKey = null)
+            object? quoteVolumeKey = null, object? timestampKey = null, TimestampType timestampType = TimestampType.None,
+            object? baseCurrencyKey = null, object? quoteCurrencyKey = null, object? idKey = null)
         {
             if (token == null || !token.HasValues)
             {
@@ -418,7 +457,9 @@ namespace ExchangeSharp
             token.ParseVolumes(baseVolumeKey, quoteVolumeKey, last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume);
 
             // pull out timestamp
-            DateTime timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
+            DateTime timestamp = timestampKey == null
+	            ? CryptoUtility.UtcNow
+	            : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType);
 
             // split apart the symbol if we have a separator, otherwise just put the symbol for base and convert symbol
             string baseCurrency;
@@ -434,7 +475,7 @@ namespace ExchangeSharp
             }
             else
             {
-                (baseCurrency, quoteCurrency) = api.ExchangeMarketSymbolToCurrencies(marketSymbol);
+                (baseCurrency, quoteCurrency) = await api.ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
             }
 
             // create the ticker and return it
@@ -491,7 +532,7 @@ namespace ExchangeSharp
 		/// <param name="typeKeyIsBuyValue">Type key buy value</param>
 		/// <returns>Trade</returns>
 		internal static ExchangeTrade ParseTrade(this JToken token, object amountKey, object priceKey, object typeKey,
-			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+			object timestampKey, TimestampType timestampType, object? idKey, string typeKeyIsBuyValue = "buy")
 		{
 			return ParseTradeComponents<ExchangeTrade>(token, amountKey, priceKey, typeKey,
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
@@ -505,6 +546,19 @@ namespace ExchangeSharp
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
 			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBinanceDEX(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BinanceDEXTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.BuyerOrderId = token["b"].ToStringInvariant();
+			trade.SellerOrderId = token["a"].ToStringInvariant();
+			trade.BuyerAddress = token["ba"].ToStringInvariant();
+			trade.SellerAddress = token["sa"].ToStringInvariant();
+			trade.TickerType = (TickerType)token["tt"].ConvertInvariant<byte>();
 			return trade;
 		}
 
@@ -555,15 +609,29 @@ namespace ExchangeSharp
 			return trade;
 		}
 
-		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
+		internal static ExchangeTrade ParseTradeNDAX(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<NDAXTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.Order1Id = token[4].ConvertInvariant<long>();
+			trade.Order2Id = token[5].ConvertInvariant<long>();
+			trade.Direction = (Direction)token[7].ConvertInvariant<byte>();
+			trade.IsBlockTrade = token[9].ConvertInvariant<bool>();
+			trade.ClientOrderId = token[10].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static T ParseTradeComponents<T>(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object? idKey, string typeKeyIsBuyValue = "buy")
 			where T : ExchangeTrade, new()
 		{
+			var isBuy = token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue);
 			T trade = new T
 			{
 				Amount = token[amountKey].ConvertInvariant<decimal>(),
 				Price = token[priceKey].ConvertInvariant<decimal>(),
-				IsBuy = (token[typeKey].ToStringInvariant().EqualsWithOption(typeKeyIsBuyValue)),
+				IsBuy = isBuy,
 			};
 			trade.Timestamp = (timestampKey == null ? CryptoUtility.UtcNow : CryptoUtility.ParseTimestamp(token[timestampKey], timestampType));
 			if (idKey == null)
@@ -581,6 +649,7 @@ namespace ExchangeSharp
 					Logger.Info("error parsing trade ID: " + token.ToStringInvariant());
 				}
 			}
+			trade.Flags = isBuy ? ExchangeTradeFlags.IsBuy : default;
 			return trade;
 		}
 		#endregion
@@ -594,7 +663,7 @@ namespace ExchangeSharp
 		/// <param name="last">Last volume value</param>
 		/// <param name="baseCurrencyVolume">Receive base currency volume</param>
 		/// <param name="quoteCurrencyVolume">Receive quote currency volume</param>
-		internal static void ParseVolumes(this JToken token, object baseVolumeKey, object quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
+		internal static void ParseVolumes(this JToken token, object baseVolumeKey, object? quoteVolumeKey, decimal last, out decimal baseCurrencyVolume, out decimal quoteCurrencyVolume)
         {
             // parse out volumes, handle cases where one or both do not exist
             if (baseVolumeKey == null)
@@ -611,7 +680,10 @@ namespace ExchangeSharp
             }
             else
             {
-                baseCurrencyVolume = token[baseVolumeKey].ConvertInvariant<decimal>();
+	            baseCurrencyVolume = (token is JObject jObj
+			            ? jObj.SelectToken((string) baseVolumeKey)
+			            : token[baseVolumeKey]
+		            ).ConvertInvariant<decimal>();
                 if (quoteVolumeKey == null)
                 {
                     quoteCurrencyVolume = baseCurrencyVolume * last;
@@ -641,7 +713,7 @@ namespace ExchangeSharp
         /// <param name="weightedAverageKey">Weighted average key</param>
         /// <returns>MarketCandle</returns>
         internal static MarketCandle ParseCandle(this INamed named, JToken token, string marketSymbol, int periodSeconds, object openKey, object highKey, object lowKey,
-            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object quoteVolumeKey = null, object weightedAverageKey = null)
+            object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object? quoteVolumeKey = null, object? weightedAverageKey = null)
         {
             MarketCandle candle = new MarketCandle
             {

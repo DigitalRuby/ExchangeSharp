@@ -42,7 +42,7 @@ namespace ExchangeSharp
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
         }
 
-        public override string ExchangeMarketSymbolToGlobalMarketSymbol(string marketSymbol)
+        public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             if (marketSymbol.Length < 6)
             {
@@ -50,9 +50,9 @@ namespace ExchangeSharp
             }
             else if (marketSymbol.Length == 6)
             {
-                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(0, 3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(3, 3), GlobalMarketSymbolSeparator);
+                return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(marketSymbol.Substring(0, 3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(3, 3), GlobalMarketSymbolSeparator);
             }
-            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparator(marketSymbol.Substring(3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(0, 3), GlobalMarketSymbolSeparator);
+            return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(marketSymbol.Substring(3) + GlobalMarketSymbolSeparator + marketSymbol.Substring(0, 3), GlobalMarketSymbolSeparator);
         }
 
         public override string PeriodSecondsToString(int seconds)
@@ -60,7 +60,7 @@ namespace ExchangeSharp
             return CryptoUtility.SecondsToPeriodStringLong(seconds);
         }
 
-        #region ProcessRequest 
+        #region ProcessRequest
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
@@ -121,7 +121,7 @@ namespace ExchangeSharp
             return m.Select(x => x.MarketSymbol);
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             /*
              {
@@ -141,8 +141,8 @@ namespace ExchangeSharp
                     "price-precision": 2,
                     "amount-precision": 4,
                     "symbol-partition": "main"
-                }, 
-             
+                },
+
              */
             List<ExchangeMarket> markets = new List<ExchangeMarket>();
             JToken allMarketSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
@@ -199,7 +199,7 @@ namespace ExchangeSharp
             }}
              */
             JToken ticker = await MakeJsonRequestAsync<JToken>("/market/detail/merged?symbol=" + marketSymbol);
-            return this.ParseTicker(ticker["tick"], marketSymbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
+            return await this.ParseTickerAsync(ticker["tick"], marketSymbol, "ask", "bid", "close", "amount", "vol", "ts", TimestampType.UnixMillisecondsDouble, idKey: "id");
         }
 
         protected async override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -207,21 +207,22 @@ namespace ExchangeSharp
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             string symbol;
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/tickers", BaseUrl, null);
+            Dictionary<string, ExchangeMarket> markets = await this.GetExchangeMarketDictionaryFromCacheAsync();
             foreach (JToken child in obj)
             {
                 symbol = child["symbol"].ToStringInvariant();
-                if (symbol != "hb10" && symbol != "huobi10") // WTF...
+                if (markets.ContainsKey(symbol))
                 {
-                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, this.ParseTicker(child, symbol, null, null, "close", "amount", "vol")));
+                    tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, await this.ParseTickerAsync(child, symbol, null, null, "close", "amount", "vol")));
                 }
             }
 
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 /*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
@@ -286,9 +287,9 @@ namespace ExchangeSharp
             });
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 /*
 {{
@@ -312,14 +313,14 @@ namespace ExchangeSharp
         8268.29,
         0.8248
       ],
-      
+
     ],
     "asks": [
       [
         8275.07,
         0.1961
       ],
-	  
+
       [
         8337.1,
         0.5803
@@ -431,7 +432,6 @@ namespace ExchangeSharp
       [7990, 1.9970],
       [7995, 0.88],
              */
-            ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>("/market/depth?symbol=" + marketSymbol + "&type=step0", BaseUrl, null);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts", maxCount: maxCount);
         }
@@ -523,7 +523,7 @@ namespace ExchangeSharp
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             /*
-             
+
   "status": "ok",
   "data": {
     "id": 3274515,
@@ -751,7 +751,7 @@ namespace ExchangeSharp
                 case "unknown":
                     return TransactionStatus.Unknown;
                 default:
-                    throw new InvalidOperationException($"Unknown status: {status}"); 
+                    throw new InvalidOperationException($"Unknown status: {status}");
             }
         }
 

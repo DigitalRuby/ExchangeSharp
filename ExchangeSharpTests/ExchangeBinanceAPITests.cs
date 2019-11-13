@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -10,21 +10,21 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using ExchangeSharp;
+using ExchangeSharp.BinanceGroup;
+
+using FluentAssertions;
+
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+using Newtonsoft.Json;
+
+using NSubstitute;
+
 namespace ExchangeSharpTests
 {
-    using System.Collections.Generic;
-
-    using ExchangeSharp;
-    using ExchangeSharp.Binance;
-
-    using FluentAssertions;
-
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-    using Newtonsoft.Json;
-
-    using NSubstitute;
-
     [TestClass]
     public class ExchangeBinanceAPITests
     {
@@ -97,12 +97,12 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void CurrenciesParsedCorrectly()
+        public async Task CurrenciesParsedCorrectly()
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
-            requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, ExchangeBinanceAPI.BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
+            requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, new ExchangeBinanceAPI().BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
             var binance = new ExchangeBinanceAPI { RequestMaker = requestMaker };
-            IReadOnlyDictionary<string, ExchangeCurrency> currencies = binance.GetCurrenciesAsync().Sync();
+            IReadOnlyDictionary<string, ExchangeCurrency> currencies = await binance.GetCurrenciesAsync();
             currencies.Should().HaveCount(3);
             currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
             bnb.DepositEnabled.Should().BeFalse();

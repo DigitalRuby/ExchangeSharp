@@ -26,7 +26,7 @@ namespace ExchangeSharp
     /// <remarks>
     /// Lbank API: https://github.com/LBank-exchange/lbank-official-api-docs
     /// Lbank site: https://www.lbank.info
-    /// WebSockets address: ws://api.lbank.info/ws/v2/ 
+    /// WebSockets address: ws://api.lbank.info/ws/v2/
     /// </remarks>
     public class ExchangeLBankAPI : ExchangeAPI
     {
@@ -56,7 +56,7 @@ namespace ExchangeSharp
 
         #region PUBLIC API*********************************************
         //GetSymbolsMetadata
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             var currencyPairs = await OnGetMarketSymbolsAsync();
             return ParseMarket(currencyPairs);
@@ -70,7 +70,7 @@ namespace ExchangeSharp
             return resp.ToObject<string[]>();
         }
 
-        //GetTicker 
+        //GetTicker
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
         {
             //https://api.lbank.info/v1/ticker.do?symbol=eth_btc
@@ -79,7 +79,7 @@ namespace ExchangeSharp
             return ParseTicker(resp);
         }
 
-        //GetTickers  4      
+        //GetTickers  4
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             //https://api.lbank.info/v1/ticker.do?symbol=all
@@ -92,7 +92,7 @@ namespace ExchangeSharp
         }
 
 
-        //GetOrderBook 5      
+        //GetOrderBook 5
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
 
@@ -106,7 +106,7 @@ namespace ExchangeSharp
             return book;
         }
 
-        //GetRecentTrades   6     
+        //GetRecentTrades   6
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
         {
             //https://api.lbank.info/v1/trades.do?symbol=eth_btc&size=600
@@ -277,7 +277,7 @@ namespace ExchangeSharp
         #endregion
 
 
-        #region TRADING API*********************************************      
+        #region TRADING API*********************************************
 
         //GetAmounts  8
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
@@ -538,7 +538,7 @@ namespace ExchangeSharp
         }
         #endregion
 
-        #region HELPERS  
+        #region HELPERS
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
             if (payload == null || request.Method == "GET")
@@ -560,11 +560,11 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// -1: Revoked 
+        /// -1: Revoked
         /// 0: Unfilled (Pending)
         /// 1: partial deal
         /// 2: The complete deal (Filled)
-        /// 4: Withdrawal process        
+        /// 4: Withdrawal process
         /// </summary>
         /// <param name="status"></param>
         /// <returns></returns>

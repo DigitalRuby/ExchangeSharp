@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,12 +9,11 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -27,14 +26,38 @@ namespace ExchangeSharp
     {
         private readonly IAPIRequestHandler api;
 
-        private class InternalHttpWebRequest : IHttpWebRequest
+		/// <summary>
+		/// Proxy for http requests, reads from HTTP_PROXY environment var by default
+		/// You can also set via code if you like
+		/// </summary>
+		public static WebProxy? Proxy { get; set; }
+
+		/// <summary>
+		/// Static constructor
+		/// </summary>
+		static APIRequestMaker()
+		{
+			var httpProxy = Environment.GetEnvironmentVariable("http_proxy");
+			httpProxy ??= Environment.GetEnvironmentVariable("HTTP_PROXY");
+
+			if (string.IsNullOrWhiteSpace(httpProxy))
+			{
+				return;
+			}
+
+			var uri = new Uri(httpProxy);
+			Proxy = new WebProxy(uri);
+
+		}
+		internal class InternalHttpWebRequest : IHttpWebRequest
         {
-            internal readonly HttpWebRequest request;
+            internal readonly HttpWebRequest Request;
 
             public InternalHttpWebRequest(Uri fullUri)
             {
-                request = HttpWebRequest.Create(fullUri) as HttpWebRequest;
-                request.KeepAlive = false;
+                Request = (HttpWebRequest.Create(fullUri) as HttpWebRequest ?? throw new NullReferenceException("Failed to create HttpWebRequest"));
+                Request.Proxy = Proxy;
+                Request.KeepAlive = false;
             }
 
             public void AddHeader(string header, string value)
@@ -42,64 +65,64 @@ namespace ExchangeSharp
                 switch (header.ToStringLowerInvariant())
                 {
                     case "content-type":
-                        request.ContentType = value;
+                        Request.ContentType = value;
                         break;
 
                     case "content-length":
-                        request.ContentLength = value.ConvertInvariant<long>();
+                        Request.ContentLength = value.ConvertInvariant<long>();
                         break;
 
                     case "user-agent":
-                        request.UserAgent = value;
+                        Request.UserAgent = value;
                         break;
 
                     case "accept":
-                        request.Accept = value;
+                        Request.Accept = value;
                         break;
 
                     case "connection":
-                        request.Connection = value;
+                        Request.Connection = value;
                         break;
 
                     default:
-                        request.Headers[header] = value;
+                        Request.Headers[header] = value;
                         break;
                 }
             }
 
             public Uri RequestUri
             {
-                get { return request.RequestUri; }
+                get { return Request.RequestUri; }
             }
 
             public string Method
             {
-                get { return request.Method; }
-                set { request.Method = value; }
+                get { return Request.Method; }
+                set { Request.Method = value; }
             }
 
             public int Timeout
             {
-                get { return request.Timeout; }
-                set { request.Timeout = value; }
+                get { return Request.Timeout; }
+                set { Request.Timeout = value; }
             }
 
             public int ReadWriteTimeout
             {
-                get { return request.ReadWriteTimeout; }
-                set { request.ReadWriteTimeout = value; }
+                get { return Request.ReadWriteTimeout; }
+                set { Request.ReadWriteTimeout = value; }
             }
 
             public async Task WriteAllAsync(byte[] data, int index, int length)
             {
-                using (Stream stream = await request.GetRequestStreamAsync())
+                using (Stream stream = await Request.GetRequestStreamAsync())
                 {
                     await stream.WriteAsync(data, 0, data.Length);
                 }
             }
         }
 
-        private class InternalHttpWebResponse : IHttpWebResponse
+        internal class InternalHttpWebResponse : IHttpWebResponse
         {
             private readonly HttpWebResponse response;
 
@@ -145,22 +168,18 @@ namespace ExchangeSharp
         /// The encoding of payload is API dependant but is typically json.</param>
         /// <param name="method">Request method or null for default. Example: 'GET' or 'POST'.</param>
         /// <returns>Raw response</returns>
-        public async Task<string> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
+        public async Task<string> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null)
         {
             await new SynchronizationContextRemover();
-
             await api.RateLimit.WaitToProceedAsync();
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                return null;
-            }
-            else if (url[0] != '/')
+
+            if (url[0] != '/')
             {
                 url = "/" + url;
             }
 
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
-            method = method ?? api.RequestMethod;
+            method ??= api.RequestMethod;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload, method);
             InternalHttpWebRequest request = new InternalHttpWebRequest(uri)
             {
@@ -171,15 +190,15 @@ namespace ExchangeSharp
             request.AddHeader("user-agent", BaseAPI.RequestUserAgent);
             request.Timeout = request.ReadWriteTimeout = (int)api.RequestTimeout.TotalMilliseconds;
             await api.ProcessRequestAsync(request, payload);
-            HttpWebResponse response = null;
-            string responseString = null;
+            HttpWebResponse? response = null;
+            string responseString;
 
             try
             {
                 try
                 {
                     RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
-                    response = await request.request.GetResponseAsync() as HttpWebResponse;
+                    response = await request.Request.GetResponseAsync() as HttpWebResponse;
                     if (response == null)
                     {
                         throw new APIException("Unknown response from server");
@@ -194,21 +213,22 @@ namespace ExchangeSharp
                     }
                 }
                 using (Stream responseStream = response.GetResponseStream())
+                using (StreamReader responseStreamReader = new StreamReader(responseStream))
+                    responseString = responseStreamReader.ReadToEnd();
+
+                if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    responseString = new StreamReader(responseStream).ReadToEnd();
-                    if (response.StatusCode != HttpStatusCode.OK)
-                    {
-                        // 404 maybe return empty responseString
-                        if (string.IsNullOrWhiteSpace(responseString))
-                        {
-                            throw new APIException(string.Format("{0} - {1}",
-                                response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
-                        }
-                        throw new APIException(responseString);
-                    }
-                    api.ProcessResponse(new InternalHttpWebResponse(response));
-                    RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
+	                // 404 maybe return empty responseString
+	                if (string.IsNullOrWhiteSpace(responseString))
+	                {
+                        throw new APIException(string.Format("{0} - {1}", response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
+	                }
+
+	                throw new APIException(responseString);
                 }
+
+                api.ProcessResponse(new InternalHttpWebResponse(response));
+                RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
             }
             catch (Exception ex)
             {
@@ -225,6 +245,6 @@ namespace ExchangeSharp
         /// <summary>
         /// An action to execute when a request has been made (this request and state and object (response or exception))
         /// </summary>
-        public Action<IAPIRequestMaker, RequestMakerState, object> RequestStateChanged { get; set; }
+        public Action<IAPIRequestMaker, RequestMakerState, object>? RequestStateChanged { get; set; }
     }
 }

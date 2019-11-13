@@ -20,6 +20,9 @@ namespace ExchangeSharp
         /// <summary>Full name of the currency. Eg. Ethereum</summary>
         public string FullName { get; set; }
 
+        /// <summary>Alternate name, null if none</summary>
+        public string AltName { get; set; }
+
         /// <summary>The transaction fee.</summary>
         public decimal TxFee { get; set; }
 

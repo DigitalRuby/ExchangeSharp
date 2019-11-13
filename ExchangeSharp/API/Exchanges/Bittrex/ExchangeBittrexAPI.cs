@@ -201,7 +201,7 @@ namespace ExchangeSharp
         /// Get exchange symbols including available metadata such as min trade size and whether the market is active
         /// </summary>
         /// <returns>Collection of ExchangeMarkets</returns>
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             var markets = new List<ExchangeMarket>();
             JToken array = await MakeJsonRequestAsync<JToken>("/public/getmarkets");
@@ -239,7 +239,7 @@ namespace ExchangeSharp
         {
             JToken ticker = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + marketSymbol);
             //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-            return this.ParseTicker(ticker[0], marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(ticker[0], marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -251,7 +251,7 @@ namespace ExchangeSharp
             {
                 marketSymbol = ticker["MarketName"].ToStringInvariant();
                 //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-                ExchangeTicker tickerObj = this.ParseTicker(ticker, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+                ExchangeTicker tickerObj = await this.ParseTickerAsync(ticker, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
                 tickerList.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, tickerObj));
             }
             return tickerList;
@@ -490,7 +490,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
         {
-            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS   
+            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS
 
             string url = $"/account/withdraw?currency={NormalizeMarketSymbol(withdrawalRequest.Currency)}&quantity={withdrawalRequest.Amount.ToStringInvariant()}&address={withdrawalRequest.Address}";
             if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))

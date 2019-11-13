@@ -15,33 +15,34 @@ ExchangeSharp is a C# console app and framework for trading and communicating wi
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = order book, O = private orders)
 
-|Exchange Name     |Public REST|Private REST |Web Socket |
-| ---------------- | --------- | ----------- | --------- |
-| Abucoins         | x         | x           | T R   O   |
+|Exchange Name     |Public REST|Private REST |Web Socket | Notes
+| ---------------- | --------- | ----------- | --------- | ---------
 | Binance          | x         | x           | T R B     |
+| Binance.US       | x         | x           | T R B     |
+| Binance DEX      |           |             |   R       |
 | Bitbank          | x         | x           |           |
 | Bitfinex         | x         | x           | T R   O   |
 | Bithumb          | x         |             |           |
 | BitMEX           | x         | x           |   R   O   |
 | Bitstamp         | x         | x           |   R       |
 | Bittrex          | x         | x           | T R       |
+| BL3P             | x         |             |   R   O   |
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
-| Cryptopia        | x         | x           |           |
 | Digifinex        | x         | x           |   R B     |
 | Gemini           | x         | x           |   R       |
 | HitBTC           | x         | x           |   R       |
 | Huobi            | x         | x           |   R B     |
-| Kraken           | x         | x           |   R       |
+| Kraken           | x         | x           |   R       | Dark order symbols not supported
 | KuCoin           | x         | x           | T R       |
 | LBank            | x         | x           |           |
 | Livecoin         | x         | x           |           |
 | OKCoin           | x         | x           |   R B     |
 | OKEx             | x         | x           |   R B     |
 | Poloniex         | x         | x           | T R B     |
-| TuxExchange      | x         | x           |           |
 | YoBit            | x         | x           |           |
 | ZB.com           | wip       |             |   R       |
+| NDAX             | x         | x           | T R       |
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
@@ -70,45 +71,48 @@ You can also publish from Visual Studio (right click project, select publish), w
 
 ### Nuget
 <a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.0 ```  
+``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.3 ```  
 </a> 
 
-### Simple Example
-```
-ExchangeKrakenAPI api = new ExchangeKrakenAPI();
-ExchangeTicker ticker = api.GetTickerAsync("XXBTZUSD").Sync();
-Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
-
-// load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
-api.LoadAPIKeys("keys.bin");
-
-/// place limit order for 0.01 bitcoin at ticker.Ask USD
-ExchangeOrderResult result = api.PlaceOrderAsync(new ExchangeOrderRequest
+### Order Example
+```csharp
+public static async Task OrderExample()
 {
-    Amount = 0.01m,
-    IsBuy = true,
-    Price = ticker.Ask,
-    MarketSymbol = "XXBTZUSD"
-}).Sync();
+    ExchangeKrakenAPI api = new ExchangeKrakenAPI();
+    ExchangeTicker ticker = await api.GetTickerAsync("XXBTZUSD");
+    Logger.Info("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
 
-// Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
-//  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.
-// I've also found that Kraken tends to fail if you follow up too quickly with an order details request, so sleep a bit to give them time to get
-//  their house in order.
-System.Threading.Thread.Sleep(500);
-result = api.GetOrderDetailsAsync(result.OrderId).Sync();
+    // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
+    api.LoadAPIKeys("keys.bin");
 
-Console.WriteLine("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+    /// place limit order for 0.01 bitcoin at ticker.Ask USD
+    ExchangeOrderResult result = await api.PlaceOrderAsync(new ExchangeOrderRequest
+    {
+        Amount = 0.01m,
+        IsBuy = true,
+        Price = ticker.Ask,
+        MarketSymbol = "XXBTZUSD"
+    });
+
+    // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
+    //  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.
+    // I've also found that Kraken tends to fail if you follow up too quickly with an order details request, so sleep a bit to give them time to get
+    //  their house in order.
+    await Task.Delay(500);
+    result = await api.GetOrderDetailsAsync(result.OrderId);
+
+    Logger.Info("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
+}
 ```
 
 ### Web Socket Example
-```
-public static void Main(string[] args)
+```csharp
+public static async Task Main(string[] args)
 {
     // create a web socket connection to Binance. Note you can Dispose the socket anytime to shut it down.
     // the web socket will handle disconnects and attempt to re-connect automatically.
     ExchangeBinanceAPI b = new ExchangeBinanceAPI();
-    using (var socket = b.GetTickersWebSocket((tickers) =>
+    using (var socket = await b.GetTickersWebSocket((tickers) =>
     {
         Console.WriteLine("{0} tickers, first: {1}", tickers.Count, tickers.First());
     }))

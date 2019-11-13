@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -89,7 +89,13 @@ namespace ExchangeSharp
 
         private class ClientWebSocketImplementation : IClientWebSocketImplementation
         {
-            private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket();
+            private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket()
+            {
+	            Options =
+				{
+					Proxy = APIRequestMaker.Proxy
+				}
+            };
 
             public WebSocketState State
             {
@@ -237,10 +243,10 @@ namespace ExchangeSharp
         {
             CreateWebSocket();
 
-            // kick off message parser and message listener
-            Task.Run(MessageTask);
-            Task.Run(ReadTask);
-        }
+			// kick off message parser and message listener
+			Task.Run(MessageTask);
+			Task.Run(ReadTask);
+		}
 
         /// <summary>
         /// Close and dispose of all resources, stops the web socket and shuts it down.
@@ -249,34 +255,38 @@ namespace ExchangeSharp
         {
             if (!disposed)
             {
-                disposed = true;
-                cancellationTokenSource.Cancel();
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        if (webSocket.State == WebSocketState.Open)
-                        {
-                            if (CloseCleanly)
-                            {
-                                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
-                            }
-                            else
-                            {
-                                await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Dispose", cancellationToken);
-                            }
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // dont care
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Info(ex.ToString());
-                    }
-                });
-            }
+				Task.Run(async () =>
+				{
+					try
+					{
+						if (webSocket.State == WebSocketState.Open)
+						{
+							if (CloseCleanly)
+							{
+								await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+									"Dispose", cancellationToken);
+							}
+							else
+							{
+								await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
+									"Dispose", cancellationToken);
+							}
+						}
+						disposed = true;
+					}
+					catch (OperationCanceledException)
+					{
+						// dont care
+					}
+					catch (Exception ex)
+					{
+						Logger.Info(ex.ToString());
+					}
+					cancellationTokenSource.Cancel();
+					webSocket.Dispose();
+					messageQueue.CompleteAdding();
+				});
+			}
         }
 
         /// <summary>
@@ -312,12 +322,12 @@ namespace ExchangeSharp
                 });
                 return Task.FromResult<bool>(true);
             }
-            return Task.FromResult<bool>(false); 
+            return Task.FromResult<bool>(false);
         }
 
         private void QueueActions(params Func<IWebSocket, Task>[] actions)
         {
-            if (actions != null && actions.Length != 0)
+            if (actions != null && actions.Length != 0 && !messageQueue.IsAddingCompleted)
             {
                 Func<IWebSocket, Task>[] actionsCopy = actions;
                 messageQueue.Add((Func<Task>)(async () =>
@@ -339,8 +349,8 @@ namespace ExchangeSharp
 
         private void QueueActionsWithNoExceptions(params Func<IWebSocket, Task>[] actions)
         {
-            if (actions != null && actions.Length != 0)
-            {
+            if (actions != null && actions.Length != 0 && !messageQueue.IsAddingCompleted)
+			{
                 Func<IWebSocket, Task>[] actionsCopy = actions;
                 messageQueue.Add((Func<Task>)(async () =>
                 {
@@ -384,7 +394,6 @@ namespace ExchangeSharp
         private async Task ReadTask()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
-            TimeSpan keepAlive = webSocket.KeepAliveInterval;
             MemoryStream stream = new MemoryStream();
             WebSocketReceiveResult result;
             bool wasConnected = false;
@@ -411,7 +420,7 @@ namespace ExchangeSharp
                     // for lists, etc.
                     QueueActionsWithNoExceptions(InvokeConnected);
 
-                    while (webSocket.State == WebSocketState.Open)
+                    while (webSocket.State == WebSocketState.Open && !disposed)
                     {
                         do
                         {
@@ -420,7 +429,8 @@ namespace ExchangeSharp
                             {
                                 if (result.MessageType == WebSocketMessageType.Close)
                                 {
-                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, cancellationToken);
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+										string.Empty, new CancellationToken()); // if it's closing, then let it complete
                                     QueueActions(InvokeDisconnected);
                                 }
                                 else
@@ -429,8 +439,8 @@ namespace ExchangeSharp
                                 }
                             }
                         }
-                        while (result != null && !result.EndOfMessage);
-                        if (stream.Length != 0)
+                        while (result != null && !result.EndOfMessage && !disposed);
+                        if (stream.Length != 0 && !disposed)
                         {
                             // if text message and we are handling text messages
                             if (result.MessageType == WebSocketMessageType.Text && OnTextMessage != null)
@@ -450,11 +460,15 @@ namespace ExchangeSharp
                         }
                     }
                 }
-                catch (OperationCanceledException)
-                {
-                    // dont care
-                }
-                catch (Exception ex)
+				catch (OperationCanceledException) // includes TaskCanceledException
+				{
+					// dont care
+				}
+				catch (IOException ex)
+				{
+					Logger.Info(ex.ToString());
+				}
+				catch (Exception ex)
                 {
                     // eat exceptions, most likely a result of a disconnect, either way we will re-create the web socket
                     Logger.Info(ex.ToString());
@@ -466,7 +480,8 @@ namespace ExchangeSharp
                 }
                 try
                 {
-                    webSocket.Dispose();
+					stream.Close();
+					webSocket.Dispose();
                 }
                 catch (Exception ex)
                 {

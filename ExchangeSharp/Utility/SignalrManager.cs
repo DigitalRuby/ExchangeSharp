@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 #define HAS_SIGNALR
 
 #if HAS_SIGNALR
@@ -103,30 +103,30 @@ namespace ExchangeSharp
             /// <param name="delayMilliseconds">Delay after invoking each object[] in param, used if the server will disconnect you for too many invoke too fast</param>
             /// <param name="param">End point parameters, each array of strings is a separate call to the end point function. For no parameters, pass null.</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][] param = null)
+            public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][]? param = null)
             {
                 callback.ThrowIfNull(nameof(callback), "Callback must not be null");
 
                 SignalrManager _manager = this.manager;
                 _manager.ThrowIfNull(nameof(manager), "Manager is null");
 
-                Exception ex = null;
+                Exception? ex = null;
                 param = (param ?? new object[][] { new object[0] });
                 string functionFullName = _manager.GetFunctionFullName(functionName);
                 this.functionFullName = functionFullName;
 
-                while (!_manager.disposed)
+                while (!disposed && !_manager.disposed)
                 {
-                    await _manager.AddListener(functionName, callback, param);
-
-                    if (_manager.hubConnection.State != ConnectionState.Connected)
-                    {
-                        await Task.Delay(100);
-                        continue;
-                    }
-
                     try
                     {
+                        // performs any needed reconnect
+                        await _manager.AddListener(functionName, callback, param);
+
+                        while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
+                        {
+                            await Task.Delay(100);
+                        }
+
                         // ask for proxy after adding the listener, as the listener will force a connection if needed
                         IHubProxy _proxy = _manager.hubProxy;
                         if (_proxy == null)
@@ -141,12 +141,12 @@ namespace ExchangeSharp
                             {
                                 await Task.Delay(delayMilliseconds);
                             }
-                            bool result = await _proxy.Invoke<bool>(functionFullName, param[i]).ConfigureAwait(false);
-                            if (!result)
+                            if (!(await _proxy.Invoke<bool>(functionFullName, param[i])))
                             {
                                 throw new APIException("Invoke returned success code of false");
                             }
                         }
+                        ex = null;
                         break;
                     }
                     catch (Exception _ex)
@@ -168,7 +168,7 @@ namespace ExchangeSharp
                     }
                 }
 
-                if (ex == null)
+                if (ex == null && !disposed && !_manager.disposed)
                 {
                     this.callback = callback;
                     lock (_manager.sockets)
@@ -179,10 +179,13 @@ namespace ExchangeSharp
                     {
                         initialConnectFired = true;
 
-                        // kick off a connect event if this is the first time, the connect even can only get set after the open request is sent
-                        Task.Delay(1000).ContinueWith(async (t) => { await InvokeConnected(); }).ConfigureAwait(false).GetAwaiter();
+                        // kick off a connect event if this is the first time, the connect event can only get set after the open request is sent
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(1000); // give time for the caller to set a connected event
+                            await InvokeConnected();
+                        }).ConfigureAwait(false).GetAwaiter();
                     }
-                    return;
                 }
             }
 
@@ -222,7 +225,7 @@ namespace ExchangeSharp
                         manager.sockets.Remove(this);
                     }
                     manager.RemoveListener(functionFullName, callback);
-                    InvokeDisconnected().Sync();
+                    InvokeDisconnected().GetAwaiter();
                 }
                 catch
                 {
@@ -244,8 +247,9 @@ namespace ExchangeSharp
         {
             private IConnection connection;
             private string connectionData;
-			TimeSpan connectInterval;
-			TimeSpan keepAlive;
+			private readonly TimeSpan connectInterval;
+			private readonly TimeSpan keepAlive;
+
 			public ExchangeSharp.ClientWebSocket WebSocket { get; private set; }
 
             public override bool SupportsKeepAlive => true;
@@ -253,9 +257,9 @@ namespace ExchangeSharp
             public WebsocketCustomTransport(IHttpClient client, TimeSpan connectInterval, TimeSpan keepAlive) 
 				: base(client, "webSockets")
             {
-				this.connectInterval = connectInterval;
-				this.keepAlive = keepAlive;
                 WebSocket = new ExchangeSharp.ClientWebSocket();
+                this.connectInterval = connectInterval;
+				this.keepAlive = keepAlive;
             }
 
             ~WebsocketCustomTransport()
@@ -322,9 +326,9 @@ namespace ExchangeSharp
             private void DisposeWebSocket()
             {
                 WebSocket.Dispose();
-                WebSocket = null;
             }
 
+            /*
             private void WebSocketOnClosed()
             {
                 connection.Stop();
@@ -334,6 +338,7 @@ namespace ExchangeSharp
             {
                 connection.OnError(e);
             }
+            */
 
             private Task WebSocketOnBinaryMessageReceived(IWebSocket socket, byte[] data)
             {
@@ -361,9 +366,9 @@ namespace ExchangeSharp
         private readonly List<SignalrSocketConnection> sockets = new List<SignalrSocketConnection>();
         private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
 
-		private WebsocketCustomTransport customTransport;
-		private HubConnection hubConnection;
-        private IHubProxy hubProxy;
+		private WebsocketCustomTransport? customTransport;
+		private HubConnection? hubConnection;
+        private IHubProxy? hubProxy;
         private bool disposed;
 
 		private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
@@ -591,14 +596,21 @@ namespace ExchangeSharp
             // setup connect event
             customTransport.WebSocket.Connected += async (ws) =>
             {
-                SignalrSocketConnection[] socketsCopy;
-                lock (sockets)
+                try
                 {
-                    socketsCopy = sockets.ToArray();
+                    SignalrSocketConnection[] socketsCopy;
+                    lock (sockets)
+                    {
+                        socketsCopy = sockets.ToArray();
+                    }
+                    foreach (SignalrSocketConnection socket in socketsCopy)
+                    {
+                        await socket.InvokeConnected();
+                    }
                 }
-                foreach (SignalrSocketConnection socket in socketsCopy)
+                catch (Exception ex)
                 {
-                    await socket.InvokeConnected();
+                    Logger.Info(ex.ToString());
                 }
             };
 
@@ -631,22 +643,33 @@ namespace ExchangeSharp
                     Logger.Info(ex.ToString());
                 }
             };
-            await hubConnection.Start(autoTransport);
 
-            // get list of listeners quickly to limit lock
-            HubListener[] listeners;
-            lock (this.listeners)
+            try
             {
-                listeners = this.listeners.Values.ToArray();
-            }
+                // it's possible for the hub connection to disconnect during this code if connection is crappy
+                // so we simply catch the exception and log an info message, the disconnect/reconnect loop will
+                // catch the close and re-initiate this whole method again
+                await hubConnection.Start(autoTransport);
 
-            // re-call the end point to enable messages
-            foreach (var listener in listeners)
-            {
-                foreach (object[] p in listener.Param)
+                // get list of listeners quickly to limit lock
+                HubListener[] listeners;
+                lock (this.listeners)
                 {
-                    await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                    listeners = this.listeners.Values.ToArray();
                 }
+
+                // re-call the end point to enable messages
+                foreach (var listener in listeners)
+                {
+                    foreach (object[] p in listener.Param)
+                    {
+                        await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Info(ex.ToString());
             }
         }
 
@@ -655,8 +678,15 @@ namespace ExchangeSharp
         /// </summary>
         public void Stop()
         {
-            hubConnection.Stop(TimeSpan.FromSeconds(0.1));
-        }
+			try
+			{
+				hubConnection.Stop(TimeSpan.FromSeconds(0.1));
+			}
+			catch (NullReferenceException) 
+			{ // bug in SignalR where Stop() throws a NRE if it times out
+			  // https://github.com/SignalR/SignalR/issues/3561
+			}
+		}
 
         /// <summary>
         /// Finalizer
@@ -678,7 +708,7 @@ namespace ExchangeSharp
             disposed = true;
             try
             {
-                hubConnection.Transport.Dispose();
+                hubConnection.Transport?.Dispose();
                 hubConnection.Dispose();
             }
             catch

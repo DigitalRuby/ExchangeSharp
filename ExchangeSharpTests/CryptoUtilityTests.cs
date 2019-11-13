@@ -28,6 +28,7 @@ namespace ExchangeSharpTests
     using System.Globalization;
     using System.Security;
     using System.Security.Cryptography;
+    using System.Threading.Tasks;
 
     [TestClass]
     public class CryptoUtilityTests
@@ -226,7 +227,7 @@ namespace ExchangeSharpTests
         }
 
         [TestMethod]
-        public void RateGate()
+        public async Task RateGate()
         {
             const int timesPerPeriod = 1;
             const int ms = 100;
@@ -234,14 +235,14 @@ namespace ExchangeSharpTests
             double msMax = (double)ms * 1.5;
             double msMin = (double)ms * (1.0 / 1.5);
             RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
-            if (!gate.WaitToProceedAsync(0).Sync())
+            if (!(await gate.WaitToProceedAsync(0)))
             {
                 throw new APIException("Rate gate should have allowed immediate access to first attempt");
             }
             for (int i = 0; i < loops; i++)
             {
                 Stopwatch timer = Stopwatch.StartNew();
-                gate.WaitToProceedAsync().Sync();
+                await gate.WaitToProceedAsync();
                 timer.Stop();
 
                 if (i > 0)

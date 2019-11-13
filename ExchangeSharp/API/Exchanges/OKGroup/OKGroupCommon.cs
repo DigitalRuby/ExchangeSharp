@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 using System.Threading;
 
 // different namespace for this since we don't want this to be easily accessible publically
-namespace ExchangeSharp.OKGroup 
+namespace ExchangeSharp.OKGroup
 {
 	public abstract partial class OKGroupCommon : ExchangeAPI
 	{
@@ -31,7 +31,12 @@ namespace ExchangeSharp.OKGroup
 		/// Base URL V3 for the OK group API
 		/// </summary>
 		public abstract string BaseUrlV3 { get; set; }
-		protected abstract bool isFuturesAndSwapEnabled { get; }
+
+        /// <summary>
+        /// Are futures and swap enabled?
+        /// </summary>
+		protected abstract bool IsFuturesAndSwapEnabled { get; }
+
 		/// <summary>
 		/// China time to utc, no DST correction needed
 		/// </summary>
@@ -111,7 +116,7 @@ namespace ExchangeSharp.OKGroup
             var m = await GetMarketSymbolsMetadataAsync();
             return m.Select(x => x.MarketSymbol);
         }
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
 			/* V3 spot sample
 			[
@@ -136,7 +141,7 @@ namespace ExchangeSharp.OKGroup
 			List<ExchangeMarket> markets = new List<ExchangeMarket>();
 			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 				"/spot/v3/instruments", BaseUrlV3));
-			if (isFuturesAndSwapEnabled)
+			if (IsFuturesAndSwapEnabled)
 			{
 				parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 					"/futures/v3/instruments", BaseUrlV3));
@@ -167,32 +172,33 @@ namespace ExchangeSharp.OKGroup
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{ // V3: /api/swap/v3/instruments/BTC-USD-SWAP/ticker
-			var data = await MakeRequestOkexAsync(marketSymbol, 
+			var data = await MakeRequestOkexAsync(marketSymbol,
 				"/swap/v3/instruments/$SYMBOL$/ticker", baseUrl: BaseUrlV3);
-            return ParseTickerV3(data.Item2, data.Item1);
+            return await ParseTickerV3Async(data.Item2, data.Item1);
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
-		{// V3: /api/spot/v3/instruments/ticker (/api is already included in base URL)
+		{
+            // V3: /api/spot/v3/instruments/ticker (/api is already included in base URL)
 			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
 			parseData(await MakeRequestOkexAsync(null, "/spot/v3/instruments/ticker", BaseUrlV3));
-			if (isFuturesAndSwapEnabled)
+			if (IsFuturesAndSwapEnabled)
 			{
 				parseData(await MakeRequestOkexAsync(null, "/futures/v3/instruments/ticker", BaseUrlV3));
 				parseData(await MakeRequestOkexAsync(null, "/swap/v3/instruments/ticker", BaseUrlV3));
 			}
-			void parseData(Tuple<JToken, string> data)
+			async void parseData(Tuple<JToken, string> data)
 			{
 				foreach (JToken token in data.Item1)
 				{
 					var marketSymbol = token["instrument_id"].ToStringInvariant();
-					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ParseTickerV3(marketSymbol, token)));
+					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerV3Async(marketSymbol, token)));
 				}
 			}
             return tickers;
         }
 
-        protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			/*
 			 spot request:
@@ -214,26 +220,26 @@ namespace ExchangeSharp.OKGroup
 							"timestamp": "2018-12-17T09:48:41.903Z",
 							"trade_id": "126518511769403393"
 					  }]
-				 } 
+				 }
 			 */
-			return ConnectWebSocketOkex(async (_socket) =>
-				{
-					await AddMarketSymbolsToChannel(_socket, "/trade:{0}", marketSymbols);
-				}, async (_socket, symbol, sArray, token) =>
-				{
-					ExchangeTrade trade = token.ParseTrade(amountKey: "size", priceKey: "price",
-						typeKey: "side", timestampKey: "timestamp",
-						timestampType: TimestampType.Iso8601, idKey: "trade_id");
-					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-				});
+			return await ConnectWebSocketOkexAsync(async (_socket) =>
+			{
+				await AddMarketSymbolsToChannel(_socket, "/trade:{0}", marketSymbols);
+			}, async (_socket, symbol, sArray, token) =>
+			{
+				ExchangeTrade trade = token.ParseTrade(amountKey: "size", priceKey: "price",
+					typeKey: "side", timestampKey: "timestamp",
+					timestampType: TimestampType.Iso8601, idKey: "trade_id");
+				await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+			});
         }
 
-        protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
 			/*
 			 request:
 			{"op": "subscribe", "args": ["swap/depth:BTC-USD-SWAP"]}
-			
+
 			 response-snapshot:
 			 {
 			    "table": "swap/depth",
@@ -263,10 +269,10 @@ namespace ExchangeSharp.OKGroup
 			        "checksum": -1200119424
 			    }]
 			}
-			 
+
 			 */
 
-			return ConnectWebSocketOkex(async (_socket) =>
+			return await ConnectWebSocketOkexAsync(async (_socket) =>
             {
                 marketSymbols = await AddMarketSymbolsToChannel(_socket, "/depth:{0}", marketSymbols);
             }, (_socket, symbol, sArray, token) =>
@@ -281,7 +287,7 @@ namespace ExchangeSharp.OKGroup
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             var token = await MakeRequestOkexAsync(marketSymbol, $"/spot/v3/instruments/{marketSymbol}/book", BaseUrlV3);
-            
+
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token.Item1, maxCount: maxCount);
         }
 
@@ -342,8 +348,8 @@ namespace ExchangeSharp.OKGroup
 				"funds": {
 				  "borrow": {
 					"ssc": "0",
-                
-                
+
+
 					"xlm": "0",
 					"swftc": "0",
 					"hmc": "0"
@@ -356,7 +362,7 @@ namespace ExchangeSharp.OKGroup
 				  },
 				  "freezed": {
 					"ssc": "0",
-                
+
 					"xlm": "0",
 					"swftc": "0",
 					"hmc": "0"
@@ -407,7 +413,7 @@ namespace ExchangeSharp.OKGroup
                 payload["type"] += "_market";
                 if (order.IsBuy)
                 {
-                    // for market buy orders, the price is to total amount you want to buy, 
+                    // for market buy orders, the price is to total amount you want to buy,
                     // and it must be higher than the current price of 0.01 BTC (minimum buying unit), 0.1 LTC or 0.01 ETH
                     payload["price"] = outputQuantity;
                 }
@@ -483,19 +489,19 @@ namespace ExchangeSharp.OKGroup
 
         #region Private Functions
 
-        private ExchangeTicker ParseTicker(string symbol, JToken data)
+        private async Task<ExchangeTicker> ParseTickerAsync(string symbol, JToken data)
         {
             //{"date":"1518043621","ticker":{"high":"0.01878000","vol":"1911074.97335534","last":"0.01817627","low":"0.01813515","buy":"0.01817626","sell":"0.01823447"}}
-            return this.ParseTicker(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSeconds);
+            return await this.ParseTickerAsync(data["ticker"], symbol, "sell", "buy", "last", "vol", null, "date", TimestampType.UnixSeconds);
         }
 
-		private ExchangeTicker ParseTickerV2(string symbol, JToken ticker)
+		private async Task<ExchangeTicker> ParseTickerV2Async(string symbol, JToken ticker)
 		{
 			// {"buy":"0.00001273","change":"-0.00000009","changePercentage":"-0.70%","close":"0.00001273","createdDate":1527355333053,"currencyId":535,"dayHigh":"0.00001410","dayLow":"0.00001174","high":"0.00001410","inflows":"19.52673814","last":"0.00001273","low":"0.00001174","marketFrom":635,"name":{},"open":"0.00001282","outflows":"52.53715678","productId":535,"sell":"0.00001284","symbol":"you_btc","volume":"5643177.15601228"}
-			return this.ParseTicker(ticker, symbol, "sell", "buy", "last", "volume", null, "createdDate", TimestampType.UnixMilliseconds);
+			return await this.ParseTickerAsync(ticker, symbol, "sell", "buy", "last", "volume", null, "createdDate", TimestampType.UnixMilliseconds);
 		}
 
-		private ExchangeTicker ParseTickerV3(string symbol, JToken ticker)
+		private async Task<ExchangeTicker> ParseTickerV3Async(string symbol, JToken ticker)
 		{
 			/*
 			[
@@ -532,8 +538,8 @@ namespace ExchangeSharp.OKGroup
 				}
 			]
 			*/
-			return this.ParseTicker(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last", 
-				baseVolumeKey: "base_volume_24h", quoteVolumeKey: "quote_volume_24h", 
+			return await this.ParseTickerAsync(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last",
+				baseVolumeKey: "base_volume_24h", quoteVolumeKey: "quote_volume_24h",
 				timestampKey: "timestamp", timestampType: TimestampType.Iso8601);
 		}
 
@@ -633,10 +639,10 @@ namespace ExchangeSharp.OKGroup
             return result;
         }
 
-        private IWebSocket ConnectWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        private Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
 			Timer pingTimer = null;
-            return ConnectWebSocket(url: string.Empty, messageCallback: async (_socket, msg) =>
+            return ConnectWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
             {
 				// https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
 				// All the messages returning from WebSocket API will be optimized by Deflate compression
@@ -683,9 +689,9 @@ namespace ExchangeSharp.OKGroup
 			});
         }
 
-        private IWebSocket ConnectPrivateWebSocketOkex(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        private Task<IWebSocket> ConnectPrivateWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
-            return ConnectWebSocketOkex(async (_socket) =>
+            return ConnectWebSocketOkexAsync(async (_socket) =>
             {
                 await _socket.SendMessageAsync(GetAuthForWebSocket());
             }, async (_socket, symbol, sArray, token) =>
@@ -705,7 +711,7 @@ namespace ExchangeSharp.OKGroup
         {
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = GetMarketSymbolsAsync().Sync().ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			var spotSymbols = marketSymbols.Where(ms => ms.Split('-').Length == 2);
 			var futureSymbols = marketSymbols.Where(

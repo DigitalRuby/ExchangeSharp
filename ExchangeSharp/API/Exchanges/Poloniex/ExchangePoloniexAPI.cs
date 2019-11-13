@@ -226,7 +226,7 @@ namespace ExchangeSharp
             }
         }
 
-        private ExchangeTicker ParseTickerWebSocket(string symbol, JToken token)
+        private async Task<ExchangeTicker> ParseTickerWebSocketAsync(string symbol, JToken token)
         {
             /*
             last: args[1],
@@ -239,7 +239,7 @@ namespace ExchangeSharp
             high24hr: args[8],
             low24hr: args[9]
             */
-            return this.ParseTicker(token, symbol, 2, 3, 1, 5, 6);
+            return await this.ParseTickerAsync(token, symbol, 2, 3, 1, 5, 6);
         }
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -302,7 +302,7 @@ namespace ExchangeSharp
             return symbols;
         }
 
-        protected override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
             //https://poloniex.com/public?command=returnOrderBook&currencyPair=all&depth=0
             /*
@@ -370,16 +370,16 @@ namespace ExchangeSharp
                 string marketSymbol = prop.Name;
                 JToken values = prop.Value;
                 //NOTE: Poloniex uses the term "caseVolume" when referring to the QuoteCurrencyVolume
-                ExchangeTicker ticker = this.ParseTicker(values, marketSymbol, "lowestAsk", "highestBid", "last", "quoteVolume", "baseVolume", idKey: "id");
+                ExchangeTicker ticker = await this.ParseTickerAsync(values, marketSymbol, "lowestAsk", "highestBid", "last", "quoteVolume", "baseVolume", idKey: "id");
                 tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker));
             }
             return tickers;
         }
 
-        protected override IWebSocket OnGetTickersWebSocket(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token[0].ConvertInvariant<int>() == 1002)
@@ -389,11 +389,10 @@ namespace ExchangeSharp
                     {
                         callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
                         {
-                            new KeyValuePair<string, ExchangeTicker>(symbol, ParseTickerWebSocket(symbol, array))
+                            new KeyValuePair<string, ExchangeTicker>(symbol, await ParseTickerWebSocketAsync(symbol, array))
                         });
                     }
                 }
-                return Task.CompletedTask;
             }, async (_socket) =>
             {
                 var tickers = await GetTickersAsync();
@@ -406,16 +405,17 @@ namespace ExchangeSharp
             });
         }
 
-		protected override IWebSocket OnGetTradesWebSocket(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-			return ConnectWebSocket(string.Empty, async (_socket, msg) =>
+			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				int msgId = token[0].ConvertInvariant<int>();
 
 				if (msgId == 1010 || token.Count() == 2) // "[7,2]"
-				{ // this is a heartbeat message
+				{
+                    // this is a heartbeat message
 					return;
 				}
 
@@ -463,10 +463,10 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override IWebSocket OnGetDeltaOrderBookWebSocket(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-            return ConnectWebSocket(string.Empty, (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 int msgId = token[0].ConvertInvariant<int>();
@@ -974,7 +974,7 @@ namespace ExchangeSharp
                 return true;
             }
 
-            // Cannot find currency in master list. 
+            // Cannot find currency in master list.
             // Stay safe and don't return a possibly half-baked deposit address missing a tag
             return false;
 

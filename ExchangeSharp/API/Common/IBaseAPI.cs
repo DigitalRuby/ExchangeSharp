@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -38,18 +38,18 @@ namespace ExchangeSharp
         /// <summary>
         /// Optional public API key
         /// </summary>
-        SecureString PublicApiKey { get; set; }
+        SecureString? PublicApiKey { get; set; }
 
         /// <summary>
         /// Optional private API key
         /// </summary>
-        SecureString PrivateApiKey { get; set; }
+        SecureString? PrivateApiKey { get; set; }
 
         /// <summary>
         /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
         /// Most exchanges do not require this, but Coinbase is an example of one that does
         /// </summary>
-        System.Security.SecureString Passphrase { get; set; }
+        System.Security.SecureString? Passphrase { get; set; }
 
         /// <summary>
         /// Request timeout
@@ -92,7 +92,7 @@ namespace ExchangeSharp
         /// <param name="privateApiKey">Private Api Key</param>
         /// <param name="passPhrase">Pass phrase, null for none</param>
         /// </summary>
-        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string passPhrase = null);
+        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string? passPhrase = null);
 
         /// <summary>
         /// Generate a nonce
@@ -109,7 +109,7 @@ namespace ExchangeSharp
         /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
         /// <param name="requestMethod">Request method or null for default</param>
         /// <returns>Result decoded from JSON response</returns>
-        Task<T> MakeJsonRequestAsync<T>(string url, string baseUrl = null, Dictionary<string, object> payload = null, string requestMethod = null);
+        Task<T> MakeJsonRequestAsync<T>(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? requestMethod = null);
 
         #endregion Methods
     }

@@ -20,7 +20,7 @@ namespace ExchangeSharp
 
         static ExchangeBitBankAPI()
         {
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBinanceAPI)] = new KeyValuePair<string, string>[]
+            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBitBankAPI)] = new KeyValuePair<string, string>[]
             {
                 new KeyValuePair<string, string>("BCC", "BCH")
             };
@@ -40,7 +40,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
         {
             JToken token = await MakeJsonRequestAsync<JToken>($"/{marketSymbol}/ticker");
-            return ParseTicker(marketSymbol, token);
+            return await ParseTickerAsync(marketSymbol, token);
         }
 
         // Bitbank supports endpoint for getting all rates in one request, Using this endpoint is faster then ExchangeAPI's default implementation
@@ -53,7 +53,7 @@ namespace ExchangeSharp
             var result = new List<KeyValuePair<string, ExchangeTicker>>();
             foreach (var symbol in symbols)
             {
-                var data = token[GlobalMarketSymbolToExchangeMarketSymbol(symbol)];
+                var data = token[GlobalMarketSymbolToExchangeMarketSymbolAsync(symbol)];
                 var ticker = new ExchangeTicker()
                 {
                     Ask = data["sell"].ConvertInvariant<decimal>(),
@@ -207,8 +207,10 @@ namespace ExchangeSharp
             payload2.Add("amount", withdrawalRequest.Amount);
             payload2.Add("uuid", uuid);
             JToken token2 = await MakeJsonRequestAsync<JToken>($"/user/request_withdrawal", baseUrl: BaseUrlPrivate, payload: payload2, requestMethod: "POST");
-            var resp = new ExchangeWithdrawalResponse();
-            resp.Id = token2["txid"].ToStringInvariant();
+            var resp = new ExchangeWithdrawalResponse
+            {
+                Id = token2["txid"].ToStringInvariant()
+            };
             var status = token2["status"].ToStringInvariant();
             resp.Success = status != "REJECTED" && status != "CANCELED";
             resp.Message = "{" + $"label:{token2["label"]}, fee:{token2["fee"]}" + "}";
@@ -305,8 +307,11 @@ namespace ExchangeSharp
             }
             return;
         }
-        private ExchangeTicker ParseTicker(string symbol, JToken token)
-            => this.ParseTicker(token, symbol, "sell", "buy", "last", "vol", quoteVolumeKey: null, "timestamp", TimestampType.UnixMilliseconds);
+
+        private async Task<ExchangeTicker> ParseTickerAsync(string symbol, JToken token)
+        {
+            return await this.ParseTickerAsync(token, symbol, "sell", "buy", "last", "vol", quoteVolumeKey: null, "timestamp", TimestampType.UnixMilliseconds);
+        }
 
         private string FormatPeriod(int ps)
         {
@@ -382,13 +387,15 @@ namespace ExchangeSharp
         // 2. GetOrder, PostOrder
         private ExchangeOrderResult ParseOrderCore(JToken token)
         {
-            var res = new ExchangeOrderResult();
-            res.OrderId = token["order_id"].ToStringInvariant();
-            res.MarketSymbol = token["pair"].ToStringInvariant();
-            res.IsBuy = token["side"].ToStringInvariant() == "buy";
+            var res = new ExchangeOrderResult
+            {
+                OrderId = token["order_id"].ToStringInvariant(),
+                MarketSymbol = token["pair"].ToStringInvariant(),
+                IsBuy = token["side"].ToStringInvariant() == "buy"
+            };
             res.Fees = token["type"].ToStringInvariant() == "limit" ? MakerFee * res.Amount : TakerFee * res.Amount;
             res.Price = token["price"].ConvertInvariant<decimal>();
-            res.FillDate = token["executed_at"] == null ? default(DateTime) : token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
+            res.FillDate = token["executed_at"] == null ? default : token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
             res.FeesCurrency = res.MarketSymbol.Substring(0, 3);
             return res;
         }

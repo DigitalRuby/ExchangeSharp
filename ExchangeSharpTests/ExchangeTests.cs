@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -33,31 +33,40 @@ namespace ExchangeSharpTests
         /// Loop through all exchanges, get a json string for all symbols
         /// </summary>
         /// <returns></returns>
-        private string GetAllSymbolsJson()
+        private async Task<string> GetAllSymbolsJsonAsync()
         {
             Dictionary<string, string[]> allSymbols = new Dictionary<string, string[]>();
-            Parallel.ForEach(ExchangeAPI.GetExchangeAPIs(), (api) =>
+            List<Task> tasks = new List<Task>();
+            foreach (ExchangeAPI api in ExchangeAPI.GetExchangeAPIs())
             {
-                try
+                tasks.Add(Task.Run(async () =>
                 {
-                    lock (allSymbols)
+                    try
                     {
-                        allSymbols[api.Name] = api.GetMarketSymbolsAsync().Sync().ToArray();
+                        string[] symbols = (await api.GetMarketSymbolsAsync()).ToArray();
+                        lock (allSymbols)
+                        {
+                            allSymbols[api.Name] = symbols;
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex);
-                }
-            });
+                    catch (NotImplementedException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to get symbols for {0}, error: {1}", api, ex);
+                    }
+                }));
+            }
+            await Task.WhenAll(tasks);
             return JsonConvert.SerializeObject(allSymbols);
         }
 
         [TestMethod]
-        public void GlobalSymbolTest()
+        public async Task GlobalSymbolTest()
         {
-            // if tests fail, uncomment this and add replace Resources.AllSymbolsJson
-            // string allSymbolsJson = GetAllSymbolsJson(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
+            // if tests fail, uncomment this and it will save a new test file
+            // string allSymbolsJson = GetAllSymbolsJsonAsync().Sync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
 
             string globalMarketSymbol = "BTC-ETH";
             string globalMarketSymbolAlt = "KRW-BTC"; // WTF Bitthumb...
@@ -69,15 +78,16 @@ namespace ExchangeSharpTests
                 try
                 {
                     if (api is ExchangeUfoDexAPI || api is ExchangeOKExAPI || api is ExchangeHitBTCAPI || api is ExchangeKuCoinAPI ||
-                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI)
+                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI || api is ExchangeNDAXAPI || api is ExchangeBL3PAPI ||
+						api is ExchangeBinanceUSAPI || api is ExchangeBinanceDEXAPI || api is ExchangeBitMEXAPI)
                     {
                         // WIP
                         continue;
                     }
 
                     bool isBithumb = (api.Name == ExchangeName.Bithumb);
-                    string exchangeMarketSymbol = api.GlobalMarketSymbolToExchangeMarketSymbol(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);
-                    string globalMarketSymbol2 = api.ExchangeMarketSymbolToGlobalMarketSymbol(exchangeMarketSymbol);
+                    string exchangeMarketSymbol = await api.GlobalMarketSymbolToExchangeMarketSymbolAsync(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);
+                    string globalMarketSymbol2 = await api.ExchangeMarketSymbolToGlobalMarketSymbolAsync(exchangeMarketSymbol);
                     if ((!isBithumb && globalMarketSymbol2.EndsWith("-BTC")) ||
                         globalMarketSymbol2.EndsWith("-USD") ||
                         globalMarketSymbol2.EndsWith("-USDT"))
@@ -92,7 +102,12 @@ namespace ExchangeSharpTests
                                 "then apply this new string to Resources.AllSymbolsJson");
                         }
                         string[] symbols = allSymbols[api.Name];
-                        Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
+
+						// BL3P does not have usd
+						if (api.Name != ExchangeName.BL3P)
+						{
+							Assert.IsTrue(symbols.Contains(exchangeMarketSymbol), "Symbols does not contain exchange symbol");
+						}
                     }
                     catch
                     {

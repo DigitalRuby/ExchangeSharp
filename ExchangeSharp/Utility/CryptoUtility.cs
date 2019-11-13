@@ -9,7 +9,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#nullable enable
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -34,9 +34,9 @@ namespace ExchangeSharp
     /// </summary>
     public static class CryptoUtility
     {
-        private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-        private static readonly DateTime unixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
-        private static readonly Encoding utf8EncodingNoPrefix = new UTF8Encoding(false, true);
+        internal static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+        internal static readonly DateTime UnixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+        internal static readonly Encoding Utf8EncodingNoPrefix = new UTF8Encoding(false, true);
 
         private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
 
@@ -72,7 +72,7 @@ namespace ExchangeSharp
         /// <param name="obj">Object</param>
         /// <param name="name">Parameter name</param>
         /// <param name="message">Message</param>
-        public static void ThrowIfNull(this object obj, string name, string message = null)
+        public static void ThrowIfNull(this object obj, string? name, string? message = null)
         {
             if (obj == null)
             {
@@ -86,7 +86,7 @@ namespace ExchangeSharp
         /// <param name="obj">Object</param>
         /// <param name="name">Parameter name</param>
         /// <param name="message">Message</param>
-        public static void ThrowIfNullOrWhitespace(this string obj, string name, string message = null)
+        public static void ThrowIfNullOrWhitespace(this string obj, string name, string? message = null)
         {
             if (string.IsNullOrWhiteSpace(obj))
             {
@@ -193,7 +193,7 @@ namespace ExchangeSharp
             {
                 return defaultValue;
             }
-            JValue jValue = obj as JValue;
+            JValue? jValue = obj as JValue;
             if (jValue != null && jValue.Value == null)
             {
                 return defaultValue;
@@ -215,7 +215,7 @@ namespace ExchangeSharp
             {
                 return defaultValue;
             }
-            JValue jValue = obj as JValue;
+            JValue? jValue = obj as JValue;
             if (jValue != null && jValue.Value == null)
             {
                 return defaultValue;
@@ -247,7 +247,7 @@ namespace ExchangeSharp
             }
             return result;
         }
-		
+
 		/// <summary>
 		/// Converts a hex string to a byte array
 		/// </summary>
@@ -259,6 +259,20 @@ namespace ExchangeSharp
 				.Select(x => Convert
 				.ToByte(hex.Substring(x * 2, 2), 16))
 				.ToArray();
+		}
+
+		public static string ToHexString(this byte[] bytes)
+		{
+			var sb = new StringBuilder();
+
+			// Loop through each byte of the hashed data
+			// and format each one as a hexadecimal string.
+			for (int i = 0; i < bytes.Length; i++)
+			{
+				sb.Append(bytes[i].ToString("x2"));
+			}
+
+			return sb.ToString();
 		}
 
 		/// <summary>
@@ -289,7 +303,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString</param>
         /// <returns>Binary data</returns>
-        public static byte[] ToUnsecureBytesUTF8(this SecureString s)
+        public static byte[]? ToUnsecureBytesUTF8(this SecureString? s)
         {
             if (s == null)
             {
@@ -303,7 +317,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="s">SecureString in base64 format</param>
         /// <returns>Binary data</returns>
-        public static byte[] ToBytesBase64Decode(this SecureString s)
+        public static byte[]? ToBytesBase64Decode(this SecureString? s)
         {
             if (s == null)
             {
@@ -342,7 +356,7 @@ namespace ExchangeSharp
             {
                 return null;
             }
-            return utf8EncodingNoPrefix.GetBytes(s);
+            return Utf8EncodingNoPrefix.GetBytes(s);
         }
 
         /// <summary>
@@ -359,7 +373,7 @@ namespace ExchangeSharp
                 return null;
             }
             length = (length <= 0 ? bytes.Length : length);
-            return utf8EncodingNoPrefix.GetString(bytes, index, length);
+            return Utf8EncodingNoPrefix.GetString(bytes, index, length);
         }
 
         /// <summary>
@@ -545,7 +559,7 @@ namespace ExchangeSharp
         /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeSeconds(this double unixTimeStampSeconds)
         {
-            return unixEpoch.AddSeconds(unixTimeStampSeconds);
+            return UnixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
         /// <summary>
@@ -555,7 +569,7 @@ namespace ExchangeSharp
         /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeSeconds(this long unixTimeStampSeconds)
         {
-            return unixEpoch.AddSeconds(unixTimeStampSeconds);
+            return UnixEpoch.AddSeconds(unixTimeStampSeconds);
         }
 
         /// <summary>
@@ -565,7 +579,7 @@ namespace ExchangeSharp
         /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampLocalToDateTimeSeconds(this double unixTimeStampSeconds)
         {
-            return unixEpochLocal.AddSeconds(unixTimeStampSeconds).ToUniversalTime();
+            return UnixEpochLocal.AddSeconds(unixTimeStampSeconds).ToUniversalTime();
         }
 
         /// <summary>
@@ -575,7 +589,7 @@ namespace ExchangeSharp
         /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
-            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+            return UnixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
 
         /// <summary>
@@ -585,7 +599,7 @@ namespace ExchangeSharp
         /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
         {
-            return unixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
+            return UnixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
 
         /// <summary>
@@ -595,7 +609,7 @@ namespace ExchangeSharp
         /// <returns>Local DateTime</returns>
         public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
         {
-            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
+            return UnixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
         }
 
         /// <summary>
@@ -605,7 +619,7 @@ namespace ExchangeSharp
         /// <returns>Local DateTime</returns>
         public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
         {
-            return unixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
+            return UnixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
         }
 
 		/// <summary>
@@ -615,7 +629,7 @@ namespace ExchangeSharp
 		/// <returns>UTC DateTime</returns>
 		public static DateTime UnixTimeStampToDateTimeMicroseconds(this long unixTimeStampMicroseconds)
 		{
-			return unixEpoch.AddTicks(unixTimeStampMicroseconds * 10);
+			return UnixEpoch.AddTicks(unixTimeStampMicroseconds * 10);
 		}
 
         /// <summary>
@@ -625,7 +639,7 @@ namespace ExchangeSharp
         /// <returns>UTC DateTime</returns>
         public static DateTime UnixTimeStampToDateTimeNanoseconds(this double unixTimeStampNanoseconds)
         {
-            return unixEpoch.AddTicks((long)unixTimeStampNanoseconds / 100);
+            return UnixEpoch.AddTicks((long)unixTimeStampNanoseconds / 100);
         }
 
 		/// <summary>
@@ -635,7 +649,7 @@ namespace ExchangeSharp
 		/// <returns>UTC DateTime</returns>
 		public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
 		{
-			return unixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
+			return UnixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
 		}
 
 		/// <summary>
@@ -649,7 +663,7 @@ namespace ExchangeSharp
             {
                 dt = dt.ToUniversalTime();
             }
-            return (dt - unixEpoch).TotalSeconds;
+            return (dt - UnixEpoch).TotalSeconds;
         }
 
         /// <summary>
@@ -663,7 +677,7 @@ namespace ExchangeSharp
             {
                 dt = dt.ToUniversalTime();
             }
-            return (dt - unixEpoch).TotalMilliseconds;
+            return (dt - UnixEpoch).TotalMilliseconds;
         }
 
         /// <summary>
@@ -962,10 +976,15 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-            var hmac = new HMACSHA512(key.ToBytesUTF8());
-            var messagebyte = message.ToBytesUTF8();
-            var hashmessage = hmac.ComputeHash(messagebyte);
-            return BitConverter.ToString(hashmessage).Replace("-", "");
+	        byte[] hashmessage;
+
+	        using (var hmac = new HMACSHA512(key.ToBytesUTF8()))
+	        {
+		        var messagebyte = message.ToBytesUTF8();
+		        hashmessage = hmac.ComputeHash(messagebyte);
+	        }
+
+	        return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -976,10 +995,14 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, byte[] key)
         {
-            var hmac = new HMACSHA512(key);
-            var messagebyte = message.ToBytesUTF8();
-            var hashmessage = hmac.ComputeHash(messagebyte);
-            return BitConverter.ToString(hashmessage).Replace("-", "");
+	        byte[] hashmessage;
+	        using (var hmac = new HMACSHA512(key))
+	        {
+		        var messagebyte = message.ToBytesUTF8();
+		        hashmessage = hmac.ComputeHash(messagebyte);
+	        }
+
+	        return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -1075,37 +1098,39 @@ namespace ExchangeSharp
         /// <param name="password">Password</param>
         /// <param name="salt">Salt</param>
         /// <returns>Decrypted data</returns>
-        public static byte[] AesDecryption(byte[] input, byte[] password, byte[] salt)
+        public static byte[]? AesDecryption(byte[] input, byte[] password, byte[] salt)
         {
             if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
             {
                 return null;
             }
             MemoryStream decrypted = new MemoryStream();
-            var AES = new RijndaelManaged()
+            using (RijndaelManaged AES = new RijndaelManaged()
             {
                 KeySize = 256,
                 BlockSize = 128,
                 Padding = PaddingMode.PKCS7,
-            };
-            var key = new Rfc2898DeriveBytes(password, salt, 1024);
-            AES.Key = key.GetBytes(AES.KeySize / 8);
-            AES.IV = key.GetBytes(AES.BlockSize / 8);
-            AES.Mode = CipherMode.CBC;
-            MemoryStream encrypted = new MemoryStream(input);
-            byte[] saltMatch = new byte[salt.Length];
-            if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
+            })
             {
-                throw new InvalidOperationException("Invalid salt");
+                var key = new Rfc2898DeriveBytes(password, salt, 1024);
+                AES.Key = key.GetBytes(AES.KeySize / 8);
+                AES.IV = key.GetBytes(AES.BlockSize / 8);
+                AES.Mode = CipherMode.CBC;
+                MemoryStream encrypted = new MemoryStream(input);
+                byte[] saltMatch = new byte[salt.Length];
+                if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
+                {
+                    throw new InvalidOperationException("Invalid salt");
+                }
+                var cs = new CryptoStream(encrypted, AES.CreateDecryptor(), CryptoStreamMode.Read);
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = cs.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    decrypted.Write(buffer, 0, count);
+                }
+                return decrypted.ToArray();
             }
-            var cs = new CryptoStream(encrypted, AES.CreateDecryptor(), CryptoStreamMode.Read);
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = cs.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                decrypted.Write(buffer, 0, count);
-            }
-            return decrypted.ToArray();
         }
 
         /// <summary>
@@ -1192,23 +1217,21 @@ namespace ExchangeSharp
         /// <returns>Protected data</returns>
         public static SecureString[] LoadProtectedStringsFromFile(string path)
         {
-            byte[] bytes = File.ReadAllBytes(path);
+            var bytes = File.ReadAllBytes(path);
 
             // while unprotectedBytes is populated, app is vulnerable - we clear this array ASAP to remove sensitive data from memory
-            byte[] unprotectedBytes = DataProtector.Unprotect(bytes);
+            var unprotectedBytes = DataProtector.Unprotect(bytes);
 
-            MemoryStream memory = new MemoryStream(unprotectedBytes);
-            BinaryReader reader = new BinaryReader(memory, Encoding.UTF8);
-            SecureString current;
-            int len;
-            List<SecureString> strings = new List<SecureString>();
+            using var memory = new MemoryStream(unprotectedBytes);
+            using var reader = new BinaryReader(memory, Encoding.UTF8);
+            var strings = new List<SecureString>();
 
             while (memory.Position != memory.Length)
             {
                 // copy char by char into secure string to avoid making additional string copies of sensitive data
-                current = new SecureString();
+                var current = new SecureString();
                 strings.Add(current);
-                len = reader.ReadInt32();
+                var len = reader.ReadInt32();
                 while (len-- > 0)
                 {
                     current.AppendChar(reader.ReadChar());
@@ -1228,7 +1251,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="path">Path to save to</param>
         /// <param name="strings">Strings to save.</param>
-        /// <example><![CDATA[ 
+        /// <example><![CDATA[
         /// CryptoUtility.SaveUnprotectedStringsToFile("test.bin", new string[] { "my super secret user name", "my super secret password with a ❤heart" });
         /// SecureString[] secure = CryptoUtility.LoadProtectedStringsFromFile("test.bin");
         /// string s;
@@ -1317,7 +1340,7 @@ namespace ExchangeSharp
 
         /// <summary>Calculates the precision allowed based on the number of decimal points in a number.</summary>
         /// <param name="numberWithDecimals">The number on which to count decimal points.</param>
-        /// <returns>A number indicating how many digits are after the decimal point. 
+        /// <returns>A number indicating how many digits are after the decimal point.
         /// For example, 5 zeroes after the decimal would indicate a price step size of 0.00001</returns>
         public static decimal CalculatePrecision(string numberWithDecimals)
         {
@@ -1332,7 +1355,8 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Make a task execute synchronously
+        /// Make a task execute synchronously - do not call this from the UI thread or it will lock up the application
+        /// You should almos always use async / await instead
         /// </summary>
         /// <param name="task">Task</param>
         public static void Sync(this Task task)
@@ -1341,7 +1365,8 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Make a task execute synchronously
+        /// Make a task execute synchronously - do not call this from the UI thread or it will lock up the application
+        /// You should almos always use async / await instead
         /// </summary>
         /// <param name="task">Task</param>
         /// <returns>Result</returns>
@@ -1360,7 +1385,7 @@ namespace ExchangeSharp
         /// <param name="method">Method implementation</param>
         /// <param name="arguments">Function arguments - function name and then param name, value, name, value, etc.</param>
         /// <returns></returns>
-        public static async Task<T> CacheMethod<T>(this ICache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object[] arguments) where T : class
+        public static async Task<T> CacheMethod<T>(this ICache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object?[] arguments) where T : class
         {
             await new SynchronizationContextRemover();
             methodCachePolicy.ThrowIfNull(nameof(methodCachePolicy));
@@ -1368,11 +1393,11 @@ namespace ExchangeSharp
             {
                 throw new ArgumentException("Must pass function name and then name and value of each argument");
             }
-            string methodName = arguments[0].ToStringInvariant();
+            string methodName = (arguments[0] ?? string.Empty).ToStringInvariant();
             string cacheKey = methodName;
             for (int i = 1; i < arguments.Length;)
             {
-                cacheKey += "|" + arguments[i++].ToStringInvariant() + "=" + arguments[i++].ToStringInvariant("(null)");
+                cacheKey += "|" + (arguments[i++] ?? string.Empty).ToStringInvariant() + "=" + (arguments[i++] ?? string.Empty).ToStringInvariant("(null)");
             }
             if (methodCachePolicy.TryGetValue(methodName, out TimeSpan cacheTime))
             {
@@ -1391,7 +1416,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Utf-8 encoding with no prefix bytes
         /// </summary>
-        public static Encoding UTF8EncodingNoPrefix { get { return utf8EncodingNoPrefix; } }
+        public static Encoding UTF8EncodingNoPrefix { get { return Utf8EncodingNoPrefix; } }
 
         /// <summary>
         /// Return CryptoUtility.UtcNow or override if SetDateTimeUtcNowFunc has been called
