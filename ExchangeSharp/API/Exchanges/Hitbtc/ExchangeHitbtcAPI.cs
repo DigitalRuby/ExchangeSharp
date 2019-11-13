@@ -393,7 +393,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in result)
                 {
-                    if (String.IsNullOrWhiteSpace(currency) || token["currency"].ToStringInvariant().Equals(currency))
+                    if (string.IsNullOrWhiteSpace(currency) || token["currency"].ToStringInvariant().Equals(currency))
                     {
                         ExchangeTransaction transaction = new ExchangeTransaction
                         {
