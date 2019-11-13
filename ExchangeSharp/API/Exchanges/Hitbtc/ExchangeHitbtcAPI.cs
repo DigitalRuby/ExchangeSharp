@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -384,7 +384,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="currency"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
+        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string? currency)
         {
             List<ExchangeTransaction> transactions = new List<ExchangeTransaction>();
             // [ {"id": "6a2fb54d-7466-490c-b3a6-95d8c882f7f7","index": 20400458,"currency": "ETH","amount": "38.616700000000000000000000","fee": "0.000880000000000000000000", "address": "0xfaEF4bE10dDF50B68c220c9ab19381e20B8EEB2B", "hash": "eece4c17994798939cea9f6a72ee12faa55a7ce44860cfb95c7ed71c89522fe8","status": "pending","type": "payout", "createdAt": "2017-05-18T18:05:36.957Z", "updatedAt": "2017-05-18T19:21:05.370Z" }, ... ]
@@ -393,7 +393,7 @@ namespace ExchangeSharp
             {
                 foreach (JToken token in result)
                 {
-                    if (token["currency"].ToStringInvariant().Equals(currency))
+                    if (String.IsNullOrEmpty(currency) || token["currency"].ToStringInvariant().Equals(currency))
                     {
                         ExchangeTransaction transaction = new ExchangeTransaction
                         {
