@@ -15,8 +15,9 @@ Please follow these coding guidelines...
   - Curly braces on separate lines.
   - Wrap if, else if, and any loops or control logic with curly braces. Avoid `if (something) doSomething();` on same line or next line without curly braces.
   - Append 'Async' to the end of the name of any method returning a Task - except for unit and integration test methods.
-  - Avoid using `.Sync()` or `.RunSynchronously()` - all code should use Tasks and/or async / await.
-
+  - Avoid using `.Sync()` or `.RunSynchronously()` - all code should use Tasks and/or async / await. Exception would be console or other non-library projects.
+- Avoid `ConfigureAwait(false)`. Most API methods are wrapped by a synchronization context remover, so this should not be necessary in almost all cases.
+ 
 When creating a new Exchange API, please do the following:
 - For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange. Use node.js in Visual Studio to debug through the code.
 - See ```ExchangeAPIDefinitions.cs``` for all possible methods that can be overriden to make an exchange, along with adding the name to the ExchangeName class. Great starting point to copy/paste as your new Exchange...API.cs file.
