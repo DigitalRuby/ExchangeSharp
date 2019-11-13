@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.2;net472</TargetFrameworks>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <LangVersion>8</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <AssemblyVersion>0.6.3</AssemblyVersion>
     <FileVersion>0.6.3</FileVersion>
@@ -24,10 +25,11 @@
     <PackageReference Include="MSTest.TestFramework" Version="1.2.1" />
     <PackageReference Include="NSubstitute" Version="3.1.0" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.10" />
+    <PackageReference Include="xunit.analyzers" Version="0.10.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj" />
+    <ProjectReference Include="..\..\src\ExchangeSharp\ExchangeSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

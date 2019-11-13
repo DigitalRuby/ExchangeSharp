@@ -10,6 +10,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System.Diagnostics;
+
 namespace ExchangeSharp
 {
     using Newtonsoft.Json.Linq;
@@ -31,19 +33,22 @@ namespace ExchangeSharp
         {
             // load withdrawal field counts
             var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            using (var sr = new StringReader(ExchangeSharpResources.PoloniexWithdrawalFields))
+
+            using var resourceStream = typeof(ExchangePoloniexAPI).Assembly.GetManifestResourceStream("ExchangeSharp.Properties.Resources.PoloniexWithdrawalFields.csv");
+            Debug.Assert(resourceStream != null, nameof(resourceStream) + " != null");
+            using var sr = new StreamReader(resourceStream);
+
+            sr.ReadLine(); // eat the header
+            string line;
+            while ((line = sr.ReadLine()) != null)
             {
-                sr.ReadLine(); // eat the header
-                string line;
-                while ((line = sr.ReadLine()) != null)
-                {
-                    string[] split = line.Split(',');
-                    if (split.Length == 2)
-                    {
-                        fieldCount[split[0]] = split[1].ConvertInvariant<int>();
-                    }
-                }
+	            string[] split = line.Split(',');
+	            if (split.Length == 2)
+	            {
+		            fieldCount[split[0]] = split[1].ConvertInvariant<int>();
+	            }
             }
+
             WithdrawalFieldCount = fieldCount;
             ExchangeGlobalCurrencyReplacements[typeof(ExchangePoloniexAPI)] = new KeyValuePair<string, string>[]
             {
