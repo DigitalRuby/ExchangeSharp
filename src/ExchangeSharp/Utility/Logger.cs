@@ -13,12 +13,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #region Imports
 
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
-using System.Linq;
-using System.Text;
-
+using System.Xml;
 using NLog;
 using NLog.Config;
 
@@ -122,9 +119,11 @@ namespace ExchangeSharp
                         factory = LogManager.LoadConfiguration("nlog.config");
                     }
                     else
-                    {
-                        System.IO.StringReader sr = new System.IO.StringReader(ExchangeSharpResources.NLog_config);
-                        System.Xml.XmlReader xr = System.Xml.XmlReader.Create(sr);
+					{
+						using var resourceStream = typeof(Logger).Assembly.GetManifestResourceStream("ExchangeSharp.nlog.config");
+						System.Diagnostics.Debug.Assert(resourceStream != null, nameof(resourceStream) + " != null");
+						using var sr = new StreamReader(resourceStream);
+                        using var xr = XmlReader.Create(sr);
                         LogManager.Configuration = new XmlLoggingConfiguration(xr, Directory.GetCurrentDirectory());
                         factory = LogManager.LogFactory;
                     }
@@ -143,16 +142,16 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="logLevel">IPBan log level</param>
         /// <returns>NLog log level</returns>
-        public static NLog.LogLevel GetNLogLevel(ExchangeSharp.LogLevel logLevel)
+        public static NLog.LogLevel GetNLogLevel(LogLevel logLevel)
         {
             switch (logLevel)
             {
-                case ExchangeSharp.LogLevel.Critical: return NLog.LogLevel.Fatal;
-                case ExchangeSharp.LogLevel.Debug: return NLog.LogLevel.Debug;
-                case ExchangeSharp.LogLevel.Error: return NLog.LogLevel.Error;
-                case ExchangeSharp.LogLevel.Information: return NLog.LogLevel.Info;
-                case ExchangeSharp.LogLevel.Trace: return NLog.LogLevel.Trace;
-                case ExchangeSharp.LogLevel.Warning: return NLog.LogLevel.Warn;
+                case LogLevel.Critical: return NLog.LogLevel.Fatal;
+                case LogLevel.Debug: return NLog.LogLevel.Debug;
+                case LogLevel.Error: return NLog.LogLevel.Error;
+                case LogLevel.Information: return NLog.LogLevel.Info;
+                case LogLevel.Trace: return NLog.LogLevel.Trace;
+                case LogLevel.Warning: return NLog.LogLevel.Warn;
                 default: return NLog.LogLevel.Off;
             }
         }
@@ -184,7 +183,7 @@ namespace ExchangeSharp
         /// <param name="ex">Error</param>
         public static void Error(Exception ex)
         {
-            Write(ExchangeSharp.LogLevel.Error, "Exception: " + ex.ToString());
+            Write(LogLevel.Error, "Exception: " + ex.ToString());
         }
 
         /// <summary>
@@ -194,7 +193,7 @@ namespace ExchangeSharp
         /// <param name="args">Format arguments</param>
         public static void Error(string text, params object[] args)
         {
-            Write(ExchangeSharp.LogLevel.Error, text, args);
+            Write(LogLevel.Error, text, args);
         }
 
         /// <summary>
@@ -205,7 +204,7 @@ namespace ExchangeSharp
         /// <param name="args">Format args</param>
         public static void Error(Exception ex, string text, params object[] args)
         {
-            Write(ExchangeSharp.LogLevel.Error, string.Format(text, args) + ": " + ex.ToString());
+            Write(LogLevel.Error, string.Format(text, args) + ": " + ex.ToString());
         }
 
         /// <summary>
@@ -215,7 +214,7 @@ namespace ExchangeSharp
         /// <param name="args">Format args</param>
         public static void Warn(string text, params object[] args)
         {
-            Write(ExchangeSharp.LogLevel.Warning, text, args);
+            Write(LogLevel.Warning, text, args);
         }
 
 
@@ -226,7 +225,7 @@ namespace ExchangeSharp
         /// <param name="args">Format args</param>
         public static void Info(string text, params object[] args)
         {
-            Write(ExchangeSharp.LogLevel.Info, text, args);
+            Write(LogLevel.Info, text, args);
         }
 
         /// <summary>
@@ -236,7 +235,7 @@ namespace ExchangeSharp
         /// <param name="args">Format args</param>
         public static void Debug(string text, params object[] args)
         {
-            Write(ExchangeSharp.LogLevel.Debug, text, args);
+            Write(LogLevel.Debug, text, args);
         }
 
         /// <summary>
@@ -245,7 +244,7 @@ namespace ExchangeSharp
         /// <param name="level">Log level</param>
         /// <param name="text">Text with format</param>
         /// <param name="args">Format args</param>
-        public static void Write(ExchangeSharp.LogLevel level, string text, params object[] args)
+        public static void Write(LogLevel level, string text, params object[] args)
         {
             try
             {
