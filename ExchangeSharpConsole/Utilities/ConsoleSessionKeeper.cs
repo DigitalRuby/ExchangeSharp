@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 
 namespace ExchangeSharpConsole.Utilities
@@ -9,16 +10,19 @@ namespace ExchangeSharpConsole.Utilities
 		private readonly Action callback;
 		private readonly Thread threadCheckKey;
 		private bool shouldStop;
+		private readonly bool previousConsoleCtrlCConfig;
 
 		public ConsoleSessionKeeper(Action callback = null)
 		{
 			this.callback = callback;
+			previousConsoleCtrlCConfig = Console.TreatControlCAsInput;
+			Console.TreatControlCAsInput = false;
 
 			Console.WriteLine("Press CTRL-C or Q to quit");
 
 			threadCheckKey = new Thread(CheckKeyCombination)
 			{
-				Name = "console-waiter",
+				Name = $"console-waiter-{callback?.Method.Name}",
 				IsBackground = false
 			};
 
@@ -29,25 +33,23 @@ namespace ExchangeSharpConsole.Utilities
 
 		private void CheckKeyCombination()
 		{
-			ConsoleKeyInfo cki;
-			do
+			using var stdin = Console.OpenStandardInput();
+			var charArr = new byte[2];
+
+			while (stdin.Read(charArr, 0, 2) > 0)
 			{
-				while (Console.KeyAvailable == false)
-				{
-					if (shouldStop)
-					{
-						return;
-					}
+				if (shouldStop)
+					return;
 
-					Thread.Sleep(100);
-					Thread.Yield();
-				}
+				var c = Encoding.UTF8.GetChars(charArr)[0];
+				if (c == 'q' || c == 'Q')
+					break;
+			}
 
-				cki = Console.ReadKey(true);
-			} while (!(cki.Key == ConsoleKey.Q || cki.Key == ConsoleKey.Escape));
+			if (shouldStop)
+				return;
 
 			Debug.WriteLine("Q pressed.");
-			callback?.Invoke();
 			Dispose();
 		}
 
@@ -55,7 +57,6 @@ namespace ExchangeSharpConsole.Utilities
 		{
 			Debug.WriteLine("CTRL-C pressed.");
 			args.Cancel = true;
-			callback?.Invoke();
 			Dispose();
 		}
 
@@ -64,7 +65,9 @@ namespace ExchangeSharpConsole.Utilities
 			if (shouldStop)
 				return;
 
+			callback?.Invoke();
 			Console.CancelKeyPress -= OnConsoleOnCancelKeyPress;
+			Console.TreatControlCAsInput = previousConsoleCtrlCConfig;
 			// this does not work on .net core
 			// threadCheckKey.Abort();
 			shouldStop = true;

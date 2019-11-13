@@ -10,11 +10,36 @@ namespace ExchangeSharpConsole
 {
 	public partial class Program
 	{
-		private readonly Parser parser;
+		internal readonly Parser Parser;
+
+		public Type[] CommandOptions { get; } =
+		{
+			typeof(BuyOption),
+			typeof(CancelOrderOption),
+			typeof(CandlesOption),
+			typeof(ConvertOption),
+			typeof(ExampleOption),
+			typeof(ExportOption),
+			typeof(InteractiveOption),
+			typeof(KeysOption),
+			typeof(MarketSymbolsMetadataOption),
+			typeof(MarketSymbolsOption),
+			typeof(OrderDetailsOption),
+			typeof(OrderHistoryOption),
+			typeof(SellOption),
+			typeof(StatsOption),
+			typeof(SupportedExchangesOption),
+			typeof(TestOption),
+			typeof(TickerOption),
+			typeof(TradeHistoryOption),
+			typeof(WebSocketsOrderbookOption),
+			typeof(WebSocketsTickersOption),
+			typeof(WebSocketsTradesOption)
+		};
 
 		public Program()
 		{
-			parser = new Parser(c =>
+			Parser = new Parser(c =>
 			{
 				c.AutoHelp = true;
 				c.AutoVersion = true;
@@ -27,36 +52,14 @@ namespace ExchangeSharpConsole
 			});
 		}
 
-		private (bool error, bool help) ParseArguments(string[] args, out List<BaseOption> options)
+		internal (bool error, bool help) ParseArguments(string[] args, out List<BaseOption> options)
 		{
 			var error = false;
 			var help = false;
 			var optionList = new List<BaseOption>();
 
-			parser
-				.ParseArguments(
-					args,
-					typeof(BuyOption),
-					typeof(CancelOrderOption),
-					typeof(CandlesOption),
-					typeof(ConvertOption),
-					typeof(ExampleOption),
-					typeof(ExportOption),
-					typeof(KeysOption),
-					typeof(MarketSymbolsMetadataOption),
-					typeof(MarketSymbolsOption),
-					typeof(OrderDetailsOption),
-					typeof(OrderHistoryOption),
-					typeof(SellOption),
-					typeof(StatsOption),
-					typeof(SupportedExchangesOption),
-					typeof(TestOption),
-					typeof(TickerOption),
-					typeof(TradeHistoryOption),
-					typeof(WebSocketsOrderbookOption),
-					typeof(WebSocketsTickersOption),
-					typeof(WebSocketsTradesOption)
-				)
+			Parser
+				.ParseArguments(args, CommandOptions)
 				.WithParsed(opt => optionList.Add((BaseOption) opt))
 				.WithNotParsed(errs => (error, help) = ValidateParseErrors(errs));
 
@@ -88,7 +91,7 @@ namespace ExchangeSharpConsole
 			return (error, help);
 		}
 
-		private async Task Run(List<BaseOption> actions)
+		internal async Task Run(List<BaseOption> actions, bool exitOnError = true)
 		{
 			foreach (var action in actions)
 			{
@@ -103,7 +106,8 @@ namespace ExchangeSharpConsole
 				catch (Exception e)
 				{
 					Console.Error.WriteLine(e.Message);
-					Environment.Exit(ExitCodeError);
+					if (exitOnError)
+						Environment.Exit(ExitCodeError);
 					return;
 				}
 			}
