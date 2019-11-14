@@ -1,19 +1,156 @@
 trigger:
+  batch: false
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - .github/**
+    - .nuget/**
+    - docs/**
+    - examples/**
+  tags:
+    include:
+      - '*'
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - master
+  paths:
+    exclude:
+    - .github/**
+    - .nuget/**
+    - docs/**
+    - examples/**
+
+schedules:
+- cron: "0 0 1 * *"
+  displayName: Monthly release
+  branches:
+    include:
     - master
 
-strategy:
-    matrix:
-        windows:
-            imageName: 'vs2017-win2016'
-
-pool:
-    vmImage: $(imageName)
-
 variables:
-    buildConfiguration: 'Release'
+  BuildConfiguration: 'Release'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
-steps:
-    - script: dotnet build --configuration $(buildConfiguration)
-      displayName: 'Build All'
-    - script: dotnet test tests/ExchangeSharpTests/ExchangeSharpTests.csproj --configuration $(buildConfiguration)
-      displayName: 'Test'
+jobs:
+  - job: build_ci
+    displayName: CI Build
+    timeoutInMinutes: 2
+    continueOnError: false
+    pool:
+      vmImage: ubuntu-18.04
+    steps:
+      - task: DotNetCoreCLI@2
+        displayName: 'Build lib+console'
+        inputs:
+          command: 'build'
+          configuration: $(BuildConfiguration)
+          projects: 'src/ExchangeSharpConsole/ExchangeSharpConsole.csproj'
+      - task: DotNetCoreCLI@2
+        displayName: 'Tests'
+        inputs:
+          command: 'test'
+          configuration: $(BuildConfiguration)
+          projects: 'tests/*/*.csproj'
+          publishTestResults: true
+          testRunTitle: 'All tests'
+  - job: build_tag
+    displayName: Build console app
+    timeoutInMinutes: 5
+    dependsOn: build_ci
+    condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    continueOnError: false
+    strategy:
+      matrix:
+        macos:
+          imageName: macOS-latest
+          rid: osx-x64
+        linux:
+          imageName: ubuntu-18.04
+          rid: linux-x64
+        windows:
+          imageName: windows-2019
+          rid: win-x64
+    pool:
+      vmImage: $(imageName)
+    steps:
+      - task: UseDotNet@2
+        displayName: 'Install current .NET Core'
+        condition: eq(variables['Agent.OS'], 'Darwin')
+        inputs:
+          packageType: sdk
+          version: 3.0.100
+          installationPath: $(Agent.ToolsDirectory)/dotnet
+      - task: DotNetCoreCLI@2
+        displayName: "Publish console executable"
+        timeoutInMinutes: 5
+        inputs:
+          command: 'publish' # Options: build, push, pack, publish, restore, run, test, custom
+          configuration: $(BuildConfiguration)
+          arguments: |
+            --force -r $(rid) -f netcoreapp30 -o "$(Build.ArtifactStagingDirectory)/$(rid)" /NoLogo /p:PublishTrimmed=True /p:PublishReadyToRun=True /p:PublishSingleFile=True /p:PublishReadyToRunShowWarnings=True /p:ShowLinkerSizeComparison=True /p:LinkerTrimNativeDeps=True
+          zipAfterPublish: true
+          restoreDirectory: 
+          verbosityRestore: 'Detailed'
+          #versioningScheme: 'off' # Options: off, byPrereleaseNumber, byEnvVar, byBuildNumber
+          #versionEnvVar: # Required when versioningScheme == ByEnvVar
+          publishWebProjects: false
+          workingDirectory: ./src/ExchangeSharpConsole/
+      - bash: |
+          set -x
+          rm -rfv $(Build.ArtifactStagingDirectory)/$(rid)/*.pdb
+        displayName: Remove pdb from artifacts
+      - task: PublishBuildArtifacts@1
+        displayName: "Save artifacts"
+        inputs:
+          artifactName: build-$(rid)
+  - job: publish_tag
+    displayName: Publish artifacts to GH
+    timeoutInMinutes: 2
+    dependsOn: build_tag
+    continueOnError: false
+    pool:
+      vmImage: ubuntu-18.04
+    condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    steps:
+      - bash: echo "##vso[task.setvariable variable=TAG;isOutput=true]$(git describe --tags --exact-match)"
+        name: setTag
+        displayName: Set TAG env var
+      - task: DownloadBuildArtifacts@0
+        displayName: Download linux-x64 artifact
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'build-linux-x64'
+          downloadPath: '$(System.ArtifactsDirectory)'
+      - task: DownloadBuildArtifacts@0
+        displayName: Download osx-x64 artifact
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          # This is temporary there's a bug with our tests on Mac
+          allowPartiallySucceededBuilds: true
+          artifactName: 'build-osx-x64'
+          downloadPath: '$(System.ArtifactsDirectory)'
+      - task: DownloadBuildArtifacts@0
+        displayName: Download win-x64 artifact
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'build-win-x64'
+          downloadPath: '$(System.ArtifactsDirectory)'
+      - task: GitHubRelease@0
+        displayName: "Attach artifacts to GH Release"
+        inputs:
+          gitHubConnection: johnnyasantoss
+          target: '$(Build.SourceVersion)'
+          title: $(setTag.TAG)
+          tag: $(setTag.TAG)
+          action: 'edit'
+          addChangeLog: true
+          assets: '$(System.ArtifactsDirectory)/**'
+          assetUploadMode: 'replace'
