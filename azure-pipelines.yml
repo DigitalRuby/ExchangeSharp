@@ -146,7 +146,7 @@ jobs:
       - task: GitHubRelease@0
         displayName: "Attach artifacts to GH Release"
         inputs:
-          gitHubConnection: jjxtra
+          gitHubConnection: DigitalRubyToken
           target: '$(Build.SourceVersion)'
           title: $(setTag.TAG)
           tag: $(setTag.TAG)
