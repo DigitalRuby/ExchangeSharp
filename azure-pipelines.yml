@@ -151,6 +151,6 @@ jobs:
           title: $(setTag.TAG)
           tag: $(setTag.TAG)
           action: 'edit'
-          addChangeLog: true
+          addChangeLog: false
           assets: '$(System.ArtifactsDirectory)/**'
           assetUploadMode: 'replace'
