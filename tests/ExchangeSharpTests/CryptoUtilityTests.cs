@@ -226,32 +226,47 @@ namespace ExchangeSharpTests
             }
         }
 
-        [TestMethod]
+        [ConditionalTestMethod]
+        [PlatformSpecificTest(
+	        ~TestPlatforms.OSX,
+	        "Has an issue on MacOS. See https://github.com/dotnet/corefx/issues/42607"
+	    )]
         public async Task RateGate()
         {
-            const int timesPerPeriod = 1;
-            const int ms = 100;
-            const int loops = 5;
-            double msMax = (double)ms * 1.5;
-            double msMin = (double)ms * (1.0 / 1.5);
-            RateGate gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
-            if (!(await gate.WaitToProceedAsync(0)))
-            {
-                throw new APIException("Rate gate should have allowed immediate access to first attempt");
-            }
-            for (int i = 0; i < loops; i++)
-            {
-                Stopwatch timer = Stopwatch.StartNew();
-                await gate.WaitToProceedAsync();
-                timer.Stop();
+	        const int timesPerPeriod = 1;
+	        const int ms = 100;
+	        const int loops = 5;
+	        const double msMax = (double) ms * 1.5;
+	        const double msMin = (double) ms * (1.0 / 1.5);
+	        var gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
 
-                if (i > 0)
-                {
-                    // check for too much elapsed time with a little fudge
-                    Assert.IsTrue(timer.Elapsed.TotalMilliseconds <= msMax, "Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
-                    Assert.IsTrue(timer.Elapsed.TotalMilliseconds >= msMin, "Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms");
-                }
-            }
+	        var entered = await gate.WaitToProceedAsync(0);
+	        if (!entered)
+	        {
+		        throw new APIException("Rate gate should have allowed immediate access to first attempt");
+	        }
+
+	        for (var i = 0; i < loops; i++)
+	        {
+		        var timer = Stopwatch.StartNew();
+		        await gate.WaitToProceedAsync();
+		        timer.Stop();
+
+		        if (i <= 0)
+		        {
+			        continue;
+		        }
+
+		        // check for too much elapsed time with a little fudge
+		        Assert.IsTrue(
+			        timer.Elapsed.TotalMilliseconds <= msMax,
+			        "Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms"
+		        );
+		        Assert.IsTrue(
+			        timer.Elapsed.TotalMilliseconds >= msMin,
+			        "Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms"
+		        );
+	        }
         }
     }
 }
