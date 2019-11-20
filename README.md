@@ -1,4 +1,4 @@
-<img src='logo.png' width='600' />
+<img src='logo.png' width='600' alt="Project's logo" />
 
 [![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master)
 
