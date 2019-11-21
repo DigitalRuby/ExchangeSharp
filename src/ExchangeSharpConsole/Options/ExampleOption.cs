@@ -12,7 +12,7 @@ namespace ExchangeSharpConsole.Options
 	{
 		public override async Task RunCommand()
 		{
-			var api = new ExchangeKrakenAPI();
+			using var api = new ExchangeKrakenAPI();
 			var ticker = await api.GetTickerAsync("XXBTZUSD");
 
 			Console.WriteLine("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
