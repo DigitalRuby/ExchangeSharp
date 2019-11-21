@@ -1,0 +1,30 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+        {
+            "name": "CLI: Launch",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/ExchangeSharpConsole/bin/Debug/netcoreapp3.0/exchange-sharp.dll",
+            "args": [
+                // array with the arguments to test the CLI tool
+                // e.g.
+                "ws-orderbook", "-e", "bl3p", "-s", "btceur"
+            ],
+            "cwd": "${workspaceFolder}/data/",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            // to be used with the CLI tool
+            // on Debug configuration, all commands accept a --debug flag.
+            // The program will print to the console the PID that you have to attach to.
+            // e.g. `$ exchange-sharp ws-orderbook --debug -e bl3p`
+            "name": "CLI: Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        }
+    ]
+}
