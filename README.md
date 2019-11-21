@@ -1,15 +1,19 @@
-<img src='logo.png' width='600' />
+<img src='logo.png' width='600' alt="Project's logo" />
 
-[![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master)
+[![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master) [![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)][nuget]
 
 ## Overview
-ExchangeSharp is a C# console app and framework for trading and communicating with various exchange API end points for cryptocurrency assets. Many exchanges are supported, along with web sockets, withdraws and more! Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat with other developers.
+ExchangeSharp is a C# **framework/lib** and [console app](#Installing-the-CLI) for trading and communicating with [various](#Exchanges) exchange API end points for cryptocurrency assets. Many exchanges are supported, along with [web sockets](#Websockets), withdraws and more!
+
+Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat with other developers.
 
 ### Features
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
 - Optional global market symbol normalization, since each exchange has their own way of doing market symbols
-- Runs anywhere .NET core will run (Windows 8.1 or newer, MAC, Linux, iOS, Android, Unity 2018+, etc.)
+- Runs anywhere .NET Core runs. (Windows, Mac, Linux, Containers, Serverless, iOS, Android, [etc.](https://docs.microsoft.com/en-us/dotnet/core/about))
+- Can be used from [many different C# platforms](https://github.com/dotnet/standard/blob/master/docs/versions/netstandard2.0.md#platform-support)
+- Has a great [CLI](#Installing-the-CLI) that enables you to use all features from all exchanges right from your command line.
 
 ### Exchanges
 The following cryptocurrency exchanges are supported:  
@@ -26,7 +30,7 @@ The following cryptocurrency exchanges are supported:
 | BitMEX           | x         | x           |   R   O   |
 | Bitstamp         | x         | x           |   R       |
 | Bittrex          | x         | x           | T R       |
-| BL3P             | x         |             |   R   O   |
+| BL3P             | x         | x           |   R B     | Trades stream does not send trade's ids.
 | Bleutrade        | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
 | Digifinex        | x         | x           |   R B     |
@@ -47,94 +51,85 @@ The following cryptocurrency exchanges are supported:
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)
 
+### Installing the CLI
+
+On *nix systems:
+  - Run this command `curl https://github.com/jjxtra/ExchangeSharp/raw/master/install-console.sh | sh`
+
+On Windows (or manually):
+  - Download the [latest binaries](https://github.com/jjxtra/ExchangeSharp/releases/latest) for your OS.
+  - Unzip it into a folder that is in your environment variable `PATH` (`ctrl` + `shift` + `pause|break` -> Environment Variables)
+  - Use it from the your preferred command-line emulator (e.g. Powershell, cmd, etc.)
+  - `exchange-sharp --help` shows all available commands
+
 ### Notes
-ExchangeSharp uses 'marketSymbol' to refer to markets, or pairs of currencies.
+ExchangeSharp uses **`marketSymbol`** to refer to markets, or pairs of currencies.
 
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
 
-### Building
-Visual Studio 2017 is recommended. .NET 4.7.2+ or .NET core 2.2+ is required.
-If running on Windows, you should use Windows 8.1 or newer.
+### [Building/Compiling](./BUILDING.md)
 
-If you must use an older Windows, you'll need to use the Websocket4Net nuget package, and override the web socket implementation by calling
+### Websockets
 
-```ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(() => new ExchangeSharpConsole.WebSocket4NetClientWebSocket());```
+If you must use an older Windows (older than win8.1), you'll need to use the [Websocket4Net][websocket4net] nuget package, and override the web socket implementation by calling
 
-See WebSocket4NetClientWebSocket.cs for implementation details.
-```
-Windows: Open ExchangeSharp.sln in Visual Studio and build/run  
-Other Platforms: dotnet build ExchangeSharp.sln -f netcoreapp2.1
-Ubuntu Release Example: dotnet build ExchangeSharp.sln -f netcoreapp2.1 -c Release -r ubuntu.16.10-x64
+```csharp
+ExchangeSharp.ClientWebSocket.RegisterWebSocketCreator(
+    () => new ExchangeSharpConsole.WebSocket4NetClientWebSocket()
+);
 ```
 
-You can also publish from Visual Studio (right click project, select publish), which allows easily changing the platform, .NET core version and self-contained binary settings.
+See [`WebSocket4NetClientWebSocket.cs`][websocket4net] for implementation details.
 
 ### Nuget
-<a href='https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/'>![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)  
-``` PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.3 ```  
-</a> 
 
-### Order Example
-```csharp
-public static async Task OrderExample()
-{
-    ExchangeKrakenAPI api = new ExchangeKrakenAPI();
-    ExchangeTicker ticker = await api.GetTickerAsync("XXBTZUSD");
-    Logger.Info("On the Kraken exchange, 1 bitcoin is worth {0} USD.", ticker.Bid);
+#### dotnet CLI
+[`dotnet add package DigitalRuby.ExchangeSharp --version 0.6.3`][nuget]
 
-    // load API keys created from ExchangeSharpConsole.exe keys mode=create path=keys.bin keylist=public_key,private_key
-    api.LoadAPIKeys("keys.bin");
+#### Package Manager on VS
+[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.3`][nuget]
 
-    /// place limit order for 0.01 bitcoin at ticker.Ask USD
-    ExchangeOrderResult result = await api.PlaceOrderAsync(new ExchangeOrderRequest
-    {
-        Amount = 0.01m,
-        IsBuy = true,
-        Price = ticker.Ask,
-        MarketSymbol = "XXBTZUSD"
-    });
+### Examples
 
-    // Kraken is a bit funny in that they don't return the order details in the initial request, so you have to follow up with an order details request
-    //  if you want to know more info about the order - most other exchanges don't return until they have the order details for you.
-    // I've also found that Kraken tends to fail if you follow up too quickly with an order details request, so sleep a bit to give them time to get
-    //  their house in order.
-    await Task.Delay(500);
-    result = await api.GetOrderDetailsAsync(result.OrderId);
+#### Creating an order
 
-    Logger.Info("Placed an order on Kraken for 0.01 bitcoin at {0} USD. Status is {1}. Order id is {2}.", ticker.Ask, result.Result, result.OrderId);
-}
-```
+There's a lot of examples on how to use the API in our [console application](./src/ExchangeSharpConsole/Options). \
+e.g.
+[`ExampleOption.cs`](./src/ExchangeSharpConsole/Options/ExampleOption.cs)
 
-### Web Socket Example
+#### Getting ticker info via Web Sockets
+
 ```csharp
 public static async Task Main(string[] args)
 {
     // create a web socket connection to Binance. Note you can Dispose the socket anytime to shut it down.
+    using var api = new ExchangeBinanceAPI();
     // the web socket will handle disconnects and attempt to re-connect automatically.
-    ExchangeBinanceAPI b = new ExchangeBinanceAPI();
-    using (var socket = await b.GetTickersWebSocket((tickers) =>
+    using var socket = await api.GetTickersWebSocket(tickers =>
     {
         Console.WriteLine("{0} tickers, first: {1}", tickers.Count, tickers.First());
-    }))
-    {
-        Console.WriteLine("Press ENTER to shutdown.");
-        Console.ReadLine();
-    }
+    });
+
+    Console.WriteLine("Press ENTER to shutdown.");
+    Console.ReadLine(true);
 }
 ```
 
 ### Logging
-ExchangeSharp uses NLog internally currently. To log, use ExchangeSharp.Logger. Do not use Console.WriteLine to log messages.
+ExchangeSharp uses NLog internally _currently_. To log, use `ExchangeSharp.Logger`.
 
-Provide your own nlog.config or app.config nlog configuration if you want to change logging settings or turn logging off.
+Do **not** use `Console.WriteLine` to log messages in the lib project.
+
+Provide your own `nlog.config` or `app.config` nlog configuration if you want to change logging settings or turn logging off.
 
 ### Caching
-The ExchageAPI class provides a method caching mechanism. Use MethodCachePolicy to put caching behind public methods, or clear to remove caching. Some methods are cached by default. You can set ExchangeAPI.UseDefaultMethodCachePolicy to false to stop all caching as well.
+
+The `ExchageAPI` class provides a method caching mechanism. Use `MethodCachePolicy` to put caching behind public methods, or clear to remove caching. Some methods are cached by default. You can set `ExchangeAPI.UseDefaultMethodCachePolicy` to `false` to stop all caching as well.
 
 You can also set request cache policy if you want to tweak how the http caching behaves.
 
 ### How to contribute
-Please read the [contributing guideline](CONTRIBUTING.md) before submitting a pull request.
+Please read the [contributing guideline](CONTRIBUTING.md) **before** submitting a **pull request**.
 
 ### Consulting
 I'm happy to make customizations to the software for you and keep in private repo, email exchangesharp@digitalruby.com.
@@ -158,3 +153,6 @@ Thanks for visiting!
 Jeff Johnson  
 jeff@digitalruby.com  
 http://www.digitalruby.com  
+
+ [nuget]: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
+ [websocket4net]: https://github.com/kerryjiang/WebSocket4Net
