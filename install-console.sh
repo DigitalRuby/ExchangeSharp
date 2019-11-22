@@ -25,10 +25,10 @@ case "$(uname -s)" in
     ;;
 esac
 
-TAG=$(curl -Ssf https://api.github.com/repos/johnnyasantoss/ExchangeSharp/releases/latest | jq -r .name)
+TAG=$(curl -Ssf https://api.github.com/repos/jjxtra/ExchangeSharp/releases/latest | jq -r .name)
 echo "Downloading version: '${TAG}'..."
 
-curl -SfL# -o /tmp/exchangesharp.zip "https://github.com/johnnyasantoss/ExchangeSharp/releases/download/${TAG}/${OS}-x64.zip"
+curl -SfL# -o /tmp/exchangesharp.zip "https://github.com/jjxtra/ExchangeSharp/releases/download/${TAG}/${OS}-x64.zip"
 
 unzip -qq -o /tmp/exchangesharp.zip -d /tmp/exchangesharp/
 
