@@ -31,7 +31,7 @@ namespace ExchangeSharp
         {
             var result =
                 await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("returnticker", "https://ndax.io/api", null, "GET");
-            _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key, pair => pair.Value.Id);
+            _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key.Replace("_", ""), pair => pair.Value.Id); // remove the _
             return result.Select(pair =>
                 new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(pair.Key)));
         }
@@ -345,12 +345,16 @@ namespace ExchangeSharp
         {
             marketSymbol = marketSymbol.ToUpperInvariant();
             await EnsureInstrumentIdsAvailable();
-            if (_marketSymbolToInstrumentIdMapping.TryGetValue(marketSymbol, out var value))
-            {
-                return value;
-            }
+			if (_marketSymbolToInstrumentIdMapping.TryGetValue(marketSymbol, out var value))
+			{
+				return value;
+			}
+			else if (_marketSymbolToInstrumentIdMapping.TryGetValue(marketSymbol.Replace("_", ""), out var value2))
+			{ // try again w/o the _
+				return value2;
+			}
 
-            return null;
+			return null;
         }
 
         private async Task<long?[]> GetInstrumentIdFromMarketSymbol(string[] marketSymbols)
@@ -367,6 +371,7 @@ namespace ExchangeSharp
 
         protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
         {
+			await EnsureInstrumentIdsAvailable();
 			var instrumentIds = marketSymbols == null || marketSymbols.Length == 0 ?
 				(await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray() :
 				await GetInstrumentIdFromMarketSymbol(marketSymbols);
@@ -416,6 +421,7 @@ namespace ExchangeSharp
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
+			await EnsureInstrumentIdsAvailable();
 			var instrumentIds = marketSymbols == null || marketSymbols.Length == 0 ?
 				(await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray() :
 				await GetInstrumentIdFromMarketSymbol(marketSymbols);
