@@ -22,6 +22,7 @@ The following cryptocurrency exchanges are supported:
 |Exchange Name     |Public REST|Private REST |Web Socket | Notes
 | ---------------- | --------- | ----------- | --------- | ---------
 | Binance          | x         | x           | T R B     |
+| Binance Jersey   | x         | x           | T R B     |
 | Binance.US       | x         | x           | T R B     |
 | Binance DEX      |           |             |   R       |
 | Bitbank          | x         | x           |           |
