@@ -49,8 +49,12 @@ namespace ExchangeSharp
                 case 14400: return "H4";
                 case 86400: return "D1";
                 case 604800: return "D7";
-                case 4233600: return "1M";
-                default: throw new ArgumentException($"{nameof(seconds)} must be 60, 180, 300, 900, 1800, 3600, 14400, 86400, 604800, 4233600");
+				case 2419200: return "1M"; // 28 days
+				case 2592000: return "1M"; // 30 days
+				case 2678000: return "1M"; // 31 days
+				case 4233600: return "1M"; // 49 days
+				default: throw new ArgumentException(
+					$"{nameof(seconds)} must be 60, 180, 300, 900, 1800, 3600, 14400, 86400, 604800, 2419200, 2592000, 2678000, 4233600");
             }
         }
 
