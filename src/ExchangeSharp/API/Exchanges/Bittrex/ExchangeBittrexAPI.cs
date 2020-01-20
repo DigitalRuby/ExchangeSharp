@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -292,53 +292,11 @@ namespace ExchangeSharp
             return transactions;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol,
+			DateTime? startDate = null, DateTime? endDate = null)
         {
-            // TODO: sinceDateTime is ignored
-            // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=oneMin&_=1499127220008
-            string baseUrl = "/pub/market/GetTicks?marketName=" + marketSymbol + "&tickInterval=oneMin";
-            string url;
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            while (true)
-            {
-                url = baseUrl;
-                if (startDate != null)
-                {
-                    url += "&_=" + CryptoUtility.UtcNow.Ticks;
-                }
-                JToken array = await MakeJsonRequestAsync<JToken>(url, BaseUrl2);
-                if (array == null || array.Count() == 0)
-                {
-                    break;
-                }
-                if (startDate != null)
-                {
-                    startDate = array.Last["T"].ToDateTimeInvariant();
-                }
-                foreach (JToken trade in array)
-                {
-                    // {"O":0.00106302,"H":0.00106302,"L":0.00106302,"C":0.00106302,"V":80.58638589,"T":"2017-08-18T17:48:00","BV":0.08566493}
-                    trades.Add(new ExchangeTrade
-                    {
-                        Amount = trade["V"].ConvertInvariant<decimal>(),
-                        Price = trade["C"].ConvertInvariant<decimal>(),
-                        Timestamp = trade["T"].ToDateTimeInvariant(),
-                        Id = trade["T"].ToStringInvariant(),
-						IsBuy = true
-                    });
-                }
-                trades.Sort((t1, t2) => t1.Timestamp.CompareTo(t2.Timestamp));
-                if (!callback(trades))
-                {
-                    break;
-                }
-                trades.Clear();
-                if (startDate == null)
-                {
-                    break;
-                }
-                Task.Delay(1000).Wait();
-            }
+			throw new APIException(
+				"Bittrex does not allow querying trades by dates. Consider using either GetRecentTradesAsync() or GetCandlesAsync() w/ a period of 1 min. See issue #508.");
         }
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
@@ -353,11 +311,12 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds,
+			DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             if (limit != null)
             {
-                throw new APIException("Limit parameter not supported");
+                throw new APIException("Limit parameter not supported in Bittrex");
             }
 
             // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
@@ -372,7 +331,9 @@ namespace ExchangeSharp
                 foreach (JToken jsonCandle in array)
                 {
                     //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-                    MarketCandle candle = this.ParseCandle(jsonCandle, marketSymbol, periodSeconds, "O", "H", "L", "C", "T", TimestampType.Iso8601, "V", "BV");
+                    MarketCandle candle = this.ParseCandle(token: jsonCandle, marketSymbol: marketSymbol, periodSeconds: periodSeconds,
+						openKey: "O", highKey: "H", lowKey: "L", closeKey: "C", timestampKey: "T", timestampType: TimestampType.Iso8601,
+						baseVolumeKey: "V", quoteVolumeKey: "BV");
                     if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
                     {
                         candles.Add(candle);
