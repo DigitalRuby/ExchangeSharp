@@ -86,7 +86,7 @@ namespace ExchangeSharp
             return result.Select(order => order.ToExchangeOrderResult(_marketSymbolToInstrumentIdMapping));
         }
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null,
-            DateTime? endDate = null)
+            DateTime? endDate = null, int? limit = null)
         {
 
             var payload = new Dictionary<string, object>()

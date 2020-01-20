@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -435,7 +435,7 @@ namespace ExchangeSharp
             return token.ParseTradeCoinbase("size", "price", "side", "time", TimestampType.Iso8601, "trade_id");
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             /*
             [{
@@ -469,9 +469,12 @@ namespace ExchangeSharp
             await state.ProcessHistoricalTrades();
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
-            string baseUrl = "/products/" + marketSymbol.ToUpperInvariant() + "/trades";
+			//https://docs.pro.coinbase.com/#pagination Coinbase limit is 100, however pagination can return more (4 later)
+			int requestLimit = (limit == null || limit < 1 || limit > 100) ? 100 : (int)limit;
+
+			string baseUrl = "/products/" + marketSymbol.ToUpperInvariant() + "/trades" + "?limit=" + requestLimit;
             JToken trades = await MakeJsonRequestAsync<JToken>(baseUrl);
             List<ExchangeTrade> tradeList = new List<ExchangeTrade>();
             foreach (JToken trade in trades)

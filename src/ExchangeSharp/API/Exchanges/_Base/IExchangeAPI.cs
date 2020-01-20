@@ -112,25 +112,27 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Symbol to get historical data for</param>
         /// <param name="startDate">Optional start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null);
+        Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
+		//Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>
         /// Get the latest trades
         /// </summary>
         /// <param name="marketSymbol">Market Symbol</param>
         /// <returns>Trades</returns>
-        Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol);
+        Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol, int? limit = null);
+		//Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol);
 
-        /// <summary>
-        /// Get candles (open, high, low, close)
-        /// </summary>
-        /// <param name="marketSymbol">Market symbol to get candles for</param>
-        /// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
-        /// <param name="startDate">Optional start date to get candles for</param>
-        /// <param name="endDate">Optional end date to get candles for</param>
-        /// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
-        /// <returns>Candles</returns>
-        Task<IEnumerable<MarketCandle>> GetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
+		/// <summary>
+		/// Get candles (open, high, low, close)
+		/// </summary>
+		/// <param name="marketSymbol">Market symbol to get candles for</param>
+		/// <param name="periodSeconds">Period in seconds to get candles for. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+		/// <param name="startDate">Optional start date to get candles for</param>
+		/// <param name="endDate">Optional end date to get candles for</param>
+		/// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
+		/// <returns>Candles</returns>
+		Task<IEnumerable<MarketCandle>> GetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
 
         /// <summary>
         /// Get total amounts, symbol / amount dictionary

@@ -587,7 +587,32 @@ namespace ExchangeSharp
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[marketSymbol], maxCount: maxCount);
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		{
+			List<ExchangeTrade> trades = new List<ExchangeTrade>();
+
+			//https://www.kraken.com/features/api#public-market-data note kraken does not specify but it appears the limit is around 1860 (weird)
+            //https://api.kraken.com/0/public/Trades?pair=BCHUSD&count=1860
+			//needs testing of different marketsymbols to establish if limit varies
+			//gonna use 1500 for now
+
+			int requestLimit = (limit == null || limit < 1 || limit > 1500) ? 1500 : (int)limit;
+			string url = "/0/public/Trades?pair=" + marketSymbol +  "&count=" + requestLimit;
+			//string url = "/trades/t" + marketSymbol + "/hist?sort=" + "-1"  + "&limit=" + requestLimit;
+
+			JToken result = await MakeJsonRequestAsync<JToken>(url);
+
+			//if (result != null && (!(result[marketSymbol] is JArray outerArray) || outerArray.Count == 0)) {
+				if(result != null && result[marketSymbol] is JArray outerArray && outerArray.Count > 0)  {
+					foreach(JToken trade in outerArray.Children()) {
+					trades.Add(trade.ParseTrade(1, 0, 3, 2, TimestampType.UnixSecondsDouble, null, "b"));
+				}
+			}
+
+			return trades.AsEnumerable().Reverse(); //Descending order (ie newest trades first)
+		}
+
+		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             string baseUrl = "/0/public/Trades?pair=" + marketSymbol;
             string url;
