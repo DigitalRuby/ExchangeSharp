@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -107,10 +107,12 @@ namespace ExchangeSharp
         }
 
         //GetRecentTrades   6
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol, int? limit = null)
         {
-            //https://api.lbank.info/v1/trades.do?symbol=eth_btc&size=600
-            JToken resp = await this.MakeJsonRequestAsync<JToken>($"/trades.do?symbol={symbol}&size={RECENT_TRADS_MAX_SIZE}");
+			//https://api.lbank.info/v1/trades.do?symbol=eth_btc&size=600
+			int requestLimit = (limit == null || limit < 1 || limit > RECENT_TRADS_MAX_SIZE) ? RECENT_TRADS_MAX_SIZE : (int)limit;
+
+			JToken resp = await this.MakeJsonRequestAsync<JToken>($"/trades.do?symbol={symbol}&size={requestLimit}");
             CheckResponseToken(resp);
             return ParseRecentTrades(resp, symbol);
         }

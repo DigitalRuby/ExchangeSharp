@@ -293,13 +293,13 @@ namespace ExchangeSharp
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol,
-			DateTime? startDate = null, DateTime? endDate = null)
+			DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
 			throw new APIException(
 				"Bittrex does not allow querying trades by dates. Consider using either GetRecentTradesAsync() or GetCandlesAsync() w/ a period of 1 min. See issue #508.");
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             string baseUrl = "/public/getmarkethistory?market=" + marketSymbol;

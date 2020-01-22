@@ -332,7 +332,7 @@ namespace ExchangeSharp.BinanceGroup
 			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "lastUpdateId", maxCount: maxCount);
 		}
 
-		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
 			/* [ {
             "a": 26129,         // Aggregate tradeId
@@ -345,17 +345,44 @@ namespace ExchangeSharp.BinanceGroup
 		    "M": true           // Was the trade the best price match?
             } ] */
 
-			ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
+			//if(startDate == null && endDate == null) {
+			//	await OnGetRecentTradesAsync(marketSymbol, limit);
+			//}
+			//else {
+			//System.Windows.Forms.MessageBox.Show("Duplicate MessageId " + MessageId, "HMMMM RETURN?");
+
+
+		   ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
 			{
-				Callback = callback,
-				EndDate = endDate,
-				ParseFunction = (JToken token) => token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false"),
-				StartDate = startDate,
-				MarketSymbol = marketSymbol,
-				TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
-				Url = "/aggTrades?symbol=[marketSymbol]&startTime={0}&endTime={1}",
-			};
-			await state.ProcessHistoricalTrades();
+					Callback = callback,
+					EndDate = endDate,
+					ParseFunction = (JToken token) => token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false"),
+					StartDate = startDate,
+					MarketSymbol = marketSymbol,
+					TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(dt)).ToStringInvariant(),
+					Url = "/aggTrades?symbol=[marketSymbol]&startTime={0}&endTime={1}",
+				};
+				await state.ProcessHistoricalTrades();
+			//}
+		}
+
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		{
+			List<ExchangeTrade> trades = new List<ExchangeTrade>();
+			//var maxRequestLimit = 1000; //hard coded for now, should add limit as an argument
+			//https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#compressedaggregate-trades-list
+			int maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
+
+			JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}");
+			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
+			if(obj.HasValues) { //
+				foreach(JToken token in obj) {
+					var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
+					trades.Add(trade);
+				}
+			}
+			return trades.AsEnumerable().Reverse(); //Descending order (ie newest trades first)
+			//return trades;
 		}
 
 		public async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
@@ -406,6 +433,56 @@ namespace ExchangeSharp.BinanceGroup
 				fromId++;
 			} while (callback(trades) && trades.Count > 0);
 		}
+
+		public async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, int limit = 100)
+		{
+			/* [ {
+            "a": 26129,         // Aggregate tradeId
+		    "p": "0.01633102",  // Price
+		    "q": "4.70443515",  // Quantity
+		    "f": 27781,         // First tradeId
+		    "l": 27781,         // Last tradeId
+		    "T": 1498793709153, // Timestamp
+		    "m": true,          // Was the buyer the maker?
+		    "M": true           // Was the trade the best price match?
+            } ] */
+
+			// TODO : Refactor into a common layer once more Exchanges implement this pattern
+			// https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#compressedaggregate-trades-list
+			if(limit > 1000) limit = 1000;	//Binance max = 1000
+			var maxRequestLimit = 1000; 
+			var trades = new List<ExchangeTrade>();
+			var processedIds = new HashSet<long>();
+			marketSymbol = NormalizeMarketSymbol(marketSymbol);
+
+			do {
+				//if(fromId > endId)
+				//	break;
+
+				trades.Clear();
+				//var limit = Math.Min(endId - fromId ?? maxRequestLimit, maxRequestLimit);
+				var obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={limit}");
+
+				foreach(var token in obj) {
+					var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
+					//long tradeId = (long)trade.Id.ConvertInvariant<ulong>();
+					//if(tradeId < fromId)
+					//	continue;
+					//if(tradeId > endId)
+					//	continue;
+					//if(!processedIds.Add(tradeId))
+					//	continue;
+
+					trades.Add(trade);
+					//fromId = tradeId;
+				}
+
+				//fromId++;
+			} while(callback(trades) && trades.Count > 0);
+		}
+
+
+
 
 		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
