@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -130,7 +130,7 @@ namespace ExchangeSharp
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token[marketSymbol]);
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + marketSymbol + "?limit=10", null, null, "POST");    // default is 150, max: 2000, let's do another arbitrary 10 for consistency
@@ -138,11 +138,11 @@ namespace ExchangeSharp
             return trades;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Not directly supported, but we'll return the max and filter if necessary
-            JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + marketSymbol + "?limit=2000", null, null, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/trades/" + marketSymbol + "?limit=2000", null, null, "POST"); 
             token = token.First.First;      // bunch of nested
             foreach (JToken prop in token)
             {

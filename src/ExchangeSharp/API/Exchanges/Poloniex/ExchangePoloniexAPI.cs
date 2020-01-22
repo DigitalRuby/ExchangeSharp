@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -584,7 +584,27 @@ namespace ExchangeSharp
             return books;
         }
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		{
+			List<ExchangeTrade> trades = new List<ExchangeTrade>();
+			//https://docs.poloniex.com/#returnorderbook note poloniex limit = 1000
+			int requestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
+			string url = "/public?command=returnTradeHistory&currencyPair=" + marketSymbol + "&limit=" + requestLimit ;
+
+			//JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}");
+			JToken obj = await MakeJsonRequestAsync<JToken>(url);
+
+			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
+			if(obj.HasValues) { //
+				foreach(JToken token in obj) {
+					var trade = token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "globalTradeID");
+					trades.Add(trade);
+				}
+			}
+			return trades;
+		}
+
+		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             // [{"globalTradeID":245321705,"tradeID":11501281,"date":"2017-10-20 17:39:17","type":"buy","rate":"0.01022188","amount":"0.00954454","total":"0.00009756"},...]
             ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)

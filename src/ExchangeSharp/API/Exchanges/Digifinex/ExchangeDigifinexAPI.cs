@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -177,7 +177,7 @@ namespace ExchangeSharp
             return result;
         }
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>($"/trades?symbol={marketSymbol}&limit=500"); // maximum limit = 500
             return obj["data"].Select(x => new ExchangeTrade

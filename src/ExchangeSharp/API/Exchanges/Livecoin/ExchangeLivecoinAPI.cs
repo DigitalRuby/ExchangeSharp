@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -131,7 +131,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol"></param>
         /// <returns></returns>
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             JToken token = await MakeJsonRequestAsync<JToken>("/exchange/last_trades?currencyPair=" + marketSymbol.UrlEncode());
@@ -149,7 +149,7 @@ namespace ExchangeSharp
         /// <param name="marketSymbol"></param>
         /// <param name="startDate"></param>
         /// <returns></returns>
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
             // Not directly supported so we'll return what they have and filter if necessary

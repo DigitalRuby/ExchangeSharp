@@ -78,7 +78,13 @@ namespace ExchangeSharp
 	        return orderBooks.ToDictionary(k => k.MarketSymbol, v => v);
         }
 
-        protected virtual async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+		/// <summary>
+		/// When possible, the sort order will be Descending (ie newest trades first)
+		/// </summary>
+		/// <param name="marketSymbol">name of symbol</param>
+		/// <param name="limit">max number of results returned, if limiting is supported by the exchange</param>
+		/// <returns></returns>
+		protected virtual async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
             marketSymbol = NormalizeMarketSymbol(marketSymbol);
             List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -86,7 +92,7 @@ namespace ExchangeSharp
             {
                 trades.AddRange(e);
                 return true;
-            }, marketSymbol);
+            }, marketSymbol, limit:limit); //KK2020
             return trades;
         }
 
@@ -95,7 +101,8 @@ namespace ExchangeSharp
         protected internal virtual Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync() => throw new NotImplementedException();
         protected virtual Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol) => throw new NotImplementedException();
         protected virtual Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100) => throw new NotImplementedException();
-        protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
+        protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
+		//protected virtual Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null) => throw new NotImplementedException();
         protected virtual Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency) => throw new NotImplementedException();
         protected virtual Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null) => throw new NotImplementedException();
@@ -618,11 +625,11 @@ namespace ExchangeSharp
         /// <param name="marketSymbol">Symbol to get historical data for</param>
         /// <param name="startDate">Optional UTC start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
         /// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-        public virtual async Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+        public virtual async Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             // *NOTE*: Do not wrap in CacheMethodCall, uses a callback with custom queries, not easy to cache
             await new SynchronizationContextRemover();
-            await OnGetHistoricalTradesAsync(callback, NormalizeMarketSymbol(marketSymbol), startDate, endDate);
+            await OnGetHistoricalTradesAsync(callback, NormalizeMarketSymbol(marketSymbol), startDate, endDate, limit);
         }
 
         /// <summary>
@@ -630,10 +637,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="marketSymbol">Symbol to get recent trades for</param>
         /// <returns>An enumerator that loops through all recent trades</returns>
-        public virtual async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol)
+        public virtual async Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
             marketSymbol = NormalizeMarketSymbol(marketSymbol);
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetRecentTradesAsync(marketSymbol), nameof(GetRecentTradesAsync), nameof(marketSymbol), marketSymbol);
+            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetRecentTradesAsync(marketSymbol, limit), nameof(GetRecentTradesAsync), nameof(marketSymbol), marketSymbol, nameof(limit), limit);
+			//return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetRecentTradesAsync(marketSymbol), nameof(GetRecentTradesAsync), nameof(marketSymbol), marketSymbol);
         }
 
         /// <summary>
