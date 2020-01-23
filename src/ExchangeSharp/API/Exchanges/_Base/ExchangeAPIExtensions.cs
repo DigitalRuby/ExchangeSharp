@@ -309,6 +309,7 @@ namespace ExchangeSharp
             ExchangeOrderRequest request = new ExchangeOrderRequest
             {
                 Amount = amount,
+				IsBuy = isBuy,
                 OrderType = OrderType.Limit,
                 Price = CryptoUtility.RoundAmount((isBuy ? highPrice : lowPrice) * priceThreshold),
                 ShouldRoundAmount = true,
@@ -328,6 +329,7 @@ namespace ExchangeSharp
                     case ExchangeAPIOrderResult.Filled:
                     case ExchangeAPIOrderResult.Canceled:
                     case ExchangeAPIOrderResult.Error:
+					i = maxTries + 1;
                         break;
                 }
             }
