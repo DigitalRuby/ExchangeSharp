@@ -209,40 +209,64 @@ namespace ExchangeSharp
 		}
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
-        {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            // [0]-Timestamp [1]-OrderType [2]-Price [3]-Amount [4]-Volume
-            // [[1506037604000,"SELL",5210,48600633397,2532093],... ]
-            JToken token = await MakeJsonRequestAsync<JToken>("/orders?status=active&symbol=" + marketSymbol, payload: await GetNoncePayloadAsync());
-            foreach (JToken trade in token)
-            {
-                trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds, idKey: "tradeId"));
+		{
+			List<ExchangeTrade> trades = await fetchTradeHistory(marketSymbol: marketSymbol, startDate: null, limit: limit);
+			return  trades.AsEnumerable().Reverse(); //descending - ie from newest to oldest trades
+		}
 
+		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback,
+			string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		{
+			if (endDate != null)
+			{
+				throw new APIException("KuCoin does not allow specifying endDate");
 			}
-            return trades;
-        }
+			List<ExchangeTrade> trades = await fetchTradeHistory(marketSymbol: marketSymbol, startDate: startDate, limit: limit);
+			callback?.Invoke(trades);
+		}
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-        {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            JToken token = await MakeJsonRequestAsync<JToken>("/market/histories?symbol=" + marketSymbol + (startDate == null ? string.Empty : "&since=" + startDate.Value.UnixTimestampFromDateTimeMilliseconds()));
-            foreach (JObject trade in token)
-            {
-                trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.UnixMilliseconds, idKey: "tradeId"));
-            }
-            var rc = callback?.Invoke(trades);
-        }
+		async Task<List<ExchangeTrade>> fetchTradeHistory(string marketSymbol, DateTime? startDate, int? limit)
+		{
+			if (limit != null && limit != 100)
+			{
+				throw new ArgumentException("limit is always 100 in KuCoin");
+			}
+			List<ExchangeTrade> trades = new List<ExchangeTrade>();
+			JToken token = await MakeJsonRequestAsync<JToken>(
+				"/market/histories?symbol=" + marketSymbol +
+				(startDate == null ? string.Empty : "&since=" + startDate.Value.UnixTimestampFromDateTimeMilliseconds()));
+			/* {[	{
+					"sequence": "1568570510897",
+					"side": "buy",
+					"size": "0.0025824",
+					"price": "168.48",
+					"time": 1579661286138826064
+					},
+					{
+					"sequence": "1568570510943",
+					"side": "buy",
+					"size": "0.009223",
+					"price": "168.48",
+					"time": 1579661286980037641
+					}, ... ]} */
+			foreach (JObject trade in token)
+			{
+				trades.Add(trade.ParseTrade(amountKey: "size", priceKey: "price", typeKey: "side",
+					timestampKey: "time", timestampType: TimestampType.UnixNanoseconds, idKey: "sequence"));
+			}
+			return trades;
+		}
 
-        /// <summary>
-        /// This is a private call on Kucoin and therefore requires an API Key + API Secret. Calling this without authorization will cause an exception
-        /// </summary>
-        /// <param name="marketSymbol"></param>
-        /// <param name="periodSeconds"></param>
-        /// <param name="startDate"></param>
-        /// <param name="endDate"></param>
-        /// <param name="limit"></param>
-        /// <returns></returns>
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		/// <summary>
+		/// This is a private call on Kucoin and therefore requires an API Key + API Secret. Calling this without authorization will cause an exception
+		/// </summary>
+		/// <param name="marketSymbol"></param>
+		/// <param name="periodSeconds"></param>
+		/// <param name="startDate"></param>
+		/// <param name="endDate"></param>
+		/// <param name="limit"></param>
+		/// <returns></returns>
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
             List<MarketCandle> candles = new List<MarketCandle>();
 
