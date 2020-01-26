@@ -25,21 +25,32 @@ namespace ExchangeSharp
         #region Utility Methods
 
         /// <summary>
-        /// Normalize a symbol for use on this exchange
+        /// Normalize a symbol for use on this exchange.
         /// </summary>
         /// <param name="marketSymbol">Symbol</param>
         /// <returns>Normalized symbol</returns>
         string NormalizeMarketSymbol(string marketSymbol);
 
-        /// <summary>
-        /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
-        /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
-        /// Global symbols list the base currency first (i.e. BTC) and conversion currency
-        /// second (i.e. USD). Example BTC-USD, read as x BTC is worth y USD.
-        /// </summary>
-        /// <param name="marketSymbol">Exchange symbol</param>
-        /// <returns>Global symbol</returns>
-        Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol);
+		/// <summary>
+		/// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
+		/// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
+		/// Global symbols list the base currency first (i.e. BTC) and quote/conversion currency
+		/// second (i.e. USD). Global symbols are of the form BASE-QUOTE. BASE-QUOTE is read as
+		/// 1 BASE is worth y QUOTE. 
+		///
+		/// Examples:
+		///		On 1/25/2020,
+		///			- BTC-USD: $8,371; 1 BTC (base) is worth $8,371 USD (quote)
+		///			- ETH-BTC: 0.01934; 1 ETH is worth 0.01934 BTC
+		///			- EUR-USD: 1.2; 1 EUR worth 1.2 USD
+		/// 
+		/// A value greater than 1 means one unit of base currency is more valuable than one unit of
+		/// quote currency.
+		/// 
+		/// </summary>
+		/// <param name="marketSymbol">Exchange symbol</param>
+		/// <returns>Global symbol</returns>
+		Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol);
 
         /// <summary>
         /// Convert a global symbol into an exchange symbol, which will potentially be different from other exchanges.

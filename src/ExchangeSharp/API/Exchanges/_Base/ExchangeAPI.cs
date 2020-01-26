@@ -155,36 +155,46 @@ namespace ExchangeSharp
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 
-        /// <summary>
-        /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
-        /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
-        /// Global symbols list the base currency first (i.e. BTC) and conversion currency
-        /// second (i.e. ETH). Example BTC-ETH, read as x BTC is worth y ETH.
-        /// BTC is always first, then ETH, etc. Fiat pair is always first in global symbol too.
-        /// </summary>
-        /// <param name="marketSymbol">Exchange market symbol</param>
-        /// <param name="separator">Separator</param>
-        /// <returns>Global symbol</returns>
-        protected async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(string marketSymbol, char separator = GlobalMarketSymbolSeparator)
-        {
-            if (string.IsNullOrEmpty(marketSymbol))
-            {
-                throw new ArgumentException("Symbol must be non null and non empty");
-            }
-            string[] pieces = marketSymbol.Split(separator);
-            if (MarketSymbolIsReversed)
-            {
-                return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant();
-            }
-            return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant();
-        }
+		/// <summary>
+		/// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
+		/// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
+		/// Global symbols list the base currency first (i.e. BTC) and quote/conversion currency
+		/// second (i.e. USD). Global symbols are of the form BASE-QUOTE. BASE-QUOTE is read as
+		/// 1 BASE is worth y QUOTE. 
+		///
+		/// Examples:
+		///		On 1/25/2020,
+		///			- BTC-USD: $8,371; 1 BTC (base) is worth $8,371 USD (quote)
+		///			- ETH-BTC: 0.01934; 1 ETH is worth 0.01934 BTC
+		///			- EUR-USD: 1.2; 1 EUR worth 1.2 USD
+		/// 
+		/// A value greater than 1 means one unit of base currency is more valuable than one unit of
+		/// quote currency.
+		/// 
+		/// </summary>
+		/// <param name="marketSymbol">Exchange market symbol</param>
+		/// <param name="separator">Separator</param>
+		/// <returns>Global symbol</returns>
+		protected async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(string marketSymbol, char separator = GlobalMarketSymbolSeparator)
+		{
+			if (string.IsNullOrEmpty(marketSymbol))
+			{
+				throw new ArgumentException("Symbol must be non null and non empty");
+			}
+			string[] pieces = marketSymbol.Split(separator);
+			if (MarketSymbolIsReversed == false) //if reversed then put quote currency first
+			{
+				return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant();
+			}
+			return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant();
+		}
 
-        /// <summary>
-        /// Split a market symbol into currencies. For weird exchanges like Bitthumb, they can override and hard-code the other pair
-        /// </summary>
-        /// <param name="marketSymbol">Market symbol</param>
-        /// <returns>Base and quote currency</returns>
-        protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
+		/// <summary>
+		/// Split a market symbol into currencies. For weird exchanges like Bitthumb, they can override and hard-code the other pair
+		/// </summary>
+		/// <param name="marketSymbol">Market symbol</param>
+		/// <returns>Base and quote currency</returns>
+		protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
         {
             var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
             if (pieces.Length < 2)
@@ -348,32 +358,32 @@ namespace ExchangeSharp
             }
         }
 
-        /// <summary>
-        /// Convert an exchange currency to a global currency. For example, on Binance,
-        /// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
-        /// the global symbol is BCH.
-        /// </summary>
-        /// <param name="currency">Exchange currency</param>
-        /// <returns>Global currency</returns>
-        public Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
-        {
-            currency = (currency ?? string.Empty);
-            foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
-            {
-                currency = currency.Replace(kv.Key, kv.Value);
-            }
-            return Task.FromResult(currency.ToUpperInvariant());
-        }
+		/// <summary>
+		/// Convert an exchange currency to a global currency. For example, on Binance,
+		/// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
+		/// the global symbol is BCH.
+		/// </summary>
+		/// <param name="currency">Exchange currency</param>
+		/// <returns>Global currency</returns>
+		public Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
+		{
+			currency = (currency ?? string.Empty);
+			foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
+			{
+				currency = currency.Replace(kv.Key, kv.Value);
+			}
+			return Task.FromResult(currency.ToUpperInvariant());
+		}
 
-        /// <summary>
-        /// Convert a global currency to exchange currency. For example, on Binance,
-        /// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
-        /// the global symbol BCH would convert to BCC for Binance, but stay BCH
-        /// for most other exchanges.
-        /// </summary>
-        /// <param name="currency">Global currency</param>
-        /// <returns>Exchange currency</returns>
-        public string GlobalCurrencyToExchangeCurrency(string currency)
+		/// <summary>
+		/// Convert a global currency to exchange currency. For example, on Binance,
+		/// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
+		/// the global symbol BCH would convert to BCC for Binance, but stay BCH
+		/// for most other exchanges.
+		/// </summary>
+		/// <param name="currency">Global currency</param>
+		/// <returns>Exchange currency</returns>
+		public string GlobalCurrencyToExchangeCurrency(string currency)
         {
             currency = (currency ?? string.Empty);
             foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
@@ -404,16 +414,25 @@ namespace ExchangeSharp
             return marketSymbol.ToLowerInvariant();
         }
 
-        /// <summary>
-        /// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
-        /// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
-        /// Global symbols list the base currency first (i.e. BTC) and conversion currency
-        /// second (i.e. ETH). Example BTC-ETH, read as x BTC is worth y ETH.
-        /// BTC is always first, then ETH, etc. Fiat pair is always first in global symbol too.
-        /// </summary>
-        /// <param name="marketSymbol">Exchange symbol</param>
-        /// <returns>Global symbol</returns>
-        public virtual async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
+		/// <summary>
+		/// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
+		/// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
+		/// Global symbols list the base currency first (i.e. BTC) and quote/conversion currency
+		/// second (i.e. USD). Global symbols are of the form BASE-QUOTE. BASE-QUOTE is read as
+		/// 1 BASE is worth y QUOTE. 
+		///
+		/// Examples:
+		///		On 1/25/2020,
+		///			- BTC-USD: $8,371; 1 BTC (base) is worth $8,371 USD (quote)
+		///			- ETH-BTC: 0.01934; 1 ETH is worth 0.01934 BTC
+		///			- EUR-USD: 1.2; 1 EUR worth 1.2 USD
+		/// 
+		/// A value greater than 1 means one unit of base currency is more valuable than one unit of
+		/// quote currency.
+		/// </summary>
+		/// <param name="marketSymbol">Exchange symbol</param>
+		/// <returns>Global symbol</returns>
+		public virtual async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
             string modifiedMarketSymbol = marketSymbol;
             char separator;
@@ -490,7 +509,7 @@ namespace ExchangeSharp
             {
                 throw new ArgumentException($"Market symbol {marketSymbol} is missing the global symbol separator '{GlobalMarketSymbolSeparator}'");
             }
-            if (MarketSymbolIsReversed)
+            if (MarketSymbolIsReversed == false)
             {
                 marketSymbol = GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(0, pos)) + MarketSymbolSeparator + GlobalCurrencyToExchangeCurrency(marketSymbol.Substring(pos + 1));
             }
