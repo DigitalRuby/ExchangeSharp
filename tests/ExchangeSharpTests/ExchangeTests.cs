@@ -68,8 +68,8 @@ namespace ExchangeSharpTests
             // if tests fail, uncomment this and it will save a new test file
             // string allSymbolsJson = GetAllSymbolsJsonAsync().Sync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
 
-            string globalMarketSymbol = "BTC-ETH";
-            string globalMarketSymbolAlt = "KRW-BTC"; // WTF Bitthumb...
+            string globalMarketSymbol = "ETH-BTC"; //1 ETH is worth 0.0192 BTC...
+            string globalMarketSymbolAlt = "BTC-KRW"; // WTF Bitthumb... //1 BTC worth 9,783,000 won
             Dictionary<string, string[]> allSymbols = JsonConvert.DeserializeObject<Dictionary<string, string[]>>(System.IO.File.ReadAllText("TestData/AllSymbols.json"));
 
             // sanity test that all exchanges return the same global symbol when converted back and forth
@@ -88,9 +88,10 @@ namespace ExchangeSharpTests
                     bool isBithumb = (api.Name == ExchangeName.Bithumb);
                     string exchangeMarketSymbol = await api.GlobalMarketSymbolToExchangeMarketSymbolAsync(isBithumb ? globalMarketSymbolAlt : globalMarketSymbol);
                     string globalMarketSymbol2 = await api.ExchangeMarketSymbolToGlobalMarketSymbolAsync(exchangeMarketSymbol);
-                    if ((!isBithumb && globalMarketSymbol2.EndsWith("-BTC")) ||
-                        globalMarketSymbol2.EndsWith("-USD") ||
-                        globalMarketSymbol2.EndsWith("-USDT"))
+
+                    if ((!isBithumb && globalMarketSymbol2.StartsWith("BTC-")) ||
+                        globalMarketSymbol2.StartsWith("USD-") ||
+                        globalMarketSymbol2.StartsWith("USDT-"))
                     {
                         Assert.Fail($"Exchange {api.Name} has wrong SymbolIsReversed parameter");
                     }

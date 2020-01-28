@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -40,12 +40,14 @@ namespace ExchangeSharp
 
         public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
         {
-            return Task.FromResult("KRW" + GlobalMarketSymbolSeparator + marketSymbol);
+            return Task.FromResult(marketSymbol + GlobalMarketSymbolSeparator + "KRW"); //e.g. 1 btc worth 9.7m KRW
         }
 
         public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
         {
-            return Task.FromResult(marketSymbol.Substring(marketSymbol.IndexOf(GlobalMarketSymbolSeparator) + 1));
+	        var values = marketSymbol.Split(GlobalMarketSymbolSeparator); //for Bitthumb, e.g. "BTC-KRW", 1 btc worth about 9.7m won. Market symbol is BTC.
+
+	        return Task.FromResult(values[0]);
         }
 
         private string StatusToError(string status)
