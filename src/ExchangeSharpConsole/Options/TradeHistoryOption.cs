@@ -8,7 +8,7 @@ using ExchangeSharpConsole.Options.Interfaces;
 namespace ExchangeSharpConsole.Options
 {
 	[Verb("trade-history", HelpText = "Print trade history from an Exchange to output.\n" +
-	                                  "Example: trade-history -e Binance -s btcusdt --since \"20180517\" --to \"20180518\"")]
+	                                  "Example: trade-history -e Binance -s btcusdt --since \"2018-05-17\" --to \"2018-05-18\"")]
 	public class TradeHistoryOption : BaseOption, IOptionPerExchange, IOptionPerMarketSymbol, IOptionWithStartDate,
 		IOptionWithEndDate
 	{

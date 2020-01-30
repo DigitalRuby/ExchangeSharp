@@ -13,7 +13,7 @@ namespace ExchangeSharpConsole.Options
 		"This can take a long time depending on your sinceDateTime parameter.\n" +
 		"Please note that not all exchanges will let you do this and may ban your IP if you try to grab to much data at once. " +
 		"I've added sensible sleep statements to limit request rates.\n" +
-		"Example: export -e gemini --since 20150101 -s btcusd -o \"./data/gemini\"")]
+		"Example: export -e gemini --since 2015-01-01 -s btcusd -p \"./data/gemini\"")]
 	public class ExportOption : BaseOption, IOptionPerExchange, IOptionPerMarketSymbol, IOptionWithIO,
 		IOptionWithStartDate
 	{
@@ -25,7 +25,7 @@ namespace ExchangeSharpConsole.Options
 				ExchangeAPI.GetExchangeAPI(ExchangeName),
 				MarketSymbol,
 				Path,
-				DateTime.Parse(SinceDateString, CultureInfo.InvariantCulture),
+				DateTime.Parse(SinceDateString, CultureInfo.InvariantCulture).ToUniversalTime(),
 				count =>
 				{
 					total = count;
