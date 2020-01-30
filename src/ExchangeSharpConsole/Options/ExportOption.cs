@@ -25,7 +25,7 @@ namespace ExchangeSharpConsole.Options
 				ExchangeAPI.GetExchangeAPI(ExchangeName),
 				MarketSymbol,
 				Path,
-				DateTime.Parse(SinceDateString, CultureInfo.InvariantCulture).ToUniversalTime(),
+				DateTime.Parse(SinceDateString, CultureInfo.InvariantCulture),
 				count =>
 				{
 					total = count;
