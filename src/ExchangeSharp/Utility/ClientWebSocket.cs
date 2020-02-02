@@ -394,12 +394,12 @@ namespace ExchangeSharp
         private async Task ReadTask()
         {
             ArraySegment<byte> receiveBuffer = new ArraySegment<byte>(new byte[receiveChunkSize]);
-            MemoryStream stream = new MemoryStream();
             WebSocketReceiveResult result;
             bool wasConnected = false;
 
             while (!disposed)
             {
+				MemoryStream stream = new MemoryStream();
                 try
                 {
                     // open the socket
