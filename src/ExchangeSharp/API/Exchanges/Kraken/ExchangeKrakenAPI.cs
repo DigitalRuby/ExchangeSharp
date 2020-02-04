@@ -131,11 +131,6 @@ namespace ExchangeSharp
             {
                 quoteCurrencyNormalized = quoteCurrency;
             }
-            if (quoteCurrencyNormalized == "BTC")
-            {
-                // prefer BTC in front
-                return quoteCurrencyNormalized + GlobalMarketSymbolSeparatorString + baseCurrencyNormalized;
-            }
             return baseCurrencyNormalized + GlobalMarketSymbolSeparatorString + quoteCurrencyNormalized;
         }
 
