@@ -46,6 +46,8 @@ namespace ExchangeSharp
         private static readonly Dictionary<string, IExchangeAPI?> apis = new Dictionary<string, IExchangeAPI?>(StringComparer.OrdinalIgnoreCase);
         private bool disposed;
 
+		private static readonly Dictionary<string, string> classNamesToApiName = new Dictionary<string, string>();
+		
         #endregion Private methods
 
         #region API Implementation
@@ -220,7 +222,8 @@ namespace ExchangeSharp
                 {
                     api.Dispose();
                     apis[api.Name] = null;
-                }
+                    classNamesToApiName[type.Name] = api.Name;
+				}
 
                 // in case derived class is accessed first, check for existance of key
                 if (!ExchangeGlobalCurrencyReplacements.ContainsKey(type))
@@ -281,12 +284,20 @@ namespace ExchangeSharp
             }
         }
 
-        /// <summary>
-        /// Get an exchange API given an exchange name (see ExchangeName class)
-        /// </summary>
-        /// <param name="exchangeName">Exchange name</param>
-        /// <returns>Exchange API or null if not found</returns>
-        public static IExchangeAPI? GetExchangeAPI(string exchangeName)
+		public static IExchangeAPI? GetExchangeAPIFromClassName(string className)
+        {
+	        if (!classNamesToApiName.TryGetValue(className, out string exchangeName))
+		        throw new ArgumentException("No API available with class name " + className);
+
+	        return GetExchangeAPI(exchangeName);
+        }
+
+		/// <summary>
+		/// Get an exchange API given an exchange name (see ExchangeName class)
+		/// </summary>
+		/// <param name="exchangeName">Exchange name</param>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI? GetExchangeAPI(string exchangeName)
         {
             // note: this method will be slightly slow (milliseconds) the first time it is called and misses the cache
             // subsequent calls with cache hits will be nanoseconds
