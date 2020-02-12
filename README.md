@@ -85,10 +85,10 @@ See [`WebSocket4NetClientWebSocket.cs`][websocket4net] for implementation detail
 ### Nuget
 
 #### dotnet CLI
-[`dotnet add package DigitalRuby.ExchangeSharp --version 0.6.4`][nuget]
+[`dotnet add package DigitalRuby.ExchangeSharp --version 0.7.0`][nuget]
 
 #### Package Manager on VS
-[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.6.4`][nuget]
+[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.7.0`][nuget]
 
 ### Examples
 
