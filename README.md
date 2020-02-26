@@ -33,7 +33,7 @@ The following cryptocurrency exchanges are supported:
 | Bittrex          | x         | x           | T R       |
 | BL3P             | x         | x           |   R B     | Trades stream does not send trade's ids.
 | Bleutrade        | x         | x           |           |
-| BTSE             | x         |             |           |
+| BTSE             | x         | x           |           |
 | Coinbase         | x         | x           | T R       |
 | Digifinex        | x         | x           |   R B     |
 | Gemini           | x         | x           |   R       |
