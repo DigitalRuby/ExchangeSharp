@@ -48,6 +48,7 @@ The following cryptocurrency exchanges are supported:
 | YoBit            | x         | x           |           |
 | ZB.com           | wip       |             |   R       |
 | NDAX             | x         | x           | T R       |
+| BTSE             | x         |             |           |
 
 The following cryptocurrency services are supported:
 - Cryptowatch (partial)

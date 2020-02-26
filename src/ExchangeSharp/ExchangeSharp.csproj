@@ -11,13 +11,13 @@
 		<PackageVersion>0.7.0</PackageVersion>
     <Authors>jjxtra</Authors>
     <Description>ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.</Description>
-    <Summary>Supported exchanges: Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade Cryptopia Coinbase(GDAX) Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom. Pull requests welcome.</Summary>
+    <Summary>Supported exchanges: Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade BTSE Cryptopia Coinbase(GDAX) Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom. Pull requests welcome.</Summary>
     <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/jjxtra/ExchangeSharp</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes>https://github.com/jjxtra/ExchangeSharp/releases</PackageReleaseNotes>
-    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade Cryptopia Coinbase GDAX Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
+    <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade BTSE Cryptopia Coinbase GDAX Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
     <RepositoryUrl>https://github.com/jjxtra/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
