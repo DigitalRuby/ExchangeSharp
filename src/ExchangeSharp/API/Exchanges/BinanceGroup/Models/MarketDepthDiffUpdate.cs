@@ -28,10 +28,10 @@ namespace ExchangeSharp.BinanceGroup
         public string MarketSymbol { get; set; }
 
         [JsonProperty("U")]
-        public int FirstUpdate { get; set; }
+        public long FirstUpdate { get; set; }
 
         [JsonProperty("u")]
-        public int FinalUpdate { get; set; }
+        public long FinalUpdate { get; set; }
 
         [JsonProperty("b")]
         public List<List<object>> Bids { get; set; }
