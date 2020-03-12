@@ -135,7 +135,9 @@ namespace ExchangeSharp
 
             public Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
             {
-                return webSocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+				if (webSocket.State == WebSocketState.Open)
+					return webSocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+				else return Task.CompletedTask;
             }
         }
 
