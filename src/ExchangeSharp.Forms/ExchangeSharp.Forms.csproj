@@ -1,12 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net472</TargetFramework>
         <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
         <NeutralLanguage>en</NeutralLanguage>
         <LangVersion>8</LangVersion>
-        <AssemblyVersion>0.7.0</AssemblyVersion>
-        <FileVersion>0.7.0</FileVersion>
     </PropertyGroup>
 
     <ItemGroup>
