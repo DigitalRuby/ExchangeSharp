@@ -389,6 +389,47 @@ namespace ExchangeSharp
             return candles;
         }
 
+        public async Task<IEnumerable<ExchangeTrade>> GetHistoricalTradesAsync(
+            string marketSymbol = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            int? startingIndex = null,
+            int? limit = 1000)
+        {
+            List<ExchangeTrade> trades = new List<ExchangeTrade>();
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            string url = "/trade?";
+            url += "&columns=[\"symbol\", \"size\", \"price\", \"side\", \"timestamp\", \"trdMatchID\"]";
+            if (!string.IsNullOrWhiteSpace(marketSymbol))
+            {
+                url += "&symbol=" + NormalizeMarketSymbol(marketSymbol);
+            }
+            if (startDate != null)
+            {
+                url += "&startTime=" + startDate.Value.ToString("yyyy-MM-ddTHH:mm:ss.fff") + "Z";
+            }
+            if (endDate != null)
+            {
+                url += "&endTime=" + endDate.Value.ToString("yyyy-MM-ddTHH:mm:ss.fff") + "Z";
+            }
+            if (limit != null)
+            {
+                url += "&count=" + (limit.Value.ToStringInvariant());
+            }
+            if (startingIndex != null)
+            {
+                url += "&start=" + (startingIndex.Value.ToStringInvariant());
+            }
+
+            var obj = await MakeJsonRequestAsync<JToken>(url);
+            foreach (var t in obj)
+            {
+                trades.Add(t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601, "trdMatchID"));
+            }
+
+            return trades;
+        }
+
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
             /*
@@ -482,6 +523,28 @@ namespace ExchangeSharp
             return amounts;
         }
 
+        public async Task<IEnumerable<ExchangePosition>> GetCurrentPositionsAsync()
+        {
+            var payload = await GetNoncePayloadAsync();
+            string url = "/position?";
+            url += "&columns=[\"symbol\", \"currentQty\", \"avgEntryPrice\", \"liquidationPrice\", \"leverage\"]";
+            JToken token = await MakeJsonRequestAsync<JToken>(url, BaseUrl, payload);
+            List<ExchangePosition> positions = new List<ExchangePosition>();
+            foreach (var item in token)
+            {
+                ExchangePosition position = new ExchangePosition
+                {
+                    MarketSymbol = item["symbol"].ToStringUpperInvariant(),
+                    Amount = item["currentQty"].ConvertInvariant<decimal>(),
+                    AveragePrice = item["avgEntryPrice"].ConvertInvariant<decimal>(),
+                    LiquidationPrice = item["liquidationPrice"].ConvertInvariant<decimal>(),
+                    Leverage = item["leverage"].ConvertInvariant<decimal>(),
+                };
+                positions.Add(position);
+            }
+            return positions;
+        }
+
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
         {
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
@@ -521,7 +584,25 @@ namespace ExchangeSharp
             payload["orderID"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "DELETE");
         }
+    
+        public async Task CancelAllOrdersAsync(string marketSymbol = null)
+        {
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            string query = "/order/all";
+            if (!string.IsNullOrWhiteSpace(marketSymbol))
+            {
+                payload["symbol"] = NormalizeMarketSymbol(marketSymbol);
+            }
+            JToken token = await MakeJsonRequestAsync<JToken>(query, BaseUrl, payload, "DELETE");
+        }
 
+        public async Task Deadman(int timeoutMS)
+        {
+            Dictionary<string, object> payload = await GetNoncePayloadAsync();
+            payload["timeout"] = timeoutMS;
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/cancelAllAfter", BaseUrl, payload, "POST");
+        }
+        
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
