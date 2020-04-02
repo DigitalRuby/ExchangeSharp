@@ -216,7 +216,7 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
         {
-            JToken obj = await MakeJsonRequestAsync<JToken>($"/trades?symbol={marketSymbol}&limit=500"); // maximum limit = 500
+            JToken obj = await MakeJsonRequestAsync<JToken>($"/trades?symbol={marketSymbol}&limit={limit??500}"); // maximum limit = 500
             return obj["data"].Select(x => new ExchangeTrade
             {
                 Id = x["id"].ToStringInvariant(),
