@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,10 +12,20 @@ namespace ExchangeSharp
 
     public partial class ExchangeDigifinexAPI : ExchangeAPI
     {
+        string[] Urls =
+        {
+            "openapi.digifinex.com",
+            "openapi.digifinex.vip",
+            "openapi.digifinex.xyz",
+        };
+        string fastestUrl = null;
+        int failedUrlCount;
+
         public override string BaseUrl { get; set; } = "https://openapi.digifinex.vip/v3";
-        public override string BaseUrlWebSocket { get; set; } = "wss://openapi.digifinex.com/ws/v1/";
+        public override string BaseUrlWebSocket { get; set; } = "wss://openapi.digifinex.vip/ws/v1/";
         int websocketMessageId = 0;
         string timeWindow;
+        TaskCompletionSource<int> inited = new TaskCompletionSource<int>();
 
         public ExchangeDigifinexAPI()
         {
@@ -23,6 +34,35 @@ namespace ExchangeSharp
             MarketSymbolIsUppercase = true;
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
             NonceStyle = NonceStyle.UnixSeconds;
+            RateLimit = new RateGate(240, TimeSpan.FromMinutes(1));
+            GetFastestUrl();
+        }
+
+        void GetFastestUrl()
+        {
+            var client = new HttpClient();
+            foreach (var url in Urls)
+            {
+                var u = url;
+                client.GetAsync($"https://{u}").ContinueWith((t) =>
+                {
+                    if (t.Exception != null)
+                    {
+                        var count = Interlocked.Increment(ref failedUrlCount);
+                        if (count == Urls.Length)
+                            inited.SetException(new APIException("All digifinex URLs failed."));
+                        return;
+                    }
+                    if (fastestUrl == null)
+                    {
+                        fastestUrl = u;
+                        //Console.WriteLine($"Fastest url {GetHashCode()}: {u}");
+                        BaseUrl = $"https://{u}/v3";
+                        BaseUrlWebSocket = $"wss://{u}/ws/v1/";
+                        inited.SetResult(1);
+                    }
+                });
+            }
         }
 
         #region ProcessRequest
@@ -31,30 +71,26 @@ namespace ExchangeSharp
         {
             try
             {
+                await inited.Task;
                 var start = CryptoUtility.UtcNow;
                 JToken token = await MakeJsonRequestAsync<JToken>("/time");
                 DateTime serverDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["server_time"].ConvertInvariant<long>());
                 var end = CryptoUtility.UtcNow;
-                var now = start + TimeSpan.FromMilliseconds((end - start).TotalMilliseconds / 2);
+                var now = start + TimeSpan.FromMilliseconds((end - start).TotalMilliseconds);
                 var timeFaster = now - serverDate;
-                if (timeFaster <= TimeSpan.Zero)
-                {
-                    timeWindow = (timeFaster.Negate().TotalSeconds * 10).ToStringInvariant();
-                    NonceOffset = TimeSpan.FromSeconds(2.5);
-                }
-                else
-                {
-                    NonceOffset = now - serverDate; // how much time to substract from Nonce when making a request
-                }
+                timeWindow = "30"; // max latency of 30s
+                NonceOffset = now - serverDate; // how much time to substract from Nonce when making a request
+                //Console.WriteLine($"NonceOffset {GetHashCode()}: {NonceOffset}");
             }
             catch
             {
-                // eat exception
+                throw;
             }
         }
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
+            await inited.Task;
             var query = request.RequestUri.Query.TrimStart('?');
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -124,6 +160,7 @@ namespace ExchangeSharp
 
         protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
+            await inited.Task;
             JToken obj = await MakeJsonRequestAsync<JToken>("markets");
             JToken data = obj["data"];
             List<ExchangeMarket> results = new List<ExchangeMarket>();
@@ -194,9 +231,6 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(
             string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
-            if (limit != null)
-                throw new ArgumentException("Non-null limit is not supported", "limit");
-
             string period;
             if (periodSeconds <= 60 * 720)
                 period = (periodSeconds / 60).ToStringInvariant();
@@ -208,6 +242,20 @@ namespace ExchangeSharp
                 throw new ArgumentException($"Unsupported periodSeconds: {periodSeconds}", "periodSeconds");
 
             var url = $"/kline?symbol={marketSymbol}&period={period}";
+            if (startDate != null && endDate != null && limit != null)
+                throw new ArgumentException("Cannot specify `startDate`, `endDate` and `limit` all at the same time");
+            if (limit != null)
+            {
+                if (startDate != null)
+                    endDate = startDate + TimeSpan.FromSeconds(limit.Value * periodSeconds);
+                else
+                {
+                    if (endDate == null)
+                        endDate = DateTime.Now;
+                    startDate = endDate - TimeSpan.FromSeconds((limit.Value-1) * periodSeconds);
+                }
+            }
+
             if (startDate != null)
                 url += $"&start_time={new DateTimeOffset(startDate.Value).ToUnixTimeSeconds()}";
             if (endDate != null)
@@ -394,6 +442,7 @@ namespace ExchangeSharp
 
         protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
+            await inited.Task;
             if (callback == null)
             {
                 return null;
@@ -477,8 +526,9 @@ namespace ExchangeSharp
             {
                 return null;
             }
+            await inited.Task;
 
-			return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 //{
                 //  "method": "depth.update",
