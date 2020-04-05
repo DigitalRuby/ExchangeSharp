@@ -54,6 +54,16 @@ namespace ExchangeSharp
         /// </summary>
         public bool IsMargin { get; set; }
 
+        /// <summary>Order id</summary>
+        public string OrderId { get; set; }
+
+        /// <summary>
+        /// Client Order id
+        /// Order IDs put here will be returned in the Order Result returned by the exchange
+        /// Not all exchanges support this
+        /// </summary>
+        public string ClientOrderId { get; set; }
+
         /// <summary>
         /// Whether the amount should be rounded - set to false if you know the exact amount, otherwise leave
         /// as true so that the exchange does not reject the order due to too many decimal places.

@@ -20,6 +20,13 @@ namespace ExchangeSharp
         /// <summary>Order id</summary>
         public string OrderId { get; set; }
 
+        /// <summary>
+        /// Client Order id
+        /// Order IDs put here in the Request will be returned by the exchange
+        /// Not all exchanges support this
+        /// </summary>
+        public string ClientOrderId { get; set; }
+
         /// <summary>Result of the order</summary>
         public ExchangeAPIOrderResult Result { get; set; }
 

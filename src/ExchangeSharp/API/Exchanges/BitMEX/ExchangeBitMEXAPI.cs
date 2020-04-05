@@ -596,7 +596,7 @@ namespace ExchangeSharp
             JToken token = await MakeJsonRequestAsync<JToken>(query, BaseUrl, payload, "DELETE");
         }
 
-        public async Task Deadman(int timeoutMS)
+        public async Task DeadmanAsync(int timeoutMS)
         {
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             payload["timeout"] = timeoutMS;
@@ -611,7 +611,7 @@ namespace ExchangeSharp
             return ParseOrder(token);
         }
 
-        protected override async Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+        private async Task<ExchangeOrderResult[]> PlaceOrdersAsync(string requestMethod, params ExchangeOrderRequest[] orders)
         {
             List<ExchangeOrderResult> results = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
@@ -623,12 +623,22 @@ namespace ExchangeSharp
                 orderRequests.Add(subPayload);
             }
             payload["orders"] = orderRequests;
-            JToken token = await MakeJsonRequestAsync<JToken>("/order/bulk", BaseUrl, payload, "POST");
+            JToken token = await MakeJsonRequestAsync<JToken>("/order/bulk", BaseUrl, payload, requestMethod);
             foreach (JToken orderResultToken in token)
             {
                 results.Add(ParseOrder(orderResultToken));
             }
             return results.ToArray();
+        }
+
+        protected override async Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+        {
+            return await PlaceOrdersAsync("POST", orders);
+        }
+
+        public async Task<ExchangeOrderResult[]> AmendOrdersAsync(params ExchangeOrderRequest[] orders)
+        {
+            return await PlaceOrdersAsync("PUT", orders);
         }
 
         private void AddOrderToPayload(ExchangeOrderRequest order, Dictionary<string, object> payload)
@@ -638,8 +648,14 @@ namespace ExchangeSharp
             payload["side"] = order.IsBuy ? "Buy" : "Sell";
             payload["orderQty"] = order.Amount;
 
+            if(order.OrderId != null)
+                payload["orderID"] = order.OrderId;
+
+            if(order.ClientOrderId != null)
+                payload["clOrdID"] = order.ClientOrderId;
+
             if(order.OrderType!=OrderType.Market)
-            payload["price"] = order.Price;
+                payload["price"] = order.Price;
 
             if (order.ExtraParameters.TryGetValue("execInst", out var execInst))
             {
@@ -696,6 +712,7 @@ namespace ExchangeSharp
                 IsBuy = token["side"].ToStringInvariant().EqualsWithOption("Buy"),
                 OrderDate = token["transactTime"].ConvertInvariant<DateTime>(),
                 OrderId = token["orderID"].ToStringInvariant(),
+                ClientOrderId = token["clOrdID"].ToStringInvariant(),
                 MarketSymbol = token["symbol"].ToStringInvariant()
             };
 
