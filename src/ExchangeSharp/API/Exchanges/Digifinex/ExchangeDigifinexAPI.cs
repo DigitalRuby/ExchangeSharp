@@ -20,6 +20,7 @@ namespace ExchangeSharp
         };
         string fastestUrl = null;
         int failedUrlCount;
+		int successUrlCount;
 
         public override string BaseUrl { get; set; } = "https://openapi.digifinex.vip/v3";
         public override string BaseUrlWebSocket { get; set; } = "wss://openapi.digifinex.vip/ws/v1/";
@@ -53,7 +54,7 @@ namespace ExchangeSharp
                             inited.SetException(new APIException("All digifinex URLs failed."));
                         return;
                     }
-                    if (fastestUrl == null)
+					if (Interlocked.Increment(ref successUrlCount) == 1)
                     {
                         fastestUrl = u;
                         //Console.WriteLine($"Fastest url {GetHashCode()}: {u}");
