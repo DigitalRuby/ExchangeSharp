@@ -1,4 +1,6 @@
-﻿/*
+﻿using System;
+
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -41,5 +43,16 @@ namespace ExchangeSharp
         /// Leverage
         /// </summary>
         public decimal Leverage { get; set; }
+
+        /// <summary>
+        /// Last Price
+        /// Last Price on Exchange
+        /// </summary>
+        public decimal LastPrice { get; set; }
+
+        /// <summary>
+        /// TimeStamp
+        /// </summary>
+        public DateTime TimeStamp { get; set; }
     }
 }
