@@ -79,7 +79,7 @@ namespace ExchangeSharp
 				{"orderID", orderId}
 			});
 
-			await MakeJsonRequestAsync<JToken>(url.ToStringInvariant().Replace(BaseUrl, ""),
+			await MakeJsonRequestAsync<JToken>($"/api/v3.1/order{url.Query}",
 				requestMethod: "DELETE", payload: payload);
 		}
 
@@ -116,8 +116,7 @@ namespace ExchangeSharp
 				{"symbol", marketSymbol}
 			});
 
-
-			var result = await MakeJsonRequestAsync<JToken>(url.ToStringInvariant().Replace(BaseUrl, ""),
+			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/open_orders"+url.Query,
 				requestMethod: "GET", payload: payload);
 
 			return Extract2(result, token => new ExchangeOrderResult()
@@ -128,8 +127,27 @@ namespace ExchangeSharp
 				IsBuy = token["side"].Value<string>() == "BUY",
 				Price = token["price"].Value<decimal>(),
 				MarketSymbol = token["symbol"].Value<string>(),
-				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds()
+				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+				ClientOrderId = token["clOrderID"].Value<string>(),
+				Result = FromOrderState(token["orderState"].Value<string>())
 			});
+		}
+
+		private ExchangeAPIOrderResult FromOrderState(string s)
+		{
+			switch (s)
+			{
+				case "STATUS_ACTIVE":
+					return ExchangeAPIOrderResult.Pending;
+				case "ORDER_CANCELLED":
+					return ExchangeAPIOrderResult.Canceled;
+				case "ORDER_FULLY_TRANSACTED":
+					return ExchangeAPIOrderResult.Filled;
+				case "ORDER_PARTIALLY_TRANSACTED":
+					return ExchangeAPIOrderResult.FilledPartially;
+				default:
+					return ExchangeAPIOrderResult.Unknown;
+			}
 		}
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest request)
@@ -146,7 +164,6 @@ namespace ExchangeSharp
 
 			dict.Add("size", request.Amount);
 			dict.Add("side", request.IsBuy ? "BUY" : "SELL");
-			dict.Add("price", request.Price);
 			dict.Add("symbol", request.MarketSymbol);
 
 			switch (request.OrderType )
@@ -154,13 +171,14 @@ namespace ExchangeSharp
 				case OrderType.Limit:
 					dict.Add("txType", "LIMIT");
 					dict.Add("type", "LIMIT");
+					dict.Add("price", request.Price);
 					break;
 				case OrderType.Market:
-
 					dict.Add("type", "MARKET");
 					break;
 				case OrderType.Stop:
 					dict.Add("stopPrice", request.StopPrice);
+					dict.Add("price", request.Price);
 					dict.Add("txType", "STOP");
 					break;
 			}
@@ -246,7 +264,6 @@ namespace ExchangeSharp
 				var nonce = payload["nonce"].ToString();
 				payload.Remove("nonce");
 
-
 				var json = JsonConvert.SerializeObject(body ?? payload);
 				if (json == "{}")
 				{
@@ -260,7 +277,7 @@ namespace ExchangeSharp
 				}
 
 				var hexSha384 = CryptoUtility.SHA384Sign(
-					$"{request.RequestUri.PathAndQuery.Replace("/spot", string.Empty)}{nonce}{json}",
+					$"{request.RequestUri.AbsolutePath.Replace("/spot", string.Empty)}{nonce}{json}",
 					passphrase);
 				request.AddHeader("btse-sign", hexSha384);
 				request.AddHeader("btse-nonce", nonce);
