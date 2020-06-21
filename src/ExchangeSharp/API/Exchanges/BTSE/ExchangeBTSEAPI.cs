@@ -127,8 +127,27 @@ namespace ExchangeSharp
 				IsBuy = token["side"].Value<string>() == "BUY",
 				Price = token["price"].Value<decimal>(),
 				MarketSymbol = token["symbol"].Value<string>(),
-				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds()
+				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+				ClientOrderId = token["clOrderID"].Value<string>(),
+				Result = FromOrderState(token["orderState"].Value<string>())
 			});
+		}
+
+		private ExchangeAPIOrderResult FromOrderState(string s)
+		{
+			switch (s)
+			{
+				case "STATUS_ACTIVE":
+					return ExchangeAPIOrderResult.Pending;
+				case "ORDER_CANCELLED":
+					return ExchangeAPIOrderResult.Canceled;
+				case "ORDER_FULLY_TRANSACTED":
+					return ExchangeAPIOrderResult.Filled;
+				case "ORDER_PARTIALLY_TRANSACTED":
+					return ExchangeAPIOrderResult.FilledPartially;
+				default:
+					return ExchangeAPIOrderResult.Unknown;
+			}
 		}
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest request)
@@ -258,7 +277,7 @@ namespace ExchangeSharp
 				}
 
 				var hexSha384 = CryptoUtility.SHA384Sign(
-					$"{request.RequestUri.PathAndQuery.Replace("/spot", string.Empty)}{nonce}{json}",
+					$"{request.RequestUri.AbsolutePath.Replace("/spot", string.Empty)}{nonce}{json}",
 					passphrase);
 				request.AddHeader("btse-sign", hexSha384);
 				request.AddHeader("btse-nonce", nonce);
