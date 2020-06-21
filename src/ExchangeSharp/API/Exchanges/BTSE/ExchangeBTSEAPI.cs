@@ -79,7 +79,7 @@ namespace ExchangeSharp
 				{"orderID", orderId}
 			});
 
-			await MakeJsonRequestAsync<JToken>(url.ToStringInvariant().Replace(BaseUrl, ""),
+			await MakeJsonRequestAsync<JToken>($"/api/v3.1/order{url.Query}",
 				requestMethod: "DELETE", payload: payload);
 		}
 
@@ -116,8 +116,7 @@ namespace ExchangeSharp
 				{"symbol", marketSymbol}
 			});
 
-
-			var result = await MakeJsonRequestAsync<JToken>(url.ToStringInvariant().Replace(BaseUrl, ""),
+			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/open_orders"+url.Query,
 				requestMethod: "GET", payload: payload);
 
 			return Extract2(result, token => new ExchangeOrderResult()
@@ -146,7 +145,6 @@ namespace ExchangeSharp
 
 			dict.Add("size", request.Amount);
 			dict.Add("side", request.IsBuy ? "BUY" : "SELL");
-			dict.Add("price", request.Price);
 			dict.Add("symbol", request.MarketSymbol);
 
 			switch (request.OrderType )
@@ -154,13 +152,14 @@ namespace ExchangeSharp
 				case OrderType.Limit:
 					dict.Add("txType", "LIMIT");
 					dict.Add("type", "LIMIT");
+					dict.Add("price", request.Price);
 					break;
 				case OrderType.Market:
-
 					dict.Add("type", "MARKET");
 					break;
 				case OrderType.Stop:
 					dict.Add("stopPrice", request.StopPrice);
+					dict.Add("price", request.Price);
 					dict.Add("txType", "STOP");
 					break;
 			}
@@ -245,7 +244,6 @@ namespace ExchangeSharp
 
 				var nonce = payload["nonce"].ToString();
 				payload.Remove("nonce");
-
 
 				var json = JsonConvert.SerializeObject(body ?? payload);
 				if (json == "{}")
