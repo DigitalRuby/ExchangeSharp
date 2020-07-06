@@ -8,7 +8,7 @@ ExchangeSharp is a C# **framework/lib** and [console app](#Installing-the-CLI) f
 Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat with other developers.
 
 ### Sponsored Link
-“ExchangeSharp is being sponsored by the following tool; please help to support us by taking a look and signing up for a free trial”
+“ExchangeSharp is being sponsored by the following tool; please help to support us by taking a look and signing up for a free trial”  
 <a href="https://tracking.gitads.io/?repo=ExchangeSharp"><img src="https://images.gitads.io/ExchangeSharp" alt="GitAds"/></a>
 
 ### Features
