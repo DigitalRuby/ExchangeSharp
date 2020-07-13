@@ -10,8 +10,6 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System.Diagnostics;
-
 namespace ExchangeSharp
 {
     using ExchangeSharp.Aquanow;
@@ -19,13 +17,7 @@ namespace ExchangeSharp
     using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Net;
     using System.Threading.Tasks;
-
-    using System.IO;
-
 
     public sealed partial class ExchangeAquanowAPI : ExchangeAPI
     {
@@ -89,48 +81,6 @@ namespace ExchangeSharp
             return currencies;
         }
 
-        protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
-        {
-            return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
-            {
-                string message = msg.ToStringFromUTF8();
-                var book = new ExchangeOrderBook();
-                var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
-
-                book.MarketSymbol = snapshot.symbol;
-                foreach (responseFormat ask in snapshot.asks)
-                {
-                    decimal price = ask.quote;
-                    decimal amount = ask.quantity;
-                    book.Asks[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
-                }
-
-                foreach (responseFormat bid in snapshot.bids)
-                {
-                    decimal price = bid.quote;
-                    decimal amount = bid.quantity;
-                    book.Bids[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
-                }
-                callback(book);
-                return Task.CompletedTask;
-            }, async (_socket) =>
-                {
-                    if (marketSymbols == null || marketSymbols.Length == 0)
-                    {
-                        marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-                    }
-                    foreach (var sym in marketSymbols)
-                    {
-                        var subscribeRequest = new
-                        {
-                            type = "subscribe",
-                            channel = "orderBook",
-                            pair = sym
-                        };
-                        await _socket.SendMessageAsync(subscribeRequest);
-                    }
-                });
-        }
 
 
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -171,34 +121,84 @@ namespace ExchangeSharp
             payload[amountParameter] = order.Amount;
             order.ExtraParameters.CopyTo(payload);
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/v1/market", null, payload, "POST");
-            // {
-            //     "type": "marketOrderSubmitAck",
-            //     "payload": {
-            //         "orderId": "397de435-0352-4de3-a546-fec676ed10cd",
-            //         "receiveCurrency": "BTC",
-            //         "receiveQuantity": 0.0005,
-            //         "deliverCurrency": "USD",
-            //         "deliverQuantity": 4.607,
-            //         "fee": 0.000001
-            //     }
-            // }
             var orderDetailsPayload = await GetNoncePayloadAsync();
+
+            //{
+            //   "type": "marketOrderSubmitAck",
+            //   "payload": {
+            //     "orderId": "cfXXXXXX-56ce-4df8-9f1e-729e87bf54d8",
+            //     "receiveCurrency": "BTC",
+            //     "receiveQuantity": 0.00004,
+            //     "deliverCurrency": "USD",
+            //     "deliverQuantity": 0.369124,
+            //     "fee": 0.000001
+            //   }
+            //}
+
+
+
             JToken result = await MakeJsonRequestAsync<JToken>($"/trades/v1/order?orderId={token["payload"]["orderId"].ToStringInvariant()}", null, orderDetailsPayload, "GET");
+            // {
+            //   "priceArrival": 9223.5,
+            //   "orderId": "24cf77ad-7e93-44d7-86f8-b9d9a046b008",
+            //   "remainingQtyBase": 0,
+            //   "tradeSize": 0.0004,
+            //   "exchangeOrderId": "-",
+            //   "tradePriceAvg": 9223.5,
+            //   "fillPct": 100,
+            //   "finalizeReturnedQtyBase": 0,
+            //   "tradeSide": "buy",
+            //   "exchangeClientOrderId": "-",
+            //   "tradeTime": 1594681810754,
+            //   "childOrderCount": 0,
+            //   "fillFeeQuote": 0,
+            //   "itemDateTime": 1594681811719,
+            //   "baseSymbol": "USD",
+            //   "strategy": "MARKET",
+            //   "fillQtyQuote": 0.0004,
+            //   "usernameRef": "-",
+            //   "fillQtyBase": 3.6894,
+            //   "priceMarket": "-",
+            //   "symbol": "BTC-USD",
+            //   "tradeStatus": "COMPLETE",
+            //   "commissionRate": 20,
+            //   "createdAt": 1594681810756,
+            //   "message": "-",
+            //   "priceLimit": 9223.5,
+            //   "quoteSymbol": "BTC",
+            //   "remainingQtyQuote": 0,
+            //   "orderIdParent": "24cf77ad-7e93-44d7-86f8-b9d9a046b008",
+            //   "orderType": "parentOrder",
+            //   "updatedAt": 1594681811941,
+            //   "tradeDuration": 0,
+            //   "username": "XXXXXXX",
+            //   "fillFeeQuoteAqua": 0.0000001
+            // }
             ExchangeOrderResult orderDetails = new ExchangeOrderResult
             {
                 OrderId = result["orderId"].ToStringInvariant(),
                 AmountFilled = result["fillQtyQuote"].ToStringInvariant().ConvertInvariant<decimal>(),
                 Amount = payload[amountParameter].ConvertInvariant<decimal>(),
-                OrderDate = CryptoUtility.UtcNow,
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["tradeTime"].ConvertInvariant<double>()),
+                Message = result["message"].ToStringInvariant(),
                 IsBuy = order.IsBuy,
                 Fees = token["payload"]["fee"].ConvertInvariant<decimal>(),
                 FeesCurrency = feesCurrency,
                 MarketSymbol = order.MarketSymbol,
                 Price = result["priceArrival"].ToStringInvariant().ConvertInvariant<decimal>(),
-                AveragePrice = result["tradePriceAvg"].ToStringInvariant().ConvertInvariant<decimal>()
 
             };
+            switch (result["tradeStatus"].ToStringInvariant())
+            {
+                case "COMPLETE":
+                    orderDetails.AveragePrice = result["tradePriceAvg"].ToStringInvariant().ConvertInvariant<decimal>();
+                    orderDetails.Result = ExchangeAPIOrderResult.Filled;
+                    break;
 
+                default:
+                    orderDetails.Result = ExchangeAPIOrderResult.Error;
+                    break;
+            }
             return orderDetails;
         }
 
@@ -216,15 +216,25 @@ namespace ExchangeSharp
                 OrderId = result["orderId"].ToStringInvariant(),
                 AmountFilled = result["fillQtyQuote"].ToStringInvariant().ConvertInvariant<decimal>(),
                 Amount = result["tradeSize"].ConvertInvariant<decimal>(),
-                OrderDate = CryptoUtility.UtcNow,
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["tradeTime"].ConvertInvariant<double>()),
+                Message = result["message"].ToStringInvariant(),
                 IsBuy = isBuy,
                 Fees = result["fillFeeQuote"].ConvertInvariant<decimal>() + result["fillFeeQuotaAqua"].ConvertInvariant<decimal>(),
                 FeesCurrency = result["quoteSymbol"].ToStringInvariant(),
                 MarketSymbol = result["symbol"].ToStringInvariant(),
                 Price = result["priceArrival"].ToStringInvariant().ConvertInvariant<decimal>(),
-                AveragePrice = result["tradePriceAvg"].ToStringInvariant().ConvertInvariant<decimal>()
-
             };
+            switch (result["tradeStatus"].ToStringInvariant())
+            {
+                case "COMPLETE":
+                    orderDetails.AveragePrice = result["tradePriceAvg"].ToStringInvariant().ConvertInvariant<decimal>();
+                    orderDetails.Result = ExchangeAPIOrderResult.Filled;
+                    break;
+
+                default:
+                    orderDetails.Result = ExchangeAPIOrderResult.Error;
+                    break;
+            }
 
             return orderDetails;
         }
@@ -235,29 +245,6 @@ namespace ExchangeSharp
             payload["orderId"] = orderId;
             JToken token = await MakeJsonRequestAsync<JToken>("/trades/v1/order", null, payload, "DELETE");
         }
-
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
-        {
-            List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=all&depth=" + maxCount);
-            foreach (JProperty token in obj.Children())
-            {
-                ExchangeOrderBook book = new ExchangeOrderBook();
-                foreach (JArray array in token.First["asks"])
-                {
-                    var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
-                    book.Asks[depth.Price] = depth;
-                }
-                foreach (JArray array in token.First["bids"])
-                {
-                    var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
-                    book.Bids[depth.Price] = depth;
-                }
-                books.Add(new KeyValuePair<string, ExchangeOrderBook>(token.Name, book));
-            }
-            return books;
-        }
-
 
     }
 
