@@ -3,15 +3,18 @@
 [![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master) [![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)][nuget]
 
 ## Overview
+
 ExchangeSharp is a C# **framework/lib** and [console app](#Installing-the-CLI) for trading and communicating with [various](#Exchanges) exchange API end points for cryptocurrency assets. Many exchanges are supported, along with [web sockets](#Websockets), withdraws and more!
 
 Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat with other developers.
 
 ### Sponsored Link
+
 “ExchangeSharp is being sponsored by the following tool; please help to support us by taking a look and signing up for a free trial”  
 <a href="https://tracking.gitads.io/?repo=ExchangeSharp"><img src="https://images.gitads.io/ExchangeSharp" alt="GitAds"/></a>
 
 ### Features
+
 - Many exchanges supported with public, private and web socket API
 - Easy to use and well documented code and API
 - Optional global market symbol normalization, since each exchange has their own way of doing market symbols
@@ -20,55 +23,61 @@ Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat wi
 - Has a great [CLI](#Installing-the-CLI) that enables you to use all features from all exchanges right from your command line.
 
 ### Exchanges
+
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = order book, O = private orders)
 
-|Exchange Name     |Public REST|Private REST |Web Socket | Notes
-| ---------------- | --------- | ----------- | --------- | ---------
-| Binance          | x         | x           | T R B     |
-| Binance Jersey   | x         | x           | T R B     |
-| Binance.US       | x         | x           | T R B     |
-| Binance DEX      |           |             |   R       |
-| Bitbank          | x         | x           |           |
-| Bitfinex         | x         | x           | T R   O   |
-| Bithumb          | x         |             |           |
-| BitMEX           | x         | x           |   R   O   |
-| Bitstamp         | x         | x           |   R       |
-| Bittrex          | x         | x           | T R       |
-| BL3P             | x         | x           |   R B     | Trades stream does not send trade's ids.
-| Bleutrade        | x         | x           |           |
-| BTSE             | x         | x           |           |
-| Coinbase         | x         | x           | T R       |
-| Digifinex        | x         | x           |   R B     |
-| Gemini           | x         | x           |   R       |
-| HitBTC           | x         | x           |   R       |
-| Huobi            | x         | x           |   R B     |
-| Kraken           | x         | x           |   R       | Dark order symbols not supported
-| KuCoin           | x         | x           | T R       |
-| LBank            | x         | x           |           |
-| Livecoin         | x         | x           |           |
-| NDAX             | x         | x           | T R       |
-| OKCoin           | x         | x           |   R B     |
-| OKEx             | x         | x           |   R B     |
-| Poloniex         | x         | x           | T R B     |
-| YoBit            | x         | x           |           |
-| ZB.com           | wip       |             |   R       |
+| Exchange Name  | Public REST | Private REST | Web Socket | Notes                                    |
+| -------------- | ----------- | ------------ | ---------- | ---------------------------------------- |
+| Aquanow        | wip         | x            |            |
+| Binance        | x           | x            | T R B      |
+| Binance Jersey | x           | x            | T R B      |
+| Binance.US     | x           | x            | T R B      |
+| Binance DEX    |             |              | R          |
+| Bitbank        | x           | x            |            |
+| Bitfinex       | x           | x            | T R O      |
+| Bithumb        | x           |              |            |
+| BitMEX         | x           | x            | R O        |
+| Bitstamp       | x           | x            | R          |
+| Bittrex        | x           | x            | T R        |
+| BL3P           | x           | x            | R B        | Trades stream does not send trade's ids. |
+| Bleutrade      | x           | x            |            |
+| BTSE           | x           | x            |            |
+| Coinbase       | x           | x            | T R        |
+| Digifinex      | x           | x            | R B        |
+| Gemini         | x           | x            | R          |
+| HitBTC         | x           | x            | R          |
+| Huobi          | x           | x            | R B        |
+| Kraken         | x           | x            | R          | Dark order symbols not supported         |
+| KuCoin         | x           | x            | T R        |
+| LBank          | x           | x            |            |
+| Livecoin       | x           | x            |            |
+| NDAX           | x           | x            | T R        |
+| OKCoin         | x           | x            | R B        |
+| OKEx           | x           | x            | R B        |
+| Poloniex       | x           | x            | T R B      |
+| YoBit          | x           | x            |            |
+| ZB.com         | wip         |              | R          |
 
 The following cryptocurrency services are supported:
+
 - Cryptowatch (partial)
 
 ### Installing the CLI
 
-On *nix systems:
-  - Run this command `curl https://github.com/jjxtra/ExchangeSharp/raw/master/install-console.sh | sh`
+On \*nix systems:
+
+- Run this command `curl https://github.com/jjxtra/ExchangeSharp/raw/master/install-console.sh | sh`
 
 On Windows (or manually):
-  - Download the [latest binaries](https://github.com/jjxtra/ExchangeSharp/releases/latest) for your OS.
-  - Unzip it into a folder that is in your environment variable `PATH` (`ctrl` + `shift` + `pause|break` -> Environment Variables)
-  - Use it from the your preferred command-line emulator (e.g. Powershell, cmd, etc.)
-  - `exchange-sharp --help` shows all available commands
+
+- Download the [latest binaries](https://github.com/jjxtra/ExchangeSharp/releases/latest) for your OS.
+- Unzip it into a folder that is in your environment variable `PATH` (`ctrl` + `shift` + `pause|break` -> Environment Variables)
+- Use it from the your preferred command-line emulator (e.g. Powershell, cmd, etc.)
+- `exchange-sharp --help` shows all available commands
 
 ### Notes
+
 ExchangeSharp uses **`marketSymbol`** to refer to markets, or pairs of currencies.
 
 Please send pull requests if you have made a change that you feel is worthwhile, want a bug fixed or want a new feature. You can also donate to get new features.
@@ -90,9 +99,11 @@ See [`WebSocket4NetClientWebSocket.cs`][websocket4net] for implementation detail
 ### Nuget
 
 #### dotnet CLI
+
 [`dotnet add package DigitalRuby.ExchangeSharp --version 0.7.3`][nuget]
 
 #### Package Manager on VS
+
 [`PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.7.3`][nuget]
 
 ### Examples
@@ -122,6 +133,7 @@ public static async Task Main(string[] args)
 ```
 
 ### Logging
+
 ExchangeSharp uses NLog internally _currently_. To log, use `ExchangeSharp.Logger`.
 
 Do **not** use `Console.WriteLine` to log messages in the lib project.
@@ -135,12 +147,15 @@ The `ExchageAPI` class provides a method caching mechanism. Use `MethodCachePoli
 You can also set request cache policy if you want to tweak how the http caching behaves.
 
 ### How to contribute
+
 Please read the [contributing guideline](CONTRIBUTING.md) **before** submitting a **pull request**.
 
 ### Consulting
+
 I'm happy to make customizations to the software for you and keep in private repo, email exchangesharp@digitalruby.com.
 
 ### Donations Gratefully Accepted
+
 Believe it or not, donations are quite rare. I've posted publicly the total donation amounts below. If ExchangeSharp has helped you in anyway, please consider donating.
 
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
@@ -158,7 +173,7 @@ Thanks for visiting!
 
 Jeff Johnson  
 jeff@digitalruby.com  
-http://www.digitalruby.com  
+http://www.digitalruby.com
 
- [nuget]: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
- [websocket4net]: https://github.com/kerryjiang/WebSocket4Net
+[nuget]: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
+[websocket4net]: https://github.com/kerryjiang/WebSocket4Net
