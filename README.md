@@ -162,7 +162,7 @@ Believe it or not, donations are quite rare. I've posted publicly the total dona
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=L67Q4KQN5DHLY)
 
 Donation totals:
-0.02350084 BTC, 10.25 LTC
+0.039 BTC, 10.25 LTC
 
 Thanks for visiting!
 
