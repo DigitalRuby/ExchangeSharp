@@ -227,9 +227,20 @@ namespace ExchangeSharp.OKGroup
 				await AddMarketSymbolsToChannel(_socket, "/trade:{0}", marketSymbols);
 			}, async (_socket, symbol, sArray, token) =>
 			{
-				ExchangeTrade trade = token.ParseTrade(amountKey: "size", priceKey: "price",
+				ExchangeTrade trade;
+				var instrumentType = GetInstrumentType(symbol);
+				if (instrumentType == "futures")
+				{
+					trade = token.ParseTrade(amountKey: "qty", priceKey: "price",
 					typeKey: "side", timestampKey: "timestamp",
 					timestampType: TimestampType.Iso8601, idKey: "trade_id");
+				}
+				else
+				{
+					trade = token.ParseTrade(amountKey: "size", priceKey: "price",
+					typeKey: "side", timestampKey: "timestamp",
+					timestampType: TimestampType.Iso8601, idKey: "trade_id");
+				}
 				await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 			});
         }
@@ -733,6 +744,24 @@ namespace ExchangeSharp.OKGroup
             return marketSymbols;
         }
 
-        #endregion
+		private string GetInstrumentType(string marketSymbol)
+		{
+			string type;
+			if (marketSymbol.Split('-').Length == 3 && marketSymbol.Split('-')[2] == "SWAP")
+			{
+				type = "swap";
+			}
+			else if (marketSymbol.Split('-').Length == 3 && int.TryParse(marketSymbol.Split('-')[2], out _))
+			{
+				type = "futures";
+			}
+			else
+			{
+				type = "spot";
+			}
+			return type;
+		}
+
+		#endregion
 	}
 }
