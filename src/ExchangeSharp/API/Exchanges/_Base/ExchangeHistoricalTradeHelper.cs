@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -119,9 +119,10 @@ namespace ExchangeSharp
                     {
                         if (DirectionIsBackwards)
                         {
-                            // no trades found, move the whole block back
-                            endDateMoving = startDateMoving.Subtract(BlockTime);
-                        }
+							// no trades found, move the whole block back
+							endDateMoving = startDateMoving;
+							startDateMoving = endDateMoving.Subtract(BlockTime);
+						}
                         else
                         {
                             // no trades found, move the whole block forward
@@ -188,7 +189,6 @@ namespace ExchangeSharp
                             break;
                         }
                     }
-                    ClampDates(ref startDateMoving, ref endDateMoving);
                     await Task.Delay(DelayMilliseconds);
                 }
             }
@@ -204,25 +204,6 @@ namespace ExchangeSharp
                 {
                     startDateMoving = StartDate.Value;
                     endDateMoving = startDateMoving.Add(BlockTime);
-                }
-                ClampDates(ref startDateMoving, ref endDateMoving);
-            }
-
-            private void ClampDates(ref DateTime startDateMoving, ref DateTime endDateMoving)
-            {
-                if (DirectionIsBackwards)
-                {
-                    if (startDateMoving < StartDate.Value)
-                    {
-                        startDateMoving = StartDate.Value;
-                    }
-                }
-                else
-                {
-                    if (endDateMoving > EndDate.Value)
-                    {
-                        endDateMoving = EndDate.Value;
-                    }
                 }
             }
         }
