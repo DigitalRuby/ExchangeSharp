@@ -30,6 +30,12 @@ namespace ExchangeSharp
         /// <summary>Result of the order</summary>
         public ExchangeAPIOrderResult Result { get; set; }
 
+        /// <summary>
+        /// Result/Error code from exchange
+        /// Not all exchanges support this
+        /// </summary>
+        public string ResultCode { get; set; } 
+
         /// <summary>Message if any</summary>
         public string Message { get; set; }
 
