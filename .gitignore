@@ -457,3 +457,4 @@ launchSettings.json
 dist/
 data/**
 !data/.gitkeep
+src/ExchangeSharp/API/Exchanges/Bybit/.ExchangeBybitAPI.cs.swp
