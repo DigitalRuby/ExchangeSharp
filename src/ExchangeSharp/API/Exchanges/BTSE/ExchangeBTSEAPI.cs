@@ -10,8 +10,13 @@ namespace ExchangeSharp
 
 	public sealed partial class ExchangeBTSEAPI : ExchangeAPI
 	{
-		public override string BaseUrl { get; set; } = "https://api.btse.com";
+		public override string BaseUrl { get; set; } = "https://api.btse.com/spot";
+		public const string TestnetUrl = "https://testapi.btse.io/spot";
 
+		public ExchangeBTSEAPI()
+		{
+			NonceStyle = NonceStyle.UnixMillisecondsString;
+		}
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
 			return (await GetTickersAsync()).Select(pair => pair.Key);
@@ -19,10 +24,9 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
-			JToken allPairs = await MakeJsonRequestAsync<JArray>("/spot/api/v3/market_summary");
-			var tasks = allPairs.Select(async token => await this.ParseTickerAsync(token,
-				token["symbol"].Value<string>(), "lowestAsk", "highestBid", "last", "volume", null,
-				null, TimestampType.UnixMilliseconds, "base", "quote", "symbol"));
+			JToken allPairs = await MakeJsonRequestAsync<JToken>("/api/v3.1/market_summary", BaseUrl);
+			var tasks = allPairs.Select(async token => await ParseBTSETicker(token,
+				token["symbol"].Value<string>()));
 
 			return (await Task.WhenAll(tasks)).Select(ticker =>
 				new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
@@ -30,13 +34,12 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
-			JToken ticker = await MakeJsonRequestAsync<JObject>("/spot/api/v3/market_summary", null,
+			JToken ticker = await MakeJsonRequestAsync<JToken>("/api/v3.1/market_summary", BaseUrl,
 				new Dictionary<string, object>()
 				{
 					{"symbol", marketSymbol}
 				});
-			return await this.ParseTickerAsync(ticker, marketSymbol, "lowestAsk", "highestBid", "last", "volume", null,
-				null, TimestampType.UnixMilliseconds, "base", "quote", "symbol");
+			return await ParseBTSETicker(ticker, marketSymbol);
 		}
 
 		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol,
@@ -59,7 +62,7 @@ namespace ExchangeSharp
 				payload.Add("end", startDate.Value.UnixTimestampFromDateTimeMilliseconds());
 			}
 
-			JToken ticker = await MakeJsonRequestAsync<JArray>("/spot/api/v3/ohlcv", null, payload, "GET");
+			JToken ticker = await MakeJsonRequestAsync<JArray>("/api/v3.1/ohlcv", null, payload, "GET");
 			return ticker.Select(token =>
 				this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5));
 		}
@@ -69,44 +72,36 @@ namespace ExchangeSharp
 			var payload = await GetNoncePayloadAsync();
 
 			payload["order_id"] = orderId.ConvertInvariant<long>();
-			var url = new UriBuilder(BaseUrl) {Path = "/spot/api/v3/order"};
+			var url = new UriBuilder(BaseUrl) {Path = "/api/v3.1/order"};
 			url.AppendPayloadToQuery(new Dictionary<string, object>()
 			{
 				{"symbol", marketSymbol},
 				{"orderID", orderId}
 			});
 
-			await MakeJsonRequestAsync<JToken>(url.ToStringInvariant().Replace(BaseUrl, ""),
+			await MakeJsonRequestAsync<JToken>($"/api/v3.1/order{url.Query}",
 				requestMethod: "DELETE", payload: payload);
 		}
 
-		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		protected override Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
-			var payload = await GetNoncePayloadAsync();
-
-			var result = await MakeJsonRequestAsync<JToken>("/spot/api/v3/user/wallet",
-				requestMethod: "GET", payload: payload);
-			return Extract(result, token => (token["currency"].Value<string>(), token["total"].Value<decimal>()));
+			return GetBTSEBalance(false);
 		}
 
-		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		protected override Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
 		{
-			var payload = await GetNoncePayloadAsync();
-
-			var result = await MakeJsonRequestAsync<JToken>("/spot/api/v3/user/wallet",
-				requestMethod: "GET", payload: payload);
-			return Extract(result, token => (token["currency"].Value<string>(), token["available"].Value<decimal>()));
+			return GetBTSEBalance(true);
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
 		{
 			var payload = await GetNoncePayloadAsync();
 
-			var result = await MakeJsonRequestAsync<JToken>("/spot/api/v3/user/fees",
+			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/fees",
 				requestMethod: "GET", payload: payload);
 
-			//taker or maker fees in BTSE.. i chose take for here
-			return Extract(result, token => (token["symbol"].Value<string>(), token["taker"].Value<decimal>()));
+			//taker or maker fees in BTSE.. i chose maker for here
+			return Extract(result, token => (token["symbol"].Value<string>(), token["makerFee"].Value<decimal>()));
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
@@ -114,15 +109,16 @@ namespace ExchangeSharp
 		{
 			if (marketSymbol == null) throw new ArgumentNullException(nameof(marketSymbol));
 			var payload = await GetNoncePayloadAsync();
-			var url = new UriBuilder(BaseUrl) {Path = "/spot/api/v3/open_orders"};
+
+			var url = new UriBuilder(BaseUrl) {Path = "/api/v3.1/user/open_orders"};
 			url.AppendPayloadToQuery(new Dictionary<string, object>()
 			{
 				{"symbol", marketSymbol}
 			});
-			var result = await MakeJsonRequestAsync<JToken>(url.ToStringInvariant().Replace(BaseUrl, ""),
+
+			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/open_orders"+url.Query,
 				requestMethod: "GET", payload: payload);
 
-			//taker or maker fees in BTSE.. i chose take for here
 			return Extract2(result, token => new ExchangeOrderResult()
 			{
 				Amount = token["size"].Value<decimal>(),
@@ -131,26 +127,74 @@ namespace ExchangeSharp
 				IsBuy = token["side"].Value<string>() == "BUY",
 				Price = token["price"].Value<decimal>(),
 				MarketSymbol = token["symbol"].Value<string>(),
-				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds()
+				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+				ClientOrderId = token["clOrderID"].Value<string>(),
+				Result = FromOrderState(token["orderState"].Value<string>())
 			});
 		}
 
-		public override async Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+		private ExchangeAPIOrderResult FromOrderState(string s)
 		{
-			var payload = await GetNoncePayloadAsync();
-			payload.Add("body", orders.Select(request => new
+			switch (s)
 			{
-				size = request.Amount,
-				side = request.IsBuy ? "BUY" : "SELL",
-				price = request.Price,
-				stopPrice = request.StopPrice,
-				symbol = request.MarketSymbol,
-				txType = request.OrderType == OrderType.Limit ? "LIMIT" :
-					request.OrderType == OrderType.Stop ? "STOP" : null,
-				type = request.OrderType == OrderType.Limit ? "LIMIT" :
-					request.OrderType == OrderType.Market ? "MARKET" : null
-			}));
-			var result = await MakeJsonRequestAsync<JToken>("/spot/api/v3/order",
+				case "STATUS_ACTIVE":
+					return ExchangeAPIOrderResult.Pending;
+				case "ORDER_CANCELLED":
+					return ExchangeAPIOrderResult.Canceled;
+				case "ORDER_FULLY_TRANSACTED":
+					return ExchangeAPIOrderResult.Filled;
+				case "ORDER_PARTIALLY_TRANSACTED":
+					return ExchangeAPIOrderResult.FilledPartially;
+				default:
+					return ExchangeAPIOrderResult.Unknown;
+			}
+		}
+
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest request)
+		{var payload = await GetNoncePayloadAsync();
+
+			var dict = new Dictionary<string, object>();
+
+			var id = request.OrderId ?? request.ClientOrderId;
+			if (!string.IsNullOrEmpty(id))
+			{
+				dict.Add("clOrderID",id);
+
+			}
+
+			dict.Add("size", request.Amount);
+			dict.Add("side", request.IsBuy ? "BUY" : "SELL");
+			dict.Add("symbol", request.MarketSymbol);
+
+			switch (request.OrderType )
+			{
+				case OrderType.Limit:
+					dict.Add("txType", "LIMIT");
+					dict.Add("type", "LIMIT");
+					dict.Add("price", request.Price);
+					break;
+				case OrderType.Market:
+					dict.Add("type", "MARKET");
+					break;
+				case OrderType.Stop:
+					dict.Add("stopPrice", request.StopPrice);
+					dict.Add("price", request.Price);
+					dict.Add("txType", "STOP");
+					break;
+			}
+
+			foreach (var extraParameter in request.ExtraParameters)
+			{
+				if (!dict.ContainsKey(extraParameter.Key))
+				{
+					dict.Add(extraParameter.Key, extraParameter.Value);
+				}
+			}
+
+
+			payload.Add("body", dict);
+
+			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/order",
 				requestMethod: "POST", payload: payload);
 			return Extract2(result, token =>
 			{
@@ -185,14 +229,74 @@ namespace ExchangeSharp
 				{
 					Message = token["message"].Value<string>(),
 					OrderId = token["orderID"].Value<string>(),
-					IsBuy = token["orderType"].Value<string>().ToLowerInvariant() == "buy",
+					IsBuy = token["side"].Value<string>().ToLowerInvariant() == "buy",
 					Price = token["price"].Value<decimal>(),
 					MarketSymbol = token["symbol"].Value<string>(),
 					Result = status,
 					Amount = token["size"].Value<decimal>(),
 					OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+					ClientOrderId = token["clOrderID"].Value<string>(),
+					AveragePrice = token["averageFillPrice"].Value<decimal>(),
+					AmountFilled = token["fillSize"].Value<decimal>(),
+
 				};
-			}).ToArray();
+			}).First();
+		}
+
+		protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+		{
+			if (method == "GET" && (payload?.Count ?? 0) != 0 && !payload.ContainsKey("nonce"))
+			{
+				url.AppendPayloadToQuery(payload);
+			}
+			return base.ProcessRequestUrl(url, payload, method);
+		}
+
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				if (payload.TryGetValue("body", out var body))
+				{
+					payload.Remove("body");
+				}
+
+				var nonce = payload["nonce"].ToString();
+				payload.Remove("nonce");
+
+				var json = JsonConvert.SerializeObject(body ?? payload);
+				if (json == "{}")
+				{
+					json = "";
+				}
+
+				var passphrase = Passphrase?.ToUnsecureString();
+				if (string.IsNullOrEmpty(passphrase))
+				{
+					passphrase = PrivateApiKey?.ToUnsecureString();
+				}
+
+				var hexSha384 = CryptoUtility.SHA384Sign(
+					$"{request.RequestUri.AbsolutePath.Replace("/spot", string.Empty)}{nonce}{json}",
+					passphrase);
+				request.AddHeader("btse-sign", hexSha384);
+				request.AddHeader("btse-nonce", nonce);
+				request.AddHeader("btse-api", PublicApiKey.ToUnsecureString());
+				await request.WriteToRequestAsync(json);
+			}
+
+			await base.ProcessRequestAsync(request, payload);
+		}
+
+		protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
+		{
+			var result = await base.GetNoncePayloadAsync();
+			if (result.ContainsKey("recvWindow"))
+			{
+				result.Remove("recvWindow");
+			}
+
+			return result;
 		}
 
 		private Dictionary<TKey, TValue> Extract<TKey, TValue>(JToken token, Func<JToken, (TKey, TValue)> processor)
@@ -223,56 +327,21 @@ namespace ExchangeSharp
 			};
 		}
 
-		protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+		private async Task<ExchangeTicker> ParseBTSETicker(JToken ticker, string marketSymbol)
 		{
-			if (method == "GET" && (payload?.Count ?? 0) != 0 && !payload.ContainsKey("nonce"))
-			{
-				url.AppendPayloadToQuery(payload);
-			}
-
-			return base.ProcessRequestUrl(url, payload, method);
+			return await this.ParseTickerAsync(ticker, marketSymbol, "lowestAsk", "highestBid", "last", "volume", null,
+				null, TimestampType.UnixMilliseconds, "base", "quote", "symbol");
 		}
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		private async Task<Dictionary<string, decimal>> GetBTSEBalance(bool availableOnly)
 		{
-			if (CanMakeAuthenticatedRequest(payload))
-			{
-				if (payload.TryGetValue("body", out var body))
-				{
-					payload.Remove("body");
-				}
+			var payload = await GetNoncePayloadAsync();
 
-				var nonce = payload["nonce"].ToString();
-				payload.Remove("nonce");
-
-
-				var json = JsonConvert.SerializeObject(body ?? payload);
-				if (json == "{}")
-				{
-					json = "";
-				}
-
-				var hexSha384 = CryptoUtility.SHA384Sign(
-					$"{request.RequestUri.PathAndQuery.Replace("/spot", string.Empty)}{nonce}{json}",
-					PrivateApiKey.ToUnsecureString());
-				request.AddHeader("btse-sign", hexSha384);
-				request.AddHeader("btse-api", PublicApiKey.ToUnsecureString());
-				await request.WriteToRequestAsync(json);
-			}
-
-			await base.ProcessRequestAsync(request, payload);
+			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/wallet",
+				requestMethod: "GET", payload: payload);
+			return Extract(result, token => (token["currency"].Value<string>(), token[availableOnly?"available": "total"].Value<decimal>()));
 		}
 
-		protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
-		{
-			var result = await base.GetNoncePayloadAsync();
-			if (result.ContainsKey("recvWindow"))
-			{
-				result.Remove("recvWindow");
-			}
-
-			return result;
-		}
 	}
 
 	public partial class ExchangeName

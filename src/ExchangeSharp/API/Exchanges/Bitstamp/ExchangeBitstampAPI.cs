@@ -205,12 +205,6 @@ namespace ExchangeSharp
                 payload["price"] = order.Price.ToStringInvariant();
             }
 
-            payload["amount"] = order.Amount.ToStringInvariant();
-            foreach (var kv in order.ExtraParameters)
-            {
-                payload["price"] = order.Price.ToStringInvariant();
-            }
-
             payload["amount"] = order.RoundAmount().ToStringInvariant();
             order.ExtraParameters.CopyTo(payload);
 

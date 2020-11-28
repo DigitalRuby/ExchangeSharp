@@ -60,8 +60,9 @@ namespace ExchangeSharp
             var result = await MakeJsonRequestAsync<IEnumerable<Instrument>>("GetInstruments", null,
                 new Dictionary<string, object>()
                     { {"OMSId", 1}}, "POST");
-
-            return result.Select(instrument => instrument.ToExchangeMarket());
+			_marketSymbolToInstrumentIdMapping = result.ToDictionary(keySelector: instrument => instrument.Symbol.Replace("_", ""),
+				elementSelector: instrument => instrument.InstrumentId);
+			return result.Select(instrument => instrument.ToExchangeMarket());
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null,
@@ -325,7 +326,7 @@ namespace ExchangeSharp
         {
             if (_marketSymbolToInstrumentIdMapping == null)
             {
-                await GetTickersAsync();
+				await OnGetMarketSymbolsMetadataAsync();
             }
         }
 
@@ -421,11 +422,14 @@ namespace ExchangeSharp
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
-			await EnsureInstrumentIdsAvailable();
-			var instrumentIds = marketSymbols == null || marketSymbols.Length == 0 ?
-				(await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray() :
-				await GetInstrumentIdFromMarketSymbol(marketSymbols);
-
+			long?[] instrumentIds;
+			if (marketSymbols == null || marketSymbols.Length == 0)
+				instrumentIds = (await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray();
+			else
+			{
+				await EnsureInstrumentIdsAvailable();
+				instrumentIds = await GetInstrumentIdFromMarketSymbol(marketSymbols);
+			}
 			return await ConnectWebSocketAsync("", async (socket, bytes) =>
 				{
 					var messageFrame =
