@@ -557,6 +557,7 @@ namespace ExchangeSharp.BinanceGroup
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload["symbol"] = order.MarketSymbol;
+			payload["newClientOrderId"] = order.ClientOrderId;
 			payload["side"] = order.IsBuy ? "BUY" : "SELL";
 			if (order.OrderType == OrderType.Stop)
 				payload["type"] = "STOP_LOSS";//if order type is stop loss/limit, then binance expect word 'STOP_LOSS' inestead of 'STOP'
@@ -934,7 +935,8 @@ namespace ExchangeSharp.BinanceGroup
 				IsBuy = token["side"].ToStringInvariant() == "BUY",
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>(token["transactTime"].ConvertInvariant<long>())),
 				OrderId = token["orderId"].ToStringInvariant(),
-				MarketSymbol = token["symbol"].ToStringInvariant()
+				MarketSymbol = token["symbol"].ToStringInvariant(),
+				ClientOrderId = token["clientOrderId"].ToStringInvariant()
 			};
 
 			switch (token["status"].ToStringInvariant())
