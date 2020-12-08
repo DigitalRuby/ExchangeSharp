@@ -939,35 +939,30 @@ namespace ExchangeSharp.BinanceGroup
 				ClientOrderId = token["clientOrderId"].ToStringInvariant()
 			};
 
-			switch (token["status"].ToStringInvariant())
+			result.Result = ParseExchangeAPIOrderResult(token["status"].ToStringInvariant(), result.AmountFilled);
+
+			return result;
+		}
+
+		private ExchangeAPIOrderResult ParseExchangeAPIOrderResult(string status, decimal amountFilled)
+		{
+			switch (status)
 			{
 				case "NEW":
-					result.Result = ExchangeAPIOrderResult.Pending;
-					break;
-
+					return ExchangeAPIOrderResult.Pending;
 				case "PARTIALLY_FILLED":
-					result.Result = ExchangeAPIOrderResult.FilledPartially;
-					break;
-
+					return ExchangeAPIOrderResult.FilledPartially;
 				case "FILLED":
-					result.Result = ExchangeAPIOrderResult.Filled;
-					break;
-
+					return ExchangeAPIOrderResult.Filled;
 				case "CANCELED":
+					return amountFilled > 0 ? ExchangeAPIOrderResult.FilledPartiallyAndCancelled : ExchangeAPIOrderResult.Canceled;
 				case "PENDING_CANCEL":
 				case "EXPIRED":
 				case "REJECTED":
-					result.Result = ExchangeAPIOrderResult.Canceled;
-					break;
-
+					return ExchangeAPIOrderResult.Canceled;
 				default:
-					result.Result = ExchangeAPIOrderResult.Error;
-					break;
+					return ExchangeAPIOrderResult.Error;
 			}
-
-			ParseAveragePriceAndFeesFromFills(result, token["fills"]);
-
-			return result;
 		}
 
 		private ExchangeOrderResult ParseTrade(JToken token, string symbol)
