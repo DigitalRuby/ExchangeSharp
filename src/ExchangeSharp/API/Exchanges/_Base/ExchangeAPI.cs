@@ -157,6 +157,8 @@ namespace ExchangeSharp
             return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
         }
 
+        public virtual Task InitializeAsync() => Task.CompletedTask;
+
 		/// <summary>
 		/// Convert an exchange symbol into a global symbol, which will be the same for all exchanges.
 		/// Global symbols are always uppercase and separate the currency pair with a hyphen (-).
@@ -191,12 +193,26 @@ namespace ExchangeSharp
 			return (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[1])).ToUpperInvariant() + GlobalMarketSymbolSeparator + (await ExchangeCurrencyToGlobalCurrencyAsync(pieces[0])).ToUpperInvariant();
 		}
 
-		/// <summary>
-		/// Split a market symbol into currencies. For weird exchanges like Bitthumb, they can override and hard-code the other pair
-		/// </summary>
-		/// <param name="marketSymbol">Market symbol</param>
-		/// <returns>Base and quote currency</returns>
-		protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
+        protected async Task<Dictionary<string, T>> ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync<T>(IReadOnlyDictionary<string, T> input)
+        {
+            Dictionary<string, T> globalCurrenciesDict = new Dictionary<string, T>(input.Count);
+
+            foreach (var i in input)
+            {
+                var globalCurrency = await ExchangeCurrencyToGlobalCurrencyAsync(i.Key);
+
+                globalCurrenciesDict[globalCurrency] = i.Value;
+            }
+
+            return globalCurrenciesDict;
+        }
+
+        /// <summary>
+        /// Split a market symbol into currencies. For weird exchanges like Bitthumb, they can override and hard-code the other pair
+        /// </summary>
+        /// <param name="marketSymbol">Market symbol</param>
+        /// <returns>Base and quote currency</returns>
+        protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
         {
             var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
             if (pieces.Length < 2)
@@ -369,22 +385,26 @@ namespace ExchangeSharp
             }
         }
 
-		/// <summary>
-		/// Convert an exchange currency to a global currency. For example, on Binance,
-		/// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
-		/// the global symbol is BCH.
-		/// </summary>
-		/// <param name="currency">Exchange currency</param>
-		/// <returns>Global currency</returns>
-		public Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
-		{
-			currency = (currency ?? string.Empty);
-			foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
-			{
-				currency = currency.Replace(kv.Key, kv.Value);
-			}
-			return Task.FromResult(currency.ToUpperInvariant());
-		}
+        /// <summary>
+        /// Convert an exchange currency to a global currency. For example, on Binance,
+        /// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
+        /// the global symbol is BCH.
+        /// </summary>
+        /// <param name="currency">Exchange currency</param>
+        /// <returns>Global currency</returns>
+        public async Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
+        {
+            await this.InitializeAsync(); // TODO:MT - let's come up with some Initialization mechanism. Perhaps it would be ExchangeAPI.GetExchangeAsync
+
+            currency = (currency ?? string.Empty);
+
+            var dict = ExchangeGlobalCurrencyReplacements[GetType()].ToDictionary(i => i.Key, i => i.Value);
+
+            if (dict.ContainsKey(currency))
+                return dict[currency];
+            else
+                return currency;
+        }
 
 		/// <summary>
 		/// Convert a global currency to exchange currency. For example, on Binance,
@@ -396,6 +416,8 @@ namespace ExchangeSharp
 		/// <returns>Exchange currency</returns>
 		public string GlobalCurrencyToExchangeCurrency(string currency)
         {
+            this.InitializeAsync().Sync();
+
             currency = (currency ?? string.Empty);
             foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
             {
@@ -548,7 +570,9 @@ namespace ExchangeSharp
         /// <returns>Collection of Currencies</returns>
         public virtual async Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync()
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetCurrenciesAsync(), nameof(GetCurrenciesAsync));
+            var currencies = await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetCurrenciesAsync(), nameof(GetCurrenciesAsync));
+
+            return await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(currencies);
         }
 
         /// <summary>
@@ -724,7 +748,10 @@ namespace ExchangeSharp
         /// <returns>Dictionary of symbols and amounts</returns>
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAsync()
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetAmountsAsync()), nameof(GetAmountsAsync));
+            var amounts =  await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetAmountsAsync()), nameof(GetAmountsAsync));
+            var globalAmounts = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(amounts);
+
+            return globalAmounts;
         }
 
         /// <summary>
@@ -742,7 +769,10 @@ namespace ExchangeSharp
         /// <returns>Symbol / amount dictionary</returns>
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetAmountsAvailableToTradeAsync(), nameof(GetAmountsAvailableToTradeAsync));
+            var exchangeBalances = await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetAmountsAvailableToTradeAsync(), nameof(GetAmountsAvailableToTradeAsync));
+            var globalBalances = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(exchangeBalances);
+
+            return globalBalances;
         }
 
         /// <summary>
@@ -850,8 +880,14 @@ namespace ExchangeSharp
         /// <returns>Symbol / amount dictionary</returns>
         public virtual async Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false)
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetMarginAmountsAvailableToTradeAsync(includeZeroBalances),
+            var exchangeBalances = await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetMarginAmountsAvailableToTradeAsync(includeZeroBalances),
                 nameof(GetMarginAmountsAvailableToTradeAsync), nameof(includeZeroBalances), includeZeroBalances);
+
+            var globalBalances = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(exchangeBalances);
+
+            // LogApiBalances("GetMarginAmountsAvailableToTradeAsync", balances, "");
+
+            return globalBalances;
         }
 
         /// <summary>

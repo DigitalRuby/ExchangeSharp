@@ -44,11 +44,6 @@ namespace ExchangeSharp
 
         static ExchangeKrakenAPI()
         {
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangeKrakenAPI)] = new KeyValuePair<string, string>[]
-            {
-                new KeyValuePair<string, string>("XBT", "BTC"),
-                new KeyValuePair<string, string>("XDG", "DOGE")
-            };
         }
 
         /// <summary>
@@ -105,8 +100,15 @@ namespace ExchangeSharp
                 normalizedSymbolToExchangeSymbol = normalizedSymbolToExchangeSymbolNew;
                 exchangeCurrenciesToMarketSymbol = exchangeCurrenciesToMarketSymbolNew;
 
+                ExchangeGlobalCurrencyReplacements[typeof(ExchangeKrakenAPI)] = exchangeCurrencyToNormalizedCurrency.ToArray();                
+
                 return new CachedItem<object>(new object(), CryptoUtility.UtcNow.AddHours(4.0));
             });
+        }
+
+        public override Task InitializeAsync()
+        {
+            return PopulateLookupTables();
         }
 
         public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
