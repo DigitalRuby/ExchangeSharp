@@ -404,9 +404,9 @@ namespace ExchangeSharp
         /// <returns>Global currency</returns>
         public async Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
         {
-            await this.InitializeAsync(); // TODO:MT - let's come up with some Initialization mechanism. Perhaps it would be ExchangeAPI.GetExchangeAsync
+            await this.InitializeAsync();
 
-            currency = (currency ?? string.Empty);
+            currency ??= string.Empty;
 
             var dict = ExchangeGlobalCurrencyReplacements[GetType()].ToDictionary(i => i.Key, i => i.Value);
 
