@@ -361,6 +361,16 @@ namespace ExchangeSharp
             }
         }
 
+		public static async Task<IExchangeAPI?> GetExchangeAPIAsync(string exchangeName)
+		{
+			var api = GetExchangeAPI(exchangeName);
+
+			if (api is ExchangeAPI exchangeAPI)
+				await exchangeAPI.InitializeAsync();
+
+			return api;
+		}
+
         /// <summary>
         /// Get all exchange APIs
         /// </summary>
