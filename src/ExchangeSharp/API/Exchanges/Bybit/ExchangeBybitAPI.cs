@@ -620,34 +620,15 @@ namespace ExchangeSharp
             return positions;
         }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+        private async Task<IEnumerable<ExchangeOrderResult>> DoGetOrderDetailsAsync(string orderId, string marketSymbol = null)
         {
             var extraParams = new Dictionary<string, object>();
-            extraParams["order_status"] = "Created,New,PartiallyFilled";
-            if (!string.IsNullOrWhiteSpace(marketSymbol))
-            {
-                extraParams["symbol"] = marketSymbol;
-            }
-            else
-            {
-                throw new Exception("marketSymbol is required");
-            }
-            var queryString = await GetAuthenticatedQueryString(extraParams);
-            JToken token = GetResult(await DoMakeJsonRequestAsync<JToken>($"/v2/private/order/list?" + queryString, BaseUrl, null, "GET"), out var retCode, out var retMessage);
 
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            foreach (JToken order in token["data"])
+            if (orderId != null) 
             {
-                orders.Add(ParseOrder(order, retCode, retMessage));
+                extraParams["order_id"] = orderId;
             }
 
-            return orders;
-        }
-
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            var extraParams = new Dictionary<string, object>();
-            extraParams["order_id"] = orderId;
             if (!string.IsNullOrWhiteSpace(marketSymbol))
             {
                 extraParams["symbol"] = marketSymbol;
@@ -661,12 +642,39 @@ namespace ExchangeSharp
             JToken token = GetResult(await DoMakeJsonRequestAsync<JToken>($"/v2/private/order?" + queryString, BaseUrl, null, "GET"), out var retCode, out var retMessage);
 
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            foreach (JToken order in token)
+            if (orderId == null) 
             {
-                orders.Add(ParseOrder(order, retCode, retMessage));
+                foreach (JToken order in token)
+                {
+                    orders.Add(ParseOrder(order, retCode, retMessage));
+                }
+            }
+            else
+            {
+                orders.Add(ParseOrder(token, retCode, retMessage));
             }
 
-            return orders[0];
+            return orders;
+        }
+
+        //Note, Bybit is not recommending the use of "/v2/private/order/list" now that "/v2/private/order" is capable of returning multiple results
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+        {
+            var orders = await DoGetOrderDetailsAsync(null, marketSymbol);
+            return orders;
+        }
+
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+        {
+            var orders = await DoGetOrderDetailsAsync(orderId, marketSymbol);
+            if (orders.Count() > 0)
+            {
+                return orders.First();
+            }
+            else
+            {
+                return null;
+            }
         }
 
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
