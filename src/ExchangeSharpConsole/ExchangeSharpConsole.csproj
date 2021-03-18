@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>exchange-sharp</AssemblyName>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <NeutralLanguage>en</NeutralLanguage>
     <LangVersion>8</LangVersion>
     <AssemblyVersion>0.7.4</AssemblyVersion>
