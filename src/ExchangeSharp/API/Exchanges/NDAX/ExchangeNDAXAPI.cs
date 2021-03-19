@@ -30,7 +30,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             var result =
-                await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("returnticker", "https://ndax.io/api", null, "GET");
+                await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("returnticker", "https://core.ndax.io/api/returnticker", null, "GET");
             _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key.Replace("_", ""), pair => pair.Value.Id); // remove the _
             return result.Select(pair =>
                 new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(pair.Key)));

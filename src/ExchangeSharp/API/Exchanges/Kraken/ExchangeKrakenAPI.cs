@@ -719,6 +719,7 @@ namespace ExchangeSharp
                 { "type", (order.IsBuy ? "buy" : "sell") },
                 { "ordertype", order.OrderType.ToString().ToLowerInvariant() },
                 { "volume", order.RoundAmount().ToStringInvariant() },
+                { "trading_agreement", "agree" },
                 { "nonce", nonce }
             };
             if (order.OrderType != OrderType.Market)
