@@ -42,7 +42,7 @@ namespace ExchangeSharp
             RequestContentType = "application/json";
             WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 
-            RateLimit = new RateGate(100, TimeSpan.FromMinutes(1));
+            RateLimit = new RateGate(500, TimeSpan.FromMinutes(1));
         }
 
         public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
@@ -560,6 +560,46 @@ namespace ExchangeSharp
         {
             return await DoGetAmountsAsync("available_balance");
         }
+        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+        {
+            /*
+            {
+                "ret_code": 0,                              // return code
+                "ret_msg": "OK",                            // error message
+                "ext_code": "",                             // additional error code
+                "ext_info": "",                             // additional error info
+                "result": [
+                    {
+                        "symbol": "BTCUSD",                 // symbol
+                        "price": "9487",                    // price
+                        "size": 336241,                     // size (in USD contracts)
+                        "side": "Buy"                       // side
+                    },
+                    {
+                        "symbol": "BTCUSD",                 // symbol
+                        "price": "9487.5",                  // price
+                        "size": 522147,                     // size (in USD contracts)
+                        "side": "Sell"                      // side
+                    }
+                ],
+                "time_now": "1567108756.834357"             // UTC timestamp
+            }
+            */
+            var tokens = CheckRetCode(await DoMakeJsonRequestAsync<JToken>($"/v2/public/orderBook/L2?symbol={marketSymbol}"));
+            var orderBook = new ExchangeOrderBook();
+            foreach (var token in tokens) 
+            {
+                var orderPrice = new ExchangeOrderPrice();
+                orderPrice.Price = token["price"].ConvertInvariant<decimal>();
+                orderPrice.Amount = token["size"].ConvertInvariant<decimal>();
+                if (token["side"].ToStringInvariant() == "Sell")
+                    orderBook.Asks.Add(orderPrice.Price, orderPrice);
+                else
+                    orderBook.Bids.Add(orderPrice.Price, orderPrice);
+            }
+
+            return orderBook;
+        }
 
         public async Task<IEnumerable<ExchangePosition>> GetCurrentPositionsAsync()
         {
@@ -618,6 +658,64 @@ namespace ExchangeSharp
                 positions.Add(ParsePosition(item["data"]));
             }
             return positions;
+        }
+
+        public async Task<ExchangeFunding> GetCurrentFundingRateAsync(string marketSymbol)
+        {
+            /*
+            {
+                "ret_code": 0,
+                "ret_msg": "ok",
+                "ext_code": "",
+                "result": {
+                    "symbol": "BTCUSD",
+                    "funding_rate": "0.00010000",
+                    "funding_rate_timestamp": 1577433600
+                },
+                "ext_info": null,
+                "time_now": "1577445586.446797",
+                "rate_limit_status": 119,
+                "rate_limit_reset_ms": 1577445586454,
+                "rate_limit": 120
+            }
+            */
+            JToken token = CheckRetCode(await DoMakeJsonRequestAsync<JToken>($"/v2/public/funding/prev-funding-rate?symbol={marketSymbol}"));
+            var funding = new ExchangeFunding();
+            funding.MarketSymbol = token["symbol"].ToStringInvariant();
+            funding.Rate = token["funding_rate"].ConvertInvariant<decimal>();
+            // funding.TimeStamp = Convert.ToDateTime(TimeSpan.FromSeconds(token["funding_rate_timestamp"].ConvertInvariant<int>()));
+            funding.TimeStamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(token["funding_rate_timestamp"].ConvertInvariant<int>());
+
+            return funding;
+        }
+
+        public async Task<ExchangeFunding> GetPredictedFundingRateAsync(string marketSymbol)
+        {
+            /*
+            {
+                "ret_code": 0,
+                "ret_msg": "ok",
+                "ext_code": "",
+                "result": {
+                    "predicted_funding_rate": 0.0001,
+                    "predicted_funding_fee": 0
+                },
+                "ext_info": null,
+                "time_now": "1577447415.583259",
+                "rate_limit_status": 118,
+                "rate_limit_reset_ms": 1577447415590,
+                "rate_limit": 120
+            }
+            */
+            var extraParams = new Dictionary<string, object>();
+            extraParams["symbol"] = marketSymbol;
+            var queryString = await GetAuthenticatedQueryString(extraParams);
+            JToken token = CheckRetCode(await DoMakeJsonRequestAsync<JToken>($"/v2/private/funding/predicted-funding?" + queryString, BaseUrl, null, "GET"));
+            var funding = new ExchangeFunding();
+            funding.MarketSymbol = marketSymbol;
+            funding.Rate = token["predicted_funding_rate"].ConvertInvariant<decimal>();
+
+            return funding;
         }
 
         private async Task<IEnumerable<ExchangeOrderResult>> DoGetOrderDetailsAsync(string orderId, string marketSymbol = null)
