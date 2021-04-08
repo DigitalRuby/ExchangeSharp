@@ -68,7 +68,7 @@ namespace ExchangeSharp
                 "WAVES_ASSET",
             };
 
-            MarketSymbolIsReversed = true;
+            MarketSymbolIsReversed = false;
             WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
         }
 
