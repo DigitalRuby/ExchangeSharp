@@ -466,20 +466,35 @@ namespace ExchangeSharp
 			(
 				$"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
 				{
-					//{"data":{"sequence":"1612818290539","bestAsk":"0.387788","size":"304.072","bestBidSize":"654.3404","price":"0.387788","time":1618870257524,"bestAskSize":"0.00005226","bestBid":"0.386912"},"subject":"XEM-USDT","topic":"/market/ticker:all","type":"message"}
 					JToken token = JToken.Parse(msg.ToStringFromUTF8());
 					if (token["type"].ToStringInvariant() == "message")
 					{
 						var dataToken = token["data"];
-						var marketSymbol = token["subject"].ToStringInvariant();
+						string marketSymbol;
+						if (token["topic"].ToStringInvariant() == $"/market/ticker:all")
+						{
+							//{"data":{"sequence":"1612818290539","bestAsk":"0.387788","size":"304.072","bestBidSize":"654.3404","price":"0.387788","time":1618870257524,"bestAskSize":"0.00005226","bestBid":"0.386912"},"subject":"XEM-USDT","topic":"/market/ticker:all","type":"message"}
+							marketSymbol = token["subject"].ToStringInvariant();
+						}
+						else
+						{
+							//{"data":{"sequence":"1615451293654","bestAsk":"55627.3","size":"0.00075576","bestBidSize":"0.0205","price":"55627.2","time":1618875110592,"bestAskSize":"0.24831204","bestBid":"55627.2"},"subject":"trade.ticker","topic":"/market/ticker:BTC-USDT","type":"message"}
+							const string topicPrefix = "/market/ticker:";
+							marketSymbol = token["topic"].ToStringInvariant();
+							if (!marketSymbol.StartsWith(topicPrefix))
+								return;
+							marketSymbol = marketSymbol.Substring(topicPrefix.Length);
+						}
+
 						ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol,
-							"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
+								"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
 						callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
 					}
 				}, async (_socket) =>
 				{
 					var id = CryptoUtility.UtcNow.Ticks;
-					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/ticker:all" });
+					var topic = marketSymbols.Length == 0 ? $"/market/ticker:all" : $"/market/ticker:{string.Join(",", marketSymbols)}";
+					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = topic });
 				}
 			);
 		}
