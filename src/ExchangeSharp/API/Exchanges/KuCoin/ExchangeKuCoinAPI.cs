@@ -455,41 +455,51 @@ namespace ExchangeSharp
             return response;
         }
 
-        #endregion Private APIs
+		#endregion Private APIs
 
-        #region Websockets
+		#region Websockets
 
-        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
-        {
-            var websocketUrlToken = GetWebsocketBulletToken();
-            return await ConnectWebSocketAsync
-            (
-                $"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
-                {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token["type"].ToStringInvariant() == "message")
-                    {
-						const string topicPrefix = "/market/ticker:";
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+		{
+			var websocketUrlToken = GetWebsocketBulletToken();
+			return await ConnectWebSocketAsync
+			(
+				$"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
+				{
+					JToken token = JToken.Parse(msg.ToStringFromUTF8());
+					if (token["type"].ToStringInvariant() == "message")
+					{
 						var dataToken = token["data"];
-                        var marketSymbol = token["topic"].ToStringInvariant();
-						if (!marketSymbol.StartsWith(topicPrefix))
-							return;
-						marketSymbol = marketSymbol.Substring(topicPrefix.Length);
-						ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol,
-							"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
-						callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
-                    }
-                }, async (_socket) =>
-                {
-                    //need to subscribe to tickers one by one
-                    marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                    var id = CryptoUtility.UtcNow.Ticks;
-					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/ticker:{string.Join(",", marketSymbols)}" });
-                }
-            );
-        }
+						string marketSymbol;
+						if (token["topic"].ToStringInvariant() == $"/market/ticker:all")
+						{
+							//{"data":{"sequence":"1612818290539","bestAsk":"0.387788","size":"304.072","bestBidSize":"654.3404","price":"0.387788","time":1618870257524,"bestAskSize":"0.00005226","bestBid":"0.386912"},"subject":"XEM-USDT","topic":"/market/ticker:all","type":"message"}
+							marketSymbol = token["subject"].ToStringInvariant();
+						}
+						else
+						{
+							//{"data":{"sequence":"1615451293654","bestAsk":"55627.3","size":"0.00075576","bestBidSize":"0.0205","price":"55627.2","time":1618875110592,"bestAskSize":"0.24831204","bestBid":"55627.2"},"subject":"trade.ticker","topic":"/market/ticker:BTC-USDT","type":"message"}
+							const string topicPrefix = "/market/ticker:";
+							marketSymbol = token["topic"].ToStringInvariant();
+							if (!marketSymbol.StartsWith(topicPrefix))
+								return;
+							marketSymbol = marketSymbol.Substring(topicPrefix.Length);
+						}
 
-        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+						ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol,
+								"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
+						callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
+					}
+				}, async (_socket) =>
+				{
+					var id = CryptoUtility.UtcNow.Ticks;
+					var topic = marketSymbols.Length == 0 ? $"/market/ticker:all" : $"/market/ticker:{string.Join(",", marketSymbols)}";
+					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = topic });
+				}
+			);
+		}
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			//{
 			//  "id":"5c24c5da03aa673885cd67aa",
