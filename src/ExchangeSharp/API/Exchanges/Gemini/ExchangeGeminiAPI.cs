@@ -392,30 +392,35 @@ namespace ExchangeSharp
 					// fetch the last bid/ask/last prices
 					if (token["changes"] is JArray changesToken)
 					{
-						if (changesToken.FirstOrDefault(t => t[0].ToStringInvariant().Equals("buy", StringComparison.OrdinalIgnoreCase)) is JArray buyToken)
-						{
-							decimal bidPrice = buyToken[1].ConvertInvariant<decimal>();
-							ticker.Bid = bidPrice;
-						}
-
-						if (changesToken.FirstOrDefault(t => t[0].ToStringInvariant().Equals("sell", StringComparison.OrdinalIgnoreCase)) is JArray sellToken)
-						{
-							decimal askPrice = sellToken[1].ConvertInvariant<decimal>();
-							ticker.Ask = askPrice;
-						}
-
 						if (token["trades"] is JArray tradesToken)
 						{
-							JToken lastTrade = tradesToken.FirstOrDefault();
-							if (lastTrade != null)
+							JToken lastSell = tradesToken.FirstOrDefault(t => t["side"].ToStringInvariant().Equals("sell", StringComparison.OrdinalIgnoreCase));
+							if (lastSell != null)
 							{
-								decimal lastTradePrice = lastTrade["price"].ConvertInvariant<decimal>();
-								ticker.Last = lastTradePrice;
+								decimal lastTradePrice = lastSell["price"].ConvertInvariant<decimal>();
+								ticker.Last = ticker.Bid = lastTradePrice;
+								if (ticker.Bid > ticker.Ask)
+								{
+									// out of sync, reset ask
+									ticker.Ask = 0m;
+								}
+							}
+							JToken lastBuy = tradesToken.FirstOrDefault(t => t["side"].ToStringInvariant().Equals("buy", StringComparison.OrdinalIgnoreCase));
+							if (lastBuy != null)
+							{
+								decimal lastTradePrice = lastBuy["price"].ConvertInvariant<decimal>();
+								ticker.Ask = lastTradePrice;
+								if (ticker.Ask < ticker.Bid)
+								{
+									// out of sync, reset bid
+									ticker.Bid = 0m;
+								}
 							}
 						}
 
-						// see if we have volume yet
-						if (volumeDict.TryGetValue(marketSymbol, out decimal tickerVolume))
+						// if we are fully populated...
+						if (ticker.Bid > 0m && ticker.Ask > 0m &&
+							volumeDict.TryGetValue(marketSymbol, out decimal tickerVolume))
 						{
 							ticker.Volume.BaseCurrencyVolume = tickerVolume;
 							ticker.Volume.QuoteCurrencyVolume = tickerVolume * ticker.Last;
@@ -513,7 +518,8 @@ namespace ExchangeSharp
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["result"].ToStringInvariant() == "error")
-				{ // {{  "result": "error",  "reason": "InvalidJson"}}
+				{
+					// {{  "result": "error",  "reason": "InvalidJson"}}
 					Logger.Info(token["reason"].ToStringInvariant());
 				}
 				else if (token["type"].ToStringInvariant() == "l2_updates")
@@ -536,8 +542,18 @@ namespace ExchangeSharp
 			}, connectCallback: async (_socket) =>
 			{
 				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}
-				await _socket.SendMessageAsync(new {
-						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = marketSymbols } } });
+				await _socket.SendMessageAsync(new
+				{
+					type = "subscribe",
+					subscriptions = new[]
+					{
+						new
+						{
+							name = "l2",
+							symbols = marketSymbols
+						}
+					}
+				});
 			});
 		}
 
