@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -62,7 +62,7 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("Bid: {0}, Ask: {1}, Last: {2}", Bid, Ask, Last);
+            return string.Format("Bid: {0}, Ask: {1}, Last: {2}, Vol: {3}", Bid, Ask, Last, Volume);
         }
 
         /// <summary>
@@ -125,11 +125,17 @@ namespace ExchangeSharp
         /// </summary>
         public decimal BaseCurrencyVolume { get; set; }
 
-        /// <summary>
-        /// Write to a binary writer
-        /// </summary>
-        /// <param name="writer">Binary writer</param>
-        public void ToBinary(BinaryWriter writer)
+		/// <inheritdoc />
+		public override string ToString()
+		{
+			return $"{BaseCurrencyVolume:0.0000}/{QuoteCurrencyVolume:0.0000}";
+		}
+
+		/// <summary>
+		/// Write to a binary writer
+		/// </summary>
+		/// <param name="writer">Binary writer</param>
+		public void ToBinary(BinaryWriter writer)
         {
             writer.Write(Timestamp.ToUniversalTime().Ticks);
             writer.Write(QuoteCurrency);

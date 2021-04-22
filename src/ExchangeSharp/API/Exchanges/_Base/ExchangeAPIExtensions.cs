@@ -203,7 +203,7 @@ namespace ExchangeSharp
         public static async Task<Dictionary<string, ExchangeMarket>> GetExchangeMarketDictionaryFromCacheAsync(this ExchangeAPI api)
         {
             await new SynchronizationContextRemover();
-            CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await api.Cache.Get<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketDictionaryFromCacheAsync), async () =>
+            CachedItem<Dictionary<string, ExchangeMarket>> cacheResult = await api.Cache.GetOrCreate<Dictionary<string, ExchangeMarket>>(nameof(GetExchangeMarketDictionaryFromCacheAsync), async () =>
             {
                 try
                 {

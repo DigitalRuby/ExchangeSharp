@@ -57,7 +57,7 @@ namespace ExchangeSharp
         /// <returns>Task</returns>
         private async Task PopulateLookupTables()
         {
-            await Cache.Get<object>(nameof(PopulateLookupTables), async () =>
+            await Cache.GetOrCreate<object>(nameof(PopulateLookupTables), async () =>
             {
                 IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
                 ExchangeMarket[] markets = (await GetMarketSymbolsMetadataAsync())?.ToArray();

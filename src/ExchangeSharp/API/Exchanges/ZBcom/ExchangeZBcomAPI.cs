@@ -122,7 +122,7 @@ namespace ExchangeSharp
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            var symbolLookup = await Cache.Get<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
+            var symbolLookup = await Cache.GetOrCreate<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
             {
                 // create lookup dictionary of symbol string without separator to symbol string with separator
                 IEnumerable<string> symbols = await GetMarketSymbolsAsync();

@@ -11,11 +11,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -30,6 +32,7 @@ namespace ExchangeSharp
         {
             MarketSymbolIsUppercase = false;
             MarketSymbolSeparator = string.Empty;
+			RateLimit = new RateGate(1, TimeSpan.FromSeconds(0.5));
         }
 
         private async Task<ExchangeVolume> ParseVolumeAsync(JToken token, string symbol)
@@ -93,63 +96,38 @@ namespace ExchangeSharp
 
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
-			List<ExchangeMarket> hardcodedSymbols = new List<ExchangeMarket>()
+			Logger.Warn("Fetching gemini symbol metadata, this may take a minute...");
+
+			string[] symbols = (await GetMarketSymbolsAsync()).ToArray();
+			List<ExchangeMarket> markets = new List<ExchangeMarket>();
+			List<Task> tasks = new List<Task>();
+			foreach (string symbol in symbols)
 			{
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "btcusd", BaseCurrency = "BTC", QuoteCurrency = "USD",
-					MinTradeSize = 0.00001M, QuantityStepSize = 0.00000001M, PriceStepSize = 0.01M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "ethusd", BaseCurrency = "ETH", QuoteCurrency = "USD",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.01M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "ethbtc", BaseCurrency = "ETH", QuoteCurrency = "BTC",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.00001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "zecusd", BaseCurrency = "ZEC", QuoteCurrency = "USD",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.01M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "zecbtc", BaseCurrency = "ZEC", QuoteCurrency = "BTC",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.00001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "zeceth", BaseCurrency = "ZEC", QuoteCurrency = "ETH",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.0001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "zecbch", BaseCurrency = "ZEC", QuoteCurrency = "BCH",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.0001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "zecltc", BaseCurrency = "ZEC", QuoteCurrency = "LTC",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "bchusd", BaseCurrency = "BCH", QuoteCurrency = "USD",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.01M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "bchbtc", BaseCurrency = "BCH", QuoteCurrency = "BTC",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.00001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "bcheth", BaseCurrency = "BCH", QuoteCurrency = "ETH",
-					MinTradeSize = 0.001M, QuantityStepSize = 0.000001M, PriceStepSize = 0.0001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "ltcusd", BaseCurrency = "LTC", QuoteCurrency = "USD",
-					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.01M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "ltcbtc", BaseCurrency = "LTC", QuoteCurrency = "BTC",
-					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.00001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "ltceth", BaseCurrency = "LTC", QuoteCurrency = "ETH",
-					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.0001M},
-				new ExchangeMarket() { IsActive = true,
-					MarketSymbol = "ltcbch", BaseCurrency = "LTC", QuoteCurrency = "BCH",
-					MinTradeSize = 0.01M, QuantityStepSize = 0.00001M, PriceStepSize = 0.0001M},
-			};
-			// + check to make sure no symbols are missing
-			var apiSymbols = await GetMarketSymbolsAsync();
-			foreach (var apiSymbol in apiSymbols)
-				if (!hardcodedSymbols.Select(m => m.MarketSymbol).Contains(apiSymbol))
-					throw new Exception("hardcoded symbols out of date, please send a PR on GitHub to update.");
-			foreach (var hardcodedSymbol in hardcodedSymbols)
-				if (!apiSymbols.Contains(hardcodedSymbol.MarketSymbol))
-					throw new Exception("hardcoded symbols out of date, please send a PR on GitHub to update.");
-			return hardcodedSymbols;
+				tasks.Add(Task.Run(async () =>
+				{
+					JToken token = await MakeJsonRequestAsync<JToken>("/symbols/details/" + HttpUtility.UrlEncode(symbol));
+
+					// {"symbol":"BTCUSD","base_currency":"BTC","quote_currency":"USD","tick_size":1E-8,"quote_increment":0.01,"min_order_size":"0.00001","status":"open"}
+					lock (markets)
+					{
+						markets.Add(new ExchangeMarket
+						{
+							BaseCurrency = token["base_currency"].ToStringInvariant(),
+							IsActive = token["status"].ToStringInvariant().Equals("open", StringComparison.OrdinalIgnoreCase),
+							MarketSymbol = token["symbol"].ToStringInvariant(),
+							MinTradeSize = token["min_order_Size"].ConvertInvariant<decimal>(),
+							QuantityStepSize = token["tick_size"].ConvertInvariant<decimal>(),
+							QuoteCurrency = token["quote_currency"].ToStringInvariant(),
+							PriceStepSize = token["quote_increment"].ConvertInvariant<decimal>()
+						});
+					}
+				}));
+			}
+			await Task.WhenAll(tasks);
+
+			Logger.Warn("Gemini symbol metadata fetched and cached for several hours.");
+
+			return markets;
 		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
@@ -284,6 +262,98 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", nonce }, { "order_id", orderId } });
         }
 
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			ConcurrentDictionary<string, decimal> volumeDict = new ConcurrentDictionary<string, decimal>();
+			ConcurrentDictionary<string, ExchangeTicker> tickerDict = new ConcurrentDictionary<string, ExchangeTicker>();
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["result"].ToStringInvariant() == "error")
+				{
+					// {{  "result": "error",  "reason": "InvalidJson"}}
+					Logger.Info(token["reason"].ToStringInvariant());
+				}
+				else if (token["type"].ToStringInvariant() == "candles_1d_updates")
+				{
+					JToken changesToken = token["changes"];
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					if (changesToken != null)
+					{
+						if (changesToken.FirstOrDefault() is JArray candleArray)
+						{
+							decimal volume = candleArray[5].ConvertInvariant<decimal>();
+							volumeDict[marketSymbol] = volume;
+						}
+					}
+				}
+				else if (token["type"].ToStringInvariant() == "l2_updates")
+				{
+					// fetch the active ticker metadata for this symbol
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					ExchangeTicker ticker = tickerDict.GetOrAdd(marketSymbol, (_marketSymbol) =>
+					{
+						(string baseCurrency, string quoteCurrency) = ExchangeMarketSymbolToCurrenciesAsync(marketSymbol).Sync();
+						return new ExchangeTicker
+						{
+							MarketSymbol = _marketSymbol,
+							Volume = new ExchangeVolume
+							{
+								BaseCurrency = baseCurrency,
+								QuoteCurrency = quoteCurrency
+							}
+						};
+					});
+
+					// fetch the last bid/ask/last prices
+					if (token["changes"] is JArray changesToken)
+					{
+						if (changesToken.FirstOrDefault(t => t[0].ToStringInvariant().Equals("buy", StringComparison.OrdinalIgnoreCase)) is JArray buyToken)
+						{
+							decimal bidPrice = buyToken[1].ConvertInvariant<decimal>();
+							ticker.Bid = bidPrice;
+						}
+
+						if (changesToken.FirstOrDefault(t => t[0].ToStringInvariant().Equals("sell", StringComparison.OrdinalIgnoreCase)) is JArray sellToken)
+						{
+							decimal askPrice = sellToken[1].ConvertInvariant<decimal>();
+							ticker.Ask = askPrice;
+						}
+
+						if (token["trades"] is JArray tradesToken)
+						{
+							JToken lastTrade = tradesToken.FirstOrDefault();
+							if (lastTrade != null)
+							{
+								decimal lastTradePrice = lastTrade["price"].ConvertInvariant<decimal>();
+								ticker.Last = lastTradePrice;
+							}
+						}
+
+						// see if we have volume yet
+						if (volumeDict.TryGetValue(marketSymbol, out decimal tickerVolume))
+						{
+							ticker.Volume.BaseCurrencyVolume = tickerVolume;
+							ticker.Volume.QuoteCurrencyVolume = tickerVolume * ticker.Last;
+							var kv = new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker);
+							tickers(new KeyValuePair<string, ExchangeTicker>[] { kv });
+						}
+					}
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				await _socket.SendMessageAsync(new
+				{
+					type = "subscribe",
+					subscriptions = new[] { new { name = "candles_1d", symbols = marketSymbols }, new { name = "l2", symbols = marketSymbols } }
+				});
+			});
+		}
+
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			//{
@@ -358,6 +428,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
+
 			return await ConnectWebSocketAsync(BaseUrlWebSocket, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
@@ -371,7 +442,7 @@ namespace ExchangeSharp
 					var tradesToken = token["trades"];
 					if (tradesToken != null) foreach (var tradeToken in tradesToken)
 					{
-						var trade = parseTrade(tradeToken);
+						var trade = ParseWebSocketTrade(tradeToken);
 						trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
 						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 					}
@@ -379,7 +450,7 @@ namespace ExchangeSharp
 				else if (token["type"].ToStringInvariant() == "trade")
 				{
 					string marketSymbol = token["symbol"].ToStringInvariant();
-					var trade = parseTrade(token);
+					var trade = ParseWebSocketTrade(token);
 					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
 				}
 			}, connectCallback: async (_socket) =>
@@ -388,11 +459,12 @@ namespace ExchangeSharp
 				await _socket.SendMessageAsync(new {
 						type = "subscribe", subscriptions = new[] { new { name = "l2", symbols = marketSymbols } } });
 			});
-			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(
-							amountKey: "quantity", priceKey: "price",
-							typeKey: "side", timestampKey: "timestamp",
-							TimestampType.UnixMilliseconds, idKey: "event_id");
 		}
+
+		private static ExchangeTrade ParseWebSocketTrade(JToken token) => token.ParseTrade(
+			amountKey: "quantity", priceKey: "price",
+			typeKey: "side", timestampKey: "timestamp",
+			TimestampType.UnixMilliseconds, idKey: "event_id");
 	}
 
     public partial class ExchangeName { public const string Gemini = "Gemini"; }
