@@ -172,6 +172,7 @@ namespace ExchangeSharp
 			}
 			catch (Exception ex)
 			{
+				markets.Clear();
 				Logger.Error(ex, "Failed to parse gemini symbol metadata web page, falling back to per symbol query...");
 			}
 
