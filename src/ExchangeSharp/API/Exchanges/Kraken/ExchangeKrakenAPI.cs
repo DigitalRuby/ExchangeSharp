@@ -114,7 +114,11 @@ namespace ExchangeSharp
             ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             if (market == null)
             {
-                throw new ArgumentException("Unable to get currencies for market symbol " + marketSymbol);
+				market = await GetExchangeMarketFromCacheAsync(marketSymbol.Replace("/", string.Empty));
+				if (market == null)
+				{
+					throw new ArgumentException("Unable to get currencies for market symbol " + marketSymbol);
+				}
             }
             return (market.BaseCurrency, market.QuoteCurrency);
         }
@@ -523,8 +527,7 @@ namespace ExchangeSharp
             var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
             foreach (string marketSymbol in normalizedPairsList)
             {
-                JToken ticker;
-                ticker = apiTickers[marketSymbol];
+                JToken ticker = apiTickers[marketSymbol];
 
                 #region Fix for pairs that are not found like USDTZUSD
                 if (ticker == null)
@@ -812,6 +815,32 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
         }
 
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			{
+				if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token)
+				{
+					var exchangeTicker = await ConvertToExchangeTickerAsync(token[3].ToString(), token[1]);
+					var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
+					tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
+				await _socket.SendMessageAsync(new
+				{
+					@event = "subscribe",
+					pair = marketSymbolList,
+					subscription = new { name = "ticker" }
+				});
+			});
+		}
+
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
@@ -889,25 +918,7 @@ namespace ExchangeSharp
 				//    "name": "ticker"
 				//  }
 				//}
-				await PopulateLookupTables(); // prime cache
-				Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
-                {
-                    ExchangeMarket market = await GetExchangeMarketFromCacheAsync(m);
-                    if (market == null)
-                    {
-                        return null;
-                    }
-                    return market.AltMarketSymbol2;
-                }).ToArray();
-                List<string> marketSymbolList = new List<string>();
-                foreach (Task<string> ms in marketSymbolsArray)
-                {
-                    string result = await ms;
-                    if (result != null)
-                    {
-                        marketSymbolList.Add(result);
-                    }
-                }
+				List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
                 await _socket.SendMessageAsync(new
 				{
 					@event = "subscribe",
@@ -915,6 +926,30 @@ namespace ExchangeSharp
                     subscription = new { name = "trade" }
 				});
 			});
+		}
+
+		private async Task<List<string>> GetMarketSymbolList(string[] marketSymbols)
+		{
+			await PopulateLookupTables(); // prime cache
+			Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
+			{
+				ExchangeMarket market = await GetExchangeMarketFromCacheAsync(m);
+				if (market == null)
+				{
+					return null;
+				}
+				return market.AltMarketSymbol2;
+			}).ToArray();
+			List<string> marketSymbolList = new List<string>();
+			foreach (Task<string> ms in marketSymbolsArray)
+			{
+				string result = await ms;
+				if (result != null)
+				{
+					marketSymbolList.Add(result);
+				}
+			}
+			return marketSymbolList;
 		}
 	}
 
