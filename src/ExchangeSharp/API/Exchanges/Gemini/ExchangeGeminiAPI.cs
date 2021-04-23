@@ -593,6 +593,66 @@ namespace ExchangeSharp
 			});
 		}
 
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			ConcurrentDictionary<string, ExchangeOrderBook> books = new ConcurrentDictionary<string, ExchangeOrderBook>(StringComparer.OrdinalIgnoreCase);
+			return await ConnectWebSocketAsync(BaseUrlWebSocket, (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["type"].ToStringInvariant() == "l2_updates")
+				{
+					string marketSymbol = token["symbol"].ToStringInvariant();
+					ExchangeOrderBook bookObj = books.GetOrAdd(marketSymbol, _marketSymbol =>
+					{
+						return new ExchangeOrderBook { MarketSymbol = _marketSymbol };
+					});
+					if (token["changes"] is JArray book)
+					{
+						foreach (JArray item in book)
+						{
+							if (item.Count == 3)
+							{
+								bool sell = item[0].ToStringInvariant() == "sell";
+								SortedDictionary<decimal, ExchangeOrderPrice> dict = (sell ? bookObj.Bids : bookObj.Asks);
+								decimal price = item[1].ConvertInvariant<decimal>();
+								decimal amount = item[2].ConvertInvariant<decimal>();
+								if (amount == 0m)
+								{
+									dict.Remove(price);
+								}
+								else
+								{
+									var depth = new ExchangeOrderPrice { Price = price, Amount = amount };
+									dict[price] = depth;
+								}
+							}
+						}
+						callback(bookObj);
+					}
+				}
+				return Task.CompletedTask;
+			}, connectCallback: async (_socket) =>
+			{
+				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}
+				await _socket.SendMessageAsync(new
+				{
+					type = "subscribe",
+					subscriptions = new[]
+					{
+						new
+						{
+							name = "l2",
+							symbols = marketSymbols
+						}
+					}
+				});
+			});
+		}
+
 		private static ExchangeTrade ParseWebSocketTrade(JToken token) => token.ParseTrade(
 			amountKey: "quantity", priceKey: "price",
 			typeKey: "side", timestampKey: "timestamp",

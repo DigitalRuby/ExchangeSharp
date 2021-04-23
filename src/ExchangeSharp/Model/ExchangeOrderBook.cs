@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -98,7 +98,11 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("Asks: {0}, Bids: {1}", Asks.Count, Bids.Count);
+            return string.Format("Book {0}, Asks: {1} ({2:0.00}), Bids: {3} ({4:0.00})", MarketSymbol,
+				Asks.Count,
+				Asks.Values.Sum(a => a.Amount * a.Price),
+				Bids.Count,
+				Bids.Values.Sum(b => b.Amount * b.Price));
         }
 
         /// <summary>
