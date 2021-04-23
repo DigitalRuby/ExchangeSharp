@@ -384,7 +384,7 @@ namespace ExchangeSharp
 				Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
 			{
 				// if we are fully populated...
-				if (ticker.Bid > 0m && ticker.Ask > 0m &&
+				if (ticker.Bid > 0m && ticker.Ask > 0m && ticker.Bid <= ticker.Ask &&
 					_volumeDict.TryGetValue(marketSymbol, out decimal tickerVolume))
 				{
 					ticker.Volume.BaseCurrencyVolume = tickerVolume;
