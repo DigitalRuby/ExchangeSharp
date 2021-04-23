@@ -467,6 +467,8 @@ namespace ExchangeSharp
 				return Task.CompletedTask;
 			}, connectCallback: async (_socket) =>
 			{
+				volumeDict.Clear();
+				tickerDict.Clear();
 				await _socket.SendMessageAsync(new
 				{
 					type = "subscribe",
@@ -638,6 +640,7 @@ namespace ExchangeSharp
 			}, connectCallback: async (_socket) =>
 			{
 				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}
+				books.Clear();
 				await _socket.SendMessageAsync(new
 				{
 					type = "subscribe",
