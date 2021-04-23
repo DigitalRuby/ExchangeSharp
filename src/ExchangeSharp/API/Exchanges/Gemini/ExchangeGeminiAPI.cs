@@ -355,7 +355,7 @@ namespace ExchangeSharp
             await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object>{ { "nonce", nonce }, { "order_id", orderId } });
         }
 
-		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickerCallback, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
@@ -363,85 +363,108 @@ namespace ExchangeSharp
 			}
 			ConcurrentDictionary<string, decimal> volumeDict = new ConcurrentDictionary<string, decimal>();
 			ConcurrentDictionary<string, ExchangeTicker> tickerDict = new ConcurrentDictionary<string, ExchangeTicker>();
-			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			static ExchangeTicker GetTicker(ConcurrentDictionary<string, ExchangeTicker> tickerDict, ExchangeGeminiAPI api, string marketSymbol)
+			{
+				return tickerDict.GetOrAdd(marketSymbol, (_marketSymbol) =>
+				{
+					(string baseCurrency, string quoteCurrency) = api.ExchangeMarketSymbolToCurrenciesAsync(_marketSymbol).Sync();
+					return new ExchangeTicker
+					{
+						MarketSymbol = _marketSymbol,
+						Volume = new ExchangeVolume
+						{
+							BaseCurrency = baseCurrency,
+							QuoteCurrency = quoteCurrency
+						}
+					};
+				});
+			}
+
+			static void PublishTicker(ExchangeTicker ticker, string marketSymbol, ConcurrentDictionary<string, decimal> _volumeDict,
+				Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback)
+			{
+				// if we are fully populated...
+				if (ticker.Bid > 0m && ticker.Ask > 0m &&
+					_volumeDict.TryGetValue(marketSymbol, out decimal tickerVolume))
+				{
+					ticker.Volume.BaseCurrencyVolume = tickerVolume;
+					ticker.Volume.QuoteCurrencyVolume = tickerVolume * ticker.Last;
+					var kv = new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker);
+					callback(new KeyValuePair<string, ExchangeTicker>[] { kv });
+				}
+			}
+
+			return await ConnectWebSocketAsync(null, messageCallback: (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["result"].ToStringInvariant() == "error")
 				{
 					// {{  "result": "error",  "reason": "InvalidJson"}}
 					Logger.Info(token["reason"].ToStringInvariant());
+					return Task.CompletedTask;
 				}
-				else if (token["type"].ToStringInvariant() == "candles_1d_updates")
+				string type = token["type"].ToStringInvariant();
+				switch (type)
 				{
-					JToken changesToken = token["changes"];
-					string marketSymbol = token["symbol"].ToStringInvariant();
-					if (changesToken != null)
+					case "candles_1d_updates":
 					{
-						if (changesToken.FirstOrDefault() is JArray candleArray)
+						JToken changesToken = token["changes"];
+						if (changesToken != null)
 						{
-							decimal volume = candleArray[5].ConvertInvariant<decimal>();
-							volumeDict[marketSymbol] = volume;
-						}
-					}
-				}
-				else if (token["type"].ToStringInvariant() == "l2_updates")
-				{
-					// fetch the active ticker metadata for this symbol
-					string marketSymbol = token["symbol"].ToStringInvariant();
-					ExchangeTicker ticker = tickerDict.GetOrAdd(marketSymbol, (_marketSymbol) =>
-					{
-						(string baseCurrency, string quoteCurrency) = ExchangeMarketSymbolToCurrenciesAsync(marketSymbol).Sync();
-						return new ExchangeTicker
-						{
-							MarketSymbol = _marketSymbol,
-							Volume = new ExchangeVolume
+							string marketSymbol = token["symbol"].ToStringInvariant();
+							if (changesToken.FirstOrDefault() is JArray candleArray)
 							{
-								BaseCurrency = baseCurrency,
-								QuoteCurrency = quoteCurrency
+								decimal volume = candleArray[5].ConvertInvariant<decimal>();
+								volumeDict[marketSymbol] = volume;
+								ExchangeTicker ticker = GetTicker(tickerDict, this, marketSymbol);
+								PublishTicker(ticker, marketSymbol, volumeDict, tickerCallback);
 							}
-						};
-					});
-
-					// fetch the last bid/ask/last prices
-					if (token["changes"] is JArray changesToken)
+						}
+					} break;
+					case "l2_updates":
 					{
+						// fetch the last bid/ask/last prices
 						if (token["trades"] is JArray tradesToken)
 						{
+							string marketSymbol = token["symbol"].ToStringInvariant();
+							ExchangeTicker ticker = GetTicker(tickerDict, this, marketSymbol);
 							JToken lastSell = tradesToken.FirstOrDefault(t => t["side"].ToStringInvariant().Equals("sell", StringComparison.OrdinalIgnoreCase));
 							if (lastSell != null)
 							{
 								decimal lastTradePrice = lastSell["price"].ConvertInvariant<decimal>();
-								ticker.Last = ticker.Bid = lastTradePrice;
-								if (ticker.Bid > ticker.Ask)
-								{
-									// out of sync, reset ask
-									ticker.Ask = 0m;
-								}
+								ticker.Bid = ticker.Last = lastTradePrice;
 							}
 							JToken lastBuy = tradesToken.FirstOrDefault(t => t["side"].ToStringInvariant().Equals("buy", StringComparison.OrdinalIgnoreCase));
 							if (lastBuy != null)
 							{
 								decimal lastTradePrice = lastBuy["price"].ConvertInvariant<decimal>();
-								ticker.Ask = lastTradePrice;
-								if (ticker.Ask < ticker.Bid)
-								{
-									// out of sync, reset bid
-									ticker.Bid = 0m;
-								}
+								ticker.Ask = ticker.Last = lastTradePrice;
 							}
-						}
 
-						// if we are fully populated...
-						if (ticker.Bid > 0m && ticker.Ask > 0m &&
-							volumeDict.TryGetValue(marketSymbol, out decimal tickerVolume))
-						{
-							ticker.Volume.BaseCurrencyVolume = tickerVolume;
-							ticker.Volume.QuoteCurrencyVolume = tickerVolume * ticker.Last;
-							var kv = new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker);
-							tickers(new KeyValuePair<string, ExchangeTicker>[] { kv });
+							PublishTicker(ticker, marketSymbol, volumeDict, tickerCallback);
 						}
-					}
+					} break;
+					case "trade":
+					{
+						//{ "type":"trade","symbol":"ETHUSD","event_id":35899433249,"timestamp":1619191314701,"price":"2261.65","quantity":"0.010343","side":"buy"}
+
+						// fetch the active ticker metadata for this symbol
+						string marketSymbol = token["symbol"].ToStringInvariant();
+						ExchangeTicker ticker = GetTicker(tickerDict, this, marketSymbol);
+						string side = token["side"].ToStringInvariant();
+						decimal price = token["price"].ConvertInvariant<decimal>();
+						if (side == "sell")
+						{
+							ticker.Bid = ticker.Last = price;
+						}
+						else
+						{
+							ticker.Ask = ticker.Last = price;
+						}
+						PublishTicker(ticker, marketSymbol, volumeDict, tickerCallback);
+					} break;
 				}
+				return Task.CompletedTask;
 			}, connectCallback: async (_socket) =>
 			{
 				await _socket.SendMessageAsync(new
