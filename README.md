@@ -41,7 +41,7 @@ The following cryptocurrency exchanges are supported:
 | Bybit          | x           | x            | R          | Has public method for Websocket Positions
 | Coinbase       | x           | x            | T R        |
 | Digifinex      | x           | x            | R B        |
-| Gemini         | x           | x            | R          |
+| Gemini         | x           | x            | T R B      |
 | HitBTC         | x           | x            | R          |
 | Huobi          | x           | x            | R B        |
 | Kraken         | x           | x            | R          | Dark order symbols not supported         |
