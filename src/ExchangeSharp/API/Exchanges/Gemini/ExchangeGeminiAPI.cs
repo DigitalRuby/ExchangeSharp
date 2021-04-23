@@ -633,6 +633,7 @@ namespace ExchangeSharp
 								}
 							}
 						}
+						bookObj.LastUpdatedUtc = DateTime.UtcNow;
 						callback(bookObj);
 					}
 				}
