@@ -59,6 +59,10 @@ The following cryptocurrency services are supported:
 
 - Cryptowatch (partial)
 
+Exchange constructors are private, to get access to an exchange in code use:
+
+`ExchangeAPI.GetExchangeAPI`.
+
 ### Installing the CLI
 
 On \*nix systems:
@@ -116,7 +120,7 @@ e.g.
 public static async Task Main(string[] args)
 {
     // create a web socket connection to Binance. Note you can Dispose the socket anytime to shut it down.
-    using var api = new ExchangeBinanceAPI();
+    using var api = ExchangeAPI.GetExchangeAPI<ExchangeBinanceAPI>();
     // the web socket will handle disconnects and attempt to re-connect automatically.
     using var socket = await api.GetTickersWebSocket(tickers =>
     {
