@@ -13,7 +13,7 @@ namespace ExchangeSharp
 		public override string BaseUrl { get; set; } = "https://api.btse.com/spot";
 		public const string TestnetUrl = "https://testapi.btse.io/spot";
 
-		public ExchangeBTSEAPI()
+		private ExchangeBTSEAPI()
 		{
 			NonceStyle = NonceStyle.UnixMillisecondsString;
 		}

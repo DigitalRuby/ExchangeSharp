@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -33,7 +33,7 @@ namespace ExchangeSharp
 
         private long webSocketId = 0;
 
-        public ExchangeHuobiAPI()
+		private ExchangeHuobiAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMilliseconds;

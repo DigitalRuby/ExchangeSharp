@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -24,7 +24,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "http://api.zb.com/data/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.zb.com:9999/websocket";
 
-        public ExchangeZBcomAPI()
+		private ExchangeZBcomAPI()
         {
             MarketSymbolSeparator = "_";
             MarketSymbolIsUppercase = false;

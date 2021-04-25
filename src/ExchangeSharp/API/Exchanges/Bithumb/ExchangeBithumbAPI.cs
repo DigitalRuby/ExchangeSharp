@@ -22,7 +22,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
 
-        public ExchangeBithumbAPI()
+		private ExchangeBithumbAPI()
         {
             MarketSymbolIsUppercase = true;
         }

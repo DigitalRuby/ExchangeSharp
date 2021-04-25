@@ -18,22 +18,15 @@ namespace ExchangeSharp
         private const decimal MakerFee = -0.0005m;
         private const decimal TakerFee = 0.0015m;
 
-        static ExchangeBitBankAPI()
-        {
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBitBankAPI)] = new KeyValuePair<string, string>[]
-            {
-                new KeyValuePair<string, string>("BCC", "BCH")
-            };
-        }
-
-        public ExchangeBitBankAPI()
+		private ExchangeBitBankAPI()
         {
             NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(0.1);
             WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
             MarketSymbolSeparator = "_";
             MarketSymbolIsUppercase = false;
-        }
+			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
+		}
 
         # region Public APIs
 

@@ -48,7 +48,7 @@ namespace ExchangeSharp
             };
         }
 
-        public ExchangeUfoDexAPI()
+		private ExchangeUfoDexAPI()
         {
             RequestContentType = "application/json";
 

@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -24,7 +25,7 @@ namespace ExchangeSharp
     /// </summary>
     public abstract partial class ExchangeAPI
     {
-        /*
+		/*
         protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync();
         protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100);
         protected virtual Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol);
@@ -66,17 +67,17 @@ namespace ExchangeSharp
         protected virtual void OnDispose();
         */
 
-        /// <summary>
-        /// Dictionary of key (exchange currency) and value (global currency). Add entries in static constructor.
-        /// Some exchanges (Yobit for example) use odd names for some currencies like BCC for Bitcoin Cash.
-        /// <example><![CDATA[ 
-        /// ExchangeGlobalCurrencyReplacements[typeof(ExchangeYobitAPI)] = new KeyValuePair<string, string>[]
-        /// {
-        ///     new KeyValuePair<string, string>("BCC", "BCH")
-        /// };
-        /// ]]></example>
-        /// </summary>
-        protected static readonly Dictionary<Type, KeyValuePair<string, string>[]> ExchangeGlobalCurrencyReplacements = new Dictionary<Type, KeyValuePair<string, string>[]>();
+		/// <summary>
+		/// Dictionary of key (exchange currency) and value (global currency).
+		/// Some exchanges (Yobit for example) use odd names for some currencies like BCC for Bitcoin Cash.
+		/// <example><![CDATA[ 
+		/// ExchangeGlobalCurrencyReplacements[typeof(ExchangeYobitAPI)] = new KeyValuePair<string, string>[]
+		/// {
+		///     new KeyValuePair<string, string>("BCC", "BCH")
+		/// };
+		/// ]]></example>
+		/// </summary>
+		protected Dictionary<string, string> ExchangeGlobalCurrencyReplacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Separator for exchange symbol. If not a hyphen, set in constructor. This should be one character and is a string for convenience of concatenation.

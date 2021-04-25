@@ -20,15 +20,15 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Lbank API functionality.
-    /// </summary>
-    /// <remarks>
-    /// Lbank API: https://github.com/LBank-exchange/lbank-official-api-docs
-    /// Lbank site: https://www.lbank.info
-    /// WebSockets address: ws://api.lbank.info/ws/v2/
-    /// </remarks>
-    public class ExchangeLBankAPI : ExchangeAPI
+	/// <summary>
+	/// Lbank API functionality.
+	/// </summary>
+	/// <remarks>
+	/// Lbank API: https://github.com/LBank-exchange/lbank-official-api-docs
+	/// Lbank site: https://www.lbank.info
+	/// WebSockets address: ws://api.lbank.info/ws/v2/
+	/// </remarks>
+	public class ExchangeLBankAPI : ExchangeAPI
     {
         private const int ORDER_BOOK_MAX_SIZE = 60;
         private const int RECENT_TRADS_MAX_SIZE = 600;
@@ -44,10 +44,10 @@ namespace ExchangeSharp
         /// </summary>
         public override string Name => ExchangeName.LBank;
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        public ExchangeLBankAPI()
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		private ExchangeLBankAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             MarketSymbolSeparator = "_";

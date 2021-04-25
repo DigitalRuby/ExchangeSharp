@@ -29,34 +29,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://poloniex.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
 
-        static ExchangePoloniexAPI()
-        {
-            // load withdrawal field counts
-            var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            using var resourceStream = typeof(ExchangePoloniexAPI).Assembly.GetManifestResourceStream("ExchangeSharp.Properties.Resources.PoloniexWithdrawalFields.csv");
-            Debug.Assert(resourceStream != null, nameof(resourceStream) + " != null");
-            using var sr = new StreamReader(resourceStream);
-
-            sr.ReadLine(); // eat the header
-            string line;
-            while ((line = sr.ReadLine()) != null)
-            {
-	            string[] split = line.Split(',');
-	            if (split.Length == 2)
-	            {
-		            fieldCount[split[0]] = split[1].ConvertInvariant<int>();
-	            }
-            }
-
-            WithdrawalFieldCount = fieldCount;
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangePoloniexAPI)] = new KeyValuePair<string, string>[]
-            {
-                new KeyValuePair<string, string>("STR", "XLM") // WTF
-            };
-        }
-
-        public ExchangePoloniexAPI()
+		private ExchangePoloniexAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             MarketSymbolSeparator = "_";
@@ -85,7 +58,33 @@ namespace ExchangeSharp
             return await MakeJsonRequestAsync<JToken>("/tradingApi", null, payload);
         }
 
-        public ExchangeOrderResult ParsePlacedOrder(JToken result)
+		/// <inheritdoc />
+		protected override Task OnInitializeAsync()
+		{
+			// load withdrawal field counts
+			var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+			using var resourceStream = typeof(ExchangePoloniexAPI).Assembly.GetManifestResourceStream("ExchangeSharp.Properties.Resources.PoloniexWithdrawalFields.csv");
+			Debug.Assert(resourceStream != null, nameof(resourceStream) + " != null");
+			using var sr = new StreamReader(resourceStream);
+
+			sr.ReadLine(); // eat the header
+			string line;
+			while ((line = sr.ReadLine()) != null)
+			{
+				string[] split = line.Split(',');
+				if (split.Length == 2)
+				{
+					fieldCount[split[0]] = split[1].ConvertInvariant<int>();
+				}
+			}
+
+			WithdrawalFieldCount = fieldCount;
+			ExchangeGlobalCurrencyReplacements["STR"] = "XLM"; // wtf
+			return Task.CompletedTask;
+		}
+
+		public ExchangeOrderResult ParsePlacedOrder(JToken result)
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {

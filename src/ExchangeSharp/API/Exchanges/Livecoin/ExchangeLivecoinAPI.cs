@@ -23,7 +23,7 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.livecoin.net";
 
-        public ExchangeLivecoinAPI()
+		private ExchangeLivecoinAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             MarketSymbolSeparator = "/";

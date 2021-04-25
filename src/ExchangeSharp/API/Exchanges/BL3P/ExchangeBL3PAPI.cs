@@ -31,7 +31,7 @@ namespace ExchangeSharp
 		/// </summary>
 		public BL3PCurrencyFee DefaultFeeCurrency { get; set; } = BL3PCurrencyFee.BTC;
 
-		public ExchangeBL3PAPI()
+		private ExchangeBL3PAPI()
 		{
 			MarketSymbolIsUppercase = true;
 			MarketSymbolIsReversed = true;

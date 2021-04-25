@@ -28,7 +28,7 @@ namespace ExchangeSharp
         string timeWindow;
         TaskCompletionSource<int> inited = new TaskCompletionSource<int>();
 
-        public ExchangeDigifinexAPI()
+		private ExchangeDigifinexAPI()
         {
             MarketSymbolSeparator = "_";
             MarketSymbolIsReversed = false;

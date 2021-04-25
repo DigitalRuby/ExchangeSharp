@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2020 Digital Ruby, LLC - http://www.digitalruby.com
@@ -30,10 +30,10 @@ namespace ExchangeSharp
 
         public override string BaseUrl { get; set; } = "https://api.bybit.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://stream.bybit.com/realtime";
-        // public override string BaseUrl { get; set; } = "https://api-testnet.bybit.com/";
-        // public override string BaseUrlWebSocket { get; set; } = "wss://stream-testnet.bybit.com/realtime";
+		// public override string BaseUrl { get; set; } = "https://api-testnet.bybit.com/";
+		// public override string BaseUrlWebSocket { get; set; } = "wss://stream-testnet.bybit.com/realtime";
 
-        public ExchangeBybitAPI()
+		private ExchangeBybitAPI()
         {
 			NonceStyle = NonceStyle.UnixMilliseconds;
             NonceOffset = TimeSpan.FromSeconds(1.0);

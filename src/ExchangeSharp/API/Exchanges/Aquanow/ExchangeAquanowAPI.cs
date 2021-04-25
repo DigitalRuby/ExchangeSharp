@@ -26,7 +26,7 @@ namespace ExchangeSharp
         public string MarketUrl { get; set; } = "https://market.aquanow.io";
         public override string BaseUrlWebSocket { get; set; } = "wss://market.aquanow.io/";
 
-        public ExchangeAquanowAPI()
+		private ExchangeAquanowAPI()
         {
             NonceStyle = NonceStyle.UnixMilliseconds;
             RequestContentType = "application/x-www-form-urlencoded";

@@ -20,7 +20,7 @@ namespace ExchangeSharp
         private static Dictionary<string, long> _marketSymbolToInstrumentIdMapping;
         private static Dictionary<string, long> _symbolToProductId;
 
-        public ExchangeNDAXAPI()
+		private ExchangeNDAXAPI()
         {
             RequestContentType = "application/json";
             MarketSymbolSeparator = "_";

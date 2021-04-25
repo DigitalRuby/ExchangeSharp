@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 #nullable enable
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -41,16 +42,44 @@ namespace ExchangeSharp
         /// </summary>
         public static bool UseDefaultMethodCachePolicy { get; set; } = true;
 
-        #region Private methods
+		#region Private methods
 
-        private static readonly Dictionary<string, IExchangeAPI?> apis = new Dictionary<string, IExchangeAPI?>(StringComparer.OrdinalIgnoreCase);
+		private static readonly IReadOnlyCollection<Type> exchangeTypes = typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract).ToArray();
+		private static readonly ConcurrentDictionary<Type, ExchangeAPI> apis = new ConcurrentDictionary<Type, ExchangeAPI>();
+
+		private bool initialized;
         private bool disposed;
 
-		private static readonly Dictionary<string, string> classNamesToApiName = new Dictionary<string, string>();
-		
-        #endregion Private methods
+		#endregion Private methods
 
-        #region API Implementation
+		#region API Implementation
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		protected ExchangeAPI()
+		{
+			if (UseDefaultMethodCachePolicy)
+			{
+				MethodCachePolicy.Add(nameof(GetCurrenciesAsync), TimeSpan.FromHours(1.0));
+				MethodCachePolicy.Add(nameof(GetMarketSymbolsAsync), TimeSpan.FromHours(1.0));
+				MethodCachePolicy.Add(nameof(GetMarketSymbolsMetadataAsync), TimeSpan.FromHours(6.0));
+				MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
+				MethodCachePolicy.Add(nameof(GetTickersAsync), TimeSpan.FromSeconds(10.0));
+				MethodCachePolicy.Add(nameof(GetOrderBookAsync), TimeSpan.FromSeconds(10.0));
+				MethodCachePolicy.Add(nameof(GetOrderBooksAsync), TimeSpan.FromSeconds(10.0));
+				MethodCachePolicy.Add(nameof(GetCandlesAsync), TimeSpan.FromSeconds(10.0));
+				MethodCachePolicy.Add(nameof(GetAmountsAsync), TimeSpan.FromMinutes(1.0));
+				MethodCachePolicy.Add(nameof(GetAmountsAvailableToTradeAsync), TimeSpan.FromMinutes(1.0));
+				MethodCachePolicy.Add(nameof(GetCompletedOrderDetailsAsync), TimeSpan.FromMinutes(2.0));
+			}
+		}
+
+		/// <summary>
+		/// Initialize static resources for the exchange.
+		/// </summary>
+		/// <returns>Task</returns>
+		protected virtual Task OnInitializeAsync() => Task.CompletedTask;
 
         protected virtual async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
@@ -208,61 +237,33 @@ namespace ExchangeSharp
             return (baseCurrency, quoteCurrency);
         }
 
-        /// <summary>
-        /// Override to dispose of resources when the exchange is disposed
-        /// </summary>
-        protected virtual void OnDispose() { }
+		/// <summary>
+		/// Get a dictionary of mapping exchange currencies to global currencies
+		/// </summary>
+		/// <typeparam name="T">Type of value</typeparam>
+		/// <param name="input">Input mapping with exchange currency as key</param>
+		/// <returns>Mapping with global currency as key</returns>
+		protected async Task<Dictionary<string, T>> ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync<T>(IReadOnlyDictionary<string, T> input)
+		{
+			Dictionary<string, T> globalCurrenciesDict = new Dictionary<string, T>(input.Count);
+			foreach (var i in input)
+			{
+				var globalCurrency = await ExchangeCurrencyToGlobalCurrencyAsync(i.Key);
 
-        #endregion Protected methods
+				globalCurrenciesDict[globalCurrency] = i.Value;
+			}
 
-        #region Other
+			return globalCurrenciesDict;
+		}
 
-        /// <summary>
-        /// Static constructor
-        /// </summary>
-        static ExchangeAPI()
-        {
-            foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
-            {
-                // lazy create, we just create an instance to get the name, nothing more
-                // we don't want to pro-actively create all of these becanse an API
-                // may be running a timer or other house-keeping which we don't want
-                // the overhead of if a user is only using one or a handful of the apis
-                if ((Activator.CreateInstance(type) is ExchangeAPI api))
-                {
-                    api.Dispose();
-                    apis[api.Name] = null;
-                    classNamesToApiName[type.Name] = api.Name;
-				}
+		/// <summary>
+		/// Override to dispose of resources when the exchange is disposed
+		/// </summary>
+		protected virtual void OnDispose() { }
 
-                // in case derived class is accessed first, check for existance of key
-                if (!ExchangeGlobalCurrencyReplacements.ContainsKey(type))
-                {
-                    ExchangeGlobalCurrencyReplacements[type] = new KeyValuePair<string, string>[0];
-                }
-            }
-        }
+		#endregion Protected methods
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        public ExchangeAPI()
-        {
-            if (UseDefaultMethodCachePolicy)
-            {
-                MethodCachePolicy.Add(nameof(GetCurrenciesAsync), TimeSpan.FromHours(1.0));
-                MethodCachePolicy.Add(nameof(GetMarketSymbolsAsync), TimeSpan.FromHours(1.0));
-                MethodCachePolicy.Add(nameof(GetMarketSymbolsMetadataAsync), TimeSpan.FromHours(6.0));
-                MethodCachePolicy.Add(nameof(GetTickerAsync), TimeSpan.FromSeconds(10.0));
-                MethodCachePolicy.Add(nameof(GetTickersAsync), TimeSpan.FromSeconds(10.0));
-                MethodCachePolicy.Add(nameof(GetOrderBookAsync), TimeSpan.FromSeconds(10.0));
-                MethodCachePolicy.Add(nameof(GetOrderBooksAsync), TimeSpan.FromSeconds(10.0));
-                MethodCachePolicy.Add(nameof(GetCandlesAsync), TimeSpan.FromSeconds(10.0));
-                MethodCachePolicy.Add(nameof(GetAmountsAsync), TimeSpan.FromMinutes(1.0));
-                MethodCachePolicy.Add(nameof(GetAmountsAvailableToTradeAsync), TimeSpan.FromMinutes(1.0));
-                MethodCachePolicy.Add(nameof(GetCompletedOrderDetailsAsync), TimeSpan.FromMinutes(2.0));
-            }
-        }
+		#region Other
 
         /// <summary>
         /// Finalizer
@@ -283,67 +284,108 @@ namespace ExchangeSharp
                 OnDispose();
                 Cache?.Dispose();
 
-                // take out of global api dictionary if disposed
-                lock (apis)
-                {
-                    if (apis.TryGetValue(Name, out var cachedApi) && cachedApi == this)
-                    {
-                        apis[Name] = null;
-                    }
-                }
+				// take out of global api dictionary if disposed and we are the current exchange in the dictionary
+				if (apis.TryGetValue(GetType(), out ExchangeAPI existing) && this == existing)
+				{
+					apis.TryRemove(GetType(), out _);
+				}
             }
         }
 
-		public static IExchangeAPI? GetExchangeAPIFromClassName(string className)
-        {
-	        if (!classNamesToApiName.TryGetValue(className, out string exchangeName))
-		        throw new ArgumentException("No API available with class name " + className);
-
-	        return GetExchangeAPI(exchangeName);
-        }
+		/// <summary>
+		/// Initialize state for this exchange
+		/// </summary>
+		/// <returns>Task</returns>
+		private async Task InitializeAsync()
+		{
+			if (initialized)
+			{
+				return;
+			}
+			await OnInitializeAsync();
+			initialized = true;
+		}
 
 		/// <summary>
 		/// Get an exchange API given an exchange name (see ExchangeName class)
 		/// </summary>
 		/// <param name="exchangeName">Exchange name</param>
 		/// <returns>Exchange API or null if not found</returns>
-		public static IExchangeAPI? GetExchangeAPI(string exchangeName)
-        {
-            // note: this method will be slightly slow (milliseconds) the first time it is called and misses the cache
-            // subsequent calls with cache hits will be nanoseconds
-            lock (apis)
-            {
-                if (!apis.TryGetValue(exchangeName, out IExchangeAPI? api))
-                {
-                    throw new ArgumentException("No API available with name " + exchangeName);
-                }
-                if (api == null)
-                {
-                    // find an API with the right name
-                    foreach (Type type in typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract))
-                    {
-                        if (!((api = Activator.CreateInstance(type) as IExchangeAPI) is null))
-                        {
-                            if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
-                            {
-                                // found one with right name, add it to the API dictionary
-                                apis[exchangeName] = api;
+		public static IExchangeAPI GetExchangeAPI(string exchangeName)
+		{
+			// find the exchange with the name and creat it
+			foreach (Type type in exchangeTypes)
+			{
+				ExchangeAPI api = (Activator.CreateInstance(type, true) as ExchangeAPI)!;
+				if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
+				{
+					return GetExchangeAPI(type);
+				}
+			}
+			throw new ApplicationException("No exchange found with name " + exchangeName);
+		}
 
-                                // break out, we are done
-                                break;
-                            }
-                            else
-                            {
-                                // name didn't match, dispose immediately to stop timers and other nasties we don't want running, and null out api variable
-                                api.Dispose();
-                                api = null;
-                            }
-                        }
-                    }
-                }
-                return api;
-            }
-        }
+		/// <summary>
+		/// Get an exchange API given a type
+		/// </summary>
+		/// <typeparam name="T">Type of exchange to get</typeparam>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI GetExchangeAPI<T>() where T : ExchangeAPI
+		{
+			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
+			// subsequent calls with cache hits will be nanoseconds
+			Type type = typeof(T)!;
+			return GetExchangeAPI(type);
+		}
+
+		/// <summary>
+		/// Get an exchange API given a type
+		/// </summary>
+		/// <param name="type">Type of exchange</param>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI GetExchangeAPI(Type type)
+		{
+			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
+			// subsequent calls with cache hits will be nanoseconds
+			return apis.GetOrAdd(type, _exchangeName =>
+			{
+				// find an API with the right name
+				ExchangeAPI? api = null;
+				Type? foundType = exchangeTypes.FirstOrDefault(t => t == type);
+				if (foundType != null)
+				{
+					api = (Activator.CreateInstance(foundType, true) as ExchangeAPI)!;
+					Exception? ex = null;
+
+					// try up to 3 times to init
+					for (int i = 0; i < 3; i++)
+					{
+						try
+						{
+							api.InitializeAsync().Sync();
+							break;
+						}
+						catch (Exception _ex)
+						{
+							ex = _ex;
+							Thread.Sleep(5000);
+						}
+					}
+
+					if (ex != null)
+					{
+						throw ex;
+					}
+				}
+
+				if (api == null)
+				{
+					throw new ApplicationException("No exchange found with type " + type.FullName);
+				}
+
+				return api;
+			});
+		}
 
         /// <summary>
         /// Get all exchange APIs
@@ -351,7 +393,7 @@ namespace ExchangeSharp
         /// <returns>All APIs</returns>
         public static IExchangeAPI[] GetExchangeAPIs()
         {
-            lock (apis)
+            foreach (Type type in exchangeTypes)
             {
                 List<IExchangeAPI> apiList = new List<IExchangeAPI>();
                 foreach (var kv in apis.ToArray())
@@ -367,6 +409,7 @@ namespace ExchangeSharp
                 }
                 return apiList.ToArray();
             }
+			return apis.Values.ToArray();
         }
 
 		/// <summary>
@@ -376,14 +419,21 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="currency">Exchange currency</param>
 		/// <returns>Global currency</returns>
+		/// <summary>
+		/// Convert an exchange currency to a global currency. For example, on Binance,
+		/// BCH (Bitcoin Cash) is BCC but in most other exchanges it is BCH, hence
+		/// the global symbol is BCH.
+		/// </summary>
+		/// <param name="currency">Exchange currency</param>
+		/// <returns>Global currency or the original currency if no map found</returns>
 		public Task<string> ExchangeCurrencyToGlobalCurrencyAsync(string currency)
 		{
-			currency = (currency ?? string.Empty);
-			foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
+			currency ??= string.Empty;
+			if (ExchangeGlobalCurrencyReplacements.TryGetValue(currency, out string globalCurrency))
 			{
-				currency = currency.Replace(kv.Key, kv.Value);
+				return Task.FromResult<string>(globalCurrency);
 			}
-			return Task.FromResult(currency.ToUpperInvariant());
+			return Task.FromResult<string>(currency);
 		}
 
 		/// <summary>
@@ -396,8 +446,9 @@ namespace ExchangeSharp
 		/// <returns>Exchange currency</returns>
 		public string GlobalCurrencyToExchangeCurrency(string currency)
         {
-            currency = (currency ?? string.Empty);
-            foreach (KeyValuePair<string, string> kv in ExchangeGlobalCurrencyReplacements[GetType()])
+			currency ??= string.Empty;
+			var dict = ExchangeGlobalCurrencyReplacements;
+			foreach (var kv in dict)
             {
                 currency = currency.Replace(kv.Value, kv.Key);
             }
@@ -548,8 +599,9 @@ namespace ExchangeSharp
         /// <returns>Collection of Currencies</returns>
         public virtual async Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync()
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetCurrenciesAsync(), nameof(GetCurrenciesAsync));
-        }
+			var currencies = await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetCurrenciesAsync(), nameof(GetCurrenciesAsync));
+			return await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(currencies);
+		}
 
         /// <summary>
         /// Get exchange symbols
@@ -724,8 +776,11 @@ namespace ExchangeSharp
         /// <returns>Dictionary of symbols and amounts</returns>
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAsync()
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetAmountsAsync()), nameof(GetAmountsAsync));
-        }
+			var amounts = await Cache.CacheMethod(MethodCachePolicy, async () => (await OnGetAmountsAsync()), nameof(GetAmountsAsync));
+			var globalAmounts = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(amounts);
+
+			return globalAmounts;
+		}
 
         /// <summary>
         /// Get fees
@@ -742,15 +797,32 @@ namespace ExchangeSharp
         /// <returns>Symbol / amount dictionary</returns>
         public virtual async Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync()
         {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetAmountsAvailableToTradeAsync(), nameof(GetAmountsAvailableToTradeAsync));
-        }
+			var exchangeBalances = await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetAmountsAvailableToTradeAsync(), nameof(GetAmountsAvailableToTradeAsync));
+			var globalBalances = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(exchangeBalances);
 
-        /// <summary>
-        /// Place an order
-        /// </summary>
-        /// <param name="order">The order request</param>
-        /// <returns>Result</returns>
-        public virtual async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
+			return globalBalances;
+		}
+
+		/// <summary>
+		/// Get margin amounts available to trade, symbol / amount dictionary
+		/// </summary>
+		/// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
+		/// <returns>Symbol / amount dictionary</returns>
+		public virtual async Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false)
+		{
+			var exchangeBalances = await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetMarginAmountsAvailableToTradeAsync(includeZeroBalances),
+				nameof(GetMarginAmountsAvailableToTradeAsync), nameof(includeZeroBalances), includeZeroBalances);
+			var globalBalances = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(exchangeBalances);
+
+			return globalBalances;
+		}
+
+		/// <summary>
+		/// Place an order
+		/// </summary>
+		/// <param name="order">The order request</param>
+		/// <returns>Result</returns>
+		public virtual async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
         {
             // *NOTE* do not wrap in CacheMethodCall
             await new SynchronizationContextRemover();
@@ -841,17 +913,6 @@ namespace ExchangeSharp
         public virtual async Task<IEnumerable<ExchangeTransaction>> GetWithdrawHistoryAsync(string currency)
         {
             return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetWithdrawHistoryAsync(currency), nameof(GetWithdrawHistoryAsync), nameof(currency), currency);
-        }
-
-        /// <summary>
-        /// Get margin amounts available to trade, symbol / amount dictionary
-        /// </summary>
-        /// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
-        /// <returns>Symbol / amount dictionary</returns>
-        public virtual async Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false)
-        {
-            return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetMarginAmountsAvailableToTradeAsync(includeZeroBalances),
-                nameof(GetMarginAmountsAvailableToTradeAsync), nameof(includeZeroBalances), includeZeroBalances);
         }
 
         /// <summary>

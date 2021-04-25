@@ -28,7 +28,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://api.kraken.com";
 		public override string BaseUrlWebSocket { get; set; } = "wss://ws.kraken.com";
 
-        public ExchangeKrakenAPI()
+		private ExchangeKrakenAPI()
         {
             RequestMethod = "POST";
             RequestContentType = "application/x-www-form-urlencoded";
@@ -41,15 +41,6 @@ namespace ExchangeSharp
         private IReadOnlyDictionary<string, string> exchangeSymbolToNormalizedSymbol = new Dictionary<string, string>();
         private IReadOnlyDictionary<string, string> normalizedSymbolToExchangeSymbol = new Dictionary<string, string>();
         private IReadOnlyDictionary<string, string> exchangeCurrenciesToMarketSymbol = new Dictionary<string, string>();
-
-        static ExchangeKrakenAPI()
-        {
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangeKrakenAPI)] = new KeyValuePair<string, string>[]
-            {
-                new KeyValuePair<string, string>("XBT", "BTC"),
-                new KeyValuePair<string, string>("XDG", "DOGE")
-            };
-        }
 
         /// <summary>
         /// Populate dictionaries to deal with Kraken weirdness in currency and market names, will use cache if it exists
@@ -99,17 +90,16 @@ namespace ExchangeSharp
                     exchangeCurrenciesToMarketSymbolNew[quoteSymbol + baseSymbol] = marketSymbol;
                 }
 
-                exchangeCurrencyToNormalizedCurrency = exchangeCurrencyToNormalizedCurrencyNew;
+				exchangeCurrencyToNormalizedCurrency = ExchangeGlobalCurrencyReplacements = exchangeCurrencyToNormalizedCurrencyNew;
                 normalizedCurrencyToExchangeCurrency = normalizedCurrencyToExchangeCurrencyNew;
                 exchangeSymbolToNormalizedSymbol = exchangeSymbolToNormalizedSymbolNew;
                 normalizedSymbolToExchangeSymbol = normalizedSymbolToExchangeSymbolNew;
                 exchangeCurrenciesToMarketSymbol = exchangeCurrenciesToMarketSymbolNew;
-
-                return new CachedItem<object>(new object(), CryptoUtility.UtcNow.AddHours(4.0));
+				return new CachedItem<object>(new object(), CryptoUtility.UtcNow.AddHours(4.0));
             });
         }
 
-        public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
+		public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
         {
             ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
             if (market == null)
@@ -146,7 +136,6 @@ namespace ExchangeSharp
             {
                 throw new ArgumentException("Market symbol must be at least two pieces");
             }
-            string marketSymbol2 = pieces[0] + pieces[1];
             if (!normalizedCurrencyToExchangeCurrency.TryGetValue(pieces[0], out string baseCurrencyExchange))
             {
                 baseCurrencyExchange = pieces[0];
@@ -579,7 +568,12 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+		protected override Task OnInitializeAsync()
+		{
+			return PopulateLookupTables();
+		}
+
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             JToken obj = await MakeJsonRequestAsync<JToken>("/0/public/Depth?pair=" + marketSymbol + "&count=" + maxCount);
             return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[marketSymbol], maxCount: maxCount);

@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -33,7 +33,7 @@ namespace ExchangeSharp
         private SortedDictionary<long, decimal> dict_long_decimal = new SortedDictionary<long, decimal>();
         private SortedDictionary<decimal, long> dict_decimal_long = new SortedDictionary<decimal, long>();
 
-        public ExchangeBitMEXAPI()
+		private ExchangeBitMEXAPI()
         {
             RequestWindow = TimeSpan.Zero;
             NonceStyle = NonceStyle.ExpiresUnixSeconds;

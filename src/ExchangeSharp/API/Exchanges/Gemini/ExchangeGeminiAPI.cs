@@ -29,7 +29,8 @@ namespace ExchangeSharp
     {
         public override string BaseUrl { get; set; } = "https://api.gemini.com/v1";
 		public override string BaseUrlWebSocket { get; set; } = "wss://api.gemini.com/v2/marketdata";
-		public ExchangeGeminiAPI()
+
+		private ExchangeGeminiAPI()
         {
             MarketSymbolIsUppercase = false;
             MarketSymbolSeparator = string.Empty;

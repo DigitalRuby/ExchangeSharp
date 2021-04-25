@@ -30,7 +30,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
-        public ExchangeKuCoinAPI()
+		private ExchangeKuCoinAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMilliseconds;

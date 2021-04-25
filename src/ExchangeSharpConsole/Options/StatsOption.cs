@@ -18,10 +18,10 @@ namespace ExchangeSharpConsole.Options
 			var marketSymbol2 = "XXBTZUSD";
 
 			IExchangeAPI
-				apiCoinbase = new ExchangeCoinbaseAPI(),
-				apiGemini = new ExchangeGeminiAPI(),
-				apiKraken = new ExchangeKrakenAPI(),
-				apiBitfinex = new ExchangeBitfinexAPI();
+				apiCoinbase = ExchangeAPI.GetExchangeAPI(ExchangeName.Coinbase),
+				apiGemini = ExchangeAPI.GetExchangeAPI(ExchangeName.Gemini),
+				apiKraken = ExchangeAPI.GetExchangeAPI(ExchangeName.Kraken),
+				apiBitfinex = ExchangeAPI.GetExchangeAPI(ExchangeName.Bitfinex);
 
 			//TODO: Make this multi-threaded and add parameters
 			Console.WriteLine("Use CTRL-C to stop.");

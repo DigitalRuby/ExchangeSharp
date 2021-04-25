@@ -37,7 +37,18 @@ namespace ExchangeSharp
         /// </summary>
         private string cursorBefore;
 
-        private ExchangeOrderResult ParseFill(JToken result)
+		private ExchangeCoinbaseAPI()
+		{
+			RequestContentType = "application/json";
+			NonceStyle = NonceStyle.UnixSeconds;
+			NonceEndPoint = "/time";
+			NonceEndPointField = "iso";
+			NonceEndPointStyle = NonceStyle.Iso8601;
+			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
+		}
+
+
+		private ExchangeOrderResult ParseFill(JToken result)
         {
             decimal amount = result["size"].ConvertInvariant<decimal>();
             decimal price = result["price"].ConvertInvariant<decimal>();
@@ -168,16 +179,6 @@ namespace ExchangeSharp
             base.ProcessResponse(response);
             cursorAfter = response.GetHeader("CB-AFTER").FirstOrDefault();
             cursorBefore = response.GetHeader("CB-BEFORE").FirstOrDefault();
-        }
-
-        public ExchangeCoinbaseAPI()
-        {
-            RequestContentType = "application/json";
-            NonceStyle = NonceStyle.UnixSeconds;
-            NonceEndPoint = "/time";
-            NonceEndPointField = "iso";
-            NonceEndPointStyle = NonceStyle.Iso8601;
-            WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
         }
 
         protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
