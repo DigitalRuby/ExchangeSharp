@@ -62,47 +62,48 @@ namespace ExchangeSharp
             }
         }
 
-        #region ProcessRequest
+		#region ProcessRequest
 
-        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                request.AddHeader("KC-API-KEY", PublicApiKey.ToUnsecureString());
-                request.AddHeader("KC-API-TIMESTAMP", payload["nonce"].ToStringInvariant());
-                request.AddHeader("KC-API-PASSPHRASE", Passphrase.ToUnsecureString());
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				request.AddHeader("KC-API-KEY", PublicApiKey.ToUnsecureString());
+				request.AddHeader("KC-API-TIMESTAMP", payload["nonce"].ToStringInvariant());
+				request.AddHeader("KC-API-PASSPHRASE", CryptoUtility.SHA256Sign(Passphrase.ToUnsecureString(), PrivateApiKey.ToUnsecureString(), true));
+				var endpoint = request.RequestUri.PathAndQuery;
+				//For Gets, Deletes, no need to add the parameters in JSON format
+				var message = "";
+				var sig = "";
+				if (request.Method == "GET" || request.Method == "DELETE")
+				{
+					//Request will be a querystring
+					message = string.Format("{0}{1}{2}", payload["nonce"], request.Method, endpoint);
+					sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
+				}
+				else if (request.Method == "POST")
+				{
+					message = string.Format("{0}{1}{2}{3}", payload["nonce"], request.Method, endpoint, CryptoUtility.GetJsonForPayload(payload, true));
+					sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
+				}
+				request.AddHeader("KC-API-KEY-VERSION", 2.ToStringInvariant());
+				request.AddHeader("KC-API-SIGN", sig);
 
-                var endpoint = request.RequestUri.PathAndQuery;
-                //For Gets, Deletes, no need to add the parameters in JSON format
-                var message = "";
-                var sig = "";
-                if (request.Method == "GET" || request.Method == "DELETE")
-                {
-                    //Request will be a querystring
-                    message = string.Format("{0}{1}{2}", payload["nonce"], request.Method, endpoint);
-                    sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
-                }
-                else if (request.Method == "POST")
-                {
-                    message = string.Format("{0}{1}{2}{3}", payload["nonce"], request.Method, endpoint, CryptoUtility.GetJsonForPayload(payload, true));
-                    sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
-                }
-                request.AddHeader("KC-API-SIGN", sig);
-            }
+			}
 
-            if (request.Method == "POST")
-            {
-                string msg = CryptoUtility.GetJsonForPayload(payload, true);
-                byte[] content = msg.ToBytesUTF8();
-                await request.WriteAllAsync(content, 0, content.Length);
-            }
-        }
+			if (request.Method == "POST")
+			{
+				string msg = CryptoUtility.GetJsonForPayload(payload, true);
+				byte[] content = msg.ToBytesUTF8();
+				await request.WriteAllAsync(content, 0, content.Length);
+			}
+		}
 
-        #endregion ProcessRequest
+		#endregion ProcessRequest
 
-        #region Public APIs
+		#region Public APIs
 
-        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             Dictionary<string, ExchangeCurrency> currencies = new Dictionary<string, ExchangeCurrency>();
             List<string> symbols = new List<string>();
