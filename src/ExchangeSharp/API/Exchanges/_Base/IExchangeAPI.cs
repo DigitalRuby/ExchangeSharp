@@ -98,6 +98,12 @@ namespace ExchangeSharp
 		Task<IEnumerable<string>> GetMarketSymbolsAsync();
 
 		/// <summary>
+		/// Get WebSocket symbols for the exchange markets
+		/// </summary>
+		/// <returns>Symbols</returns>
+		Task<IEnumerable<string>> GetMarketSymbolsAsync(bool isWebSocket = false);
+
+		/// <summary>
 		/// Get exchange market symbols including available metadata such as min trade size and whether the market is active
 		/// </summary>
 		/// <returns>Collection of ExchangeMarkets</returns>

@@ -33,6 +33,7 @@ namespace ExchangeSharp
 		{
 			MarketSymbolIsUppercase = false;
 			MarketSymbolSeparator = string.Empty;
+			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 			RateLimit = new RateGate(1, TimeSpan.FromSeconds(0.5));
 		}
 
@@ -598,64 +599,65 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
+			Action<ExchangeOrderBook> callback,
+			int maxCount = 20,
+			params string[] marketSymbols
+		)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			ConcurrentDictionary<string, ExchangeOrderBook> books = new ConcurrentDictionary<string, ExchangeOrderBook>(StringComparer.OrdinalIgnoreCase);
-			return await ConnectWebSocketAsync(BaseUrlWebSocket, (_socket, msg) =>
+
+			return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
 			{
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
-				if (token["type"].ToStringInvariant() == "l2_updates")
+				string message = msg.ToStringFromUTF8();
+				var book = new ExchangeOrderBook();
+
+				if (message.Contains("l2_updates"))
 				{
-					string marketSymbol = token["symbol"].ToStringInvariant();
-					ExchangeOrderBook bookObj = books.GetOrAdd(marketSymbol, _marketSymbol =>
+					// parse delta update
+					var delta = JsonConvert.DeserializeObject(message)as JObject;
+
+					var symbol = delta["symbol"].ToString();
+					book.MarketSymbol = symbol;
+
+					// Gemini doesn't have a send timestamp in their response so use received timestamp.
+					book.LastUpdatedUtc = DateTime.UtcNow;
+
+					// Gemini doesn't have a sequence id in their response so use timestamp ticks.
+					book.SequenceId = DateTime.Now.Ticks;
+
+					foreach (JArray change in delta["changes"])
 					{
-						return new ExchangeOrderBook { MarketSymbol = _marketSymbol };
-					});
-					if (token["changes"] is JArray book)
-					{
-						foreach (JArray item in book)
+						if (change.Count == 3)
 						{
-							if (item.Count == 3)
-							{
-								bool sell = item[0].ToStringInvariant() == "sell";
-								SortedDictionary<decimal, ExchangeOrderPrice> dict = (sell ? bookObj.Bids : bookObj.Asks);
-								decimal price = item[1].ConvertInvariant<decimal>();
-								decimal amount = item[2].ConvertInvariant<decimal>();
-								if (amount == 0m)
-								{
-									dict.Remove(price);
-								}
-								else
-								{
-									var depth = new ExchangeOrderPrice { Price = price, Amount = amount };
-									dict[price] = depth;
-								}
-							}
+							bool sell = change[0].ToStringInvariant() == "sell";
+							decimal price = change[1].ConvertInvariant<decimal>();
+							decimal amount = change[2].ConvertInvariant<decimal>();
+
+							SortedDictionary<decimal, ExchangeOrderPrice> dict = (sell ? book.Asks : book.Bids);
+							if (amount == 0m)
+								dict.Remove(price);
+							else
+								dict[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
 						}
-						bookObj.LastUpdatedUtc = DateTime.UtcNow;
-						callback(bookObj);
 					}
+
+					callback(book);
 				}
+
 				return Task.CompletedTask;
 			}, connectCallback : async(_socket) =>
 			{
-				//{ "type": "subscribe","subscriptions":[{ "name":"l2","symbols":["BTCUSD","ETHUSD","ETHBTC"]}]}
-				books.Clear();
 				await _socket.SendMessageAsync(new
 				{
 					type = "subscribe",
-						subscriptions = new []
-						{
-							new
-							{
-								name = "l2",
-									symbols = marketSymbols
-							}
-						}
+					subscriptions = new [] { new {
+						name = "l2",
+						symbols = marketSymbols
+					} }
 				});
 			});
 		}
@@ -663,7 +665,8 @@ namespace ExchangeSharp
 		private static ExchangeTrade ParseWebSocketTrade(JToken token) => token.ParseTrade(
 			amountKey: "quantity", priceKey: "price",
 			typeKey: "side", timestampKey: "timestamp",
-			TimestampType.UnixMilliseconds, idKey: "event_id");
+			TimestampType.UnixMilliseconds, idKey: "event_id"
+		);
 	}
 
 	public partial class ExchangeName { public const string Gemini = "Gemini"; }

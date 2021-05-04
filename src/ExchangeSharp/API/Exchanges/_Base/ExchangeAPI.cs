@@ -131,6 +131,10 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<IEnumerable<string>> OnGetMarketSymbolsAsync() =>
 			throw new NotImplementedException();
+		protected virtual Task<IEnumerable<string>> OnGetMarketSymbolsAsync(bool isWebSocket = false)
+		{
+			return OnGetMarketSymbolsAsync();
+		}
 		protected internal virtual Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync() =>
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol) =>
@@ -638,7 +642,16 @@ namespace ExchangeSharp
 		/// <returns>Array of symbols</returns>
 		public virtual async Task<IEnumerable<string>> GetMarketSymbolsAsync()
 		{
-			return await Cache.CacheMethod(MethodCachePolicy, async() => (await OnGetMarketSymbolsAsync()).ToArray(), nameof(GetMarketSymbolsAsync));
+			return await GetMarketSymbolsAsync(false);
+		}
+
+		/// <summary>
+		/// Get exchange symbols
+		/// </summary>
+		/// <returns>Array of symbols</returns>
+		public virtual async Task<IEnumerable<string>> GetMarketSymbolsAsync(bool isWebSocket = false)
+		{
+			return await Cache.CacheMethod(MethodCachePolicy, async() => (await OnGetMarketSymbolsAsync(isWebSocket)).ToArray(), nameof(GetMarketSymbolsAsync));
 		}
 
 		/// <summary>

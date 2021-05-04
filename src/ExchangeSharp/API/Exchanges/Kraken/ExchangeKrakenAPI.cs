@@ -18,6 +18,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using ExchangeSharp.API.Exchanges.Kraken.Models.Request;
+using ExchangeSharp.API.Exchanges.Kraken.Models.Types;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -33,6 +36,7 @@ namespace ExchangeSharp
 			RequestContentType = "application/x-www-form-urlencoded";
 			MarketSymbolSeparator = string.Empty;
 			NonceStyle = NonceStyle.UnixMilliseconds;
+			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 		}
 
 		private IReadOnlyDictionary<string, string> exchangeCurrencyToNormalizedCurrency = new Dictionary<string, string>();
@@ -98,6 +102,7 @@ namespace ExchangeSharp
 				exchangeSymbolToNormalizedSymbol = exchangeSymbolToNormalizedSymbolNew;
 				normalizedSymbolToExchangeSymbol = normalizedSymbolToExchangeSymbolNew;
 				exchangeCurrenciesToMarketSymbol = exchangeCurrenciesToMarketSymbolNew;
+
 				return new CachedItem<object>(new object(), CryptoUtility.UtcNow.AddHours(4.0));
 			});
 		}
@@ -391,10 +396,21 @@ namespace ExchangeSharp
 			return currencies;
 		}
 
-		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
+		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync(bool isWebSocket = false)
 		{
 			JToken result = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
-			return result.Children<JProperty>().Where(p => !p.Name.Contains(".d")).Select(p => p.Name).ToArray();
+
+			var names = result.Children<JProperty>().Where(p => !p.Name.Contains(".d")).Select(p => p.Name).ToList();
+
+			if (isWebSocket)
+			{
+				names = result.Children<JProperty>()
+					.Where(p => p.Value["wsname"] != null && !string.IsNullOrEmpty(p.Value["wsname"].ToStringInvariant()))
+					.Select(s => s.Value["wsname"].ToStringInvariant())
+					.ToList();
+			}
+
+			return names;
 		}
 
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
@@ -817,7 +833,7 @@ namespace ExchangeSharp
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
 			}
 			return await ConnectWebSocketAsync(null, messageCallback : async(_socket, msg) =>
 			{
@@ -843,7 +859,7 @@ namespace ExchangeSharp
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
 			}
 			return await ConnectWebSocketAsync(null, messageCallback : async(_socket, msg) =>
 			{
@@ -948,6 +964,136 @@ namespace ExchangeSharp
 				}
 			}
 			return marketSymbolList;
+		}
+
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
+			Action<ExchangeOrderBook> callback,
+			int maxCount = 20,
+			params string[] marketSymbols
+		)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
+			}
+
+			return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+			{
+				string message = msg.ToStringFromUTF8();
+				var book = new ExchangeOrderBook();
+
+				if (message.Contains("\"as\"") || message.Contains("\"bs\""))
+				{
+					// parse delta update
+					var delta = JsonConvert.DeserializeObject(message)as JArray;
+
+					book.MarketSymbol = delta[3].ToString();
+
+					var asks = delta[1]["as"].ToList();
+					var bids = delta[1]["bs"].ToList();
+
+					var lastUpdatedTime = DateTime.MinValue;
+
+					foreach (var ask in asks)
+					{
+						decimal price = ask[0].ConvertInvariant<decimal>();
+						decimal volume = ask[1].ConvertInvariant<decimal>();
+						decimal epochSeconds = ask[2].ConvertInvariant<decimal>();
+
+						var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)(epochSeconds * 1000)).DateTime;
+						if (dateTime > lastUpdatedTime)
+							lastUpdatedTime = dateTime;
+
+						book.Asks[price] = new ExchangeOrderPrice { Amount = volume, Price = price };
+					}
+
+					foreach (var bid in bids)
+					{
+						decimal price = bid[0].ConvertInvariant<decimal>();
+						decimal volume = bid[1].ConvertInvariant<decimal>();
+						decimal epochSeconds = bid[2].ConvertInvariant<decimal>();
+
+						var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)(epochSeconds * 1000)).DateTime;
+						if (dateTime > lastUpdatedTime)
+							lastUpdatedTime = dateTime;
+
+						book.Bids[price] = new ExchangeOrderPrice { Amount = volume, Price = price };
+					}
+
+					book.LastUpdatedUtc = lastUpdatedTime;
+					book.SequenceId = lastUpdatedTime.Ticks;
+
+					callback(book);
+				}
+				else if (message.Contains("\"a\"") || message.Contains("\"b\""))
+				{
+					// parse delta update
+					var delta = JsonConvert.DeserializeObject(message)as JArray;
+
+					book.MarketSymbol = delta[3].ToString();
+
+					var lastUpdatedTime = DateTime.MinValue;
+
+					var updates = delta[1];
+
+					if (updates["a"] != null)
+					{
+						var asks = updates["a"].ToList();
+
+						foreach (var ask in asks)
+						{
+							decimal price = ask[0].ConvertInvariant<decimal>();
+							decimal volume = ask[1].ConvertInvariant<decimal>();
+							decimal epochSeconds = ask[2].ConvertInvariant<decimal>();
+
+							var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)(epochSeconds * 1000)).DateTime;
+							if (dateTime > lastUpdatedTime)
+								lastUpdatedTime = dateTime;
+
+							book.Asks[price] = new ExchangeOrderPrice { Amount = volume, Price = price };
+						}
+					}
+
+					if (updates["b"] != null)
+					{
+						var bids = updates["b"].ToList();
+
+						foreach (var bid in bids)
+						{
+							decimal price = bid[0].ConvertInvariant<decimal>();
+							decimal volume = bid[1].ConvertInvariant<decimal>();
+							decimal epochSeconds = bid[2].ConvertInvariant<decimal>();
+
+							var dateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)(epochSeconds * 1000)).DateTime;
+							if (dateTime > lastUpdatedTime)
+								lastUpdatedTime = dateTime;
+
+							book.Bids[price] = new ExchangeOrderPrice { Amount = volume, Price = price };
+						}
+					}
+
+					book.LastUpdatedUtc = lastUpdatedTime;
+					book.SequenceId = lastUpdatedTime.Ticks;
+
+					callback(book);
+				}
+
+				return Task.CompletedTask;
+			}, connectCallback : async(_socket) =>
+			{
+				// subscribe to order book channel for each symbol
+				var channelAction = new ChannelAction
+				{
+					Event = ActionType.Subscribe,
+						Pairs = marketSymbols.ToList(),
+						SubscriptionSettings = new Subscription
+						{
+							Name = "book",
+								Depth = 100
+						}
+				};
+				await _socket.SendMessageAsync(channelAction);
+			});
 		}
 	}
 
