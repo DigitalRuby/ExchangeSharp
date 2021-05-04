@@ -12,565 +12,604 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    using Newtonsoft.Json.Linq;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
-    using System.Threading.Tasks;
-    using System.Web;
+	using System.Security.Cryptography;
+	using System.Text;
+	using System.Threading.Tasks;
 
     public sealed partial class ExchangeBittrexAPI : ExchangeAPI
-    {
-        public override string BaseUrl { get; set; } = "https://bittrex.com/api/v1.1";
-        public string BaseUrl2 { get; set; } = "https://bittrex.com/api/v2.0";
+	{
+		public override string BaseUrl { get; set; } = "https://api.bittrex.com/v3";
+		public ExchangeBittrexAPI()
+		{
+			RateLimit = new RateGate(60, TimeSpan.FromSeconds(60));
+			RequestContentType = "application/json";
+			MarketSymbolIsReversed = true;
+			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+		}
 
-        /// <summary>Coin types that both an address and a tag to make the deposit</summary>
-        public HashSet<string> TwoFieldDepositCoinTypes { get; }
+		#region Utilities
+		public override string PeriodSecondsToString(int seconds)
+		{
+			string periodString;
+			switch (seconds)
+			{
+				case 60: periodString = "MINUTE_1"; break;
+				case 300: periodString = "MINUTE_5"; break;
+				case 3600: periodString = "HOUR_1"; break;
+				case 86400: periodString = "DAY_1"; break;
+				default:
+					throw new ArgumentException($"{nameof(seconds)} must be one of 60 (min), 300 (fiveMin) 3600 (hour), 86400 (day)");
+			}
+			return periodString;
+		}
 
-        /// <summary>Coin types that only require an address to make the deposit</summary>
-        public HashSet<string> OneFieldDepositCoinTypes { get; }
 
-		private ExchangeBittrexAPI()
-        {
-            // https://bittrex.github.io/api/v1-1#call-limits (Same counts for the V3 API)
-            RateLimit = new RateGate(60, TimeSpan.FromSeconds(60));
+		private ExchangeOrderResult ParseOrder(JToken token)
+		{
 
-            TwoFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "BITSHAREX",
-                "CRYPTO_NOTE_PAYMENTID",
-                "LUMEN",
-                "NEM",
-                "NXT",
-                "NXT_MS",
-                "RIPPLE",
-                "STEEM"
-            };
+			/*
+			{
+				"id": "string (uuid)",
+				"marketSymbol": "string",
+				"direction": "string",
+				"type": "string",
+				"quantity": "number (double)",
+				"limit": "number (double)",
+				"ceiling": "number (double)",
+				"timeInForce": "string",
+				"clientOrderId": "string (uuid)",
+				"fillQuantity": "number (double)",
+				"commission": "number (double)",
+				"proceeds": "number (double)",
+				"status": "string",
+				"createdAt": "string (date-time)",
+				"updatedAt": "string (date-time)",
+				"closedAt": "string (date-time)",
+				"orderToCancel": {
+				"type": "string",
+				"id": "string (uuid)"
+									}
+			}
+			 */
+			ExchangeOrderResult order = new ExchangeOrderResult();
+			decimal amount = token["quantity"].ConvertInvariant<decimal>();
+			decimal amountFilled = token["fillQuantity"].ConvertInvariant<decimal>();
+			order.Amount = amount;
+			order.AmountFilled = amountFilled;
+			order.Price = token["limit"].ConvertInvariant<decimal>(order.AveragePrice);
+			order.Message = string.Empty;
+			order.OrderId = token["id"].ToStringInvariant();
 
-            OneFieldDepositCoinTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "ADA",
-                "ANTSHARES",
-                "BITCOIN",
-                "BITCOIN_PERCENTAGE_FEE",
-                "BITCOIN_STEALTH",
-                "BITCOINEX",
-                "BYTEBALL",
-                "COUNTERPARTY",
-                "ETH",
-                "ETH_CONTRACT",
-                "FACTOM",
-                "LISK",
-                "OMNI",
-                "SIA",
-                "WAVES",
-                "WAVES_ASSET",
-            };
+			if (amountFilled >= amount)
+			{
+				order.Result = ExchangeAPIOrderResult.Filled;
+			}
+			else if (amountFilled == 0m)
+			{
+				order.Result = ExchangeAPIOrderResult.Pending;
+			}
+			else
+			{
+				order.Result = ExchangeAPIOrderResult.FilledPartially;
+			}
+			order.OrderDate = token["createdAt"].ToDateTimeInvariant();
+			order.MarketSymbol = token["marketSymbol"].ToStringInvariant();
+			order.Fees = token["commission"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
 
-            MarketSymbolIsReversed = false;
-            WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
-        }
+			if (!string.IsNullOrWhiteSpace(order.MarketSymbol))
+			{
+				string[] pairs = order.MarketSymbol.Split('-');
+				if (pairs.Length == 2)
+				{
+					order.FeesCurrency = pairs[0];
+				}
+			}
+			order.IsBuy = token["direction"].ToStringInvariant() == "BUY";
+			return order;
+		}
 
-        public override string PeriodSecondsToString(int seconds)
-        {
-            string periodString;
-            switch (seconds)
-            {
-                case 60: periodString = "oneMin"; break;
-                case 300: periodString = "fiveMin"; break;
-                case 1800: periodString = "thirtyMin"; break;
-                case 3600: periodString = "hour"; break;
-                case 86400: periodString = "day"; break;
-                case 259200: periodString = "threeDay"; break;
-                case 604800: periodString = "week"; break;
-                default:
-                    if (seconds > 604800)
-                    {
-                        periodString = "month";
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"{nameof(seconds)} must be one of 60 (min), 300 (fiveMin), 1800 (thirtyMin), 3600 (hour), 86400 (day), 259200 (threeDay), 604800 (week), 2419200 (month)");
-                    }
-                    break;
-            }
-            return periodString;
-        }
+		private string ByteToString(byte[] buff)
+		{
+			var result = "";
+			foreach (var t in buff)
+				result += t.ToString("X2"); /* hex format */
+			return result;
+		}
+		#endregion
 
-        private ExchangeOrderResult ParseOrder(JToken token)
-        {
-            ExchangeOrderResult order = new ExchangeOrderResult();
-            decimal amount = token["Quantity"].ConvertInvariant<decimal>();
-            decimal remaining = token["QuantityRemaining"].ConvertInvariant<decimal>();
-            decimal amountFilled = amount - remaining;
-            order.Amount = amount;
-            order.AmountFilled = amountFilled;
-            order.AveragePrice = token["PricePerUnit"].ConvertInvariant<decimal>();
-            order.Price = token["Limit"].ConvertInvariant<decimal>(order.AveragePrice);
-            order.Message = string.Empty;
-            order.OrderId = token["OrderUuid"].ToStringInvariant();
-            if (token["CancelInitiated"].ConvertInvariant<bool>())
-            {
-                order.Result = ExchangeAPIOrderResult.Canceled;
-            }
-            else if (amountFilled >= amount)
-            {
-                order.Result = ExchangeAPIOrderResult.Filled;
-            }
-            else if (amountFilled == 0m)
-            {
-                order.Result = ExchangeAPIOrderResult.Pending;
-            }
-            else
-            {
-                order.Result = ExchangeAPIOrderResult.FilledPartially;
-            }
-            order.OrderDate = token["Opened"].ToDateTimeInvariant(token["TimeStamp"].ToDateTimeInvariant());
-            order.MarketSymbol = token["Exchange"].ToStringInvariant();
-            order.Fees = token["Commission"].ConvertInvariant<decimal>(); // This is always in the base pair (e.g. BTC, ETH, USDT)
+		#region RequestHelper
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				var timeStamp = Math.Round(DateTime.UtcNow.UnixTimestampFromDateTimeMilliseconds());
+				var message = string.Empty;
+				payload.Remove("nonce");
+				if (request.Method != "GET" && request.Method != "DELETE")
+				{
+					if (payload.Count > 0)
+						message = JsonConvert.SerializeObject(payload);
+				}
+				byte[] sourceBytes = Encoding.UTF8.GetBytes(message);
+				byte[] hashBytes = SHA512.Create().ComputeHash(sourceBytes);
+				string hash = ByteToString(hashBytes).Replace("-", string.Empty);
+				string url = request.RequestUri.ToStringInvariant();
+				string sign = timeStamp + url + request.Method + hash;
 
-            string exchangePair = token["Exchange"].ToStringInvariant();
-            if (!string.IsNullOrWhiteSpace(exchangePair))
-            {
-                string[] pairs = exchangePair.Split('-');
-                if (pairs.Length == 2)
-                {
-                    order.FeesCurrency = pairs[0];
-                }
-            }
+				request.AddHeader("Api-Key", PublicApiKey.ToUnsecureString());
+				request.AddHeader("Api-Timestamp", timeStamp.ToStringInvariant());
+				request.AddHeader("Api-Content-Hash", hash);
+				request.AddHeader("Api-Signature", CryptoUtility.SHA512Sign(sign, PrivateApiKey.ToUnsecureString()));
+				if (request.Method == "POST")
+					await CryptoUtility.WriteToRequestAsync(request, JsonConvert.SerializeObject(payload));
+			}
+			Console.WriteLine(request.RequestUri);
+			//return base.ProcessRequestAsync(request, payload);
+		}
+		#endregion
 
-            string type = token["OrderType"].ToStringInvariant();
-            if (string.IsNullOrWhiteSpace(type))
-            {
-                type = token["Type"].ToStringInvariant();
-            }
-            order.IsBuy = type.IndexOf("BUY", StringComparison.OrdinalIgnoreCase) >= 0;
-            return order;
-        }
+		#region CurrencyData
+		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		{
+			var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+			JToken array = await MakeJsonRequestAsync<JToken>("/currencies");
+			foreach (JToken token in array)
+			{
+				bool enabled = token["status"].ToStringLowerInvariant() == "online" ? true : false;
+				var coin = new ExchangeCurrency
+				{
+					CoinType = token["coinType"].ToStringInvariant(),
+					FullName = token["name"].ToStringInvariant(),
+					DepositEnabled = enabled,
+					WithdrawalEnabled = enabled,
+					MinConfirmations = token["minConfirmations"].ConvertInvariant<int>(),
+					Name = token["symbol"].ToStringUpperInvariant(),
+					Notes = token["notice"].ToStringInvariant(),
+					TxFee = token["txFee"].ConvertInvariant<decimal>(),
+				};
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                // payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
-                var query = (url.Query ?? string.Empty).Trim('?', '&');
-                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToStringInvariant() + (query.Length != 0 ? "&" + query : string.Empty);
-            }
-            return url.Uri;
-        }
+				currencies[coin.Name] = coin;
+			}
 
-        protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                string url = request.RequestUri.ToString();
-                string sign = CryptoUtility.SHA512Sign(url, PrivateApiKey.ToUnsecureString());
-                request.AddHeader("apisign", sign);
-            }
-            return base.ProcessRequestAsync(request, payload);
-        }
+			return currencies;
+		}
+		#endregion
 
-        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
-        {
-            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
-            JToken array = await MakeJsonRequestAsync<JToken>("/public/getcurrencies");
-            foreach (JToken token in array)
-            {
-                bool enabled = token["IsActive"].ConvertInvariant<bool>();
-                var coin = new ExchangeCurrency
-                {
-                    BaseAddress = token["BaseAddress"].ToStringInvariant(),
-                    CoinType = token["CoinType"].ToStringInvariant(),
-                    FullName = token["CurrencyLong"].ToStringInvariant(),
-                    DepositEnabled = enabled,
-                    WithdrawalEnabled = enabled,
-                    MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
-                    Name = token["Currency"].ToStringUpperInvariant(),
-                    Notes = token["Notice"].ToStringInvariant(),
-                    TxFee = token["TxFee"].ConvertInvariant<decimal>(),
-                };
+		#region MarketMeta
+		/// <summary>
+		/// Get exchange symbols including available metadata such as min trade size and whether the market is active
+		/// </summary>
+		/// <returns>Collection of ExchangeMarkets</returns>
+		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		{
+			var markets = new List<ExchangeMarket>();
+			JToken array = await MakeJsonRequestAsync<JToken>("/markets");
 
-                currencies[coin.Name] = coin;
-            }
+			// StepSize is 8 decimal places for both price and amount on everything at Bittrex
+			const decimal StepSize = 0.00000001m;
+			foreach (JToken token in array)
+			{
+				var market = new ExchangeMarket
+				{
+					//NOTE: Bittrex is weird in that they call the QuoteCurrency the "BaseCurrency" and the BaseCurrency the "MarketCurrency".
+					QuoteCurrency = token["quoteCurrencySymbol"].ToStringUpperInvariant(),
+					IsActive = token["status"].ToStringLowerInvariant() == "online" ? true : false,
+					BaseCurrency = token["baseCurrencySymbol"].ToStringUpperInvariant(),
+					//NOTE: They also reverse the order of the currencies in the MarketName
+					MarketSymbol = token["symbol"].ToStringUpperInvariant(),
+					MinTradeSize = token["minTradeSize"].ConvertInvariant<decimal>(),
+					MinPrice = StepSize,
+					PriceStepSize = StepSize,
+					QuantityStepSize = StepSize
+				};
 
-            return currencies;
-        }
+				markets.Add(market);
+			}
 
-        /// <summary>
-        /// Get exchange symbols including available metadata such as min trade size and whether the market is active
-        /// </summary>
-        /// <returns>Collection of ExchangeMarkets</returns>
-        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
-        {
-            var markets = new List<ExchangeMarket>();
-            JToken array = await MakeJsonRequestAsync<JToken>("/public/getmarkets");
+			return markets;
+		}
+		#endregion
 
-            // StepSize is 8 decimal places for both price and amount on everything at Bittrex
-            const decimal StepSize = 0.00000001m;
-            foreach (JToken token in array)
-            {
-                var market = new ExchangeMarket
-                {
-                    //NOTE: Bittrex is weird in that they call the QuoteCurrency the "BaseCurrency" and the BaseCurrency the "MarketCurrency".
-                    QuoteCurrency = token["BaseCurrency"].ToStringUpperInvariant(),
-                    IsActive = token["IsActive"].ConvertInvariant<bool>(),
-                    BaseCurrency = token["MarketCurrency"].ToStringUpperInvariant(),
-                    //NOTE: They also reverse the order of the currencies in the MarketName
-                    MarketSymbol = token["MarketName"].ToStringUpperInvariant(),
-                    MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
-                    MinPrice = StepSize,
-                    PriceStepSize = StepSize,
-                    QuantityStepSize = StepSize
-                };
+		#region MarketSymbols
+		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
+		{
+			return (await GetMarketSymbolsMetadataAsync()).Select(x => x.MarketSymbol);
+		}
+		#endregion
 
-                markets.Add(market);
-            }
+		#region Tickers
+		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+		{
+			JToken ticker = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/ticker");
+			//NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
+			return await this.ParseTickerAsync(ticker[0], marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601);
+		}
 
-            return markets;
-        }
+		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		{
+			JToken tickers = await MakeJsonRequestAsync<JToken>("/markets/tickers");
+			string marketSymbol;
+			List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+			foreach (JToken ticker in tickers)
+			{
+				marketSymbol = ticker["symbol"].ToStringInvariant();
+				ExchangeTicker tickerObj = await this.ParseTickerAsync(ticker, marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601);
+				tickerList.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, tickerObj));
+			}
+			return tickerList;
+		}
 
-        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
-        {
-            return (await GetMarketSymbolsMetadataAsync()).Select(x => x.MarketSymbol);
-        }
+		#endregion
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
-        {
-            JToken ticker = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + marketSymbol);
-            //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-            return await this.ParseTickerAsync(ticker[0], marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
-        }
+		#region OrderBooks
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 25)
+		{
+			JToken token = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/orderbook" + marketSymbol + "&depth=" + maxCount);
+			return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "ask", "bid", "rate", "quantity", maxCount: maxCount);
+		}
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
-        {
-            JToken tickers = await MakeJsonRequestAsync<JToken>("public/getmarketsummaries");
-            string marketSymbol;
-            List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
-            foreach (JToken ticker in tickers)
-            {
-                marketSymbol = ticker["MarketName"].ToStringInvariant();
-                //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-                ExchangeTicker tickerObj = await this.ParseTickerAsync(ticker, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
-                tickerList.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, tickerObj));
-            }
-            return tickerList;
-        }
+		/// <summary>Gets the deposit history for a symbol</summary>
+		/// <param name="currency">The symbol to check. May be null.</param>
+		/// <returns>Collection of ExchangeTransactions</returns>
+		protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currencyNotNeeded = null)
+		{
+			var transactions = new List<ExchangeTransaction>();
+			string url = "/deposits/closed";
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			foreach (JToken token in result)
+			{
+				var deposit = new ExchangeTransaction
+				{
+					Amount = token["quantity"].ConvertInvariant<decimal>(),
+					Address = token["cryptoAddress"].ToStringInvariant(),
+					Currency = token["currencySymbol"].ToStringInvariant(),
+					PaymentId = token["id"].ToStringInvariant(),
+					BlockchainTxId = token["txId"].ToStringInvariant(),
+					Status = TransactionStatus.Complete,// As soon as it shows up in this list it is complete (verified manually)
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
-        {
-            JToken token = await MakeJsonRequestAsync<JToken>("public/getorderbook?market=" + marketSymbol + "&type=both&limit_bids=" + maxCount + "&limit_asks=" + maxCount);
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
-        }
+				};
 
-        /// <summary>Gets the deposit history for a symbol</summary>
-        /// <param name="currency">The symbol to check. May be null.</param>
-        /// <returns>Collection of ExchangeTransactions</returns>
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
-        {
-            var transactions = new List<ExchangeTransaction>();
-            string url = $"/account/getdeposithistory{(string.IsNullOrWhiteSpace(currency) ? string.Empty : $"?currency={currency}")}";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            foreach (JToken token in result)
-            {
-                var deposit = new ExchangeTransaction
-                {
-                    Amount = token["Amount"].ConvertInvariant<decimal>(),
-                    Address = token["CryptoAddress"].ToStringInvariant(),
-                    Currency = token["Currency"].ToStringInvariant(),
-                    PaymentId = token["Id"].ToStringInvariant(),
-                    BlockchainTxId = token["TxId"].ToStringInvariant(),
-                    Status = TransactionStatus.Complete // As soon as it shows up in this list it is complete (verified manually)
-                };
+				DateTime.TryParse(token["updatedAt"].ToStringInvariant(), out DateTime timestamp);
+				deposit.Timestamp = timestamp;
 
-                DateTime.TryParse(token["LastUpdated"].ToStringInvariant(), out DateTime timestamp);
-                deposit.Timestamp = timestamp;
+				transactions.Add(deposit);
+			}
 
-                transactions.Add(deposit);
-            }
+			return transactions;
+		}
+		#endregion
 
-            return transactions;
-        }
-
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol,
-			DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-        {
+		#region Trades
+		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		{
 			throw new APIException(
 				"Bittrex does not allow querying trades by dates. Consider using either GetRecentTradesAsync() or GetCandlesAsync() w/ a period of 1 min. See issue #508.");
-        }
+		}
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
-        {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            string baseUrl = "/public/getmarkethistory?market=" + marketSymbol;
-            JToken array = await MakeJsonRequestAsync<JToken>(baseUrl);
-            foreach (JToken token in array)
-            {
-                trades.Add(token.ParseTrade("Quantity", "Price", "OrderType", "TimeStamp", TimestampType.Iso8601, "Id"));
-            }
-            return trades;
-        }
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		{
+			List<ExchangeTrade> trades = new List<ExchangeTrade>();
+			string baseUrl = "/markets/" + marketSymbol + "/trades";
+			JToken array = await MakeJsonRequestAsync<JToken>(baseUrl);
+			foreach (JToken token in array)
+			{
+				trades.Add(token.ParseTrade("quantity", "rate", "takerSide", "executedAt", TimestampType.Iso8601, "id"));
+			}
+			return trades;
+		}
+		#endregion
 
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds,
-			DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-        {
-            if (limit != null)
-            {
-                throw new APIException("Limit parameter not supported in Bittrex");
-            }
+		#region AmountMethods
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		{
+			Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+			string url = "/balances";
+			JToken array = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			foreach (JToken token in array)
+			{
+				decimal amount = token["total"].ConvertInvariant<decimal>();
+				if (amount > 0m)
+				{
+					currencies.Add(token["currencySymbol"].ToStringInvariant(), amount);
+				}
+			}
+			return currencies;
+		}
 
-            // https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
-            // "{"success":true,"message":"","result":[{"O":0.00011000,"H":0.00060000,"L":0.00011000,"C":0.00039500,"V":5904999.37958770,"T":"2016-06-20T00:00:00","BV":2212.16809610} ] }"
-            string periodString = PeriodSecondsToString(periodSeconds);
-            List<MarketCandle> candles = new List<MarketCandle>();
-            endDate = endDate ?? CryptoUtility.UtcNow;
-            startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
-            JToken result = await MakeJsonRequestAsync<JToken>("pub/market/GetTicks?marketName=" + marketSymbol + "&tickInterval=" + periodString, BaseUrl2);
-            if (result is JArray array)
-            {
-                foreach (JToken jsonCandle in array)
-                {
-                    //NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-                    MarketCandle candle = this.ParseCandle(token: jsonCandle, marketSymbol: marketSymbol, periodSeconds: periodSeconds,
-						openKey: "O", highKey: "H", lowKey: "L", closeKey: "C", timestampKey: "T", timestampType: TimestampType.Iso8601,
-						baseVolumeKey: "V", quoteVolumeKey: "BV");
-                    if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
-                    {
-                        candles.Add(candle);
-                    }
-                }
-            }
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		{
+			Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+			string url = "/balances";
+			JToken array = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			foreach (JToken token in array)
+			{
+				decimal amount = token["available"].ConvertInvariant<decimal>();
+				if (amount > 0m)
+				{
+					currencies.Add(token["currencySymbol"].ToStringInvariant(), amount);
+				}
+			}
+			return currencies;
+		}
 
-            return candles;
-        }
+		protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
+		{
+			Dictionary<string, decimal> marginAmounts = new Dictionary<string, decimal>();
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
-        {
-            Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            string url = "/account/getbalances";
-            JToken array = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            foreach (JToken token in array)
-            {
-                decimal amount = token["Balance"].ConvertInvariant<decimal>();
-                if (amount > 0m)
-                {
-                    currencies.Add(token["Currency"].ToStringInvariant(), amount);
-                }
-            }
-            return currencies;
-        }
+			string url = "/balances";
+			JToken response = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
 
-        protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
-        {
-            Dictionary<string, decimal> currencies = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            string url = "/account/getbalances";
-            JToken array = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            foreach (JToken token in array)
-            {
-                decimal amount = token["Available"].ConvertInvariant<decimal>();
-                if (amount > 0m)
-                {
-                    currencies.Add(token["Currency"].ToStringInvariant(), amount);
-                }
-            }
-            return currencies;
-        }
+			var result = response
+				.Where(i => includeZeroBalances || i["available"].ConvertInvariant<decimal>() != 0)
+				.ToDictionary(i => i["currencySymbol"].ToStringInvariant(), i => i["available"].ConvertInvariant<decimal>());
 
-        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
-        {
-            if (order.OrderType == ExchangeSharp.OrderType.Market)
-            {
-                throw new NotSupportedException("Order type " + order.OrderType + " not supported");
-            }
+			return result;
+		}
+		#endregion
 
-            decimal orderAmount = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-            decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
-            string url = (order.IsBuy ? "/market/buylimit" : "/market/selllimit") + "?market=" + order.MarketSymbol + "&quantity=" +
-                orderAmount.ToStringInvariant() + "&rate=" + orderPrice.ToStringInvariant();
-            foreach (var kv in order.ExtraParameters)
-            {
-                url += "&" + kv.Key.UrlEncode() + "=" + kv.Value.ToStringInvariant().UrlEncode();
-            }
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            string orderId = result["uuid"].ToStringInvariant();
-            return new ExchangeOrderResult
-            {
-                Amount = orderAmount,
-                IsBuy = order.IsBuy,
-                OrderDate = CryptoUtility.UtcNow,
-                OrderId = orderId,
-                Result = ExchangeAPIOrderResult.Pending,
-                MarketSymbol = order.MarketSymbol,
-                Price = order.Price
-            };
-        }
+		#region OrderMethods
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		{
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            if (string.IsNullOrWhiteSpace(orderId))
-            {
-                return null;
-            }
+			decimal orderAmount = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
+			decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
+			string url = "/orders";
+			Dictionary<string, object> orderParams = await GetNoncePayloadAsync();
+			orderParams.Add("marketSymbol", order.MarketSymbol);
+			orderParams.Add("direction", order.IsBuy ? "BUY" : "SELL");
+			orderParams.Add("type", order.OrderType == ExchangeSharp.OrderType.Market ? "MARKET" : "LIMIT");
+			orderParams.Add("quantity", orderAmount);
+			if (order.OrderType == ExchangeSharp.OrderType.Limit)
+				orderParams.Add("limit", orderPrice);
 
-            string url = "/account/getorder?uuid=" + orderId;
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            return ParseOrder(result);
-        }
+			foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
+			{
+				orderParams.Add(kv.Key, kv.Value);
+			}
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
-        {
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            string url = "/market/getopenorders" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "?market=" + NormalizeMarketSymbol(marketSymbol));
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            foreach (JToken token in result.Children())
-            {
-                orders.Add(ParseOrder(token));
-            }
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, orderParams, "POST");
+			return new ExchangeOrderResult
+			{
+				Amount = orderAmount,
+				AmountFilled = decimal.Parse(result["fillQuantity"].ToStringInvariant()),
+				IsBuy = order.IsBuy,
+				OrderDate = result["createdAt"].ToDateTimeInvariant(),
+				OrderId = result["id"].ToStringInvariant(),
+				Result = ExchangeAPIOrderResult.Pending,
+				MarketSymbol = result["marketSymbol"].ToStringInvariant(),
+				Price = decimal.Parse(result["limit"].ToStringInvariant())
+			};
+		}
 
-            return orders;
-        }
 
-        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
-        {
-            List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-            string url = "/account/getorderhistory" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "?market=" + NormalizeMarketSymbol(marketSymbol));
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            foreach (JToken token in result.Children())
-            {
-                ExchangeOrderResult order = ParseOrder(token);
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		{
+			if (string.IsNullOrWhiteSpace(orderId))
+			{
+				return null;
+			}
 
-                // Bittrex v1.1 API call has no timestamp parameter, sigh...
-                if (afterDate == null || order.OrderDate >= afterDate.Value)
-                {
-                    orders.Add(order);
-                }
-            }
+			string url = "/orders/" + orderId;
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			return ParseOrder(result);
+		}
 
-            return orders;
-        }
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+		{
+			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+			string url = "/orders/open" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "?marketSymbol=" + NormalizeMarketSymbol(marketSymbol));
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			foreach (JToken token in result.Children())
+			{
+				orders.Add(ParseOrder(token));
+			}
 
-        protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
-        {
-            // Example: https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS
+			return orders;
+		}
 
-            string url = $"/account/withdraw?currency={NormalizeMarketSymbol(withdrawalRequest.Currency)}&quantity={withdrawalRequest.Amount.ToStringInvariant()}&address={withdrawalRequest.Address}";
-            if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
-            {
-                url += $"&paymentid={withdrawalRequest.AddressTag}";
-            }
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+		{
+			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+			string url = "/orders/closed" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "?marketSymbol=" + NormalizeMarketSymbol(marketSymbol));
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			foreach (JToken token in result.Children())
+			{
+				ExchangeOrderResult order = ParseOrder(token);
+				if (afterDate == null || order.OrderDate >= afterDate.Value)
+				{
+					orders.Add(order);
+				}
+			}
 
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
-            ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
-            {
-                Id = result["uuid"].ToStringInvariant(),
-                Message = result["msg"].ToStringInvariant()
-            };
+			return orders;
+		}
 
-            return withdrawalResponse;
-        }
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		{
+			await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
+		}
 
-        protected override async Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
-        {
-            string url = $"/account/getwithdrawalhistory{(string.IsNullOrWhiteSpace(currency) ? string.Empty : $"?currency={currency}")}";
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+		#endregion
 
-            var transactions = result.Select(t => new ExchangeTransaction
-            {
-                Amount = t["Amount"].ConvertInvariant<decimal>(),
-                Address = t["Address"].ToStringInvariant(),
-                Currency = t["Currency"].ToStringInvariant(),
-                PaymentId = t["PaymentUuid"].ToStringInvariant(),
-                BlockchainTxId = t["TxId"].ToStringInvariant(),
-                TxFee = t["TxCost"].ConvertInvariant<decimal>(),
-                Timestamp = DateTime.Parse(t["Opened"].ToStringInvariant()),
-                Status = ToStatus(t)
-            });
+		#region Candles
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		{
+			if (limit != null)
+			{
+				throw new APIException("Limit parameter not supported in Bittrex");
+			}
 
-            return transactions;
-        }
-        private TransactionStatus ToStatus(JToken withdraw)
-        {
-            if (withdraw["Canceled"].ConvertInvariant<bool>())
-                return TransactionStatus.Rejected;
+			// https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-WAVES&tickInterval=day
+			/* [{    "startsAt": "string (date-time)",    "open": "number (double)",    "high": "number (double)",    "low": "number (double)",    "close": "number (double)",    "volume": "number (double)",    "quoteVolume": "number (double)"}]			 */
 
-            if (withdraw["InvalidAddress"].ConvertInvariant<bool>())
-                return TransactionStatus.Failure;
+			string periodString = PeriodSecondsToString(periodSeconds);
+			List<MarketCandle> candles = new List<MarketCandle>();
 
-            if (withdraw["PendingPayment"].ConvertInvariant<bool>())
-                return TransactionStatus.AwaitingApproval;
+			JToken result;
 
-            if (withdraw["Authorized"].ConvertInvariant<bool>())
-                return TransactionStatus.Complete;
 
-            return TransactionStatus.Unknown;
-        }
+			result = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/candles/" + periodString + "/recent");
 
-        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
-        {
-            await MakeJsonRequestAsync<JToken>("/market/cancel?uuid=" + orderId, null, await GetNoncePayloadAsync());
-        }
+			if (result is JArray array)
+			{
+				foreach (JToken jsonCandle in array)
+				{
+					//NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
+					MarketCandle candle = this.ParseCandle(token: jsonCandle, marketSymbol: marketSymbol, periodSeconds: periodSeconds,
+						openKey: "open", highKey: "high", lowKey: "low", closeKey: "close", timestampKey: "startsAt", timestampType: TimestampType.Iso8601,
+						baseVolumeKey: "volume", quoteVolumeKey: "quoteVolume");
+					if (startDate != null && endDate != null)
+					{
+						if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
+							candles.Add(candle);
+					}
+					else
+						candles.Add(candle);
 
-        /// <summary>
-        /// Gets the address to deposit to and applicable details.
-        /// If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
-        /// </summary>
-        /// <param name="currency">Currency to get address for.</param>
-        /// <param name="forceRegenerate">(ignored) Bittrex does not support regenerating deposit addresses.</param>
-        /// <returns>
-        /// Deposit address details (including tag if applicable, such as with XRP)
-        /// </returns>
-        protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
-        {
-            IReadOnlyDictionary<string, ExchangeCurrency> updatedCurrencies = (await GetCurrenciesAsync());
+				}
+			}
 
-            string url = "/account/getdepositaddress?currency=" + NormalizeMarketSymbol(currency);
-            JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			return candles;
+		}
+		#endregion
 
-            // NOTE API 1.1 does not include the the static wallet address for currencies with tags such as XRP & NXT (API 2.0 does!)
-            // We are getting the static addresses via the GetCurrencies() api.
-            ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
-            {
-                Currency = result["Currency"].ToStringInvariant(),
-            };
+		#region Withdraw Methods
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+		{
+			/*
+				"currencySymbol": "string",
+				"quantity": "number (double)",			
+				"cryptoAddress": "string",
+				"cryptoAddressTag": "string",
+				"clientWithdrawalId": "string (uuid)"
+			*/
 
-            if (!updatedCurrencies.TryGetValue(depositDetails.Currency, out ExchangeCurrency coin))
-            {
-                Logger.Warn($"Unable to find {depositDetails.Currency} in existing list of coins.");
-                return null;
-            }
+			string url = "/withdrawals";
+			var payload = await GetNoncePayloadAsync();
+			payload.Add("currencySymbol", withdrawalRequest.Currency);
+			payload.Add("quantity", withdrawalRequest.Amount);
+			payload.Add("cryptoAddress", withdrawalRequest.Address);
+			if (withdrawalRequest.AddressTag != null)
+				payload.Add("cryptoAddressTag", withdrawalRequest.AddressTag);
 
-            if (TwoFieldDepositCoinTypes.Contains(coin.CoinType))
-            {
-                depositDetails.Address = coin.BaseAddress;
-                depositDetails.AddressTag = result["Address"].ToStringInvariant();
-            }
-            else if (OneFieldDepositCoinTypes.Contains(coin.CoinType))
-            {
-                depositDetails.Address = result["Address"].ToStringInvariant();
-            }
-            else
-            {
-                Logger.Warn($"ExchangeBittrexAPI: Unknown coin type {coin.CoinType} must be registered as requiring one or two fields. Add coin type to One/TwoFieldDepositCoinTypes and make this call again.");
-                return null;
-            }
 
-            return depositDetails;
-        }
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, payload, "POST");
 
-        protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
-        {
-            Dictionary<string, decimal> marginAmounts = new Dictionary<string, decimal>();
+			/*
+				{
+				  "id": "string (uuid)",
+				  "currencySymbol": "string",
+				  "quantity": "number (double)",
+				  "cryptoAddress": "string",
+				  "cryptoAddressTag": "string",
+				  "txCost": "number (double)",
+				  "txId": "string",
+				  "status": "string",
+				  "createdAt": "string (date-time)",
+				  "completedAt": "string (date-time)",
+				  "clientWithdrawalId": "string (uuid)",
+				  "accountId": "string (uuid)"
+				}
+			 */
+			ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
+			{
+				Id = result["id"].ToStringInvariant(),
+				Message = result["status"].ToStringInvariant()
+			};
 
-            string url = "/account/getbalances";
-            JToken response = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+			return withdrawalResponse;
+		}
 
-            var result = response
-                .Where(i => includeZeroBalances || i["Available"].ConvertInvariant<decimal>() != 0)
-                .ToDictionary(i => i["Currency"].ToStringInvariant(), i => i["Available"].ConvertInvariant<decimal>());
+		protected override async Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
+		{
+			string url = $"/withdrawals/closed{(string.IsNullOrWhiteSpace(currency) ? string.Empty : $"?currencySymbol={currency}")}";
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
 
-            return result;
-        }
-    }
+			var transactions = result.Select(t => new ExchangeTransaction
+			{
+				Amount = t["quantity"].ConvertInvariant<decimal>(),
+				Address = t["cryptoAddress"].ToStringInvariant(),
+				AddressTag = t["cryptoAddressTag"].ToStringInvariant(),
+				TxFee = t["txCost"].ConvertInvariant<decimal>(),
+				Currency = t["currencySymbol"].ToStringInvariant(),
+				PaymentId = t["id"].ToStringInvariant(),
+				BlockchainTxId = t["txId"].ToStringInvariant(),
+				Timestamp = DateTime.Parse(t["createdAt"].ToStringInvariant()),
+				Status = ToStatus(t["status"].ToStringInvariant())
 
-    public partial class ExchangeName { public const string Bittrex = "Bittrex"; }
+			});
+
+
+			return transactions;
+		}
+
+		private TransactionStatus ToStatus(string status)
+		{
+			/* REQUESTED, AUTHORIZED, PENDING, COMPLETED, ERROR_INVALID_ADDRESS, CANCELLED */
+			if (status == "CANCELLED")
+				return TransactionStatus.Rejected;
+
+			if (status == "ERROR_INVALID_ADDRESS")
+				return TransactionStatus.Failure;
+
+			if (status == "PENDING")
+				return TransactionStatus.AwaitingApproval;
+
+			if (status == "COMPLETED")
+				return TransactionStatus.Complete;
+
+			if (status == "REQUESTED")
+				return TransactionStatus.Processing;
+
+			return TransactionStatus.Unknown;
+		}
+
+		#endregion
+
+		#region DepositAddress
+		/// <summary>
+		/// Gets the address to deposit to and applicable details.
+		/// If one does not exist, the call will fail and return ADDRESS_GENERATING until one is available.
+		/// </summary>
+		/// <param name="currency">Currency to get address for.</param>
+		/// <param name="forceRegenerate">(ignored) Bittrex does not support regenerating deposit addresses.</param>
+		/// <returns>
+		/// Deposit address details (including tag if applicable, such as with XRP)
+		/// </returns>
+		protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
+		{
+			if (forceRegenerate)
+			{
+				throw new Exception("forceRegenerate does not support.");
+			}
+
+			string url = "/addresses/" + NormalizeMarketSymbol(currency);
+			JToken result = await MakeJsonRequestAsync<JToken>(url, null, await GetNoncePayloadAsync());
+
+			/*
+			 {
+				"status": "string",
+				"currencySymbol": "string",
+				"cryptoAddress": "string",
+				"cryptoAddressTag": "string"
+			 }
+			 */
+			ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
+			{
+				Currency = result["currencySymbol"].ToStringInvariant(),
+				Address = result["cryptoAddress"].ToStringInvariant(),
+				AddressTag = result["cryptoAddressTag"].ToStringInvariant(),
+			};
+			return depositDetails;
+		}
+		#endregion
+
+	}
+
+	public partial class ExchangeName { public const string Bittrex = "Bittrex"; }
 }
