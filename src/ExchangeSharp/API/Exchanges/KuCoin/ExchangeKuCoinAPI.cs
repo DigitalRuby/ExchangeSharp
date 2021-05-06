@@ -392,10 +392,18 @@ namespace ExchangeSharp
             var payload = await GetNoncePayloadAsync();
             payload["clientOid"] = Guid.NewGuid();
             payload["size"] = order.Amount;
-            payload["price"] = order.Price;
             payload["symbol"] = order.MarketSymbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
-            order.ExtraParameters.CopyTo(payload);
+			if (order.OrderType == OrderType.Market)
+			{
+				payload["type"] = "market";
+			}
+			else if (order.OrderType == OrderType.Limit)
+			{
+				payload["type"] = "limit";
+				payload["price"] = order.Price.ToStringInvariant();
+			}
+			order.ExtraParameters.CopyTo(payload);
 
             // {"orderOid": "596186ad07015679730ffa02" }
             JToken token = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
