@@ -14,22 +14,25 @@ namespace ExchangeSharp
 {
 	using Newtonsoft.Json;
 	using Newtonsoft.Json.Linq;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Net;
 	using System.Security.Cryptography;
 	using System.Text;
 	using System.Threading.Tasks;
+	using System.Web;
 
-    public sealed partial class ExchangeBittrexAPI : ExchangeAPI
+	public sealed partial class ExchangeBittrexAPI : ExchangeAPI
 	{
 		public override string BaseUrl { get; set; } = "https://api.bittrex.com/v3";
-		public ExchangeBittrexAPI()
+		private ExchangeBittrexAPI()
 		{
 			RateLimit = new RateGate(60, TimeSpan.FromSeconds(60));
 			RequestContentType = "application/json";
-			MarketSymbolIsReversed = true;
-			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+			MarketSymbolIsReversed = false;
+			WebSocketOrderBookType = WebSocketOrderBookType.FullBookAlways;
+
 		}
 
 		#region Utilities
@@ -148,7 +151,7 @@ namespace ExchangeSharp
 				if (request.Method == "POST")
 					await CryptoUtility.WriteToRequestAsync(request, JsonConvert.SerializeObject(payload));
 			}
-			Console.WriteLine(request.RequestUri);
+			//Console.WriteLine(request.RequestUri);
 			//return base.ProcessRequestAsync(request, payload);
 		}
 		#endregion
@@ -227,7 +230,7 @@ namespace ExchangeSharp
 		{
 			JToken ticker = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/ticker");
 			//NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-			return await this.ParseTickerAsync(ticker[0], marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601);
+			return await this.ParseTickerAsync(ticker, marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -365,7 +368,10 @@ namespace ExchangeSharp
 			orderParams.Add("type", order.OrderType == ExchangeSharp.OrderType.Market ? "MARKET" : "LIMIT");
 			orderParams.Add("quantity", orderAmount);
 			if (order.OrderType == ExchangeSharp.OrderType.Limit)
+			{
 				orderParams.Add("limit", orderPrice);
+				//orderParams.Add("timeInForce", "GOOD_TIL_CANCELLED");
+			}
 
 			foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
 			{

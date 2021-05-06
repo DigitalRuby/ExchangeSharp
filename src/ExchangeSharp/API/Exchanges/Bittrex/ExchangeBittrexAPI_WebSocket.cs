@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -30,67 +30,73 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    public partial class ExchangeBittrexAPI
-    {
+	public partial class ExchangeBittrexAPI
+	{
 
 #if HAS_SIGNALR
 
-        /// <summary>
-        /// Ideally this would be one instance per exchange instance, but Bittrex simply does not work if you request multiple end points over a single hub connection, sigh...
-        /// </summary>
-        public sealed class BittrexWebSocketManager : SignalrManager
-        {
-            public BittrexWebSocketManager() : base("https://socket.bittrex.com/signalr", "c2")
-            {
-                FunctionNamesToFullNames["uS"] = "SubscribeToSummaryDeltas";
-                FunctionNamesToFullNames["uE"] = "SubscribeToExchangeDeltas";
-            }
+		/// <summary>
+		/// Ideally this would be one instance per exchange instance, but Bittrex simply does not work if you request multiple end points over a single hub connection, sigh...
+		/// </summary>
+		public sealed class BittrexWebSocketManager : SignalrManager
+		{
+			public BittrexWebSocketManager() : base("https://socket.bittrex.com/signalr", "c2")
+			{
+				FunctionNamesToFullNames["uS"] = "SubscribeToSummaryDeltas";
+				FunctionNamesToFullNames["uE"] = "SubscribeToExchangeDeltas";
+			}
 
-            /// <summary>
-            /// Subscribe to all market summaries
-            /// </summary>
-            /// <param name="callback">Callback</param>
-            /// <param name="marketSymbols">Symbols</param>
-            /// <returns>IDisposable to close the socket</returns>
-            public async Task<IWebSocket> SubscribeToSummaryDeltasAsync(Func<string, Task> callback, params string[] marketSymbols)
-            {
-                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
-                await conn.OpenAsync("uS", callback);
-                return conn;
-            }
+			/// <summary>
+			/// Subscribe to all market summaries
+			/// </summary>
+			/// <param name="callback">Callback</param>
+			/// <param name="marketSymbols">Symbols</param>
+			/// <returns>IDisposable to close the socket</returns>
+			public async Task<IWebSocket> SubscribeToSummaryDeltasAsync(Func<string, Task> callback, params string[] marketSymbols)
+			{
+				SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
+				await conn.OpenAsync("uS", callback);
+				return conn;
+			}
 
-            /// <summary>
-            /// Subscribe to order book updates
-            /// </summary>
-            /// <param name="callback">Callback</param>
-            /// <param name="marketSymbols">The market symbols to subscribe to</param>
-            /// <returns>IDisposable to close the socket</returns>
-            public async Task<IWebSocket> SubscribeToExchangeDeltasAsync(Func<string, Task> callback, params string[] marketSymbols)
-            {
-                SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
-                List<object[]> paramList = new List<object[]>();
-                foreach (string marketSymbol in marketSymbols)
-                {
-                    paramList.Add(new object[] { marketSymbol });
-                }
-                await conn.OpenAsync("uE", callback, 0, paramList.ToArray());
-                return conn;
-            }
-        }
+			/// <summary>
+			/// Subscribe to order book updates
+			/// </summary>
+			/// <param name="callback">Callback</param>
+			/// <param name="marketSymbols">The market symbols to subscribe to</param>
+			/// <returns>IDisposable to close the socket</returns>
+			public async Task<IWebSocket> SubscribeToExchangeDeltasAsync(Func<string, Task> callback, params string[] marketSymbols)
+			{
+				SignalrManager.SignalrSocketConnection conn = new SignalrManager.SignalrSocketConnection(this);
+				List<object[]> paramList = new List<object[]>();
+				foreach (string marketSymbol in marketSymbols)
+				{
+					paramList.Add(new object[] { ReverseMarketNameForWS((marketSymbol).ToStringInvariant()) });
+				}
+				await conn.OpenAsync("uE", callback, 0, paramList.ToArray());
+				return conn;
+			}
+		}
 
         private BittrexWebSocketManager webSocket;
 
-        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
-        {
-            HashSet<string> filter = new HashSet<string>();
-            foreach (string marketSymbol in marketSymbols)
-            {
-                filter.Add(marketSymbol);
-            }
-            async Task innerCallback(string json)
-            {
-                #region sample json
-                /*
+		public static string ReverseMarketNameForWS(string WebSocketFeedMarketName)
+		{
+			var pair = WebSocketFeedMarketName.Split('-');
+			return (pair[1] + '-' + pair[0]).ToUpperInvariant();
+		}
+
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+		{
+			HashSet<string> filter = new HashSet<string>();
+			foreach (string marketSymbol in marketSymbols)
+			{
+				filter.Add(marketSymbol);
+			}
+			async Task innerCallback(string json)
+			{
+				#region sample json
+				/*
                 {
                     Nonce : int,
                     Deltas : 
@@ -115,60 +121,62 @@ namespace ExchangeSharp
                 */
                 #endregion
 
-                var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
-                JToken token = JToken.Parse(json);
-                token = token["D"];
-                foreach (JToken ticker in token)
-                {
-                    string marketName = ticker["M"].ToStringInvariant();
-                    if (filter.Count != 0 && !filter.Contains(marketName))
-                    {
-                        continue;
-                    }
-                    var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketName);
-                    decimal last = ticker["l"].ConvertInvariant<decimal>();
-                    decimal ask = ticker["A"].ConvertInvariant<decimal>();
-                    decimal bid = ticker["B"].ConvertInvariant<decimal>();
-                    decimal baseCurrencyVolume = ticker["V"].ConvertInvariant<decimal>();
-                    decimal quoteCurrencyVolume = ticker["m"].ConvertInvariant<decimal>();//NOTE: Bittrex uses the term BaseVolume when referring to QuoteCurrencyVolume
-                    DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["T"].ConvertInvariant<long>());
-                    var t = new ExchangeTicker
-                    {
-                        MarketSymbol = marketName,
-                        Ask = ask,
-                        Bid = bid,
-                        Last = last,
-                        Volume = new ExchangeVolume
-                        {
-                            BaseCurrencyVolume = baseCurrencyVolume,
-                            BaseCurrency = baseCurrency,
-                            QuoteCurrencyVolume = quoteCurrencyVolume,
-                            QuoteCurrency = quoteCurrency,
-                            Timestamp = timestamp
-                        }
-                    };
-                    freshTickers[marketName] = t;
-                }
-                callback(freshTickers);
-            }
-            return await new BittrexWebSocketManager().SubscribeToSummaryDeltasAsync(innerCallback, marketSymbols);
-        }
+				var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
+				JToken token = JToken.Parse(json);
+				token = token["D"];
+				foreach (JToken ticker in token)
+				{
 
-        protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync
-        (
-            Action<ExchangeOrderBook> callback,
-            int maxCount = 20,
-            params string[] marketSymbols
-        )
-        {
-            if (marketSymbols == null || marketSymbols.Length == 0)
-            {
-                marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-            }
-            Task innerCallback(string json)
-            {
-                #region sample json
-                /*
+
+					string marketName = ReverseMarketNameForWS(ticker["M"].ToStringInvariant());
+					if (filter.Count != 0 && !filter.Contains(marketName))
+					{
+						continue;
+					}
+					var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketName);
+					decimal last = ticker["l"].ConvertInvariant<decimal>();
+					decimal ask = ticker["A"].ConvertInvariant<decimal>();
+					decimal bid = ticker["B"].ConvertInvariant<decimal>();
+					decimal baseCurrencyVolume = ticker["V"].ConvertInvariant<decimal>();
+					decimal quoteCurrencyVolume = ticker["m"].ConvertInvariant<decimal>();//NOTE: Bittrex uses the term BaseVolume when referring to QuoteCurrencyVolume
+					DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["T"].ConvertInvariant<long>());
+					var t = new ExchangeTicker
+					{
+						MarketSymbol = marketName,
+						Ask = ask,
+						Bid = bid,
+						Last = last,
+						Volume = new ExchangeVolume
+						{
+							BaseCurrencyVolume = baseCurrencyVolume,
+							BaseCurrency = baseCurrency,
+							QuoteCurrencyVolume = quoteCurrencyVolume,
+							QuoteCurrency = quoteCurrency,
+							Timestamp = timestamp
+						}
+					};
+					freshTickers[marketName] = t;
+				}
+				callback(freshTickers);
+			}
+			return await new BittrexWebSocketManager().SubscribeToSummaryDeltasAsync(innerCallback, marketSymbols);
+		}
+
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync
+		(
+			Action<ExchangeOrderBook> callback,
+			int maxCount = 20,
+			params string[] marketSymbols
+		)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			Task innerCallback(string json)
+			{
+				#region sample json
+				/*
                     {
                         MarketName : string,
                         Nonce      : int,
@@ -200,27 +208,26 @@ namespace ExchangeSharp
                         ]
                     }
                 */
-                #endregion
+				#endregion
 
-                var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
-                var book = new ExchangeOrderBook();
-                foreach (BittrexStreamOrderBookUpdateEntry ask in ordersUpdates.Sells)
-                {
-                    var depth = new ExchangeOrderPrice { Price = ask.Rate, Amount = ask.Quantity };
-                    book.Asks[depth.Price] = depth;
-                }
-
-                foreach (BittrexStreamOrderBookUpdateEntry bid in ordersUpdates.Buys)
-                {
-                    var depth = new ExchangeOrderPrice { Price = bid.Rate, Amount = bid.Quantity };
-                    book.Bids[depth.Price] = depth;
-                }
-
-                book.MarketSymbol = ordersUpdates.MarketName;
-                book.SequenceId = ordersUpdates.Nonce;
-                callback(book);
-                return Task.CompletedTask;
-            }
+				var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
+				var book = new ExchangeOrderBook();
+				foreach (BittrexStreamOrderBookUpdateEntry ask in ordersUpdates.Sells)
+				{
+					var depth = new ExchangeOrderPrice { Price = ask.Rate, Amount = ask.Quantity };
+					book.Asks[depth.Price] = depth;
+				}
+				foreach (BittrexStreamOrderBookUpdateEntry bid in ordersUpdates.Buys)
+				{
+					var depth = new ExchangeOrderPrice { Price = bid.Rate, Amount = bid.Quantity };
+					book.Bids[depth.Price] = depth;
+				}
+				book.MarketSymbol = ReverseMarketNameForWS(ordersUpdates.MarketName).ToUpperInvariant();
+				book.SequenceId = ordersUpdates.Nonce;
+				book.LastUpdatedUtc = DateTime.UtcNow;
+				callback(book);
+				return Task.CompletedTask;
+			}
 
             return await new BittrexWebSocketManager().SubscribeToExchangeDeltasAsync(innerCallback, marketSymbols);
         }
@@ -236,7 +243,7 @@ namespace ExchangeSharp
 				var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
 				foreach (var fill in ordersUpdates.Fills)
 				{
-					await callback(new KeyValuePair<string, ExchangeTrade>(ordersUpdates.MarketName, new ExchangeTrade()
+					await callback(new KeyValuePair<string, ExchangeTrade>(ReverseMarketNameForWS(ordersUpdates.MarketName), new ExchangeTrade()
 					{
 						Amount = fill.Quantity,
 						// Bittrex doesn't currently send out FillId on socket.bittrex.com, only beta.bittrex.com, but this will be ready when they start
