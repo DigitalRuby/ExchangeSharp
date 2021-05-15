@@ -5,7 +5,7 @@ namespace ExchangeSharp
 {
 	public sealed partial class ExchangeNDAXAPI
 	{
-		class NDAXTicker
+		private class NDAXTicker
 		{
 			[JsonProperty("isFrozen")]
 			[JsonConverter(typeof(BoolConverter))]

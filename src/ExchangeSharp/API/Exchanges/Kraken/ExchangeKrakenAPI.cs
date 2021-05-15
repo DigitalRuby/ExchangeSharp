@@ -51,7 +51,7 @@ namespace ExchangeSharp
 		/// <returns>Task</returns>
 		private async Task PopulateLookupTables()
 		{
-			await Cache.GetOrCreate<object>(nameof(PopulateLookupTables), async() =>
+			await Cache.GetOrCreate<object>(nameof(PopulateLookupTables), async () =>
 			{
 				IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
 				ExchangeMarket[] markets = (await GetMarketSymbolsMetadataAsync())?.ToArray();
@@ -75,6 +75,7 @@ namespace ExchangeSharp
 						case "xbt":
 							altName = "BTC";
 							break;
+
 						case "xdg":
 							altName = "DOGE";
 							break;
@@ -107,7 +108,7 @@ namespace ExchangeSharp
 			});
 		}
 
-		public override async Task < (string baseCurrency, string quoteCurrency) > ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
+		public override async Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
 		{
 			ExchangeMarket market = await GetExchangeMarketFromCacheAsync(marketSymbol);
 			if (market == null)
@@ -124,7 +125,7 @@ namespace ExchangeSharp
 		public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
 		{
 			await PopulateLookupTables();
-			var(baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
+			var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
 			if (!exchangeCurrencyToNormalizedCurrency.TryGetValue(baseCurrency, out string baseCurrencyNormalized))
 			{
 				baseCurrencyNormalized = baseCurrency;
@@ -177,16 +178,20 @@ namespace ExchangeSharp
 				case "pending":
 					orderResult.Result = ExchangeAPIOrderResult.Pending;
 					break;
+
 				case "open":
 					orderResult.Result = ExchangeAPIOrderResult.FilledPartially;
 					break;
+
 				case "closed":
 					orderResult.Result = ExchangeAPIOrderResult.Filled;
 					break;
+
 				case "canceled":
 				case "expired":
 					orderResult.Result = ExchangeAPIOrderResult.Canceled;
 					break;
+
 				default:
 					orderResult.Result = ExchangeAPIOrderResult.Error;
 					break;
@@ -353,7 +358,7 @@ namespace ExchangeSharp
 				string form = CryptoUtility.GetFormForPayload(payload);
 				// nonce must be first on Kraken
 				form = "nonce=" + nonce + (string.IsNullOrWhiteSpace(form) ? string.Empty : "&" + form);
-				using(SHA256 sha256 = SHA256Managed.Create())
+				using (SHA256 sha256 = SHA256Managed.Create())
 				{
 					string hashString = nonce + form;
 					byte[] sha256Bytes = sha256.ComputeHash(hashString.ToBytesUTF8());
@@ -362,7 +367,7 @@ namespace ExchangeSharp
 					pathBytes.CopyTo(sigBytes, 0);
 					sha256Bytes.CopyTo(sigBytes, pathBytes.Length);
 					byte[] privateKey = System.Convert.FromBase64String(CryptoUtility.ToUnsecureString(PrivateApiKey));
-					using(System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
+					using (System.Security.Cryptography.HMACSHA512 hmac = new System.Security.Cryptography.HMACSHA512(privateKey))
 					{
 						string sign = System.Convert.ToBase64String(hmac.ComputeHash(sigBytes));
 						request.AddHeader("API-Sign", sign);
@@ -385,9 +390,9 @@ namespace ExchangeSharp
 				var coin = new ExchangeCurrency
 				{
 					CoinType = token.Value["aclass"].ToStringInvariant(),
-						Name = token.Name,
-						FullName = token.Name,
-						AltName = token.Value["altname"].ToStringInvariant()
+					Name = token.Name,
+					FullName = token.Name,
+					AltName = token.Value["altname"].ToStringInvariant()
 				};
 
 				currencies[coin.Name] = coin;
@@ -415,101 +420,101 @@ namespace ExchangeSharp
 
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{ //{"ADACAD": {
-			//  "altname": "ADACAD",
-			//  "wsname": "ADA/CAD",
-			//  "aclass_base": "currency",
-			//  "base": "ADA",
-			//  "aclass_quote": "currency",
-			//  "quote": "ZCAD",
-			//  "lot": "unit",
-			//  "pair_decimals": 6,
-			//  "lot_decimals": 8,
-			//  "lot_multiplier": 1,
-			//  "leverage_buy": [],
-			//  "leverage_sell": [],
-			//  "fees": [
-			//    [
-			//      0,
-			//      0.26
-			//    ],
-			//    [
-			//      50000,
-			//      0.24
-			//    ],
-			//    [
-			//      100000,
-			//      0.22
-			//    ],
-			//    [
-			//      250000,
-			//      0.2
-			//    ],
-			//    [
-			//      500000,
-			//      0.18
-			//    ],
-			//    [
-			//      1000000,
-			//      0.16
-			//    ],
-			//    [
-			//      2500000,
-			//      0.14
-			//    ],
-			//    [
-			//      5000000,
-			//      0.12
-			//    ],
-			//    [
-			//      10000000,
-			//      0.1
-			//    ]
-			//  ],
-			//  "fees_maker": [
-			//    [
-			//      0,
-			//      0.16
-			//    ],
-			//    [
-			//      50000,
-			//      0.14
-			//    ],
-			//    [
-			//      100000,
-			//      0.12
-			//    ],
-			//    [
-			//      250000,
-			//      0.1
-			//    ],
-			//    [
-			//      500000,
-			//      0.08
-			//    ],
-			//    [
-			//      1000000,
-			//      0.06
-			//    ],
-			//    [
-			//      2500000,
-			//      0.04
-			//    ],
-			//    [
-			//      5000000,
-			//      0.02
-			//    ],
-			//    [
-			//      10000000,
-			//      0
-			//    ]
-			//  ],
-			//  "fee_volume_currency": "ZUSD",
-			//  "margin_call": 80,
-			//  "margin_stop": 40
-			//}}
+		  //  "altname": "ADACAD",
+		  //  "wsname": "ADA/CAD",
+		  //  "aclass_base": "currency",
+		  //  "base": "ADA",
+		  //  "aclass_quote": "currency",
+		  //  "quote": "ZCAD",
+		  //  "lot": "unit",
+		  //  "pair_decimals": 6,
+		  //  "lot_decimals": 8,
+		  //  "lot_multiplier": 1,
+		  //  "leverage_buy": [],
+		  //  "leverage_sell": [],
+		  //  "fees": [
+		  //    [
+		  //      0,
+		  //      0.26
+		  //    ],
+		  //    [
+		  //      50000,
+		  //      0.24
+		  //    ],
+		  //    [
+		  //      100000,
+		  //      0.22
+		  //    ],
+		  //    [
+		  //      250000,
+		  //      0.2
+		  //    ],
+		  //    [
+		  //      500000,
+		  //      0.18
+		  //    ],
+		  //    [
+		  //      1000000,
+		  //      0.16
+		  //    ],
+		  //    [
+		  //      2500000,
+		  //      0.14
+		  //    ],
+		  //    [
+		  //      5000000,
+		  //      0.12
+		  //    ],
+		  //    [
+		  //      10000000,
+		  //      0.1
+		  //    ]
+		  //  ],
+		  //  "fees_maker": [
+		  //    [
+		  //      0,
+		  //      0.16
+		  //    ],
+		  //    [
+		  //      50000,
+		  //      0.14
+		  //    ],
+		  //    [
+		  //      100000,
+		  //      0.12
+		  //    ],
+		  //    [
+		  //      250000,
+		  //      0.1
+		  //    ],
+		  //    [
+		  //      500000,
+		  //      0.08
+		  //    ],
+		  //    [
+		  //      1000000,
+		  //      0.06
+		  //    ],
+		  //    [
+		  //      2500000,
+		  //      0.04
+		  //    ],
+		  //    [
+		  //      5000000,
+		  //      0.02
+		  //    ],
+		  //    [
+		  //      10000000,
+		  //      0
+		  //    ]
+		  //  ],
+		  //  "fee_volume_currency": "ZUSD",
+		  //  "margin_call": 80,
+		  //  "margin_stop": 40
+		  //}}
 			var markets = new List<ExchangeMarket>();
 			JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
-			var res = (from prop in allPairs.Children<JProperty>()select prop).ToArray();
+			var res = (from prop in allPairs.Children<JProperty>() select prop).ToArray();
 
 			foreach (JProperty prop in res.Where(p => !p.Name.EndsWith(".d")))
 			{
@@ -519,15 +524,15 @@ namespace ExchangeSharp
 				var market = new ExchangeMarket
 				{
 					IsActive = true,
-						MarketSymbol = prop.Name,
-						AltMarketSymbol = child["altname"].ToStringInvariant(),
-						AltMarketSymbol2 = child["wsname"].ToStringInvariant(),
-						MinTradeSize = quantityStepSize,
-						MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
-						BaseCurrency = pair["base"].ToStringInvariant(),
-						QuoteCurrency = pair["quote"].ToStringInvariant(),
-						QuantityStepSize = quantityStepSize,
-						PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
+					MarketSymbol = prop.Name,
+					AltMarketSymbol = child["altname"].ToStringInvariant(),
+					AltMarketSymbol2 = child["wsname"].ToStringInvariant(),
+					MinTradeSize = quantityStepSize,
+					MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
+					BaseCurrency = pair["base"].ToStringInvariant(),
+					QuoteCurrency = pair["quote"].ToStringInvariant(),
+					QuantityStepSize = quantityStepSize,
+					PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
 				};
 				markets.Add(market);
 			}
@@ -547,6 +552,7 @@ namespace ExchangeSharp
 				JToken ticker = apiTickers[marketSymbol];
 
 				#region Fix for pairs that are not found like USDTZUSD
+
 				if (ticker == null)
 				{
 					// Some pairs like USDTZUSD are not found, but they can be found using Metadata.
@@ -554,7 +560,8 @@ namespace ExchangeSharp
 					var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
 					ticker = apiTickers[symbol.BaseCurrency + symbol.QuoteCurrency];
 				}
-				#endregion
+
+				#endregion Fix for pairs that are not found like USDTZUSD
 
 				try
 				{
@@ -578,21 +585,22 @@ namespace ExchangeSharp
 		private async Task<ExchangeTicker> ConvertToExchangeTickerAsync(string symbol, JToken ticker)
 		{
 			decimal last = ticker["c"][0].ConvertInvariant<decimal>();
-			var(baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
+			var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
 			return new ExchangeTicker
 			{
 				MarketSymbol = symbol,
-					Ask = ticker["a"][0].ConvertInvariant<decimal>(),
-					Bid = ticker["b"][0].ConvertInvariant<decimal>(),
-					Last = last,
-					Volume = new ExchangeVolume
-					{
-						QuoteCurrencyVolume = ticker["v"][1].ConvertInvariant<decimal>(),
-							QuoteCurrency = quoteCurrency,
-							BaseCurrencyVolume = ticker["v"][1].ConvertInvariant<decimal>() * ticker["p"][1].ConvertInvariant<decimal>(),
-							BaseCurrency = baseCurrency,
-							Timestamp = CryptoUtility.UtcNow
-					}
+				ApiResultString = ticker.ToStringInvariant(),
+				Ask = ticker["a"][0].ConvertInvariant<decimal>(),
+				Bid = ticker["b"][0].ConvertInvariant<decimal>(),
+				Last = last,
+				Volume = new ExchangeVolume
+				{
+					QuoteCurrencyVolume = ticker["v"][1].ConvertInvariant<decimal>(),
+					QuoteCurrency = quoteCurrency,
+					BaseCurrencyVolume = ticker["v"][1].ConvertInvariant<decimal>() * ticker["p"][1].ConvertInvariant<decimal>(),
+					BaseCurrency = baseCurrency,
+					Timestamp = CryptoUtility.UtcNow
+				}
 			};
 		}
 
@@ -604,7 +612,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
 			JToken obj = await MakeJsonRequestAsync<JToken>("/0/public/Depth?pair=" + marketSymbol + "&count=" + maxCount);
-			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[marketSymbol], maxCount : maxCount);
+			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[marketSymbol], maxCount: maxCount);
 		}
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
@@ -693,7 +701,7 @@ namespace ExchangeSharp
 			List<MarketCandle> candles = new List<MarketCandle>();
 			if (json.Children().Count() != 0)
 			{
-				JProperty prop = json.Children().First()as JProperty;
+				JProperty prop = json.Children().First() as JProperty;
 				foreach (JToken jsonCandle in prop.Value)
 				{
 					MarketCandle candle = this.ParseCandle(jsonCandle, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 6, null, 5);
@@ -780,7 +788,7 @@ namespace ExchangeSharp
 				return orderResult;
 			}
 
-			return ParseOrder(orderId, result[orderId]);;
+			return ParseOrder(orderId, result[orderId]); ;
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
@@ -835,24 +843,24 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
 			}
-			return await ConnectWebSocketAsync(null, messageCallback : async(_socket, msg) =>
-			{
-				if (JToken.Parse(msg.ToStringFromUTF8())is JArray token)
-				{
-					var exchangeTicker = await ConvertToExchangeTickerAsync(token[3].ToString(), token[1]);
-					var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
-					tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
-				}
-			}, connectCallback : async(_socket) =>
-			{
-				List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
-				await _socket.SendMessageAsync(new
-				{
-					@event = "subscribe",
-						pair = marketSymbolList,
-						subscription = new { name = "ticker" }
-				});
-			});
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+		   {
+			   if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token)
+			   {
+				   var exchangeTicker = await ConvertToExchangeTickerAsync(token[3].ToString(), token[1]);
+				   var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
+				   tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
+			   }
+		   }, connectCallback: async (_socket) =>
+		   {
+			   List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
+			   await _socket.SendMessageAsync(new
+			   {
+				   @event = "subscribe",
+				   pair = marketSymbolList,
+				   subscription = new { name = "ticker" }
+			   });
+		   });
 		}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
@@ -861,91 +869,91 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
 			}
-			return await ConnectWebSocketAsync(null, messageCallback : async(_socket, msg) =>
-			{
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
-				if (token.Type == JTokenType.Array && token[2].ToStringInvariant() == "trade")
-				{ //[
-					//  0,
-					//  [
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+		   {
+			   JToken token = JToken.Parse(msg.ToStringFromUTF8());
+			   if (token.Type == JTokenType.Array && token[2].ToStringInvariant() == "trade")
+			   { //[
+				 //  0,
+				 //  [
 
-					//	[
-					//	  "5541.20000",
-					//	  "0.15850568",
-					//	  "1534614057.321597",
-					//	  "s",
-					//	  "l",
-					//	  ""
-					//	],
+				   //	[
+				   //	  "5541.20000",
+				   //	  "0.15850568",
+				   //	  "1534614057.321597",
+				   //	  "s",
+				   //	  "l",
+				   //	  ""
+				   //	],
 
-					//	[
-					//	  "6060.00000",
-					//	  "0.02455000",
-					//	  "1534614057.324998",
-					//	  "b",
-					//	  "l",
-					//	  ""
-					//	]
-					//  ],
-					//  "trade",
-					//  "XBT/USD"
-					//]
-					string marketSymbol = token[3].ToStringInvariant();
-					foreach (var tradesToken in token[1])
-					{
-						var trade = tradesToken.ParseTradeKraken(amountKey: 1, priceKey: 0,
-							typeKey: 3, timestampKey: 2,
-							TimestampType.UnixSecondsDouble, idKey : null,
-							typeKeyIsBuyValue: "b");
-						await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
-					}
-				}
-				else if (token["event"].ToStringInvariant() == "heartbeat") {}
-				else if (token["status"].ToStringInvariant() == "error")
-				{ //{{
-					//  "errorMessage": "Currency pair not in ISO 4217-A3 format ADACAD",
-					//  "event": "subscriptionStatus",
-					//  "pair": "ADACAD",
-					//  "status": "error",
-					//  "subscription": {
-					//    "name": "trade"
-					//  }
-					//}}
-					Logger.Info(token["errorMessage"].ToStringInvariant());
-				}
-				else if (token["status"].ToStringInvariant() == "online")
-				{ //{{
-					//  "connectionID": 9077277725533272053,
-					//  "event": "systemStatus",
-					//  "status": "online",
-					//  "version": "0.2.0"
-					//}}
-				}
-			}, connectCallback : async(_socket) =>
-			{
-				//{
-				//  "event": "subscribe",
-				//  "pair": [
-				//    "XBT/USD","XBT/EUR"
-				//  ],
-				//  "subscription": {
-				//    "name": "ticker"
-				//  }
-				//}
-				List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
-				await _socket.SendMessageAsync(new
-				{
-					@event = "subscribe",
-						pair = marketSymbolList,
-						subscription = new { name = "trade" }
-				});
-			});
+				   //	[
+				   //	  "6060.00000",
+				   //	  "0.02455000",
+				   //	  "1534614057.324998",
+				   //	  "b",
+				   //	  "l",
+				   //	  ""
+				   //	]
+				   //  ],
+				   //  "trade",
+				   //  "XBT/USD"
+				   //]
+				   string marketSymbol = token[3].ToStringInvariant();
+				   foreach (var tradesToken in token[1])
+				   {
+					   var trade = tradesToken.ParseTradeKraken(amountKey: 1, priceKey: 0,
+						   typeKey: 3, timestampKey: 2,
+						   TimestampType.UnixSecondsDouble, idKey: null,
+						   typeKeyIsBuyValue: "b");
+					   await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+				   }
+			   }
+			   else if (token["event"].ToStringInvariant() == "heartbeat") { }
+			   else if (token["status"].ToStringInvariant() == "error")
+			   { //{{
+				 //  "errorMessage": "Currency pair not in ISO 4217-A3 format ADACAD",
+				 //  "event": "subscriptionStatus",
+				 //  "pair": "ADACAD",
+				 //  "status": "error",
+				 //  "subscription": {
+				 //    "name": "trade"
+				 //  }
+				 //}}
+				   Logger.Info(token["errorMessage"].ToStringInvariant());
+			   }
+			   else if (token["status"].ToStringInvariant() == "online")
+			   { //{{
+				 //  "connectionID": 9077277725533272053,
+				 //  "event": "systemStatus",
+				 //  "status": "online",
+				 //  "version": "0.2.0"
+				 //}}
+			   }
+		   }, connectCallback: async (_socket) =>
+		   {
+			   //{
+			   //  "event": "subscribe",
+			   //  "pair": [
+			   //    "XBT/USD","XBT/EUR"
+			   //  ],
+			   //  "subscription": {
+			   //    "name": "ticker"
+			   //  }
+			   //}
+			   List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
+			   await _socket.SendMessageAsync(new
+			   {
+				   @event = "subscribe",
+				   pair = marketSymbolList,
+				   subscription = new { name = "trade" }
+			   });
+		   });
 		}
 
 		private async Task<List<string>> GetMarketSymbolList(string[] marketSymbols)
 		{
 			await PopulateLookupTables(); // prime cache
-			Task<string>[] marketSymbolsArray = marketSymbols.Select(async(m) =>
+			Task<string>[] marketSymbolsArray = marketSymbols.Select(async (m) =>
 			{
 				ExchangeMarket market = await GetExchangeMarketFromCacheAsync(m);
 				if (market == null)
@@ -985,7 +993,7 @@ namespace ExchangeSharp
 				if (message.Contains("\"as\"") || message.Contains("\"bs\""))
 				{
 					// parse delta update
-					var delta = JsonConvert.DeserializeObject(message)as JArray;
+					var delta = JsonConvert.DeserializeObject(message) as JArray;
 
 					book.MarketSymbol = delta[3].ToString();
 
@@ -1028,7 +1036,7 @@ namespace ExchangeSharp
 				else if (message.Contains("\"a\"") || message.Contains("\"b\""))
 				{
 					// parse delta update
-					var delta = JsonConvert.DeserializeObject(message)as JArray;
+					var delta = JsonConvert.DeserializeObject(message) as JArray;
 
 					book.MarketSymbol = delta[3].ToString();
 
@@ -1079,21 +1087,21 @@ namespace ExchangeSharp
 				}
 
 				return Task.CompletedTask;
-			}, connectCallback : async(_socket) =>
-			{
-				// subscribe to order book channel for each symbol
-				var channelAction = new ChannelAction
-				{
-					Event = ActionType.Subscribe,
-						Pairs = marketSymbols.ToList(),
-						SubscriptionSettings = new Subscription
-						{
-							Name = "book",
-								Depth = 100
-						}
-				};
-				await _socket.SendMessageAsync(channelAction);
-			});
+			}, connectCallback: async (_socket) =>
+		   {
+			   // subscribe to order book channel for each symbol
+			   var channelAction = new ChannelAction
+			   {
+				   Event = ActionType.Subscribe,
+				   Pairs = marketSymbols.ToList(),
+				   SubscriptionSettings = new Subscription
+				   {
+					   Name = "book",
+					   Depth = 100
+				   }
+			   };
+			   await _socket.SendMessageAsync(channelAction);
+		   });
 		}
 	}
 
