@@ -175,6 +175,7 @@ namespace ExchangeSharp
 					}
 					decimal incrementSize = incrementNode.InnerText.Substring(0, incrementSizePos).ConvertInvariant<decimal>();
 					market.MarketSymbol = symbol;
+					market.AltMarketSymbol = symbol.ToUpper();
 					market.BaseCurrency = symbol.Substring(0, symbol.Length - 3);
 					market.QuoteCurrency = symbol.Substring(symbol.Length - 3);
 					market.MinTradeSize = minOrderSize;
@@ -412,7 +413,7 @@ namespace ExchangeSharp
 							if (changesToken != null)
 							{
 								string marketSymbol = token["symbol"].ToStringInvariant();
-								if (changesToken.FirstOrDefault()is JArray candleArray)
+								if (changesToken.FirstOrDefault() is JArray candleArray)
 								{
 									decimal volume = candleArray[5].ConvertInvariant<decimal>();
 									volumeDict[marketSymbol] = volume;
