@@ -679,18 +679,32 @@ namespace ExchangeSharp
 				// not sure if this is needed, but adding it just in case
 				await new SynchronizationContextRemover();
 				Dictionary<string, ExchangeMarket> lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
-				if (lookup != null && lookup.TryGetValue(marketSymbol, out ExchangeMarket market))
+
+				foreach(KeyValuePair<string, ExchangeMarket> kvp in lookup)
 				{
-					return market;
+					if ((kvp.Key == marketSymbol)
+						|| (kvp.Value.MarketSymbol == marketSymbol)
+						|| (kvp.Value.AltMarketSymbol == marketSymbol)
+						|| (kvp.Value.AltMarketSymbol2 == marketSymbol))
+					{
+						return kvp.Value;
+					}
 				}
 
 				// try again with a fresh request
 				Cache.Remove(nameof(GetMarketSymbolsMetadataAsync));
 				Cache.Remove(nameof(ExchangeAPIExtensions.GetExchangeMarketDictionaryFromCacheAsync));
 				lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
-				if (lookup != null && lookup.TryGetValue(marketSymbol, out market))
+
+				foreach (KeyValuePair<string, ExchangeMarket> kvp in lookup)
 				{
-					return market;
+					if ((kvp.Key == marketSymbol)
+						|| (kvp.Value.MarketSymbol == marketSymbol)
+						|| (kvp.Value.AltMarketSymbol == marketSymbol)
+						|| (kvp.Value.AltMarketSymbol2 == marketSymbol))
+					{
+						return kvp.Value;
+					}
 				}
 			}
 			catch

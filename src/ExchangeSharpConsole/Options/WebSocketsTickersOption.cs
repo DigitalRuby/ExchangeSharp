@@ -17,7 +17,7 @@ namespace ExchangeSharpConsole.Options
 		{
 			async Task<IWebSocket> GetWebSocket(IExchangeAPI api)
 			{
-				var symbols = await ValidateMarketSymbolsAsync(api, MarketSymbols.ToArray());
+				var symbols = await ValidateMarketSymbolsAsync(api, MarketSymbols.ToArray(), true);
 
 				return await api.GetTickersWebSocketAsync(freshTickers =>
 					{

@@ -410,6 +410,8 @@ namespace ExchangeSharp
 					.ToList();
 			}
 
+			names.Sort();
+
 			return names;
 		}
 
