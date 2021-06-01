@@ -237,6 +237,13 @@ namespace ExchangeSharp
 		#endregion REST
 
 		#region Web Socket
+		/// <summary>
+		/// Gets Candles (OHLC) websocket
+		/// </summary>
+		/// <param name="callback">Callback</param>
+		/// <param name="marketSymbols">Market Symbols</param>
+		/// <returns>Web socket, call Dispose to close</returns>
+		Task<IWebSocket> GetCandlesWebSocketAsync(Action<IReadOnlyCollection<MarketCandle>> callback, params string[] marketSymbols);
 
 		/// <summary>
 		/// Get all tickers via web socket
@@ -254,6 +261,8 @@ namespace ExchangeSharp
 		/// <returns>Web socket, call Dispose to close</returns>
 		Task<IWebSocket> GetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols);
 
+		// Task<IWebSocket> GetDeltaOrderBookWebSocketAsync is in IOrderBookProvider
+
 		/// <summary>
 		/// Get the details of all changed orders via web socket
 		/// </summary>
@@ -268,6 +277,7 @@ namespace ExchangeSharp
 		/// <returns>Web socket, call Dispose to close</returns>
 		Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
 
+		Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback, string listenKey);
 		#endregion Web Socket
 	}
 }

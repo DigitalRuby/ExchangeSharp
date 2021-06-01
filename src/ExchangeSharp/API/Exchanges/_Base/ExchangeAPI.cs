@@ -178,6 +178,8 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) =>
 			throw new NotImplementedException();
+		protected virtual Task<IWebSocket> OnGetCandlesWebSocketAsync(Action<IReadOnlyCollection<MarketCandle>> callback, params string[] marketSymbols) =>
+			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) =>
 			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) =>
@@ -997,6 +999,17 @@ namespace ExchangeSharp
 		#endregion REST API
 
 		#region Web Socket API
+		/// <summary>
+		/// Gets Candles (OHLC) websocket
+		/// </summary>
+		/// <param name="callback">Callback</param>
+		/// <param name="marketSymbols">Market Symbols</param>
+		/// <returns>Web socket, call Dispose to close</returns>
+		protected virtual Task<IWebSocket> GetCandlesWebSocketAsync(Action<IReadOnlyCollection<MarketCandle>> callback, params string[] marketSymbols)
+		{
+			callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+			return OnGetCandlesWebSocketAsync(callback, marketSymbols);
+		}
 
 		/// <summary>
 		/// Get all tickers via web socket
