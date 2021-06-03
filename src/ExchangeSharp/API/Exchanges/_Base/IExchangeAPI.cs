@@ -240,10 +240,10 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Gets Candles (OHLC) websocket
 		/// </summary>
-		/// <param name="callback">Callback</param>
+		/// <param name="callbackAsync">Callback</param>
 		/// <param name="marketSymbols">Market Symbols</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		Task<IWebSocket> GetCandlesWebSocketAsync(Action<IReadOnlyCollection<MarketCandle>> callback, params string[] marketSymbols);
+		Task<IWebSocket> GetCandlesWebSocketAsync(Func<IReadOnlyCollection<MarketCandle>, Task> callbackAsync, params string[] marketSymbols);
 
 		/// <summary>
 		/// Get all tickers via web socket
