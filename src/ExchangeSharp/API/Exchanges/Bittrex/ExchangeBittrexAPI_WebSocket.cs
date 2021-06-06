@@ -142,7 +142,7 @@ namespace ExchangeSharp
 					var t = new ExchangeTicker
 					{
 						MarketSymbol = marketName,
-						ApiResultString = ticker.ToStringInvariant(),
+						ApiResponse = ticker,
 						Ask = ask,
 						Bid = bid,
 						Last = last,

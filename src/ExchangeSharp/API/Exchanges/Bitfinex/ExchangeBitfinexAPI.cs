@@ -167,7 +167,7 @@ namespace ExchangeSharp
 					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, new ExchangeTicker
 					{
 						MarketSymbol = marketSymbol,
-						ApiResultString = token.ToString(),
+						ApiResponse = token,
 						Ask = array[3].ConvertInvariant<decimal>(),
 						Bid = array[1].ConvertInvariant<decimal>(),
 						Last = array[7].ConvertInvariant<decimal>(),

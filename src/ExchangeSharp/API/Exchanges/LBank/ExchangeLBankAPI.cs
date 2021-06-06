@@ -212,7 +212,7 @@ namespace ExchangeSharp
 			ExchangeTicker ticker = new ExchangeTicker
 			{
 				MarketSymbol = symbol,
-				ApiResultString = obj.ToStringInvariant(),
+				ApiResponse = obj,
 				Ask = obj["high"].ConvertInvariant<decimal>(),
 				Bid = obj["low"].ConvertInvariant<decimal>(),
 				Last = obj["latest"].ConvertInvariant<decimal>(),

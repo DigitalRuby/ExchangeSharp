@@ -18,6 +18,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -54,7 +55,7 @@ namespace ExchangeSharp
 		/// <summary>
 		/// This property contains the content of the complete api request results. This may contain additional information
 		/// </summary>
-		public string ApiResultString { get; set; }
+		public JToken ApiResponse { get; set; }
 
 		/// <summary>
 		/// Volume info

@@ -234,7 +234,7 @@ namespace ExchangeSharp
 			ExchangeTicker t = new ExchangeTicker
 			{
 				MarketSymbol = marketSymbol,
-				ApiResultString = obj.ToStringInvariant(),
+				ApiResponse = obj,
 				Ask = obj["ask"].ConvertInvariant<decimal>(),
 				Bid = obj["bid"].ConvertInvariant<decimal>(),
 				Last = obj["last"].ConvertInvariant<decimal>()

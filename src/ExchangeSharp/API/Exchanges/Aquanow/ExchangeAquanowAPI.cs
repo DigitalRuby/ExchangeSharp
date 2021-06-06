@@ -56,7 +56,7 @@ namespace ExchangeSharp
 				JToken bestPriceSymbol = await MakeJsonRequestAsync<JToken>($"/bestprice?symbol={symbol}", MarketUrl);
 				decimal bid = bestPriceSymbol["bestBid"].ConvertInvariant<decimal>();
 				decimal ask = bestPriceSymbol["bestAsk"].ConvertInvariant<decimal>();
-				ExchangeTicker ticker = new ExchangeTicker { MarketSymbol = symbol, Bid = bid, Ask = ask, ApiResultString = bestPriceSymbol.ToStringInvariant() };
+				ExchangeTicker ticker = new ExchangeTicker { MarketSymbol = symbol, Bid = bid, Ask = ask, ApiResponse = bestPriceSymbol };
 				tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
 			}
 			return tickers;

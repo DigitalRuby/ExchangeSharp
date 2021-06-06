@@ -508,7 +508,7 @@ namespace ExchangeSharp
 			ExchangeTicker ticker = new ExchangeTicker
 			{
 				MarketSymbol = marketSymbol,
-				ApiResultString = token.ToStringInvariant(),
+				ApiResponse = token,
 				Ask = ask,
 				Bid = bid,
 				Id = (idKey == null ? null : token[idKey].ToStringInvariant()),

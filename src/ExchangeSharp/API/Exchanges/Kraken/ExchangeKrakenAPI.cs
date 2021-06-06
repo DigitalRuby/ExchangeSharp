@@ -589,7 +589,7 @@ namespace ExchangeSharp
 			return new ExchangeTicker
 			{
 				MarketSymbol = symbol,
-				ApiResultString = ticker.ToStringInvariant(),
+				ApiResponse = ticker,
 				Ask = ticker["a"][0].ConvertInvariant<decimal>(),
 				Bid = ticker["b"][0].ConvertInvariant<decimal>(),
 				Last = last,
