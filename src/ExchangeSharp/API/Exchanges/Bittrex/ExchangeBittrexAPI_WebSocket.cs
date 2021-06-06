@@ -32,7 +32,6 @@ namespace ExchangeSharp
 {
 	public partial class ExchangeBittrexAPI
 	{
-
 #if HAS_SIGNALR
 
 		/// <summary>
@@ -78,7 +77,7 @@ namespace ExchangeSharp
 			}
 		}
 
-        private BittrexWebSocketManager webSocket;
+		private BittrexWebSocketManager webSocket;
 
 		public static string ReverseMarketNameForWS(string WebSocketFeedMarketName)
 		{
@@ -96,10 +95,11 @@ namespace ExchangeSharp
 			async Task innerCallback(string json)
 			{
 				#region sample json
+
 				/*
                 {
                     Nonce : int,
-                    Deltas : 
+                    Deltas :
                     [
                         {
                             MarketName     : string,
@@ -119,15 +119,14 @@ namespace ExchangeSharp
                     ]
                 }
                 */
-                #endregion
+
+				#endregion sample json
 
 				var freshTickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
 				JToken token = JToken.Parse(json);
 				token = token["D"];
 				foreach (JToken ticker in token)
 				{
-
-
 					string marketName = ReverseMarketNameForWS(ticker["M"].ToStringInvariant());
 					if (filter.Count != 0 && !filter.Contains(marketName))
 					{
@@ -143,6 +142,7 @@ namespace ExchangeSharp
 					var t = new ExchangeTicker
 					{
 						MarketSymbol = marketName,
+						ApiResponse = ticker,
 						Ask = ask,
 						Bid = bid,
 						Last = last,
@@ -176,11 +176,12 @@ namespace ExchangeSharp
 			Task innerCallback(string json)
 			{
 				#region sample json
+
 				/*
                     {
                         MarketName : string,
                         Nonce      : int,
-                        Buys: 
+                        Buys:
                         [
                             {
                                 Type     : int,
@@ -188,7 +189,7 @@ namespace ExchangeSharp
                                 Quantity : decimal
                             }
                         ],
-                        Sells: 
+                        Sells:
                         [
                             {
                                 Type     : int,
@@ -196,7 +197,7 @@ namespace ExchangeSharp
                                 Quantity : decimal
                             }
                         ],
-                        Fills: 
+                        Fills:
                         [
                             {
                                 FillId    : int,
@@ -208,7 +209,8 @@ namespace ExchangeSharp
                         ]
                     }
                 */
-				#endregion
+
+				#endregion sample json
 
 				var ordersUpdates = JsonConvert.DeserializeObject<BittrexStreamUpdateExchangeState>(json);
 				var book = new ExchangeOrderBook();
@@ -229,8 +231,8 @@ namespace ExchangeSharp
 				return Task.CompletedTask;
 			}
 
-            return await new BittrexWebSocketManager().SubscribeToExchangeDeltasAsync(innerCallback, marketSymbols);
-        }
+			return await new BittrexWebSocketManager().SubscribeToExchangeDeltasAsync(innerCallback, marketSymbols);
+		}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
@@ -261,19 +263,17 @@ namespace ExchangeSharp
 
 #endif
 
-        protected override void OnDispose()
-        {
-
+		protected override void OnDispose()
+		{
 #if HAS_SIGNALR
 
-            if (webSocket != null)
-            {
-                webSocket.Dispose();
-                webSocket = null;
-            }
+			if (webSocket != null)
+			{
+				webSocket.Dispose();
+				webSocket = null;
+			}
 
 #endif
-
-        }
-    }
+		}
+	}
 }
