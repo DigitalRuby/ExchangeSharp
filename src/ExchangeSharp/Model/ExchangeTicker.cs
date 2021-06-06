@@ -53,7 +53,7 @@ namespace ExchangeSharp
 		public decimal Last { get; set; }
 
 		/// <summary>
-		/// This property contains the content of the complete api request results. This may contain additional information
+		/// This property contains the content of the complete api response. This may contain additional information
 		/// </summary>
 		public JToken ApiResponse { get; set; }
 
