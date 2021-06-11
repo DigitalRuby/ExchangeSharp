@@ -216,7 +216,7 @@ namespace ExchangeSharp
                 using (StreamReader responseStreamReader = new StreamReader(responseStream))
                     responseString = responseStreamReader.ReadToEnd();
 
-                if (response.StatusCode != HttpStatusCode.OK)
+                if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created)
                 {
 	                // 404 maybe return empty responseString
 	                if (string.IsNullOrWhiteSpace(responseString))
