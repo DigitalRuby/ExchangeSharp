@@ -252,7 +252,25 @@ namespace ExchangeSharp
 		#region OrderBooks
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 25)
 		{
-			JToken token = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/orderbook" + marketSymbol + "&depth=" + maxCount);
+			// Bittrex API allowed values are [1, 25, 500], default is 25.
+			if (maxCount > 100)
+			{
+				maxCount = 500;
+			}
+			else if (maxCount > 25 && maxCount <= 100) // ExchangeSharp default.
+			{
+				maxCount = 25;
+			}
+			else if (maxCount > 1 && maxCount <= 25)
+			{
+				maxCount = 25;
+			}
+			else
+			{
+				maxCount = 1;
+			}
+
+			JToken token = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/orderbook" + "?depth=" + maxCount);
 			return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "ask", "bid", "rate", "quantity", maxCount: maxCount);
 		}
 
@@ -370,7 +388,7 @@ namespace ExchangeSharp
 			if (order.OrderType == ExchangeSharp.OrderType.Limit)
 			{
 				orderParams.Add("limit", orderPrice);
-				//orderParams.Add("timeInForce", "GOOD_TIL_CANCELLED");
+				orderParams.Add("timeInForce", "GOOD_TIL_CANCELLED");
 			}
 
 			foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
