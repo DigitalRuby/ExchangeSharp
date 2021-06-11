@@ -521,15 +521,15 @@ namespace ExchangeSharp
 				var market = new ExchangeMarket
 				{
 					IsActive = true,
-						MarketSymbol = prop.Name,
-						AltMarketSymbol = child["altname"].ToStringInvariant(),
-						AltMarketSymbol2 = child["wsname"].ToStringInvariant(),
-						MinTradeSize = quantityStepSize,
-						MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
-						BaseCurrency = pair["base"].ToStringInvariant(),
-						QuoteCurrency = pair["quote"].ToStringInvariant(),
-						QuantityStepSize = quantityStepSize,
-						PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
+					MarketSymbol = prop.Name,
+					AltMarketSymbol = child["altname"].ToStringInvariant(),
+					AltMarketSymbol2 = child["wsname"].ToStringInvariant(),
+					MinTradeSize = quantityStepSize,
+					MarginEnabled = pair["leverage_buy"].Children().Any() || pair["leverage_sell"].Children().Any(),
+					BaseCurrency = pair["base"].ToStringInvariant(),
+					QuoteCurrency = pair["quote"].ToStringInvariant(),
+					QuantityStepSize = quantityStepSize,
+					PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
 				};
 				markets.Add(market);
 			}
@@ -741,13 +741,17 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
+			IEnumerable<ExchangeMarket> markets = await OnGetMarketSymbolsMetadataAsync();
+			ExchangeMarket market = markets.Where(m => m.MarketSymbol == order.MarketSymbol).First<ExchangeMarket>();
+
 			object nonce = await GenerateNonceAsync();
 			Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
 			{ { "pair", order.MarketSymbol }, { "type", (order.IsBuy ? "buy" : "sell") }, { "ordertype", order.OrderType.ToString().ToLowerInvariant() }, { "volume", order.RoundAmount().ToStringInvariant() }, { "trading_agreement", "agree" }, { "nonce", nonce }
 			};
 			if (order.OrderType != OrderType.Market)
 			{
-				payload.Add("price", order.Price.ToStringInvariant());
+				int precision = BitConverter.GetBytes(Decimal.GetBits((decimal)market.PriceStepSize)[3])[2];
+				payload.Add("price", Math.Round(order.Price, precision).ToStringInvariant());
 			}
 			order.ExtraParameters.CopyTo(payload);
 
