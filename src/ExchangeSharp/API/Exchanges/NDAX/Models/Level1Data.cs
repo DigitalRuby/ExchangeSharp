@@ -8,7 +8,7 @@ namespace ExchangeSharp
 		/// <summary>
 		/// For use in SubscribeLevel1 OnGetTickersWebSocketAsync()
 		/// </summary>
-		class Level1Data
+		private class Level1Data
 		{
 			[JsonProperty("OMSId")]
 			public long OmsId { get; set; }
@@ -85,5 +85,5 @@ namespace ExchangeSharp
 				};
 			}
 		}
-    }
+	}
 }
