@@ -457,3 +457,6 @@ launchSettings.json
 dist/
 data/**
 !data/.gitkeep
+
+## Mac specific
+.DS_Store

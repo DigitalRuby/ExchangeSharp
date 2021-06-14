@@ -30,6 +30,9 @@ namespace ExchangeSharp
         protected T _previousMovingAverage;
         protected T _previousExponentialMovingAverage;
 
+        public int WindowSize => _windowSize;
+
+        public T WeightingMultiplier => _weightingMultiplier;
         /// <summary>
         /// Current moving average
         /// </summary>
@@ -57,6 +60,17 @@ namespace ExchangeSharp
         public override string ToString()
         {
             return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether enough values have been provided to fill the
+        /// specified window size.  Values returned from NextValue may still be used prior
+        /// to IsMature returning true, however such values are not subject to the intended
+        /// smoothing effect of the moving average's window size.
+        /// </summary>
+        public bool IsMature
+        {
+            get { return _valuesIn == _windowSize; }
         }
     }
 
@@ -124,17 +138,6 @@ namespace ExchangeSharp
                 ExponentialSlope = 0.0;
                 _previousExponentialMovingAverage = ExponentialMovingAverage;
             }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether enough values have been provided to fill the
-        /// specified window size.  Values returned from NextValue may still be used prior
-        /// to IsMature returning true, however such values are not subject to the intended
-        /// smoothing effect of the moving average's window size.
-        /// </summary>
-        public bool IsMature
-        {
-            get { return _valuesIn == _windowSize; }
         }
 
         /// <summary>
