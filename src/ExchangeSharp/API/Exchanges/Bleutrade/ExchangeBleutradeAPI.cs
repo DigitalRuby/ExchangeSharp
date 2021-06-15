@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -20,186 +20,179 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    // this exchange dropped v2 api, needs to be entirely re-coded
+	// this exchange dropped v2 api, needs to be entirely re-coded
 #if HAS_FIXED_BLEUTRADE_API
 
     public sealed partial class ExchangeBleutradeAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://bleutrade.com/api/v2";
 
-        static ExchangeBleutradeAPI()
-        {
-            ExchangeGlobalCurrencyReplacements[typeof(ExchangeBleutradeAPI)] = new KeyValuePair<string, string>[]
-            {
-                new KeyValuePair<string, string>("BCC", "BCH")
-            };
-        }
-
-        public ExchangeBleutradeAPI()
+        private ExchangeBleutradeAPI()
         {
             NonceStyle = NonceStyle.UnixMillisecondsString;
             MarketSymbolSeparator = "_";
+			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
         }
 
-#region ProcessRequest
+	#region ProcessRequest
 
-        protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                request.AddHeader("apisign", CryptoUtility.SHA512Sign(request.RequestUri.ToString(), PrivateApiKey.ToUnsecureString()).ToLowerInvariant());
-            }
-            return base.ProcessRequestAsync(request, payload);
-        }
+				protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+				{
+					if (CanMakeAuthenticatedRequest(payload))
+					{
+						request.AddHeader("apisign", CryptoUtility.SHA512Sign(request.RequestUri.ToString(), PrivateApiKey.ToUnsecureString()).ToLowerInvariant());
+					}
+					return base.ProcessRequestAsync(request, payload);
+				}
 
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                // payload is ignored, except for the nonce which is added to the url query
-                var query = (url.Query ?? string.Empty).Trim('?', '&');
-                url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToStringInvariant() + (query.Length != 0 ? "&" + query : string.Empty);
-            }
-            return url.Uri;
-        }
+				protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+				{
+					if (CanMakeAuthenticatedRequest(payload))
+					{
+						// payload is ignored, except for the nonce which is added to the url query
+						var query = (url.Query ?? string.Empty).Trim('?', '&');
+						url.Query = "apikey=" + PublicApiKey.ToUnsecureString() + "&nonce=" + payload["nonce"].ToStringInvariant() + (query.Length != 0 ? "&" + query : string.Empty);
+					}
+					return url.Uri;
+				}
 
-#endregion
+	#endregion
 
-#region Public APIs
+	#region Public APIs
 
-        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
-        {
-            var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
-            //{ "success" : true,"message" : "", "result" : [{"Currency" : "BTC","CurrencyLong" : "Bitcoin","MinConfirmation" : 2,"TxFee" : 0.00080000,"IsActive" : true, "CoinType" : "BITCOIN","MaintenanceMode" : false}, ...
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getcurrencies", null, null);
-            foreach (JToken token in result)
-            {
-                bool isMaintenanceMode = token["MaintenanceMode"].ConvertInvariant<bool>();
-                var coin = new ExchangeCurrency
-                {
-                    CoinType = token["CoinType"].ToStringInvariant(),
-                    FullName = token["CurrencyLong"].ToStringInvariant(),
-                    DepositEnabled = !isMaintenanceMode,
-                    WithdrawalEnabled = !isMaintenanceMode,
-                    MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
-                    Name = token["Currency"].ToStringUpperInvariant(),
-                    Notes = token["Notice"].ToStringInvariant(),
-                    TxFee = token["TxFee"].ConvertInvariant<decimal>(),
-                };
-                currencies[coin.Name] = coin;
-            }
-            return currencies;
-        }
+				protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+				{
+					var currencies = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
+					//{ "success" : true,"message" : "", "result" : [{"Currency" : "BTC","CurrencyLong" : "Bitcoin","MinConfirmation" : 2,"TxFee" : 0.00080000,"IsActive" : true, "CoinType" : "BITCOIN","MaintenanceMode" : false}, ...
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getcurrencies", null, null);
+					foreach (JToken token in result)
+					{
+						bool isMaintenanceMode = token["MaintenanceMode"].ConvertInvariant<bool>();
+						var coin = new ExchangeCurrency
+						{
+							CoinType = token["CoinType"].ToStringInvariant(),
+							FullName = token["CurrencyLong"].ToStringInvariant(),
+							DepositEnabled = !isMaintenanceMode,
+							WithdrawalEnabled = !isMaintenanceMode,
+							MinConfirmations = token["MinConfirmation"].ConvertInvariant<int>(),
+							Name = token["Currency"].ToStringUpperInvariant(),
+							Notes = token["Notice"].ToStringInvariant(),
+							TxFee = token["TxFee"].ConvertInvariant<decimal>(),
+						};
+						currencies[coin.Name] = coin;
+					}
+					return currencies;
+				}
 
-        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
-        {
-            List<string> symbols = new List<string>();
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkets", null, null);
-            foreach (var market in result) symbols.Add(market["MarketName"].ToStringInvariant());
-            return symbols;
-        }
+				protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
+				{
+					List<string> symbols = new List<string>();
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkets", null, null);
+					foreach (var market in result) symbols.Add(market["MarketName"].ToStringInvariant());
+					return symbols;
+				}
 
-        protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
-        {
-            List<ExchangeMarket> markets = new List<ExchangeMarket>();
-            // "result" : [{"MarketCurrency" : "DOGE","BaseCurrency" : "BTC","MarketCurrencyLong" : "Dogecoin","BaseCurrencyLong" : "Bitcoin", "MinTradeSize" : 0.10000000, "MarketName" : "DOGE_BTC", "IsActive" : true, }, ...
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkets", null, null);
-            foreach (JToken token in result)
-            {
-                markets.Add(new ExchangeMarket()
-                {
-                    //NOTE: Bleutrade is another weird one that calls the QuoteCurrency the "BaseCurrency" and the BaseCurrency the "MarketCurrency".
-                    QuoteCurrency = token["BaseCurrency"].ToStringInvariant(),
-                    BaseCurrency = token["MarketCurrency"].ToStringInvariant(),
-                    MarketSymbol = token["MarketName"].ToStringInvariant(),
-                    IsActive = token["IsActive"].ToStringInvariant().Equals("true"),
-                    MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
-                });
-            }
-            return markets;
-        }
+				protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+				{
+					List<ExchangeMarket> markets = new List<ExchangeMarket>();
+					// "result" : [{"MarketCurrency" : "DOGE","BaseCurrency" : "BTC","MarketCurrencyLong" : "Dogecoin","BaseCurrencyLong" : "Bitcoin", "MinTradeSize" : 0.10000000, "MarketName" : "DOGE_BTC", "IsActive" : true, }, ...
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkets", null, null);
+					foreach (JToken token in result)
+					{
+						markets.Add(new ExchangeMarket()
+						{
+							//NOTE: Bleutrade is another weird one that calls the QuoteCurrency the "BaseCurrency" and the BaseCurrency the "MarketCurrency".
+							QuoteCurrency = token["BaseCurrency"].ToStringInvariant(),
+							BaseCurrency = token["MarketCurrency"].ToStringInvariant(),
+							MarketSymbol = token["MarketName"].ToStringInvariant(),
+							IsActive = token["IsActive"].ToStringInvariant().Equals("true"),
+							MinTradeSize = token["MinTradeSize"].ConvertInvariant<decimal>(),
+						});
+					}
+					return markets;
+				}
 
-        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
-        {
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + marketSymbol);
-            return this.ParseTicker(result, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
-        }
+				protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+				{
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummary?market=" + marketSymbol);
+					return this.ParseTicker(result, marketSymbol, "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+				}
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
-        {
-            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            // "result" : [{"MarketCurrency" : "Ethereum","BaseCurrency" : "Bitcoin","MarketName" : "ETH_BTC","PrevDay" : 0.00095000,"High" : 0.00105000,"Low" : 0.00086000, "Last" : 0.00101977, "Average" : 0.00103455, "Volume" : 2450.97496015, "BaseVolume" : 2.40781647,    "TimeStamp" : "2014-07-29 11:19:30", "Bid" : 0.00100000, "Ask" : 0.00101977, "IsActive" : true }, ... ]
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummaries");
-            foreach (JToken token in result)
-            {
-                var ticker = this.ParseTicker(token, token["MarketName"].ToStringInvariant(), "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
-            }
-            return tickers;
-        }
+				protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+				{
+					List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+					// "result" : [{"MarketCurrency" : "Ethereum","BaseCurrency" : "Bitcoin","MarketName" : "ETH_BTC","PrevDay" : 0.00095000,"High" : 0.00105000,"Low" : 0.00086000, "Last" : 0.00101977, "Average" : 0.00103455, "Volume" : 2450.97496015, "BaseVolume" : 2.40781647,    "TimeStamp" : "2014-07-29 11:19:30", "Bid" : 0.00100000, "Ask" : 0.00101977, "IsActive" : true }, ... ]
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarketsummaries");
+					foreach (JToken token in result)
+					{
+						var ticker = this.ParseTicker(token, token["MarketName"].ToStringInvariant(), "Ask", "Bid", "Last", "Volume", "BaseVolume", "Timestamp", TimestampType.Iso8601);
+						tickers.Add(new KeyValuePair<string, ExchangeTicker>(token["MarketName"].ToStringInvariant(), ticker));
+					}
+					return tickers;
+				}
 
-        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-        {
-            List<MarketCandle> candles = new List<MarketCandle>();
-            string periodString = PeriodSecondsToString(periodSeconds);
-            limit = limit ?? (limit > 2160 ? 2160 : limit);
-            endDate = endDate ?? CryptoUtility.UtcNow.AddMinutes(1.0);
-            startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
+				protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+				{
+					List<MarketCandle> candles = new List<MarketCandle>();
+					string periodString = PeriodSecondsToString(periodSeconds);
+					limit = limit ?? (limit > 2160 ? 2160 : limit);
+					endDate = endDate ?? CryptoUtility.UtcNow.AddMinutes(1.0);
+					startDate = startDate ?? endDate.Value.Subtract(TimeSpan.FromDays(1.0));
 
-            //market period(15m, 20m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 1d) count(default: 1000, max: 999999) lasthours(default: 24, max: 2160)
-            //"result":[{"TimeStamp":"2014-07-31 10:15:00","Open":"0.00000048","High":"0.00000050","Low":"0.00000048","Close":"0.00000049","Volume":"594804.73036048","BaseVolume":"0.11510368" }, ...
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getcandles?market=" + marketSymbol + "&period=" + periodString + (limit == null ? string.Empty : "&lasthours=" + limit));
-            foreach (JToken jsonCandle in result)
-            {
-                //NOTE: Bleutrade uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-                MarketCandle candle = this.ParseCandle(jsonCandle, marketSymbol, periodSeconds, "Open", "High", "Low", "Close", "Timestamp", TimestampType.Iso8601, "Volume", "BaseVolume");
-                if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
-                {
-                    candles.Add(candle);
-                }
-            }
-            return candles;
-        }
+					//market period(15m, 20m, 30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 1d) count(default: 1000, max: 999999) lasthours(default: 24, max: 2160)
+					//"result":[{"TimeStamp":"2014-07-31 10:15:00","Open":"0.00000048","High":"0.00000050","Low":"0.00000048","Close":"0.00000049","Volume":"594804.73036048","BaseVolume":"0.11510368" }, ...
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getcandles?market=" + marketSymbol + "&period=" + periodString + (limit == null ? string.Empty : "&lasthours=" + limit));
+					foreach (JToken jsonCandle in result)
+					{
+						//NOTE: Bleutrade uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
+						MarketCandle candle = this.ParseCandle(jsonCandle, marketSymbol, periodSeconds, "Open", "High", "Low", "Close", "Timestamp", TimestampType.Iso8601, "Volume", "BaseVolume");
+						if (candle.Timestamp >= startDate && candle.Timestamp <= endDate)
+						{
+							candles.Add(candle);
+						}
+					}
+					return candles;
+				}
 
 
-        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
-        {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            //"result" : [{ "TimeStamp" : "2014-07-29 18:08:00","Quantity" : 654971.69417461,"Price" : 0.00000055,"Total" : 0.360234432,"OrderType" : "BUY"}, ...  ]
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkethistory?market=" + marketSymbol);
-            foreach (JToken token in result) trades.Add(ParseTrade(token));
-            return trades;
-        }
+				protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol)
+				{
+					List<ExchangeTrade> trades = new List<ExchangeTrade>();
+					//"result" : [{ "TimeStamp" : "2014-07-29 18:08:00","Quantity" : 654971.69417461,"Price" : 0.00000055,"Total" : 0.360234432,"OrderType" : "BUY"}, ...  ]
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkethistory?market=" + marketSymbol);
+					foreach (JToken token in result) trades.Add(ParseTrade(token));
+					return trades;
+				}
 
-        protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
-        {
-            List<ExchangeTrade> trades = new List<ExchangeTrade>();
-            // TODO: Not directly supported so the best we can do is get their Max 200 and check the timestamp if necessary
-            JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkethistory?market=" + marketSymbol + "&count=200");
-            foreach (JToken token in result)
-            {
-                ExchangeTrade trade = ParseTrade(token);
-                if (startDate == null || trade.Timestamp >= startDate)
-                {
-                    trades.Add(trade);
-                }
-            }
-            if (trades.Count != 0)
-            {
-                callback(trades);
-            }
-        }
+				protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null)
+				{
+					List<ExchangeTrade> trades = new List<ExchangeTrade>();
+					// TODO: Not directly supported so the best we can do is get their Max 200 and check the timestamp if necessary
+					JToken result = await MakeJsonRequestAsync<JToken>("/public/getmarkethistory?market=" + marketSymbol + "&count=200");
+					foreach (JToken token in result)
+					{
+						ExchangeTrade trade = ParseTrade(token);
+						if (startDate == null || trade.Timestamp >= startDate)
+						{
+							trades.Add(trade);
+						}
+					}
+					if (trades.Count != 0)
+					{
+						callback(trades);
+					}
+				}
 
-        protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
-        {
-            //"result" : { "buy" : [{"Quantity" : 4.99400000,"Rate" : 3.00650900}, {"Quantity" : 50.00000000, "Rate" : 3.50000000 }  ] ...
-            JToken token = await MakeJsonRequestAsync<JToken>("/public/getorderbook?market=" + marketSymbol + "&type=ALL&depth=" + maxCount);
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
-        }
+				protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+				{
+					//"result" : { "buy" : [{"Quantity" : 4.99400000,"Rate" : 3.00650900}, {"Quantity" : 50.00000000, "Rate" : 3.50000000 }  ] ...
+					JToken token = await MakeJsonRequestAsync<JToken>("/public/getorderbook?market=" + marketSymbol + "&type=ALL&depth=" + maxCount);
+					return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "sell", "buy", "Rate", "Quantity", maxCount: maxCount);
+				}
 
-        #endregion
+	#endregion
 
-        #region Private APIs
+	#region Private APIs
 
                 protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
                 {
@@ -331,9 +324,9 @@ namespace ExchangeSharp
                 }
 
 
-        #endregion
+	#endregion
 
-        #region Private Functions
+	#region Private Functions
 
                 private ExchangeTrade ParseTrade(JToken token)
                 {
@@ -373,7 +366,7 @@ namespace ExchangeSharp
                     return order;
                 }
 
-        #endregion
+	#endregion
 
     }
 

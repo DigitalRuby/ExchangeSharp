@@ -31,14 +31,6 @@ namespace ExchangeSharp.BinanceGroup
 
 		public const string GetCurrenciesUrl = "/assetWithdraw/getAllAsset.html";
 
-		static BinanceGroupCommon()
-		{
-			ExchangeGlobalCurrencyReplacements[typeof(BinanceGroupCommon)] = new KeyValuePair<string, string>[]
-			{
-				new KeyValuePair<string, string>("BCC", "BCH")
-			};
-		}
-
 		protected async Task<string> GetWebSocketStreamUrlForSymbolsAsync(string suffix, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
@@ -67,6 +59,7 @@ namespace ExchangeSharp.BinanceGroup
 			NonceOffset = TimeSpan.FromSeconds(15); // 15 seconds are deducted from current UTCTime as base of the request time window
 			MarketSymbolSeparator = string.Empty;
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
 		}
 
 		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)

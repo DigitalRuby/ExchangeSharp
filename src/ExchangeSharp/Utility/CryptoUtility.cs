@@ -1401,7 +1401,7 @@ namespace ExchangeSharp
             }
             if (methodCachePolicy.TryGetValue(methodName, out TimeSpan cacheTime))
             {
-                return (await cache.Get<T>(cacheKey, async () =>
+                return (await cache.GetOrCreate<T>(cacheKey, async () =>
                 {
                     T innerResult = await method();
                     return new CachedItem<T>(innerResult, CryptoUtility.UtcNow.Add(cacheTime));

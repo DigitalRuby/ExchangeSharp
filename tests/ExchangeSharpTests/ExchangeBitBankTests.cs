@@ -17,7 +17,9 @@ namespace ExchangeSharpTests
             {
                 requestMaker.GlobalResponse = response;
             }
-            return new ExchangeBitBankAPI() { RequestMaker = requestMaker };
+			var api = (ExchangeAPI.GetExchangeAPI(ExchangeName.BitBank) as ExchangeBitBankAPI)!;
+			api.RequestMaker = requestMaker;
+			return api;
         }
 
         # region Public API

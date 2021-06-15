@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -24,7 +24,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "http://api.zb.com/data/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://api.zb.com:9999/websocket";
 
-        public ExchangeZBcomAPI()
+		private ExchangeZBcomAPI()
         {
             MarketSymbolSeparator = "_";
             MarketSymbolIsUppercase = false;
@@ -122,7 +122,7 @@ namespace ExchangeSharp
 
             var data = await MakeRequestZBcomAsync(null, "/allTicker", BaseUrl);
             List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            var symbolLookup = await Cache.Get<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
+            var symbolLookup = await Cache.GetOrCreate<Dictionary<string, string>>(nameof(GetMarketSymbolsAsync) + "_Set", async () =>
             {
                 // create lookup dictionary of symbol string without separator to symbol string with separator
                 IEnumerable<string> symbols = await GetMarketSymbolsAsync();

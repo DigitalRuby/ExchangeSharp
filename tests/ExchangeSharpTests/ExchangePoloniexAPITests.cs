@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -38,8 +38,9 @@ namespace ExchangeSharpTests
             {
                 requestMaker.GlobalResponse = response;
             }
-            var polo = new ExchangePoloniexAPI { RequestMaker = requestMaker };
-            return polo;
+			var api = (ExchangeAPI.GetExchangeAPI(ExchangeName.Poloniex) as ExchangePoloniexAPI)!;
+			api.RequestMaker = requestMaker;
+			return api;
         }
 
         [TestMethod]

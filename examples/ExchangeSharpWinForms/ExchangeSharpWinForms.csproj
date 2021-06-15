@@ -6,7 +6,7 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>ExchangeSharpWinForms</AssemblyTitle>
     <Product>ExchangeSharpWinForms</Product>
-    <Copyright>Copyright ©  2019</Copyright>
+    <Copyright>Copyright © Digital Ruby, LLC 2019</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

@@ -30,7 +30,7 @@ namespace ExchangeSharp
         public override string BaseUrl { get; set; } = "https://openapi-v2.kucoin.com/api/v1";
         public override string BaseUrlWebSocket { get; set; } = "wss://push1.kucoin.com/endpoint";
 
-        public ExchangeKuCoinAPI()
+		private ExchangeKuCoinAPI()
         {
             RequestContentType = "application/json";
             NonceStyle = NonceStyle.UnixMilliseconds;
@@ -62,47 +62,48 @@ namespace ExchangeSharp
             }
         }
 
-        #region ProcessRequest
+		#region ProcessRequest
 
-        protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
-        {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                request.AddHeader("KC-API-KEY", PublicApiKey.ToUnsecureString());
-                request.AddHeader("KC-API-TIMESTAMP", payload["nonce"].ToStringInvariant());
-                request.AddHeader("KC-API-PASSPHRASE", Passphrase.ToUnsecureString());
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				request.AddHeader("KC-API-KEY", PublicApiKey.ToUnsecureString());
+				request.AddHeader("KC-API-TIMESTAMP", payload["nonce"].ToStringInvariant());
+				request.AddHeader("KC-API-PASSPHRASE", CryptoUtility.SHA256Sign(Passphrase.ToUnsecureString(), PrivateApiKey.ToUnsecureString(), true));
+				var endpoint = request.RequestUri.PathAndQuery;
+				//For Gets, Deletes, no need to add the parameters in JSON format
+				var message = "";
+				var sig = "";
+				if (request.Method == "GET" || request.Method == "DELETE")
+				{
+					//Request will be a querystring
+					message = string.Format("{0}{1}{2}", payload["nonce"], request.Method, endpoint);
+					sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
+				}
+				else if (request.Method == "POST")
+				{
+					message = string.Format("{0}{1}{2}{3}", payload["nonce"], request.Method, endpoint, CryptoUtility.GetJsonForPayload(payload, true));
+					sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
+				}
+				request.AddHeader("KC-API-KEY-VERSION", 2.ToStringInvariant());
+				request.AddHeader("KC-API-SIGN", sig);
 
-                var endpoint = request.RequestUri.PathAndQuery;
-                //For Gets, Deletes, no need to add the parameters in JSON format
-                var message = "";
-                var sig = "";
-                if (request.Method == "GET" || request.Method == "DELETE")
-                {
-                    //Request will be a querystring
-                    message = string.Format("{0}{1}{2}", payload["nonce"], request.Method, endpoint);
-                    sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
-                }
-                else if (request.Method == "POST")
-                {
-                    message = string.Format("{0}{1}{2}{3}", payload["nonce"], request.Method, endpoint, CryptoUtility.GetJsonForPayload(payload, true));
-                    sig = CryptoUtility.SHA256Sign(message, PrivateApiKey.ToUnsecureString(), true);
-                }
-                request.AddHeader("KC-API-SIGN", sig);
-            }
+			}
 
-            if (request.Method == "POST")
-            {
-                string msg = CryptoUtility.GetJsonForPayload(payload, true);
-                byte[] content = msg.ToBytesUTF8();
-                await request.WriteAllAsync(content, 0, content.Length);
-            }
-        }
+			if (request.Method == "POST")
+			{
+				string msg = CryptoUtility.GetJsonForPayload(payload, true);
+				byte[] content = msg.ToBytesUTF8();
+				await request.WriteAllAsync(content, 0, content.Length);
+			}
+		}
 
-        #endregion ProcessRequest
+		#endregion ProcessRequest
 
-        #region Public APIs
+		#region Public APIs
 
-        protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
         {
             Dictionary<string, ExchangeCurrency> currencies = new Dictionary<string, ExchangeCurrency>();
             List<string> symbols = new List<string>();
@@ -391,10 +392,18 @@ namespace ExchangeSharp
             var payload = await GetNoncePayloadAsync();
             payload["clientOid"] = Guid.NewGuid();
             payload["size"] = order.Amount;
-            payload["price"] = order.Price;
             payload["symbol"] = order.MarketSymbol;
             payload["side"] = order.IsBuy ? "buy" : "sell";
-            order.ExtraParameters.CopyTo(payload);
+			if (order.OrderType == OrderType.Market)
+			{
+				payload["type"] = "market";
+			}
+			else if (order.OrderType == OrderType.Limit)
+			{
+				payload["type"] = "limit";
+				payload["price"] = order.Price.ToStringInvariant();
+			}
+			order.ExtraParameters.CopyTo(payload);
 
             // {"orderOid": "596186ad07015679730ffa02" }
             JToken token = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
@@ -455,41 +464,51 @@ namespace ExchangeSharp
             return response;
         }
 
-        #endregion Private APIs
+		#endregion Private APIs
 
-        #region Websockets
+		#region Websockets
 
-        protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
-        {
-            var websocketUrlToken = GetWebsocketBulletToken();
-            return await ConnectWebSocketAsync
-            (
-                $"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
-                {
-                    JToken token = JToken.Parse(msg.ToStringFromUTF8());
-                    if (token["type"].ToStringInvariant() == "message")
-                    {
-						const string topicPrefix = "/market/ticker:";
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+		{
+			var websocketUrlToken = GetWebsocketBulletToken();
+			return await ConnectWebSocketAsync
+			(
+				$"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
+				{
+					JToken token = JToken.Parse(msg.ToStringFromUTF8());
+					if (token["type"].ToStringInvariant() == "message")
+					{
 						var dataToken = token["data"];
-                        var marketSymbol = token["topic"].ToStringInvariant();
-						if (!marketSymbol.StartsWith(topicPrefix))
-							return;
-						marketSymbol = marketSymbol.Substring(topicPrefix.Length);
-						ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol,
-							"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
-						callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
-                    }
-                }, async (_socket) =>
-                {
-                    //need to subscribe to tickers one by one
-                    marketSymbols = marketSymbols == null || marketSymbols.Length == 0 ? (await GetMarketSymbolsAsync()).ToArray() : marketSymbols;
-                    var id = CryptoUtility.UtcNow.Ticks;
-					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = $"/market/ticker:{string.Join(",", marketSymbols)}" });
-                }
-            );
-        }
+						string marketSymbol;
+						if (token["topic"].ToStringInvariant() == $"/market/ticker:all")
+						{
+							//{"data":{"sequence":"1612818290539","bestAsk":"0.387788","size":"304.072","bestBidSize":"654.3404","price":"0.387788","time":1618870257524,"bestAskSize":"0.00005226","bestBid":"0.386912"},"subject":"XEM-USDT","topic":"/market/ticker:all","type":"message"}
+							marketSymbol = token["subject"].ToStringInvariant();
+						}
+						else
+						{
+							//{"data":{"sequence":"1615451293654","bestAsk":"55627.3","size":"0.00075576","bestBidSize":"0.0205","price":"55627.2","time":1618875110592,"bestAskSize":"0.24831204","bestBid":"55627.2"},"subject":"trade.ticker","topic":"/market/ticker:BTC-USDT","type":"message"}
+							const string topicPrefix = "/market/ticker:";
+							marketSymbol = token["topic"].ToStringInvariant();
+							if (!marketSymbol.StartsWith(topicPrefix))
+								return;
+							marketSymbol = marketSymbol.Substring(topicPrefix.Length);
+						}
 
-        protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+						ExchangeTicker ticker = await this.ParseTickerAsync(dataToken, marketSymbol,
+								"bestAsk", "bestBid", "price", "size", null, "time", TimestampType.UnixMilliseconds, idKey: "sequence");
+						callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker) });
+					}
+				}, async (_socket) =>
+				{
+					var id = CryptoUtility.UtcNow.Ticks;
+					var topic = marketSymbols.Length == 0 ? $"/market/ticker:all" : $"/market/ticker:{string.Join(",", marketSymbols)}";
+					await _socket.SendMessageAsync(new { id = id++, type = "subscribe", topic = topic });
+				}
+			);
+		}
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
 			//{
 			//  "id":"5c24c5da03aa673885cd67aa",

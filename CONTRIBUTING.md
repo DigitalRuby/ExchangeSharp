@@ -26,6 +26,8 @@ When creating a new Exchange API, please do the following:
 - Ensure that the unit tests and integrations tests (```ExchangeSharpConsole.exe test exchangeName=[name]```) pass before submitting a pull request.
 - Set needed properties in the constructor of the exchange, such as NonceStyle, NonceEndPoint, NonceEndPointField, NonceEndPointStyle and any property in /API/Exchanges/_Base/ExchangeAPIDefinitions.cs.
 - If you have very custom nonce offset calculation logic, you can override OnGetNonceOffset, but please do only if absolutely necessary.
+- Exchange implementation classes should be sealed and have a private constructor.
+- One-time exchange initialization can be performed by overring `OnInitializeAsync()`.
  
 
 

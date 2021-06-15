@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using ExchangeSharp;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -16,10 +16,8 @@ namespace ExchangeSharpTests
 				requestMaker.GlobalResponse = response;
 			}
 
-			var api = new ExchangeBL3PAPI
-			{
-				RequestMaker = requestMaker
-			};
+			var api = (ExchangeAPI.GetExchangeAPI(ExchangeName.BL3P) as ExchangeBL3PAPI)!;
+			api.RequestMaker = requestMaker;
 			return api;
 		}
 

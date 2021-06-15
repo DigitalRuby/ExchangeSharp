@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -64,8 +64,8 @@ namespace ExchangeSharp
         /// <typeparam name="T">Type to read</typeparam>
         /// <param name="key">Key</param>
         /// <param name="value">Value</param>
-        /// <param name="notFound">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
-        Task<CachedItem<T>> Get<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class;
+        /// <param name="factory">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
+        Task<CachedItem<T>> GetOrCreate<T>(string key, Func<Task<CachedItem<T>>> factory) where T : class;
 
         /// <summary>
         /// Remove a key from the cache immediately
@@ -176,7 +176,7 @@ namespace ExchangeSharp
         /// <param name="key">Key</param>
         /// <param name="value">Value</param>
         /// <param name="notFound">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
-        public async Task<CachedItem<T>> Get<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class
+        public async Task<CachedItem<T>> GetOrCreate<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class
         {
             CachedItem<T> newItem = default;
             cacheTimerLock.EnterReadLock();

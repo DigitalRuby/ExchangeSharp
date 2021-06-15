@@ -20,7 +20,7 @@ namespace ExchangeSharp
         private static Dictionary<string, long> _marketSymbolToInstrumentIdMapping;
         private static Dictionary<string, long> _symbolToProductId;
 
-        public ExchangeNDAXAPI()
+		private ExchangeNDAXAPI()
         {
             RequestContentType = "application/json";
             MarketSymbolSeparator = "_";
@@ -30,7 +30,7 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
             var result =
-                await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("returnticker", "https://core.ndax.io/api/returnticker", null, "GET");
+                await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("ticker", "https://core.ndax.io/v1", null, "GET");
             _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key.Replace("_", ""), pair => pair.Value.Id); // remove the _
             return result.Select(pair =>
                 new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(pair.Key)));

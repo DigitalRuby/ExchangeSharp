@@ -26,7 +26,7 @@ namespace ExchangeSharpConsole.Options
 				return;
 			}
 
-			using (var proc = Process.GetCurrentProcess())
+			using(var proc = Process.GetCurrentProcess())
 			{
 				Console.Error.WriteLine($"Connect debugger to PID: {proc.Id}.");
 				Console.Error.WriteLine("Waiting...");
@@ -166,17 +166,15 @@ namespace ExchangeSharpConsole.Options
 			}
 		}
 
-
 		/// <summary>
 		/// Makes the app keep running after main thread has exited
 		/// </summary>
 		/// <param name="callback">A callback for when the user press CTRL-C or Q</param>
-		protected static IDisposable KeepSessionAlive(Action callback = null)
-			=> new ConsoleSessionKeeper(callback);
+		protected static IDisposable KeepSessionAlive(Action callback = null) => new ConsoleSessionKeeper(callback);
 
-		protected static async Task<string[]> ValidateMarketSymbolsAsync(IExchangeAPI api, string[] marketSymbols)
+		protected static async Task<string[]> ValidateMarketSymbolsAsync(IExchangeAPI api, string[] marketSymbols, bool isWebSocket = false)
 		{
-			var apiSymbols = (await api.GetMarketSymbolsAsync()).ToArray();
+			var apiSymbols = (await api.GetMarketSymbolsAsync(isWebSocket)).ToArray();
 
 			if (marketSymbols is null || marketSymbols.Length == 0)
 			{
@@ -209,8 +207,8 @@ namespace ExchangeSharpConsole.Options
 				var validSymbols = string.Join(",", apiSymbols.OrderBy(s => s));
 
 				throw new ArgumentException(
-					$"Symbol {marketSymbol} does not exist in API {api.Name}.\n" +
-					$"Valid symbols: {validSymbols}"
+					$"Symbol {marketSymbol} does not exist in API {api.Name}.\n"
+					+ $"Valid symbols: {validSymbols}"
 				);
 			}
 		}
@@ -230,10 +228,10 @@ namespace ExchangeSharpConsole.Options
 
 			for (var i = 0; i < length; i++)
 			{
-				var (_, ask) = orderBook.Asks.ElementAtOrDefault(i);
-				var (_, bid) = orderBook.Bids.ElementAtOrDefault(i);
-				Console.WriteLine($"{bid.Price,10} ({bid.Amount,9:N2}) | " +
-				                  $"{ask.Price,10} ({ask.Amount,9:N})");
+				var(_, ask) = orderBook.Asks.ElementAtOrDefault(i);
+				var(_, bid) = orderBook.Bids.ElementAtOrDefault(i);
+				Console.WriteLine($"{bid.Price,10} ({bid.Amount,9:N2}) | "
+					+ $"{ask.Price,10} ({ask.Amount,9:N})");
 			}
 		}
 	}

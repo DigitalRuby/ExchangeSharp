@@ -35,11 +35,11 @@ namespace ExchangeSharp
             set { Passphrase = value.ToSecureString(); }
         }
 
-        /// <summary>
-        /// In order to use private functions of the API, you must set CustomerId by calling constructor with parameter,
-        /// or setting it later in the ExchangeBitstampAPI object.
-        /// </summary>
-        public ExchangeBitstampAPI()
+		/// <summary>
+		/// In order to use private functions of the API, you must set CustomerId by calling constructor with parameter,
+		/// or setting it later in the ExchangeBitstampAPI object.
+		/// </summary>
+		private ExchangeBitstampAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
             NonceStyle = NonceStyle.UnixMilliseconds;
