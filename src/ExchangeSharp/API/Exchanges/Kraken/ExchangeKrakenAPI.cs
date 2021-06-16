@@ -873,6 +873,8 @@ namespace ExchangeSharp
 				if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token && token[2].ToStringInvariant() == ($"ohlc-{interval}"))
 				{
 					string marketSymbol = token[3].ToStringInvariant();
+					//Kraken updates the candle open time to the current time, but we want it as open-time i.e. close-time - interval
+					token[1][0] = token[1][1].ConvertInvariant<long>() - interval * 60;
 					var candle = this.ParseCandle(token[1], marketSymbol, interval * 60, 2, 3, 4, 5, 0, TimestampType.UnixSeconds, 7, null, 6);
 					await callbackAsync(candle);
 				}
