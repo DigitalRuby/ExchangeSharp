@@ -296,7 +296,7 @@ namespace ExchangeSharp
 
         protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+            return ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 string message = msg.ToStringFromUTF8();
                 var book = new ExchangeOrderBook();
@@ -365,7 +365,7 @@ namespace ExchangeSharp
 
         protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
         {
-            return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["type"].ToStringInvariant() == "ticker")
@@ -399,7 +399,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-            return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync("/", async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["type"].ToStringInvariant() == "error")

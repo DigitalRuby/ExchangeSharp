@@ -148,7 +148,7 @@ namespace ExchangeSharp
         private Task<IWebSocket> DoConnectWebSocketAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, JToken, Task> callback, int symbolArrayIndex = 3)
         {
 			Timer pingTimer = null;
-            return ConnectWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
+            return ConnectPublicWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
             {
 				var msgString = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(msgString);
@@ -286,7 +286,7 @@ namespace ExchangeSharp
 			});
         }
 
-        public async Task<IWebSocket> GetPositionWebSocketAsync(Action<ExchangePosition> callback)
+		protected override async Task<IWebSocket> OnGetPositionsWebSocketAsync(Action<ExchangePosition> callback)
         {
 			/*
             request:

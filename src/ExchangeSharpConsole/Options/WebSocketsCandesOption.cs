@@ -9,7 +9,7 @@ using ExchangeSharpConsole.Options.Interfaces;
 namespace ExchangeSharpConsole.Options
 {
 	[Verb("ws-candles", HelpText =
-		"Connects to the given exchange websocket and keeps printing the candles from that exchange." +
+		"Connects to the given exchange websocket and keeps printing the candles from that exchange.\n" +
 		"If market symbol is not set then uses all.")]
 	public class WebSocketsCandlesOption : BaseOption, IOptionPerExchange, IOptionWithMultipleMarketSymbol, IOptionWithPeriod
 	{

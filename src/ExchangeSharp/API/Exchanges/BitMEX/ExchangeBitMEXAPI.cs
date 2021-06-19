@@ -235,7 +235,7 @@ namespace ExchangeSharp
 "data":[{"timestamp":"2018-07-06T08:31:53.333Z","symbol":"XBTUSD","side":"Buy","size":10000,"price":6520,"tickDirection":"PlusTick","trdMatchID":"a296312f-c9a4-e066-2f9e-7f4cf2751f0a","grossValue":153370000,"homeNotional":1.5337,"foreignNotional":10000}]}
              */
 
-            return ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+            return ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);
@@ -282,7 +282,7 @@ namespace ExchangeSharp
             {
                 marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
             }
-            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);
@@ -355,7 +355,7 @@ namespace ExchangeSharp
             });
         }
 
-        public async Task<IWebSocket> GetPositionWebSocketAsync(Action<ExchangePosition> callback)
+		protected override async Task<IWebSocket> OnGetPositionsWebSocketAsync(Action<ExchangePosition> callback)
         {
             /*
 "{\"info\":\"Welcome to the BitMEX Realtime API.\",\"version\":\"2020-04-08T01:10:16.000Z\",\"timestamp\":\"2020-04-11T11:43:31.856Z\",\"docs\":\"https://testnet.bitmex.com/app/wsAPI\",\"limit\":{\"remaining\":39}}"
@@ -364,7 +364,7 @@ namespace ExchangeSharp
 "{\"table\":\"position\",\"action\":\"partial\",\"keys\":[\"account\",\"symbol\"],\"types\":{\"account\":\"long\",\"symbol\":\"symbol\",\"currency\":\"symbol\",\"underlying\":\"symbol\",\"quoteCurrency\":\"symbol\",\"commission\":\"float\",\"initMarginReq\":\"float\",\"maintMarginReq\":\"float\",\"riskLimit\":\"long\",\"leverage\":\"float\",\"crossMargin\":\"boolean\",\"deleveragePercentile\":\"float\",\"rebalancedPnl\":\"long\",\"prevRealisedPnl\":\"long\",\"prevUnrealisedPnl\":\"long\",\"prevClosePrice\":\"float\",\"openingTimestamp\":\"timestamp\",\"openingQty\":\"long\",\"openingCost\":\"long\",\"openingComm\":\"long\",\"openOrderBuyQty\":\"long\",\"openOrderBuyCost\":\"long\",\"openOrderBuyPremium\":\"long\",\"openOrderSellQty\":\"long\",\"openOrderSellCost\":\"long\",\"openOrderSellPremium\":\"long\",\"execBuyQty\":\"long\",\"execBuyCost\":\"long\",\"execSellQty\":\"long\",\"execSellCost\":\"long\",\"execQty\":\"long\",\"execCost\":\"long\",\"execComm\":\"long\",\"currentTimestamp\":\"timestamp\",\"currentQty\":\"long\",\"currentCost\":\"long\",\"currentComm\":\"long\",\"realisedCost\":\"long\",\"unrealisedCost\":\"long\",\"grossOpenCost\":\"long\",\"grossOpenPremium\":\"long\",\"grossExecCost\":\"long\",\"isOpen\":\"boolean\",\"markPrice\":\"float\",\"markValue\":\"long\",\"riskValue\":\"long\",\"homeNotional\":\"float\",\"foreignNotional\":\"float\",\"posState\":\"symbol\",\"posCost\":\"long\",\"posCost2\":\"long\",\"posCross\":\"long\",\"posInit\":\"long\",\"posComm\":\"long\",\"posLoss\":\"long\",\"posMargin\":\"long\",\"posMaint\":\"long\",\"posAllowance\":\"long\",\"taxableMargin\":\"long\",\"initMargin\":\"long\",\"maintMargin\":\"long\",\"sessionMargin\":\"long\",\"targetExcessMargin\":\"long\",\"varMargin\":\"long\",\"realisedGrossPnl\":\"long\",\"realisedTax\":\"long\",\"realisedPnl\":\"long\",\"unrealisedGrossPnl\":\"long\",\"longBankrupt\":\"long\",\"shortBankrupt\":\"long\",\"taxBase\":\"long\",\"indicativeTaxRate\":\"float\",\"indicativeTax\":\"long\",\"unrealisedTax\":\"long\",\"unrealisedPnl\":\"long\",\"unrealisedPnlPcnt\":\"float\",\"unrealisedRoePcnt\":\"float\",\"simpleQty\":\"float\",\"simpleCost\":\"float\",\"simpleValue\":\"float\",\"simplePnl\":\"float\",\"simplePnlPcnt\":\"float\",\"avgCostPrice\":\"float\",\"avgEntryPrice\":\"float\",\"breakEvenPrice\":\"float\",\"marginCallPrice\":\"float\",\"liquidationPrice\":\"float\",\"bankruptPrice\":\"float\",\"timestamp\":\"timestamp\",\"lastPrice\":\"float\",\"lastValue\":\"long\"},\"foreignKeys\":{\"symbol\":\"instrument\"},\"attributes\":{\"account\":\"sorted\",\"symbol\":\"grouped\",\"underlying\":\"grouped\"},\"filter\":{\"account\":12345678},\"data\":[{\"account\":12345678,\"symbol\":\"XBTUSD\",\"currency\":\"XBt\",\"underlying\":\"XBT\",\"quoteCurrency\":\"USD\",\"commission\":0.00075,\"initMarginReq\":0.01,\"maintMarginReq\":0.005,\"riskLimit\":20000000000,\"leverage\":100,\"crossMargin\":true,\"deleveragePercentile\":null,\"rebalancedPnl\":1234,\"prevRealisedPnl\":678,\"prevUnrealisedPnl\":0,\"prevClosePrice\":6905.23,\"openingTimestamp\":\"2020-04-11T11:00:00.000Z\",\"openingQty\":0,\"openingCost\":9876,\"openingComm\":6543,\"openOrderBuyQty\":0,\"openOrderBuyCost\":0,\"openOrderBuyPremium\":0,\"openOrderSellQty\":0,\"openOrderSellCost\":0,\"openOrderSellPremium\":0,\"execBuyQty\":0,\"execBuyCost\":0,\"execSellQty\":0,\"execSellCost\":0,\"execQty\":0,\"execCost\":0,\"execComm\":0,\"currentTimestamp\":\"2020-04-11T11:00:00.330Z\",\"currentQty\":0,\"currentCost\":8765,\"currentComm\":564542,\"realisedCost\":9876,\"unrealisedCost\":0,\"grossOpenCost\":0,\"grossOpenPremium\":0,\"grossExecCost\":0,\"isOpen\":false,\"markPrice\":null,\"markValue\":0,\"riskValue\":0,\"homeNotional\":0,\"foreignNotional\":0,\"posState\":\"\",\"posCost\":0,\"posCost2\":0,\"posCross\":0,\"posInit\":0,\"posComm\":0,\"posLoss\":0,\"posMargin\":0,\"posMaint\":0,\"posAllowance\":0,\"taxableMargin\":0,\"initMargin\":0,\"maintMargin\":0,\"sessionMargin\":0,\"targetExcessMargin\":0,\"varMargin\":0,\"realisedGrossPnl\":-7654,\"realisedTax\":0,\"realisedPnl\":-7654,\"unrealisedGrossPnl\":0,\"longBankrupt\":0,\"shortBankrupt\":0,\"taxBase\":0,\"indicativeTaxRate\":null,\"indicativeTax\":0,\"unrealisedTax\":0,\"unrealisedPnl\":0,\"unrealisedPnlPcnt\":0,\"unrealisedRoePcnt\":0,\"simpleQty\":null,\"simpleCost\":null,\"simpleValue\":null,\"simplePnl\":null,\"simplePnlPcnt\":null,\"avgCostPrice\":null,\"avgEntryPrice\":null,\"breakEvenPrice\":null,\"marginCallPrice\":null,\"liquidationPrice\":null,\"bankruptPrice\":null,\"timestamp\":\"2020-04-11T11:00:00.330Z\",\"lastPrice\":null,\"lastValue\":0}]}"
             */
 
-            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 var str = msg.ToStringFromUTF8();
                 JToken token = JToken.Parse(str);

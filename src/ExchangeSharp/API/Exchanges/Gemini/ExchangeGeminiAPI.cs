@@ -396,7 +396,7 @@ namespace ExchangeSharp
 				}
 			}
 
-			return await ConnectWebSocketAsync(null, messageCallback: (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(null, messageCallback: (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["result"].ToStringInvariant() == "error")
@@ -559,7 +559,7 @@ namespace ExchangeSharp
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 
-			return await ConnectWebSocketAsync(BaseUrlWebSocket, messageCallback: async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(BaseUrlWebSocket, messageCallback: async (_socket, msg) =>
 		   {
 			   JToken token = JToken.Parse(msg.ToStringFromUTF8());
 			   if (token["result"].ToStringInvariant() == "error")
@@ -614,7 +614,7 @@ namespace ExchangeSharp
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 
-			return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
 			{
 				string message = msg.ToStringFromUTF8();
 				var book = new ExchangeOrderBook();

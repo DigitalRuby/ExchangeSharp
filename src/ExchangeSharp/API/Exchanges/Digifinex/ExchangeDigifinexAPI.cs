@@ -459,7 +459,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
 				// {
 				//    "method": "trades.update",
@@ -536,7 +536,7 @@ namespace ExchangeSharp
 			}
 			await inited.Task;
 
-			return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
 			{
 				//{
 				//  "method": "depth.update",
