@@ -843,6 +843,53 @@ namespace ExchangeSharp
 			await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
 		}
 
+		protected override async Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
+			}
+			//kraken has multiple OHLC channels named ohlc-1|5|15|30|60|240|1440|10080|21600 with interval specified in minutes
+			int interval = periodSeconds / 60;
+
+			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			{
+				/*
+				https://docs.kraken.com/websockets/#message-ohlc
+				[0]channelID integer Channel ID of subscription -deprecated, use channelName and pair
+				[1]Array array
+				-time    decimal Begin time of interval, in seconds since epoch
+				-etime   decimal End time of interval, in seconds since epoch
+				-open    decimal Open price of interval
+				-high    decimal High price within interval
+				-low decimal Low price within interval
+				-close   decimal Close price of interval
+				-vwap    decimal Volume weighted average price within interval
+				-volume  decimal Accumulated volume within interval
+				-count   integer Number of trades within interval
+				[2]channelName string Channel Name of subscription
+				[3]pair    string Asset pair
+				*/
+				if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token && token[2].ToStringInvariant() == ($"ohlc-{interval}"))
+				{
+					string marketSymbol = token[3].ToStringInvariant();
+					//Kraken updates the candle open time to the current time, but we want it as open-time i.e. close-time - interval
+					token[1][0] = token[1][1].ConvertInvariant<long>() - interval * 60;
+					var candle = this.ParseCandle(token[1], marketSymbol, interval * 60, 2, 3, 4, 5, 0, TimestampType.UnixSeconds, 7, null, 6);
+					await callbackAsync(candle);
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
+				await _socket.SendMessageAsync(new
+				{
+					@event = "subscribe",
+					pair = marketSymbolList,
+					subscription = new { name = "ohlc", interval = interval }
+				});
+			});
+		}
+
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
@@ -850,23 +897,23 @@ namespace ExchangeSharp
 				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
 			}
 			return await ConnectWebSocketAsync(null, messageCallback: async (_socket, msg) =>
-		   {
-			   if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token)
-			   {
-				   var exchangeTicker = await ConvertToExchangeTickerAsync(token[3].ToString(), token[1]);
-				   var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
-				   tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
-			   }
-		   }, connectCallback: async (_socket) =>
-		   {
-			   List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
-			   await _socket.SendMessageAsync(new
-			   {
-				   @event = "subscribe",
-				   pair = marketSymbolList,
-				   subscription = new { name = "ticker" }
-			   });
-		   });
+			{
+				if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token)
+				{
+					var exchangeTicker = await ConvertToExchangeTickerAsync(token[3].ToString(), token[1]);
+					var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
+					tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				List<string> marketSymbolList = await GetMarketSymbolList(marketSymbols);
+				await _socket.SendMessageAsync(new
+				{
+					@event = "subscribe",
+					pair = marketSymbolList,
+					subscription = new { name = "ticker" }
+				});
+			});
 		}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)

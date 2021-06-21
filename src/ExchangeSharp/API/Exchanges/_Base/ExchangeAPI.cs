@@ -178,7 +178,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeCloseMarginPositionResult> OnCloseMarginPositionAsync(string marketSymbol) =>
 			throw new NotImplementedException();
-		protected virtual Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<IReadOnlyCollection<MarketCandle>, Task> callbackAsync, params string[] marketSymbols) =>
+		protected virtual Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols) =>
 			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) =>
 			throw new NotImplementedException();
@@ -1005,10 +1005,10 @@ namespace ExchangeSharp
 		/// <param name="callbackAsync">Callback</param>
 		/// <param name="marketSymbols">Market Symbols</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		public virtual Task<IWebSocket> GetCandlesWebSocketAsync(Func<IReadOnlyCollection<MarketCandle>, Task> callbackAsync, params string[] marketSymbols)
+		public virtual Task<IWebSocket> GetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols)
 		{
 			callbackAsync.ThrowIfNull(nameof(callbackAsync), "Callback must not be null");
-			return OnGetCandlesWebSocketAsync(callbackAsync, marketSymbols);
+			return OnGetCandlesWebSocketAsync(callbackAsync, periodSeconds, marketSymbols);
 		}
 
 		/// <summary>
