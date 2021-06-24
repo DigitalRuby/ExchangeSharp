@@ -860,27 +860,49 @@ namespace ExchangeSharp
 
 		private ExchangePosition ParsePosition(JToken token)
 		{
-			// TODO:
-			/*
-			"id": ...
-			*/
-			string foo = token.ToString();
-
-			ExchangePosition result = new ExchangePosition
+			try
 			{
-				MarketSymbol = token["descr"]["pair"].ToStringUpperInvariant(),
-				Amount = token["vol"].ConvertInvariant<decimal>(),
-				AveragePrice = token["avg_price"].ConvertInvariant<decimal>(),
-				// TODO:
-				//LiquidationPrice = token["liq_price"].ConvertInvariant<decimal>(),
-				//Leverage = token["effective_leverage"].ConvertInvariant<decimal>(),
-				TimeStamp = CryptoUtility.ParseTimestamp(token["opentm"], TimestampType.Iso8601)
-			};
+				// @see: https://docs.kraken.com/websockets/#message-openOrders
+				ExchangePosition result = null;
 
-			if (token["side"].ToStringInvariant() == "Sell")
-				result.Amount *= -1;
+				foreach (JProperty kvp in token)
+				{
+					if (kvp.Value["descr"] is JObject descr)
+					{
+						decimal epochMilliseconds = kvp.Value["opentm"].ToObject<decimal>();
+						// Preserve Kraken timestamp decimal precision by converting seconds to milliseconds.
+						epochMilliseconds = epochMilliseconds * 1000;
 
-			return result;
+						result = new ExchangePosition
+						{
+							MarketSymbol = descr["pair"].ToStringUpperInvariant(),
+							Amount = kvp.Value["vol"].ConvertInvariant<decimal>(),
+							AveragePrice = kvp.Value["avg_price"].ConvertInvariant<decimal>(),
+							// TODO:
+							//LiquidationPrice = token["liq_price"].ConvertInvariant<decimal>(),
+							TimeStamp = DateTimeOffset.FromUnixTimeMilliseconds((long)epochMilliseconds).DateTime
+						};
+
+						if (descr["leverage"].Type != JTokenType.Null)
+						{
+							result.Leverage = descr["leverage"].ConvertInvariant<decimal>();
+						}
+
+						if (kvp.Value["side"].ToStringInvariant() == "Sell")
+						{
+							result.Amount *= -1;
+						}
+
+						return result;
+					}
+				}
+
+				return result;
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
 		}
 
 		protected override async Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols)
@@ -932,60 +954,42 @@ namespace ExchangeSharp
 
 		protected override async Task<IWebSocket> OnGetPositionsWebSocketAsync(Action<ExchangePosition> callback)
 		{
-			var foo = true;
-			// TODO:
-			/*
-			request:
-			{
-				// TODO
-			}
-			*/
-			/*
-			response:
-			{
-				// TODO
-			}
-			 */
-
-			return await ConnectPrivateWebSocketAsync(null, messageCallback: async (_socket, msg) =>
-			{
-				if (JObject.Parse(msg.ToStringFromUTF8()) is JObject token1)
+			// @see: https://docs.kraken.com/websockets/#message-openOrders
+			return await ConnectPrivateWebSocketAsync(
+				null,
+				messageCallback: async (_socket, msg) =>
 				{
-					Console.WriteLine($"Positions WS msg1: {token1}");
-
-					if (token1["event"] != null && token1["event"].ToString() == "")
+					if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token)
 					{
-						string foo = token1.ToString();
-
-						foreach (var dataRow in msg)
+						if (token.Count == 3 && token[1].ToString() == "openOrders")
 						{
-
-							bool bar = true;
-							//callback(ParsePosition(dataRow));
+							foreach(JToken element in token[0])
+							{
+								if (element is JObject position)
+								{
+									callback(ParsePosition(element));
+								}
+							}
 						}
 					}
-				}
-
-				if (JToken.Parse(msg.ToStringFromUTF8()) is JArray token)
+					
+					await Task.CompletedTask;
+				},
+				connectCallback: async (_socket) =>
 				{
-					Console.WriteLine($"Positions WS msg: {token}");
-				}
+					string token = await GetWebsocketToken();
 
-				await Task.CompletedTask;
-			}, connectCallback: async (_socket) =>
-			{
-				string token = await GetWebsocketToken();
-
-				await _socket.SendMessageAsync(new
-				{
-					@event = "subscribe",
-					subscription = new
+					await _socket.SendMessageAsync(new
 					{
-						name = "openOrders",
-						token = token
-					}
-				});
-			});
+						@event = "subscribe",
+						subscription = new
+						{
+							name = "openOrders",
+							token = token
+						}
+					});
+				}
+			);
 		}
 
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)

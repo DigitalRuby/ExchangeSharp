@@ -18,9 +18,9 @@ namespace ExchangeSharpConsole.Options
 			{
 				api.LoadAPIKeys(KeyPath);
 
-				return await api.GetPositionsWebSocketAsync(message =>
+				return await api.GetPositionsWebSocketAsync(position =>
 					{
-						Console.WriteLine($"{message.MarketSymbol}: Amount: {message.Amount} Price: {message.AveragePrice}");
+						Console.WriteLine($"Open TimeStamp: {position.TimeStamp} Market: {position.MarketSymbol}: Amount: {position.Amount} Average Price: {position.AveragePrice}");
 					}
 				);
 			}
