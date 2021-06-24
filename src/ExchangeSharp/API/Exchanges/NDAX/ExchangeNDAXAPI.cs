@@ -377,7 +377,7 @@ namespace ExchangeSharp
 				(await GetMarketSymbolsMetadataAsync()).Select(s => (long?)long.Parse(s.AltMarketSymbol)).ToArray() :
 				await GetInstrumentIdFromMarketSymbol(marketSymbols);
 
-			return await ConnectWebSocketAsync("", async (socket, bytes) =>
+			return await ConnectPublicWebSocketAsync("", async (socket, bytes) =>
                 {
                     var messageFrame =
                         JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));
@@ -430,7 +430,7 @@ namespace ExchangeSharp
 				await EnsureInstrumentIdsAvailable();
 				instrumentIds = await GetInstrumentIdFromMarketSymbol(marketSymbols);
 			}
-			return await ConnectWebSocketAsync("", async (socket, bytes) =>
+			return await ConnectPublicWebSocketAsync("", async (socket, bytes) =>
 				{
 					var messageFrame =
 						JsonConvert.DeserializeObject<MessageFrame>(bytes.ToStringFromUTF8().TrimEnd('\0'));

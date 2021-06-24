@@ -188,7 +188,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
 		{
 			Dictionary<int, string> channelIdToSymbol = new Dictionary<int, string>();
-			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token is JArray array)
@@ -229,7 +229,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return await ConnectWebSocketAsync("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
+			return await ConnectPublicWebSocketAsync("/2", async (_socket, msg) => //use websocket V2 (beta, but millisecond timestamp)
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token is JArray array)
@@ -526,7 +526,7 @@ namespace ExchangeSharp
 
 		protected override Task<IWebSocket> OnGetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback)
 		{
-			return ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+			return ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token[1].ToStringInvariant() == "hb")

@@ -383,7 +383,7 @@ namespace ExchangeSharp
         protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token[0].ConvertInvariant<int>() == 1002)
@@ -412,7 +412,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				int msgId = token[0].ConvertInvariant<int>();
@@ -470,7 +470,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 int msgId = token[0].ConvertInvariant<int>();

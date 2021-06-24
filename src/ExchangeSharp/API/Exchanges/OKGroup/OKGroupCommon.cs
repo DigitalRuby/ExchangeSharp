@@ -653,7 +653,7 @@ namespace ExchangeSharp.OKGroup
         private Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
         {
 			Timer pingTimer = null;
-            return ConnectWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
+            return ConnectPublicWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
             {
 				// https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
 				// All the messages returning from WebSocket API will be optimized by Deflate compression

@@ -222,7 +222,7 @@ namespace ExchangeSharp
 
         protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
         {
-            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 /*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
@@ -289,7 +289,7 @@ namespace ExchangeSharp
 
         protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
-            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 /*
 {{

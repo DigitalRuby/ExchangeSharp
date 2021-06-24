@@ -34,6 +34,7 @@ namespace ExchangeSharpConsole
 			typeof(TickerOption),
 			typeof(TradeHistoryOption),
 			typeof(WebSocketsOrderbookOption),
+			typeof(WebSocketsPositionsOption),
 			typeof(WebSocketsTickersOption),
 			typeof(WebSocketsTradesOption),
 			typeof(WebSocketsCandlesOption)

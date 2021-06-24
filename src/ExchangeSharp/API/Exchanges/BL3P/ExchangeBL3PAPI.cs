@@ -139,7 +139,7 @@ namespace ExchangeSharp
 
 			return new MultiWebsocketWrapper(
 				await Task.WhenAll(
-					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/orderbook", MessageCallback))
+					marketSymbols.Select(ms => ConnectPublicWebSocketAsync($"{ms}/orderbook", MessageCallback))
 				)
 			);
 		}
@@ -164,7 +164,7 @@ namespace ExchangeSharp
 
 			return new MultiWebsocketWrapper(
 				await Task.WhenAll(
-					marketSymbols.Select(ms => ConnectWebSocketAsync($"{ms}/trades", MessageCallback))
+					marketSymbols.Select(ms => ConnectPublicWebSocketAsync($"{ms}/trades", MessageCallback))
 				)
 			);
 		}
