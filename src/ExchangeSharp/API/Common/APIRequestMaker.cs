@@ -13,7 +13,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -51,41 +53,29 @@ namespace ExchangeSharp
 		}
 		internal class InternalHttpWebRequest : IHttpWebRequest
         {
-            internal readonly HttpWebRequest Request;
+            internal HttpClientHandler ClientHandler;
+            internal HttpClient Client;
+            internal readonly HttpRequestMessage Request;
+            internal HttpResponseMessage? Response;
+            private string contentType;
 
-            public InternalHttpWebRequest(Uri fullUri)
+            public InternalHttpWebRequest(string method, Uri fullUri)
             {
-                Request = (HttpWebRequest.Create(fullUri) as HttpWebRequest ?? throw new NullReferenceException("Failed to create HttpWebRequest"));
-                Request.Proxy = Proxy;
-                Request.KeepAlive = false;
+                ClientHandler = new HttpClientHandler{ Proxy = Proxy, UseProxy = Proxy != null };
+                Client = new HttpClient(ClientHandler);
+                Client.DefaultRequestHeaders.ConnectionClose = true; // disable keep-alive
+                Request = new HttpRequestMessage(new HttpMethod(method), fullUri);
             }
 
             public void AddHeader(string header, string value)
             {
-                switch (header.ToStringLowerInvariant())
+                switch (header.ToLowerInvariant())
                 {
                     case "content-type":
-                        Request.ContentType = value;
+                        contentType = value;
                         break;
-
-                    case "content-length":
-                        Request.ContentLength = value.ConvertInvariant<long>();
-                        break;
-
-                    case "user-agent":
-                        Request.UserAgent = value;
-                        break;
-
-                    case "accept":
-                        Request.Accept = value;
-                        break;
-
-                    case "connection":
-                        Request.Connection = value;
-                        break;
-
                     default:
-                        Request.Headers[header] = value;
+                        Request.Headers.Add(header, value);
                         break;
                 }
             }
@@ -97,55 +87,49 @@ namespace ExchangeSharp
 
             public string Method
             {
-                get { return Request.Method; }
-                set { Request.Method = value; }
+                get { return Request.Method.Method; }
+                set { Request.Method = new HttpMethod(value); }
             }
 
             public int Timeout
             {
-                get { return Request.Timeout; }
-                set { Request.Timeout = value; }
+                get { return (int) Client.Timeout.TotalMilliseconds; }
+                set { Client.Timeout = TimeSpan.FromMilliseconds(value); }
             }
 
             public int ReadWriteTimeout
             {
-                get { return Request.ReadWriteTimeout; }
-                set { Request.ReadWriteTimeout = value; }
+                get => Timeout;
+                set => Timeout = value;
             }
+
 
             public async Task WriteAllAsync(byte[] data, int index, int length)
             {
-                using (Stream stream = await Request.GetRequestStreamAsync())
-                {
-                    await stream.WriteAsync(data, 0, data.Length);
-                }
+                Request.Content = new ByteArrayContent(data, index, length);
+                Request.Content.Headers.Add("content-type", contentType);
             }
         }
 
         internal class InternalHttpWebResponse : IHttpWebResponse
         {
-            private readonly HttpWebResponse response;
+            private readonly HttpResponseMessage response;
 
-            public InternalHttpWebResponse(HttpWebResponse response)
+            public InternalHttpWebResponse(HttpResponseMessage response)
             {
                 this.response = response;
             }
 
             public IReadOnlyList<string> GetHeader(string name)
             {
-                return response.Headers.GetValues(name) ?? CryptoUtility.EmptyStringArray;
+                return response.Headers.GetValues(name).ToArray();
             }
 
             public Dictionary<string, IReadOnlyList<string>> Headers
             {
                 get
                 {
-                    Dictionary<string, IReadOnlyList<string>> headers = new Dictionary<string, IReadOnlyList<string>>();
-                    foreach (var header in response.Headers.AllKeys)
-                    {
-                        headers[header] = new List<string>(response.Headers.GetValues(header));
-                    }
-                    return headers;
+                    return response.Headers.ToDictionary(x => x.Key, x => (IReadOnlyList<string>)x.Value.ToArray());
                 }
             }
         }
@@ -181,50 +165,34 @@ namespace ExchangeSharp
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
             method ??= api.RequestMethod;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload, method);
-            InternalHttpWebRequest request = new InternalHttpWebRequest(uri)
-            {
-                Method = method
-            };
+            var request = new InternalHttpWebRequest(method, uri);
             request.AddHeader("accept-language", "en-US,en;q=0.5");
             request.AddHeader("content-type", api.RequestContentType);
             request.AddHeader("user-agent", BaseAPI.RequestUserAgent);
-            request.Timeout = request.ReadWriteTimeout = (int)api.RequestTimeout.TotalMilliseconds;
+            request.Timeout = (int)api.RequestTimeout.TotalMilliseconds;
             await api.ProcessRequestAsync(request, payload);
-            HttpWebResponse? response = null;
+            var response = request.Response;
             string responseString;
 
             try
             {
-                try
+                RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
+                response = await request.Client.SendAsync(request.Request);
+                if (response == null)
                 {
-                    RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
-                    response = await request.Request.GetResponseAsync() as HttpWebResponse;
-                    if (response == null)
-                    {
-                        throw new APIException("Unknown response from server");
-                    }
+                    throw new APIException("Unknown response from server");
                 }
-                catch (WebException we)
-                {
-                    response = we.Response as HttpWebResponse;
-                    if (response == null)
-                    {
-                        throw new APIException(we.Message ?? "Unknown response from server");
-                    }
-                }
-                using (Stream responseStream = response.GetResponseStream())
-                using (StreamReader responseStreamReader = new StreamReader(responseStream))
-                    responseString = responseStreamReader.ReadToEnd();
+                responseString = await response.Content.ReadAsStringAsync();
 
                 if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created)
                 {
-	                // 404 maybe return empty responseString
-	                if (string.IsNullOrWhiteSpace(responseString))
-	                {
+                    // 404 maybe return empty responseString
+                    if (string.IsNullOrWhiteSpace(responseString))
+                    {
                         throw new APIException(string.Format("{0} - {1}", response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
-	                }
+                    }
 
-	                throw new APIException(responseString);
+                    throw new APIException(responseString);
                 }
 
                 api.ProcessResponse(new InternalHttpWebResponse(response));
