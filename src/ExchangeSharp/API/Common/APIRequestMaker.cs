@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -28,42 +29,47 @@ namespace ExchangeSharp
     {
         private readonly IAPIRequestHandler api;
 
-		/// <summary>
-		/// Proxy for http requests, reads from HTTP_PROXY environment var by default
-		/// You can also set via code if you like
-		/// </summary>
-		public static WebProxy? Proxy { get; set; }
-
-		/// <summary>
-		/// Static constructor
-		/// </summary>
-		static APIRequestMaker()
-		{
-			var httpProxy = Environment.GetEnvironmentVariable("http_proxy");
-			httpProxy ??= Environment.GetEnvironmentVariable("HTTP_PROXY");
-
-			if (string.IsNullOrWhiteSpace(httpProxy))
-			{
-				return;
-			}
-
-			var uri = new Uri(httpProxy);
-			Proxy = new WebProxy(uri);
-
-		}
-		internal class InternalHttpWebRequest : IHttpWebRequest
+        /// <summary>
+        /// Proxy for http requests, reads from HTTP_PROXY environment var by default
+        /// You can also set via code if you like
+        /// </summary>
+        private static readonly HttpClientHandler ClientHandler = new HttpClientHandler();
+        public static IWebProxy? Proxy
         {
-            internal HttpClientHandler ClientHandler;
-            internal HttpClient Client;
+            get => ClientHandler.Proxy;
+            set
+            {
+                ClientHandler.Proxy = value;
+            }
+        }
+        public static readonly HttpClient Client = new HttpClient(ClientHandler);
+
+        /// <summary>
+        /// Static constructor
+        /// </summary>
+        static APIRequestMaker()
+        {
+            var httpProxy = Environment.GetEnvironmentVariable("http_proxy");
+            httpProxy ??= Environment.GetEnvironmentVariable("HTTP_PROXY");
+
+            if (!string.IsNullOrWhiteSpace(httpProxy))
+            {
+                var uri = new Uri(httpProxy);
+                Proxy = new WebProxy(uri);
+            }
+
+            Client.DefaultRequestHeaders.ConnectionClose = true; // disable keep-alive
+            Client.Timeout = Timeout.InfiniteTimeSpan; // we handle timeout by ourselves
+        }
+
+        internal class InternalHttpWebRequest : IHttpWebRequest
+        {
             internal readonly HttpRequestMessage Request;
             internal HttpResponseMessage? Response;
             private string contentType;
 
             public InternalHttpWebRequest(string method, Uri fullUri)
             {
-                ClientHandler = new HttpClientHandler{ Proxy = Proxy, UseProxy = Proxy != null };
-                Client = new HttpClient(ClientHandler);
-                Client.DefaultRequestHeaders.ConnectionClose = true; // disable keep-alive
                 Request = new HttpRequestMessage(new HttpMethod(method), fullUri);
             }
 
@@ -91,11 +97,7 @@ namespace ExchangeSharp
                 set { Request.Method = new HttpMethod(value); }
             }
 
-            public int Timeout
-            {
-                get { return (int) Client.Timeout.TotalMilliseconds; }
-                set { Client.Timeout = TimeSpan.FromMilliseconds(value); }
-            }
+            public int Timeout { get; set; }
 
             public int ReadWriteTimeout
             {
@@ -162,6 +164,7 @@ namespace ExchangeSharp
                 url = "/" + url;
             }
 
+            // prepare the request
             string fullUrl = (baseUrl ?? api.BaseUrl) + url;
             method ??= api.RequestMethod;
             Uri uri = api.ProcessRequestUrl(new UriBuilder(fullUrl), payload, method);
@@ -171,13 +174,15 @@ namespace ExchangeSharp
             request.AddHeader("user-agent", BaseAPI.RequestUserAgent);
             request.Timeout = (int)api.RequestTimeout.TotalMilliseconds;
             await api.ProcessRequestAsync(request, payload);
+
+            // send the request
             var response = request.Response;
             string responseString;
-
+            using var cancel = new CancellationTokenSource(request.Timeout);
             try
-            {
+                {
                 RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
-                response = await request.Client.SendAsync(request.Request);
+                response = await Client.SendAsync(request.Request, cancel.Token);
                 if (response == null)
                 {
                     throw new APIException("Unknown response from server");
@@ -197,6 +202,11 @@ namespace ExchangeSharp
 
                 api.ProcessResponse(new InternalHttpWebResponse(response));
                 RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
+            }
+            catch (OperationCanceledException ex) when (cancel.IsCancellationRequested)
+            {
+                RequestStateChanged?.Invoke(this, RequestMakerState.Error, ex);
+                throw new TimeoutException("APIRequest timeout", ex);
             }
             catch (Exception ex)
             {
