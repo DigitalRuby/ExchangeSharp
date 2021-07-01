@@ -996,6 +996,10 @@ namespace ExchangeSharp
 							result.Status = ExchangeAPIOrderResult.Unknown;
 						}
 					}
+					else
+					{
+						result.Status = ExchangeAPIOrderResult.Unknown;
+					}
 
 					if (kvp.Value["opentm"] != null && kvp.Value["opentm"].Type != JTokenType.Null)
 					{
@@ -1004,6 +1008,10 @@ namespace ExchangeSharp
 						epochMilliseconds = epochMilliseconds * 1000;
 
 						result.TimeStamp = DateTimeOffset.FromUnixTimeMilliseconds((long)epochMilliseconds).DateTime;
+					}
+					else
+					{
+						result.TimeStamp = DateTimeOffset.UtcNow.DateTime;
 					}
 
 					return result;
