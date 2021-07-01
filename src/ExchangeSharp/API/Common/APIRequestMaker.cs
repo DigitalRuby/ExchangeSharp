@@ -66,7 +66,7 @@ namespace ExchangeSharp
         {
             internal readonly HttpRequestMessage Request;
             internal HttpResponseMessage? Response;
-            private string contentType;
+            private string? contentType;
 
             public InternalHttpWebRequest(string method, Uri fullUri)
             {
@@ -106,10 +106,11 @@ namespace ExchangeSharp
             }
 
 
-            public async Task WriteAllAsync(byte[] data, int index, int length)
+            public Task WriteAllAsync(byte[] data, int index, int length)
             {
                 Request.Content = new ByteArrayContent(data, index, length);
                 Request.Content.Headers.Add("content-type", contentType);
+				return Task.CompletedTask;
             }
         }
 
@@ -124,8 +125,15 @@ namespace ExchangeSharp
 
             public IReadOnlyList<string> GetHeader(string name)
             {
-                return response.Headers.GetValues(name).ToArray();
-            }
+				try
+				{
+					return response.Headers.GetValues(name).ToArray(); // throws InvalidOperationException when name not exist
+				}
+				catch (Exception)
+				{
+					return CryptoUtility.EmptyStringArray;
+				}
+			}
 
             public Dictionary<string, IReadOnlyList<string>> Headers
             {
@@ -180,7 +188,7 @@ namespace ExchangeSharp
             string responseString;
             using var cancel = new CancellationTokenSource(request.Timeout);
             try
-                {
+            {
                 RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
                 response = await Client.SendAsync(request.Request, cancel.Token);
                 if (response == null)
@@ -200,7 +208,7 @@ namespace ExchangeSharp
                     throw new APIException(responseString);
                 }
 
-                api.ProcessResponse(new InternalHttpWebResponse(response));
+				api.ProcessResponse(new InternalHttpWebResponse(response));
                 RequestStateChanged?.Invoke(this, RequestMakerState.Finished, responseString);
             }
             catch (OperationCanceledException ex) when (cancel.IsCancellationRequested)
