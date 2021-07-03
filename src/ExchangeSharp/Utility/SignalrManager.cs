@@ -29,6 +29,9 @@ using Microsoft.AspNet.SignalR.Client;
 using Microsoft.AspNet.SignalR.Client.Http;
 using Microsoft.AspNet.SignalR.Client.Transports;
 using Microsoft.AspNet.SignalR.Client.Infrastructure;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace ExchangeSharp
 {
@@ -37,6 +40,7 @@ namespace ExchangeSharp
     /// </summary>
     public class SignalrManager
     {
+
         /// <summary>
         /// A connection to a specific end point in the hub
         /// </summary>
@@ -133,6 +137,7 @@ namespace ExchangeSharp
                         {
                             throw new ArgumentNullException("Hub proxy is null");
                         }
+
 
                         // all parameters must succeed or we will give up and try the loop all over again
                         for (int i = 0; i < param.Length; i++)
@@ -466,36 +471,6 @@ namespace ExchangeSharp
             }
         }
 
-        private async Task HandleResponse(string functionName, string data)
-        {
-            string functionFullName = GetFunctionFullName(functionName);
-            data = Decode(data);
-            Func<string, Task>[] actions = null;
-
-            lock (listeners)
-            {
-                if (listeners.TryGetValue(functionFullName, out HubListener listener))
-                {
-                    actions = listener.Callbacks.ToArray();
-                }
-            }
-
-            if (actions != null)
-            {
-                foreach (Func<string, Task> func in actions)
-                {
-                    try
-                    {
-                        await func(data);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Info(ex.ToString());
-                    }
-                }
-            }
-        }
-
         private void SocketClosed()
         {
             if (listeners.Count == 0)
@@ -518,7 +493,7 @@ namespace ExchangeSharp
                 {
                     try
                     {
-                        await StartAsync();
+                        //await StartAsync();
                         connectCallback?.Invoke();
                     }
                     catch (Exception ex)
@@ -552,125 +527,6 @@ namespace ExchangeSharp
         {
             ConnectionUrl = connectionUrl;
             HubName = hubName;
-        }
-
-        /// <summary>
-        /// Start the hub connection - populate FunctionNamesToFullNames first
-        /// </summary>
-        /// <returns></returns>
-        public async Task StartAsync()
-        {
-            // stop any previous hub connection
-            hubConnection?.Stop();
-            hubConnection?.Dispose();
-
-            // make a new hub connection
-            hubConnection = new HubConnection(ConnectionUrl, false);
-            hubConnection.Closed += SocketClosed;
-
-#if DEBUG
-
-            //hubConnection.TraceLevel = TraceLevels.All;
-            //hubConnection.TraceWriter = Console.Out;
-
-#endif
-
-            hubProxy = hubConnection.CreateHubProxy(HubName);
-            if (hubProxy == null)
-            {
-                throw new APIException("CreateHubProxy - proxy is null, this should never happen");
-            }
-
-            // assign callbacks for events
-            foreach (string key in FunctionNamesToFullNames.Keys)
-            {
-                hubProxy.On(key, async (string data) => await HandleResponse(key, data));
-            }
-
-            // create a custom transport, the default transport is really buggy
-            DefaultHttpClient client = new DefaultHttpClient();
-            customTransport = new WebsocketCustomTransport(client, ConnectInterval, KeepAlive);
-            var autoTransport = new AutoTransport(client, new IClientTransport[] { customTransport });
-            hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
-
-            // setup connect event
-            customTransport.WebSocket.Connected += async (ws) =>
-            {
-                try
-                {
-                    SignalrSocketConnection[] socketsCopy;
-                    lock (sockets)
-                    {
-                        socketsCopy = sockets.ToArray();
-                    }
-                    foreach (SignalrSocketConnection socket in socketsCopy)
-                    {
-                        await socket.InvokeConnected();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Info(ex.ToString());
-                }
-            };
-
-            // setup disconnect event
-            customTransport.WebSocket.Disconnected += async (ws) =>
-            {
-                try
-                {
-                    SignalrSocketConnection[] socketsCopy;
-                    lock (sockets)
-                    {
-                        socketsCopy = sockets.ToArray();
-                    }
-                    foreach (SignalrSocketConnection socket in socketsCopy)
-                    {
-                        await socket.InvokeDisconnected();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Info(ex.ToString());
-                }
-                try
-                {
-                    // tear down the hub connection, we must re-create it whenever a web socket disconnects
-                    hubConnection?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Info(ex.ToString());
-                }
-            };
-
-            try
-            {
-                // it's possible for the hub connection to disconnect during this code if connection is crappy
-                // so we simply catch the exception and log an info message, the disconnect/reconnect loop will
-                // catch the close and re-initiate this whole method again
-                await hubConnection.Start(autoTransport);
-
-                // get list of listeners quickly to limit lock
-                HubListener[] listeners;
-                lock (this.listeners)
-                {
-                    listeners = this.listeners.Values.ToArray();
-                }
-
-                // re-call the end point to enable messages
-                foreach (var listener in listeners)
-                {
-                    foreach (object[] p in listener.Param)
-                    {
-                        await hubProxy.Invoke<bool>(listener.FunctionFullName, p);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Info(ex.ToString());
-            }
         }
 
         /// <summary>
@@ -718,61 +574,135 @@ namespace ExchangeSharp
             hubConnection = null;
         }
 
-        /// <summary>
-        /// Get auth context
-        /// </summary>
-        /// <param name="apiKey">API key</param>
-        /// <returns>String</returns>
-        public async Task<string> GetAuthContext(string apiKey) => await hubProxy.Invoke<string>("GetAuthContext", apiKey);
+		public class SocketResponse
+		{
+			public bool Success { get; set; }
+			public string ErrorCode { get; set; }
+		}
 
-        /// <summary>
-        /// Authenticate
-        /// </summary>
-        /// <param name="apiKey">API key</param>
-        /// <param name="signedChallenge">Challenge</param>
-        /// <returns>Result</returns>
-        public async Task<bool> Authenticate(string apiKey, string signedChallenge) => await hubProxy.Invoke<bool>("Authenticate", apiKey, signedChallenge);
+		public class SocketClient : IWebSocket
+		{
+			private string _url;
+			private HubConnection _hubConnection;
+			private IHubProxy _hubProxy;
 
-        /// <summary>
-        /// Converts CoreHub2 socket wire protocol data into JSON.
-        /// Data goes from base64 encoded to gzip (byte[]) to minifed JSON.
-        /// </summary>
-        /// <param name="wireData">Wire data</param>
-        /// <returns>JSON</returns>
-        public static string Decode(string wireData)
-        {
-            // Step 1: Base64 decode the wire data into a gzip blob
-            byte[] gzipData = Convert.FromBase64String(wireData);
+			public event WebSocketConnectionDelegate Connected;
+			public event WebSocketConnectionDelegate Disconnected;
 
-            // Step 2: Decompress gzip blob into minified JSON
-            using (var decompressedStream = new MemoryStream())
-            using (var compressedStream = new MemoryStream(gzipData))
-            using (var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress))
-            {
-                deflateStream.CopyTo(decompressedStream);
-                decompressedStream.Position = 0;
+			public TimeSpan ConnectInterval { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+			public TimeSpan KeepAlive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-                using (var streamReader = new StreamReader(decompressedStream))
-                {
-                    return streamReader.ReadToEnd();
-                }
-            }
-        }
+			public SocketClient(string url)
+			{
+				_url = url;
+				_hubConnection = new HubConnection(_url);
+				_hubProxy = _hubConnection.CreateHubProxy("c3");
+			}
 
-        /// <summary>
-        /// Create signature
-        /// </summary>
-        /// <param name="apiSecret">API secret</param>
-        /// <param name="challenge">Challenge</param>
-        /// <returns>Signature</returns>
-        public static string CreateSignature(string apiSecret, string challenge)
-        {
-            // Get hash by using apiSecret as key, and challenge as data
-            var hmacSha512 = new HMACSHA512(apiSecret.ToBytesUTF8());
-            var hash = hmacSha512.ComputeHash(challenge.ToBytesUTF8());
-            return BitConverter.ToString(hash).Replace("-", string.Empty);
-        }
-    }
+			public async Task<bool> Connect()
+			{
+				await _hubConnection.Start();
+				return _hubConnection.State == ConnectionState.Connected;
+			}
+
+			public async Task<SocketResponse> Authenticate(string apiKey, string apiKeySecret)
+			{
+				var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+				var randomContent = $"{ Guid.NewGuid() }";
+				var content = string.Join("", timestamp, randomContent);
+				var signedContent = CreateSignature(apiKeySecret, content);
+				var result = await _hubProxy.Invoke<SocketResponse>(
+					"Authenticate",
+					apiKey,
+					timestamp,
+					randomContent,
+					signedContent);
+				return result;
+			}
+
+			public IDisposable AddMessageHandler<Tmessage>(string messageName, Action<Tmessage> handler)
+			{
+				return _hubProxy.On(messageName, message =>
+				{
+					var decoded = DataConverter.Decode<Tmessage>(message);
+					handler(decoded);
+				});
+			}
+
+			public void SetHeartbeatHandler(Action handler)
+			{
+				_hubProxy.On("heartbeat", handler);
+			}
+
+			public void SetAuthExpiringHandler(Action handler)
+			{
+				_hubProxy.On("authenticationExpiring", handler);
+			}
+
+			private static string CreateSignature(string apiSecret, string data)
+			{
+				var hmacSha512 = new HMACSHA512(Encoding.ASCII.GetBytes(apiSecret));
+				var hash = hmacSha512.ComputeHash(Encoding.ASCII.GetBytes(data));
+				return BitConverter.ToString(hash).Replace("-", string.Empty);
+			}
+
+			public async Task<List<SocketResponse>> Subscribe(string[] channels)
+			{
+				return await _hubProxy.Invoke<List<SocketResponse>>("Subscribe", (object)channels);
+			}
+
+			public Task<bool> SendMessageAsync(object message)
+			{
+				throw new NotImplementedException();
+			}
+
+			public void Dispose()
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		public static class DataConverter
+		{
+			private static JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
+			{
+				ContractResolver = new CamelCasePropertyNamesContractResolver(),
+				DateFormatHandling = DateFormatHandling.IsoDateFormat,
+				DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+				FloatParseHandling = FloatParseHandling.Decimal,
+				MissingMemberHandling = MissingMemberHandling.Ignore,
+				NullValueHandling = NullValueHandling.Ignore,
+				Converters = new List<JsonConverter>
+			{
+				new StringEnumConverter(),
+			}
+			};
+
+			public static T Decode<T>(string wireData)
+			{
+				// Step 1: Base64 decode the wire data into a gzip blob
+				byte[] gzipData = Convert.FromBase64String(wireData);
+
+				// Step 2: Decompress gzip blob into JSON
+				string json = null;
+
+				using (var decompressedStream = new MemoryStream())
+				using (var compressedStream = new MemoryStream(gzipData))
+				using (var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress))
+				{
+					deflateStream.CopyTo(decompressedStream);
+					decompressedStream.Position = 0;
+					using (var streamReader = new StreamReader(decompressedStream))
+					{
+						json = streamReader.ReadToEnd();
+					}
+				}
+
+				// Step 3: Deserialize the JSON string into a strongly-typed object
+				return JsonConvert.DeserializeObject<T>(json, _jsonSerializerSettings);
+			}
+		}
+	}
 }
 
 #endif
