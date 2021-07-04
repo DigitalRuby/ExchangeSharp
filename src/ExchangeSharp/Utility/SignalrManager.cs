@@ -629,7 +629,7 @@ namespace ExchangeSharp
 				});
 			}
 
-			public void SetHeartbeatHandler(Func<string, Task> handler)
+			public void SetHeartbeatHandler(Action handler)
 			{
 				_hubProxy.On("heartbeat", handler);
 			}
