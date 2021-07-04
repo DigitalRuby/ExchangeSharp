@@ -30,7 +30,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-	public partial class ExchangeBittrexAPI
+	public partial class ExchangeBittrexAPI : ExchangeAPI
 	{
 #if HAS_SIGNALR
 
@@ -41,10 +41,14 @@ namespace ExchangeSharp
 		{
 			const string URL = "https://socket-v3.bittrex.com/signalr";
 
-			public BittrexWebSocketManager()
-			{
+			private ExchangeBittrexAPI _api;
 
+			public BittrexWebSocketManager(ExchangeBittrexAPI api)
+			{
+				_api = api;
 			}
+
+
 
 
 			public async Task<IWebSocket> SubscribeToHeartBeat(Func<string, Task> callback)
@@ -59,6 +63,20 @@ namespace ExchangeSharp
 					Console.WriteLine("Failed to connect");
 
 				}
+				if(_api.PrivateApiKey == null || _api.PublicApiKey == null)
+				{
+					Console.WriteLine("Can not authenticate: API keys missing");
+				}
+				else
+				{
+					await client.Authenticate(CryptoUtility.ToUnsecureString(_api.PublicApiKey), CryptoUtility.ToUnsecureString(_api.PrivateApiKey));
+					client.SetAuthExpiringHandler(async () =>
+					{
+						Console.WriteLine("Authentication expiring...");
+						await client.Authenticate(CryptoUtility.ToUnsecureString(_api.PublicApiKey), CryptoUtility.ToUnsecureString(_api.PrivateApiKey));
+					});
+				}
+				client.SetHeartbeatHandler(callback);
 				return client;
 			}
 		}
@@ -80,7 +98,7 @@ namespace ExchangeSharp
 				Console.WriteLine(json);
 
 			}
-			return await new BittrexWebSocketManager().SubscribeToHeartBeat(innerCallback);
+			return await new BittrexWebSocketManager(this).SubscribeToHeartBeat(innerCallback);
 		}
 
 #endif

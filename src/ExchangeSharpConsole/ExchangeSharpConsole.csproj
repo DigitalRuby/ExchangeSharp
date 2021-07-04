@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.6.0" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="ReadLine" Version="2.0.1" />
   </ItemGroup>
 
