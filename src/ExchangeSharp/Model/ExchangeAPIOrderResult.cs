@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -38,5 +38,8 @@ namespace ExchangeSharp
 
         /// <summary>Order is pending cancel</summary>
         PendingCancel,
-    }
+
+		/// <summary>Working</summary>
+		Working,
+	}
 }

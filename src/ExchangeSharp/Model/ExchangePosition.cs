@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 /*
 MIT LICENSE
@@ -18,26 +18,28 @@ namespace ExchangeSharp
     /// Contains information about a position on exchange
     /// </summary>
     public class ExchangePosition
-    {
-        /// <summary>
-        /// Market Symbol
-        /// </summary>
-        public string MarketSymbol { get; set; }
-
+	{
         /// <summary>
         /// Amount
         /// </summary>
         public decimal Amount { get; set; }
 
-        /// <summary>
-        /// Average Price
-        /// </summary>
-        public decimal AveragePrice { get; set; }
+		/// <summary>Amount filled in the market currency.</summary>
+		public decimal AmountFilled { get; set; }
 
-        /// <summary>
-        /// Liquidation Price
-        /// </summary>
-        public decimal LiquidationPrice { get; set; }
+		/// <summary>
+		/// Average Price
+		/// </summary>
+		public decimal AveragePrice { get; set; }
+
+		/// <summary>The fees on the order (not a percent).
+		/// E.g. 0.0025 ETH</summary>
+		public decimal Fees { get; set; }
+
+		/// <summary>
+		/// Liquidation Price
+		/// </summary>
+		public decimal LiquidationPrice { get; set; }
 
         /// <summary>
         /// Leverage
@@ -50,9 +52,28 @@ namespace ExchangeSharp
         /// </summary>
         public decimal LastPrice { get; set; }
 
-        /// <summary>
-        /// TimeStamp
-        /// </summary>
-        public DateTime TimeStamp { get; set; }
+		/// <summary>
+		/// Market Symbol
+		/// </summary>
+		public string MarketSymbol { get; set; }
+
+		/// <summary>Message if any</summary>
+		public string Message { get; set; }
+
+		/// <summary>Order id</summary>
+		public string OrderId { get; set; }
+
+		/// <summary>
+		/// The type of order
+		/// </summary>
+		public OrderType OrderType { get; set; }
+
+		/// <summary>Result of the order</summary>
+		public ExchangeAPIOrderResult Status { get; set; }
+
+		/// <summary>
+		/// TimeStamp
+		/// </summary>
+		public DateTime TimeStamp { get; set; }
     }
 }

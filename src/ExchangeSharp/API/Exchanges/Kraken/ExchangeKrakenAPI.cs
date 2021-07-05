@@ -765,16 +765,41 @@ namespace ExchangeSharp
 			}
 			order.ExtraParameters.CopyTo(payload);
 
-			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
-			ExchangeOrderResult result = new ExchangeOrderResult
+			try
 			{
-				OrderDate = CryptoUtility.UtcNow
-			};
-			if (token["txid"] is JArray array)
-			{
-				result.OrderId = array[0].ToStringInvariant();
+				JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
+
+				ExchangeOrderResult result = new ExchangeOrderResult
+				{
+					OrderDate = CryptoUtility.UtcNow
+				};
+
+				if (token["txid"] is JArray array)
+				{
+					result.OrderId = array[0].ToStringInvariant();
+					result.Result = ExchangeAPIOrderResult.Pending;
+				}
+
+				return result;
 			}
-			return result;
+			catch (Exception ex)
+			{
+				ExchangeOrderResult result = new ExchangeOrderResult
+				{
+					IsBuy = order.IsBuy,
+					OrderDate = CryptoUtility.UtcNow,
+					MarketSymbol = order.MarketSymbol,
+					Message = ex.Message,
+					Result = ExchangeAPIOrderResult.Error
+				};
+
+				if (order.OrderType != OrderType.Market)
+				{
+					result.Price = order.Price;
+				}
+
+				return result;
+			}
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
@@ -867,34 +892,129 @@ namespace ExchangeSharp
 
 				foreach (JProperty kvp in token)
 				{
+					result = new ExchangePosition
+					{
+						OrderId = kvp.Name
+					};
+
+					// TODO: Map LiquidationPrice?
+					//result.LiquidationPrice
+
 					if (kvp.Value["descr"] is JObject descr)
+					{
+						result.MarketSymbol = descr["pair"].ToStringUpperInvariant();
+
+						if (descr["leverage"] != null && descr["leverage"].Type != JTokenType.Null)
+						{
+							result.Leverage = descr["leverage"].ConvertInvariant<decimal>();
+						}
+
+						if (descr["ordertype"] != null && descr["ordertype"].Type != JTokenType.Null)
+						{
+							if (descr["ordertype"].ToStringInvariant() == "limit")
+							{
+								result.OrderType = OrderType.Limit;
+							}
+							else if (descr["ordertype"].ToStringInvariant() == "market")
+							{
+								// TODO: Is this mapping correct?
+								result.OrderType = OrderType.Market;
+							}
+							else if (descr["ordertype"].ToStringInvariant() == "stop")
+							{
+								// TODO: Is this mapping correct?
+								result.OrderType = OrderType.Stop;
+							}
+						}
+
+						if (descr["price"] != null)
+						{
+							if (descr["price"].Type != JTokenType.Null)
+							{
+								result.LastPrice = descr["price"].ConvertInvariant<decimal>();
+							}
+							else if (kvp.Value["price"].Type != JTokenType.Null)
+							{
+								result.LastPrice = kvp.Value["price"].ConvertInvariant<decimal>();
+							}
+							else if (kvp.Value["limitprice"].Type != JTokenType.Null)
+							{
+								result.LastPrice = kvp.Value["limitprice"].ConvertInvariant<decimal>();
+							}
+						}
+					}
+
+					if (kvp.Value["vol"] != null && kvp.Value["vol"].Type != JTokenType.Null)
+					{
+						result.Amount = kvp.Value["vol"].ConvertInvariant<decimal>();
+					}
+
+					if (kvp.Value["side"] != null && kvp.Value["side"].ToStringInvariant() == "Sell")
+					{
+						result.Amount *= -1;
+					}
+
+					if (kvp.Value["vol_exec"] != null && kvp.Value["vol_exec"].Type != JTokenType.Null)
+					{
+						result.AmountFilled = kvp.Value["vol_exec"].ConvertInvariant<decimal>();
+					}
+
+					if (kvp.Value["avg_price"] != null && kvp.Value["avg_price"].Type != JTokenType.Null)
+					{
+						result.AveragePrice = kvp.Value["avg_price"].ConvertInvariant<decimal>();
+					}
+
+					if (kvp.Value["fee"] != null && kvp.Value["fee"].Type != JTokenType.Null)
+					{
+						result.Fees = kvp.Value["fee"].ConvertInvariant<decimal>();
+					}
+
+					if (kvp.Value["status"] != null)
+					{
+						string status = kvp.Value["status"].ToStringInvariant();
+						if (status == "open")
+						{
+							result.Status = ExchangeAPIOrderResult.Working;
+						}
+						else if (status == "filled")
+						{
+							// TODO: Is this mapping correct?
+							result.Status = ExchangeAPIOrderResult.Filled;
+						}
+						else if (status == "pending")
+						{
+							result.Status = ExchangeAPIOrderResult.Pending;
+						}
+						else if (status == "canceled")
+						{
+							result.Status = ExchangeAPIOrderResult.Canceled;
+							result.Message = kvp.Value["cancel_reason"].ToStringInvariant();
+						}
+						else
+						{
+							// TODO: Is this mapping correct?
+							result.Status = ExchangeAPIOrderResult.Unknown;
+						}
+					}
+					else
+					{
+						result.Status = ExchangeAPIOrderResult.Unknown;
+					}
+
+					if (kvp.Value["opentm"] != null && kvp.Value["opentm"].Type != JTokenType.Null)
 					{
 						decimal epochMilliseconds = kvp.Value["opentm"].ToObject<decimal>();
 						// Preserve Kraken timestamp decimal precision by converting seconds to milliseconds.
 						epochMilliseconds = epochMilliseconds * 1000;
 
-						result = new ExchangePosition
-						{
-							MarketSymbol = descr["pair"].ToStringUpperInvariant(),
-							Amount = kvp.Value["vol"].ConvertInvariant<decimal>(),
-							AveragePrice = kvp.Value["avg_price"].ConvertInvariant<decimal>(),
-							// TODO:
-							//LiquidationPrice = token["liq_price"].ConvertInvariant<decimal>(),
-							TimeStamp = DateTimeOffset.FromUnixTimeMilliseconds((long)epochMilliseconds).DateTime
-						};
-
-						if (descr["leverage"].Type != JTokenType.Null)
-						{
-							result.Leverage = descr["leverage"].ConvertInvariant<decimal>();
-						}
-
-						if (kvp.Value["side"].ToStringInvariant() == "Sell")
-						{
-							result.Amount *= -1;
-						}
-
-						return result;
+						result.TimeStamp = DateTimeOffset.FromUnixTimeMilliseconds((long)epochMilliseconds).DateTime;
 					}
+					else
+					{
+						result.TimeStamp = DateTimeOffset.UtcNow.DateTime;
+					}
+
+					return result;
 				}
 
 				return result;
