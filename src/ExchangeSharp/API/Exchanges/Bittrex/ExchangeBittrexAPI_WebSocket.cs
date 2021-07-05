@@ -77,16 +77,45 @@ namespace ExchangeSharp
 		{
 			var client = await ConnectAndAuthenticate();
 			client.AddMessageHandler<object>("order",
-				msg => callback(ParsePosition(msg))
+				order => callback(ParsePosition(order))
 				);
 			await Subscribe(client,channels);
-
 			return client;
 		}
 
-		private ExchangePosition ParsePosition(object msg)
+		private ExchangePosition ParsePosition(object position)
 		{
-			throw new NotImplementedException();
+			try
+			{
+				var token = JToken.FromObject(position);
+				ExchangePosition result = null;
+				if (token != null)
+				{
+					if(token["delta"]["updatedAt"].Type != JTokenType.Null)
+					{
+						decimal epochMilliseconds = token["delta"]["updatedAt"].ToObject<decimal>();
+						epochMilliseconds = epochMilliseconds * 1000;
+
+
+						//need to convert from order to position
+						result = new ExchangePosition
+						{
+							MarketSymbol = token["delta"]["marketSymbol"].ToStringInvariant(),
+							Amount = token["delta"]["fillQuantity"].ConvertInvariant<decimal>(),
+							AveragePrice = token["delta"]["limit"].ConvertInvariant<decimal>(),
+							TimeStamp = DateTimeOffset.FromUnixTimeMilliseconds((long)epochMilliseconds).DateTime
+						};
+
+					}
+				}
+				return result;
+			}
+			catch (Exception ex)
+			{
+
+				throw ex;
+			}
+
 		}
 
 		static async Task Authenticate(SocketClient client, string apiKey, string apiSecret)
