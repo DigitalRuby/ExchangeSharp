@@ -510,7 +510,7 @@ namespace ExchangeSharp
 		/// <param name="messageCallback">Callback for messages</param>
 		/// <param name="connectCallback">Connect callback</param>
 		/// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-		public Task<IWebSocket> ConnectWebSocketAsync
+		public virtual Task<IWebSocket> ConnectWebSocketAsync
 		(
 			string url,
 			Func<IWebSocket, byte[], Task> messageCallback,
@@ -551,7 +551,7 @@ namespace ExchangeSharp
 		/// <param name="messageCallback">Callback for messages</param>
 		/// <param name="connectCallback">Connect callback</param>
 		/// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-		public Task<IWebSocket> ConnectPublicWebSocketAsync
+		public virtual Task<IWebSocket> ConnectPublicWebSocketAsync
 		(
 			string url,
 			Func<IWebSocket, byte[], Task> messageCallback,
@@ -577,7 +577,7 @@ namespace ExchangeSharp
 		/// <param name="connectCallback">Connect callback</param>
 		/// <param name="textMessageCallback">Text Message callback</param>
 		/// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
-		public Task<IWebSocket> ConnectPrivateWebSocketAsync
+		public virtual Task<IWebSocket> ConnectPrivateWebSocketAsync
 		(
 			string url,
 			Func<IWebSocket, byte[], Task> messageCallback,
