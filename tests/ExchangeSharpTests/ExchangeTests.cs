@@ -63,7 +63,7 @@ namespace ExchangeSharpTests
         }
 
 		[TestMethod]
-		public void ExchangeNameTest()
+		public void ExchangeGetCreateTest()
 		{
 			// make sure get exchange api calls serve up the same instance
 			var ex1 = ExchangeAPI.GetExchangeAPI<ExchangeGeminiAPI>();

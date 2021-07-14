@@ -427,33 +427,45 @@ namespace ExchangeSharp
 			// subsequent calls with cache hits will be nanoseconds
 			return apis.GetOrAdd(type, _exchangeName =>
 			{
-				// find an API with the right name
-				ExchangeAPI? api = null;
+				// find the api type
 				Type? foundType = exchangeTypes.FirstOrDefault(t => t == type);
-				if (foundType != null)
+				if (foundType is null)
 				{
-					api = (Activator.CreateInstance(foundType, true) as ExchangeAPI)!;
-					Exception? ex = null;
+					throw new ArgumentException($"Unable to find exchange of type {type?.FullName}");
+				}
 
-					// try up to 3 times to init
-					for (int i = 0; i < 3; i++)
+				// create the api
+				ExchangeAPI? api = (Activator.CreateInstance(foundType, true) as ExchangeAPI)!;
+				if (api is null)
+				{
+					throw new ApplicationException($"Failed to create exchange of type {foundType.FullName}");
+				}
+
+				Exception? ex = null;
+				const int retryCount = 3;
+
+				// try up to n times to init
+				for (int i = 1; i <= retryCount; i++)
+				{
+					try
 					{
-						try
+						api.InitializeAsync().Sync();
+						ex = null;
+						break;
+					}
+					catch (Exception _ex)
+					{
+						ex = _ex;
+						if (i != retryCount)
 						{
-							api.InitializeAsync().Sync();
-							break;
-						}
-						catch (Exception _ex)
-						{
-							ex = _ex;
 							Thread.Sleep(5000);
 						}
 					}
+				}
 
-					if (ex != null)
-					{
-						throw ex;
-					}
+				if (ex != null)
+				{
+					throw ex;
 				}
 
 				if (api == null)
