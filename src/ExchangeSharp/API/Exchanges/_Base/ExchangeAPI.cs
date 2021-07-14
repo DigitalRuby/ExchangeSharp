@@ -393,9 +393,10 @@ namespace ExchangeSharp
 				{
 					api = (Activator.CreateInstance(foundType, true)as ExchangeAPI) !;
 					Exception? ex = null;
+					const int retryCount = 3;
 
-					// try up to 3 times to init
-					for (int i = 0; i < 3; i++)
+					// try up to n times to init
+					for (int i = 1; i <= retryCount; i++)
 					{
 						try
 						{
@@ -406,7 +407,10 @@ namespace ExchangeSharp
 						catch (Exception _ex)
 						{
 							ex = _ex;
-							Thread.Sleep(5000);
+							if (i != retryCount)
+							{
+								Thread.Sleep(5000);
+							}
 						}
 					}
 
