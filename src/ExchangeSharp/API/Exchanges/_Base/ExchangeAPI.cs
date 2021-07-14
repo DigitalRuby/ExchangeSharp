@@ -400,6 +400,7 @@ namespace ExchangeSharp
 						try
 						{
 							api.InitializeAsync().Sync();
+							ex = null;
 							break;
 						}
 						catch (Exception _ex)
