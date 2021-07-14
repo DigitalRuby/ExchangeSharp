@@ -343,40 +343,81 @@ namespace ExchangeSharp
 			initialized = true;
 		}
 
-		/// <summary>
-		/// Get an exchange API given an exchange name (see ExchangeName class)
-		/// </summary>
-		/// <param name="exchangeName">Exchange name</param>
-		/// <returns>Exchange API or null if not found</returns>
-		public static IExchangeAPI GetExchangeAPI(string exchangeName)
+		private static IExchangeAPI CreateExchangeAPI(Type? type)
 		{
-			// find the exchange with the name and creat it
-			foreach (Type type in exchangeTypes)
+			if (type is null)
 			{
-				ExchangeAPI api = (Activator.CreateInstance(type, true)as ExchangeAPI) !;
-				if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
+				throw new ArgumentNullException("No type found for exchange");
+			}
+
+			if (!(Activator.CreateInstance(type, true) is ExchangeAPI api))
+			{
+				throw new ArgumentException($"Invalid type {type.FullName}, not a {nameof(ExchangeAPI)} type");
+			}
+
+			Exception? ex = null;
+
+			// try up to 3 times to init
+			for (int i = 0; i < 3; i++)
+			{
+				try
 				{
-					return GetExchangeAPI(type);
+					api.InitializeAsync().Sync();
+					break;
+				}
+				catch (Exception _ex)
+				{
+					ex = _ex;
+					Thread.Sleep(5000);
 				}
 			}
-			throw new ApplicationException("No exchange found with name " + exchangeName);
+
+			if (ex != null)
+			{
+				throw ex;
+			}
+
+			return api;
 		}
 
 		/// <summary>
-		/// Get an exchange API given a type
+		/// Create an exchange api, by-passing any cache. Use this method for cases
+		/// where you need multiple instances of the same exchange, for example
+		/// multiple credentials.
 		/// </summary>
-		/// <typeparam name="T">Type of exchange to get</typeparam>
-		/// <returns>Exchange API or null if not found</returns>
-		public static IExchangeAPI GetExchangeAPI<T>()where T : ExchangeAPI
+		/// <typeparam name="T">Type of exchange api to create</typeparam>
+		/// <returns>Created exchange api</returns>
+		public static T CreateExchangeAPI<T>() where T : ExchangeAPI
 		{
-			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
-			// subsequent calls with cache hits will be nanoseconds
-			Type type = typeof(T) !;
+			return (T)CreateExchangeAPI(typeof(T));
+		}
+
+		/// <summary>
+		/// Get a cached exchange API given an exchange name (see ExchangeName class)
+		/// </summary>
+		/// <param name="exchangeName">Exchange name. Must match the casing of the ExchangeName class name exactly.</param>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI GetExchangeAPI(string exchangeName)
+		{
+			Type type = ExchangeName.GetExchangeType(exchangeName);
 			return GetExchangeAPI(type);
 		}
 
 		/// <summary>
-		/// Get an exchange API given a type
+		/// Get a cached exchange API given a type
+		/// </summary>
+		/// <typeparam name="T">Type of exchange to get</typeparam>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI GetExchangeAPI<T>() where T : ExchangeAPI
+		{
+			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
+			// subsequent calls with cache hits will be nanoseconds
+			Type type = typeof(T)!;
+			return GetExchangeAPI(type);
+		}
+
+		/// <summary>
+		/// Get a cached exchange API given a type
 		/// </summary>
 		/// <param name="type">Type of exchange</param>
 		/// <returns>Exchange API or null if not found</returns>
@@ -386,43 +427,44 @@ namespace ExchangeSharp
 			// subsequent calls with cache hits will be nanoseconds
 			return apis.GetOrAdd(type, _exchangeName =>
 			{
-				// find an API with the right name
-				ExchangeAPI? api = null;
+				// find the api type
 				Type? foundType = exchangeTypes.FirstOrDefault(t => t == type);
-				if (foundType != null)
+				if (foundType is null)
 				{
-					api = (Activator.CreateInstance(foundType, true)as ExchangeAPI) !;
-					Exception? ex = null;
-					const int retryCount = 3;
+					throw new ArgumentException($"Unable to find exchange of type {type?.FullName}");
+				}
 
-					// try up to n times to init
-					for (int i = 1; i <= retryCount; i++)
+				// create the api
+				if (!(Activator.CreateInstance(foundType, true) is ExchangeAPI api))
+				{
+					throw new ApplicationException($"Failed to create exchange of type {foundType.FullName}");
+				}
+
+				Exception? ex = null;
+				const int retryCount = 3;
+
+				// try up to n times to init
+				for (int i = 1; i <= retryCount; i++)
+				{
+					try
 					{
-						try
-						{
-							api.InitializeAsync().Sync();
-							ex = null;
-							break;
-						}
-						catch (Exception _ex)
-						{
-							ex = _ex;
-							if (i != retryCount)
-							{
-								Thread.Sleep(5000);
-							}
-						}
+						api.InitializeAsync().Sync();
+						ex = null;
+						break;
 					}
-
-					if (ex != null)
+					catch (Exception _ex)
 					{
-						throw ex;
+						ex = _ex;
+						if (i != retryCount)
+						{
+							Thread.Sleep(5000);
+						}
 					}
 				}
 
-				if (api == null)
+				if (ex != null)
 				{
-					throw new ApplicationException("No exchange found with type " + type.FullName);
+					throw ex;
 				}
 
 				return api;
@@ -430,7 +472,7 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
-		/// Get all exchange APIs
+		/// Get all cached versions of exchange APIs
 		/// </summary>
 		/// <returns>All APIs</returns>
 		public static IExchangeAPI[] GetExchangeAPIs()

@@ -62,6 +62,26 @@ namespace ExchangeSharpTests
             return JsonConvert.SerializeObject(allSymbols);
         }
 
+		[TestMethod]
+		public void ExchangeGetCreateTest()
+		{
+			// make sure get exchange api calls serve up the same instance
+			var ex1 = ExchangeAPI.GetExchangeAPI<ExchangeGeminiAPI>();
+			var ex2 = ExchangeAPI.GetExchangeAPI(ExchangeName.Gemini);
+			Assert.AreSame(ex1, ex2);
+			Assert.IsInstanceOfType(ex2, typeof(ExchangeGeminiAPI));
+
+			// make sure create exchange serves up new instances
+			var ex3 = ExchangeAPI.CreateExchangeAPI<ExchangeGeminiAPI>();
+			Assert.AreNotSame(ex3, ex2);
+
+			// make sure a bad exchange name throws correct exception
+			Assert.ThrowsException<ApplicationException>(() =>
+			{
+				ExchangeAPI.GetExchangeAPI("SirExchangeNotAppearingInThisFilm");
+			});
+		}
+
         [TestMethod]
         public async Task GlobalSymbolTest()
         {

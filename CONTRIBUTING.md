@@ -20,7 +20,7 @@ Please follow these coding guidelines...
  
 When creating a new Exchange API, please do the following:
 - For reference comparisons, https://github.com/ccxt/ccxt is a good project to compare against when creating a new exchange. Use node.js in Visual Studio to debug through the code.
-- See ```ExchangeAPIDefinitions.cs``` for all possible methods that can be overriden to make an exchange, along with adding the name to the ExchangeName class. Great starting point to copy/paste as your new Exchange...API.cs file.
+- See ```ExchangeAPIDefinitions.cs``` for all possible methods that can be overriden to make an exchange, along with adding the name to the ExchangeName class. Great starting point to copy/paste as your new Exchange...API.cs file. The constant in ExchangeName should match the casing of the exchange name in the Exchange[Name]API class.
 - Put the exchange API class is in it's own folder (/API/Exchanges). If you are creating model objects or helper classes for an exchange, make internal classes inside a namespace for your exchange and put them in the sub-folder for the exchange. Binance and Bittrex are good examples.
 - Please use ```CryptoUtility, BaseAPIExtensions and ExchangeAPIExtensions``` for common code / parsing before rolling your own parsing code.
 - Ensure that the unit tests and integrations tests (```ExchangeSharpConsole.exe test exchangeName=[name]```) pass before submitting a pull request.
