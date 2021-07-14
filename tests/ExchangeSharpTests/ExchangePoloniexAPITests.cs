@@ -60,7 +60,14 @@ namespace ExchangeSharpTests
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
             var polo = CreatePoloniexAPI();
-            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder);
+			var orderRequest = new ExchangeOrderRequest
+			{
+				MarketSymbol = "FOO_FOO",
+				Amount = 338.8732m,
+				Price = 0.00000173m,
+				IsBuy = true
+			};
+            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeTrue();
             order.Amount.Should().Be(338.8732m);
@@ -88,7 +95,14 @@ namespace ExchangeSharpTests
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
             var polo = CreatePoloniexAPI();
-            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder);
+			var orderRequest = new ExchangeOrderRequest
+			{
+				MarketSymbol = "FOO_FOO",
+				Amount = 338.8732m,
+				Price = 0.00000173m,
+				IsBuy = false
+			};
+			ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeFalse();
             order.Amount.Should().Be(338.8732m);
