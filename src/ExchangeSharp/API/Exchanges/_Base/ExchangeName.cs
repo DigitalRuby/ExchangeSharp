@@ -29,20 +29,16 @@ namespace ExchangeSharp
 
         static ExchangeName()
         {
-            foreach (FieldInfo field in typeof(ExchangeName).GetFields(BindingFlags.Public | BindingFlags.Static))
-            {
+			foreach (FieldInfo field in typeof(ExchangeName).GetFields(BindingFlags.Public | BindingFlags.Static))
+			{
+				// pull value of name field
 				string name = field.GetValue(null)!.ToString();
-				try
-				{
-					// make sure we have a valid type for the name
-					Type type = GetExchangeType(name);
-					exchangeNames.Add(name);
-				}
-				catch (Exception ex)
-				{
-					// fatal
-					throw new ApplicationException("Failed to get type from exchange name " + name, ex);
-				}
+
+				// make sure we have a valid type for the name
+				Type type = GetExchangeType(name);
+
+				// add to unique list of names
+				exchangeNames.Add(name);
 			}
         }
 
@@ -52,6 +48,8 @@ namespace ExchangeSharp
 			{
 				// make sure we have a valid type for the name
 				Type type = Type.GetType($"ExchangeSharp.Exchange{exchangeName}API");
+
+				// we had better have a type sub-classing from ExchangeAPI
 				if (type is null || !type.IsSubclassOf(exchangeApiType))
 				{
 					throw new ApplicationException($"Name of {exchangeName} is not an {nameof(ExchangeAPI)} class");
