@@ -435,7 +435,7 @@ namespace ExchangeSharp
 				}
 
 				// create the api
-				ExchangeAPI? api = (Activator.CreateInstance(foundType, true) as ExchangeAPI)!;
+				ExchangeAPI? api = Activator.CreateInstance(foundType, true) as ExchangeAPI;
 				if (api is null)
 				{
 					throw new ApplicationException($"Failed to create exchange of type {foundType.FullName}");
@@ -466,11 +466,6 @@ namespace ExchangeSharp
 				if (ex != null)
 				{
 					throw ex;
-				}
-
-				if (api == null)
-				{
-					throw new ApplicationException("No exchange found with type " + type.FullName);
 				}
 
 				return api;
