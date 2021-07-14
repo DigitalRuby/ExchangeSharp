@@ -35,7 +35,7 @@ namespace ExchangeSharp
 				string name = field.GetValue(null)!.ToString();
 
 				// make sure we have a valid type for the name
-				Type type = GetExchangeType(name);
+				_ = GetExchangeType(name);
 
 				// add to unique list of names
 				exchangeNames.Add(name);
