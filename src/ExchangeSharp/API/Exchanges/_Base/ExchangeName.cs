@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -24,15 +24,46 @@ namespace ExchangeSharp
     /// </summary>
     public static partial class ExchangeName
     {
-        private static readonly HashSet<string> exchangeNames = new HashSet<string>();
+		private static readonly Type exchangeApiType = typeof(ExchangeAPI);
+		private static readonly HashSet<string> exchangeNames = new HashSet<string>();
 
         static ExchangeName()
         {
             foreach (FieldInfo field in typeof(ExchangeName).GetFields(BindingFlags.Public | BindingFlags.Static))
             {
-                exchangeNames.Add(field.GetValue(null).ToString());
-            }
+				string name = field.GetValue(null)!.ToString();
+				try
+				{
+					// make sure we have a valid type for the name
+					Type type = GetExchangeType(name);
+					exchangeNames.Add(name);
+				}
+				catch (Exception ex)
+				{
+					// fatal
+					throw new ApplicationException("Failed to get type from exchange name " + name, ex);
+				}
+			}
         }
+
+		internal static Type GetExchangeType(string exchangeName)
+		{
+			try
+			{
+				// make sure we have a valid type for the name
+				Type type = Type.GetType($"ExchangeSharp.Exchange{exchangeName}API");
+				if (type is null || !type.IsSubclassOf(exchangeApiType))
+				{
+					throw new ApplicationException($"Name of {exchangeName} is not an {nameof(ExchangeAPI)} class");
+				}
+				return type;
+			}
+			catch (Exception ex)
+			{
+				// fatal
+				throw new ApplicationException($"Failed to get type from exchange name {exchangeName}", ex);
+			}
+		}
 
         /// <summary>
         /// Check if an exchange name exists

@@ -96,6 +96,10 @@ namespace ExchangeSharpConsole
 
 		internal async Task Run(List<BaseOption> actions, bool exitOnError = true)
 		{
+			var poo1 = ExchangeSharp.ExchangeAPI.CreateExchangeAPI<ExchangeSharp.ExchangeGeminiAPI>();
+			var poo2 = ExchangeSharp.ExchangeAPI.GetExchangeAPI("Gemini");
+			var poo3 = ExchangeSharp.ExchangeAPI.GetExchangeAPI("test");
+
 			foreach (var action in actions)
 			{
 #if DEBUG

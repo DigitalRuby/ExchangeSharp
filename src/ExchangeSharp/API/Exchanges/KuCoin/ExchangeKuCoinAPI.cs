@@ -728,5 +728,5 @@ namespace ExchangeSharp
         #endregion Private Functions
     }
 
-    public partial class ExchangeName { public const string Kucoin = "Kucoin"; }
+    public partial class ExchangeName { public const string Kucoin = "KuCoin"; }
 }
