@@ -443,7 +443,7 @@ namespace ExchangeSharp.BinanceGroup
 			// TODO : Refactor into a common layer once more Exchanges implement this pattern
 			// https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#compressedaggregate-trades-list
 			if(limit > 1000) limit = 1000;	//Binance max = 1000
-			var maxRequestLimit = 1000; 
+			var maxRequestLimit = 1000;
 			var trades = new List<ExchangeTrade>();
 			var processedIds = new HashSet<long>();
 			marketSymbol = NormalizeMarketSymbol(marketSymbol);
@@ -559,7 +559,7 @@ namespace ExchangeSharp.BinanceGroup
 
 			// Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
 			decimal outputQuantity = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-			decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
+			decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 
 			// Binance does not accept quantities with more than 20 decimal places.
 			payload["quantity"] = Math.Round(outputQuantity, 20);

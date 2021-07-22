@@ -84,7 +84,7 @@ namespace ExchangeSharp
 			decimal amountFilled = token["fillQuantity"].ConvertInvariant<decimal>();
 			order.Amount = amount;
 			order.AmountFilled = amountFilled;
-			order.Price = token["limit"].ConvertInvariant<decimal>(order.AveragePrice);
+			order.Price = token["limit"].ConvertInvariant<decimal>(order.AveragePrice.Value);
 			order.Message = string.Empty;
 			order.OrderId = token["id"].ToStringInvariant();
 
@@ -378,7 +378,7 @@ namespace ExchangeSharp
 		{
 
 			decimal orderAmount = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-			decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
+			decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 			string url = "/orders";
 			Dictionary<string, object> orderParams = await GetNoncePayloadAsync();
 			orderParams.Add("marketSymbol", order.MarketSymbol);
@@ -507,7 +507,7 @@ namespace ExchangeSharp
 		{
 			/*
 				"currencySymbol": "string",
-				"quantity": "number (double)",			
+				"quantity": "number (double)",
 				"cryptoAddress": "string",
 				"cryptoAddressTag": "string",
 				"clientWithdrawalId": "string (uuid)"

@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -34,12 +34,12 @@ namespace ExchangeSharp
         /// Result/Error code from exchange
         /// Not all exchanges support this
         /// </summary>
-        public string ResultCode { get; set; } 
+        public string ResultCode { get; set; }
 
         /// <summary>Message if any</summary>
         public string Message { get; set; }
 
-        /// <summary>Original order amount in the market currency. 
+        /// <summary>Original order amount in the market currency.
         /// E.g. ADA/BTC would be ADA</summary>
         public decimal Amount { get; set; }
 
@@ -48,18 +48,18 @@ namespace ExchangeSharp
 
         /// <summary>The limit price on the order in the ratio of base/market currency.
         /// E.g. 0.000342 ADA/ETH</summary>
-        public decimal Price { get; set; }
+        public decimal? Price { get; set; }
 
         /// <summary>Price per unit in the ratio of base/market currency.
         /// E.g. 0.000342 ADA/ETH</summary>
-        public decimal AveragePrice { get; set; }
+        public decimal? AveragePrice { get; set; }
 
         /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
 
         /// <summary>Fill datetime in UTC</summary>
         public DateTime FillDate { get; set; }
-    
+
         /// <summary>Market Symbol. E.g. ADA/ETH</summary>
         public string MarketSymbol { get; set; }
 
@@ -70,7 +70,7 @@ namespace ExchangeSharp
         /// E.g. 0.0025 ETH</summary>
         public decimal Fees { get; set; }
 
-        /// <summary>The currency the fees are in. 
+        /// <summary>The currency the fees are in.
         /// If not set, this is probably the base currency</summary>
         public string FeesCurrency { get; set; }
 

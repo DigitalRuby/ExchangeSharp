@@ -442,7 +442,7 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders2 = new List<ExchangeOrderResult>();
             foreach (var group in groupings)
             {
-                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice * o.AmountFilled);
+                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice.Value * o.AmountFilled);
                 ExchangeOrderResult order = group.First();
                 order.AmountFilled = group.Sum(o => o.AmountFilled);
                 order.AveragePrice = spentQuoteCurrency / order.AmountFilled;

@@ -761,7 +761,7 @@ namespace ExchangeSharp
 			if (order.OrderType != OrderType.Market)
 			{
 				int precision = BitConverter.GetBytes(Decimal.GetBits((decimal)market.PriceStepSize)[3])[2];
-				payload.Add("price", Math.Round(order.Price, precision).ToStringInvariant());
+				payload.Add("price", Math.Round(order.Price.Value, precision).ToStringInvariant());
 			}
 			order.ExtraParameters.CopyTo(payload);
 
@@ -972,7 +972,7 @@ namespace ExchangeSharp
 							}
 						}
 					}
-					
+
 					await Task.CompletedTask;
 				},
 				connectCallback: async (_socket) =>

@@ -134,7 +134,7 @@ namespace ExchangeSharp
             order.AmountFilled = amount - order.Amount;
 
             // fee is a percentage taken from the traded amount rounded to 8 decimals
-            order.Fees = CalculateFees(amount, order.Price, order.IsBuy, result["fee"].ConvertInvariant<decimal>());
+            order.Fees = CalculateFees(amount, order.Price.Value, order.IsBuy, result["fee"].ConvertInvariant<decimal>());
 
             return order;
         }
@@ -769,7 +769,7 @@ namespace ExchangeSharp
             }
 
             decimal orderAmount = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-            decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
+            decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 
             List<object> orderParams = new List<object>
             {
