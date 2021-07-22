@@ -178,7 +178,7 @@ namespace ExchangeSharp
 				order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, trade["fee"].ConvertInvariant<decimal>());
 			}
 
-			if (order.AmountFilled == order.Amount)
+			if (order.AmountFilled >= order.Amount)
 			{
 				order.Result = ExchangeAPIOrderResult.Filled;
 			}
