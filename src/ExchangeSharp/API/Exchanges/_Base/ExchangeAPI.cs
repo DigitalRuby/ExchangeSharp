@@ -325,7 +325,7 @@ namespace ExchangeSharp
 		/// <returns>Mapping with global currency as key</returns>
 		protected async Task<Dictionary<string, T>> ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync<T>(IReadOnlyDictionary<string, T> input)
 		{
-			Dictionary<string, T> globalCurrenciesDict = new Dictionary<string, T>(input.Count);
+			Dictionary<string, T> globalCurrenciesDict = new Dictionary<string, T>(input.Count, StringComparer.OrdinalIgnoreCase);
 			foreach (var i in input)
 			{
 				var globalCurrency = await ExchangeCurrencyToGlobalCurrencyAsync(i.Key);
@@ -695,6 +695,11 @@ namespace ExchangeSharp
 		/// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
 		public virtual async Task<ExchangeMarket?> GetExchangeMarketFromCacheAsync(string marketSymbol)
 		{
+			if (string.IsNullOrWhiteSpace(marketSymbol))
+			{
+				return null;
+			}
+
 			try
 			{
 				// *NOTE*: custom caching, do not wrap in CacheMethodCall...
@@ -704,7 +709,7 @@ namespace ExchangeSharp
 				await new SynchronizationContextRemover();
 				Dictionary<string, ExchangeMarket> lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
 
-				foreach(KeyValuePair<string, ExchangeMarket> kvp in lookup)
+				foreach (KeyValuePair<string, ExchangeMarket> kvp in lookup)
 				{
 					if ((kvp.Key == marketSymbol)
 						|| (kvp.Value.MarketSymbol == marketSymbol)

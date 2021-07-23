@@ -167,6 +167,10 @@ namespace ExchangeSharp
 				decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
 
 				order.AveragePrice = (order.AveragePrice * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
+				if (order.Amount == 0m)
+				{
+					order.Amount += tradeAmt;
+				}
 				order.AmountFilled += tradeAmt;
 
 				if (order.OrderDate == DateTime.MinValue)
