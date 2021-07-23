@@ -45,10 +45,53 @@ namespace ExchangeSharp
 		#region Private methods
 
 		private static readonly IReadOnlyCollection<Type> exchangeTypes = typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract).ToArray();
-		private static readonly ConcurrentDictionary<Type, ExchangeAPI> apis = new ConcurrentDictionary<Type, ExchangeAPI>();
+		private static readonly ConcurrentDictionary<Type, IExchangeAPI> apis = new ConcurrentDictionary<Type, IExchangeAPI>();
 
 		private bool initialized;
 		private bool disposed;
+
+		private static IExchangeAPI InitializeAPI(Type? type, Type? knownType = null)
+		{
+			if (type is null)
+			{
+				throw new ArgumentException($"Unable to find exchange of type {knownType?.FullName}");
+			}
+
+			// create the api
+			if (!(Activator.CreateInstance(type, true) is ExchangeAPI api))
+			{
+				throw new ApplicationException($"Failed to create exchange of type {type.FullName}, must inherit {nameof(ExchangeAPI)}.");
+			}
+
+			const int retryCount = 3;
+			Exception? ex = null;
+
+			// try up to 3 times to init
+			for (int i = 1; i <= 3; i++)
+			{
+				try
+				{
+					api.InitializeAsync().Sync();
+					ex = null;
+					break;
+				}
+				catch (Exception _ex)
+				{
+					ex = _ex;
+					if (i != retryCount)
+					{
+						Thread.Sleep(5000);
+					}
+				}
+			}
+
+			if (ex != null)
+			{
+				throw ex;
+			}
+
+			return api;
+		}
 
 		#endregion Private methods
 
@@ -322,7 +365,7 @@ namespace ExchangeSharp
 				Cache?.Dispose();
 
 				// take out of global api dictionary if disposed and we are the current exchange in the dictionary
-				if (apis.TryGetValue(GetType(), out ExchangeAPI existing) && this == existing)
+				if (apis.TryGetValue(GetType(), out IExchangeAPI existing) && this == existing)
 				{
 					apis.TryRemove(GetType(), out _);
 				}
@@ -345,39 +388,7 @@ namespace ExchangeSharp
 
 		private static IExchangeAPI CreateExchangeAPI(Type? type)
 		{
-			if (type is null)
-			{
-				throw new ArgumentNullException("No type found for exchange");
-			}
-
-			if (!(Activator.CreateInstance(type, true) is ExchangeAPI api))
-			{
-				throw new ArgumentException($"Invalid type {type.FullName}, not a {nameof(ExchangeAPI)} type");
-			}
-
-			Exception? ex = null;
-
-			// try up to 3 times to init
-			for (int i = 0; i < 3; i++)
-			{
-				try
-				{
-					api.InitializeAsync().Sync();
-					break;
-				}
-				catch (Exception _ex)
-				{
-					ex = _ex;
-					Thread.Sleep(5000);
-				}
-			}
-
-			if (ex != null)
-			{
-				throw ex;
-			}
-
-			return api;
+			return InitializeAPI(type);
 		}
 
 		/// <summary>
@@ -429,45 +440,7 @@ namespace ExchangeSharp
 			{
 				// find the api type
 				Type? foundType = exchangeTypes.FirstOrDefault(t => t == type);
-				if (foundType is null)
-				{
-					throw new ArgumentException($"Unable to find exchange of type {type?.FullName}");
-				}
-
-				// create the api
-				if (!(Activator.CreateInstance(foundType, true) is ExchangeAPI api))
-				{
-					throw new ApplicationException($"Failed to create exchange of type {foundType.FullName}");
-				}
-
-				Exception? ex = null;
-				const int retryCount = 3;
-
-				// try up to n times to init
-				for (int i = 1; i <= retryCount; i++)
-				{
-					try
-					{
-						api.InitializeAsync().Sync();
-						ex = null;
-						break;
-					}
-					catch (Exception _ex)
-					{
-						ex = _ex;
-						if (i != retryCount)
-						{
-							Thread.Sleep(5000);
-						}
-					}
-				}
-
-				if (ex != null)
-				{
-					throw ex;
-				}
-
-				return api;
+				return InitializeAPI(foundType, type);
 			});
 		}
 
