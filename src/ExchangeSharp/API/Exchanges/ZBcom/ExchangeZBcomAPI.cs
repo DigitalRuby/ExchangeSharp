@@ -155,7 +155,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token["dataType"].ToStringInvariant() == "trades")

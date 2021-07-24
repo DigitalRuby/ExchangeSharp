@@ -471,7 +471,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
 		{
 			var websocketUrlToken = GetWebsocketBulletToken();
-			return await ConnectWebSocketAsync
+			return await ConnectPublicWebSocketAsync
 			(
 				$"?token={websocketUrlToken}&acceptUserMessage=true", async (_socket, msg) =>
 				{
@@ -530,7 +530,7 @@ namespace ExchangeSharp
 			//  }
 			//}
             var websocketUrlToken = GetWebsocketBulletToken();
-			return await ConnectWebSocketAsync
+			return await ConnectPublicWebSocketAsync
             (
                 $"?token={websocketUrlToken}", async (_socket, msg) =>
 
@@ -728,5 +728,5 @@ namespace ExchangeSharp
         #endregion Private Functions
     }
 
-    public partial class ExchangeName { public const string Kucoin = "Kucoin"; }
+    public partial class ExchangeName { public const string Kucoin = "KuCoin"; }
 }

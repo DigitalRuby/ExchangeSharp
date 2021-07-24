@@ -247,6 +247,13 @@ namespace ExchangeSharp
 		Task<IWebSocket> GetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols);
 
 		/// <summary>
+		/// Get all position updates via web socket
+		/// </summary>
+		/// <param name="callback">Callback</param>
+		/// <returns>Web socket, call Dispose to close</returns>
+		Task<IWebSocket> GetPositionsWebSocketAsync(Action<ExchangePosition> callback);
+
+		/// <summary>
 		/// Get all tickers via web socket
 		/// </summary>
 		/// <param name="callback">Callback</param>

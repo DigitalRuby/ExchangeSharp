@@ -84,29 +84,40 @@ namespace ExchangeSharp
 			return Task.CompletedTask;
 		}
 
-		public ExchangeOrderResult ParsePlacedOrder(JToken result)
-        {
-            ExchangeOrderResult order = new ExchangeOrderResult
-            {
-                OrderId = result["orderNumber"].ToStringInvariant(),
-            };
+		public ExchangeOrderResult ParsePlacedOrder(JToken result, ExchangeOrderRequest request)
+		{
+			ExchangeOrderResult order = new ExchangeOrderResult
+			{
+				OrderId = result["orderNumber"].ToStringInvariant(),
+				Amount = request.Amount,
+				Price = request.Price
+			};
 
-            JToken trades = result["resultingTrades"];
-            if (trades != null && trades.Children().Count() != 0)
-            {
-                ParseOrderTrades(trades, order);
-            }
+			JToken trades = result["resultingTrades"];
 
-            return order;
-        }
+			if (trades == null)
+			{
+				order.Result = ExchangeAPIOrderResult.Canceled;
+			}
+			else if (trades != null && trades.Count() == 0)
+			{
+				order.Result = ExchangeAPIOrderResult.Pending;
+			}
+			else if (trades != null && trades.Children().Count() != 0)
+			{
+				ParseOrderTrades(trades, order);
+			}
 
-        /// <summary>
-        /// Parses an order which has not been filled.
-        /// </summary>
-        /// <param name="result">The JToken to parse.</param>
-        /// <param name="marketSymbol">Market symbol or null if it's in the result</param>
-        /// <returns>ExchangeOrderResult with the open order and how much is remaining to fill</returns>
-        public ExchangeOrderResult ParseOpenOrder(JToken result, string marketSymbol = null)
+			return order;
+		}
+
+		/// <summary>
+		/// Parses an order which has not been filled.
+		/// </summary>
+		/// <param name="result">The JToken to parse.</param>
+		/// <param name="marketSymbol">Market symbol or null if it's in the result</param>
+		/// <returns>ExchangeOrderResult with the open order and how much is remaining to fill</returns>
+		public ExchangeOrderResult ParseOpenOrder(JToken result, string marketSymbol = null)
         {
             ExchangeOrderResult order = new ExchangeOrderResult
             {
@@ -128,51 +139,62 @@ namespace ExchangeSharp
             return order;
         }
 
-        public void ParseOrderTrades(IEnumerable<JToken> trades, ExchangeOrderResult order)
-        {
-            bool orderMetadataSet = false;
-            foreach (JToken trade in trades)
-            {
-                if (!orderMetadataSet)
-                {
-                    order.IsBuy = trade["type"].ToStringLowerInvariant() != "sell";
-                    string parsedSymbol = trade["currencyPair"].ToStringInvariant();
-                    if (string.IsNullOrWhiteSpace(parsedSymbol) && trade.Parent != null)
-                    {
-                        parsedSymbol = trade.Parent.Path;
-                    }
-                    if (order.MarketSymbol == "all" || !string.IsNullOrWhiteSpace(parsedSymbol))
-                    {
-                        order.MarketSymbol = parsedSymbol;
-                    }
-                    if (!string.IsNullOrWhiteSpace(order.MarketSymbol))
-                    {
-                        order.FeesCurrency = ParseFeesCurrency(order.IsBuy, order.MarketSymbol);
-                    }
-                    orderMetadataSet = true;
-                }
+		public void ParseOrderTrades(IEnumerable<JToken> trades, ExchangeOrderResult order)
+		{
+			bool orderMetadataSet = false;
+			foreach (JToken trade in trades)
+			{
+				if (!orderMetadataSet)
+				{
+					order.IsBuy = trade["type"].ToStringLowerInvariant() != "sell";
+					string parsedSymbol = trade["currencyPair"].ToStringInvariant();
+					if (string.IsNullOrWhiteSpace(parsedSymbol) && trade.Parent != null)
+					{
+						parsedSymbol = trade.Parent.Path;
+					}
+					if (order.MarketSymbol == "all" || !string.IsNullOrWhiteSpace(parsedSymbol))
+					{
+						order.MarketSymbol = parsedSymbol;
+					}
+					if (!string.IsNullOrWhiteSpace(order.MarketSymbol))
+					{
+						order.FeesCurrency = ParseFeesCurrency(order.IsBuy, order.MarketSymbol);
+					}
+					orderMetadataSet = true;
+				}
 
-                decimal tradeAmt = trade["amount"].ConvertInvariant<decimal>();
-                decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
+				decimal tradeAmt = trade["amount"].ConvertInvariant<decimal>();
+				decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
 
-                order.AveragePrice = (order.AveragePrice * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
-                order.Amount += tradeAmt;
-                order.AmountFilled = order.Amount;
+				order.AveragePrice = (order.AveragePrice * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
+				if (order.Amount == 0m)
+				{
+					order.Amount += tradeAmt;
+				}
+				order.AmountFilled += tradeAmt;
 
-                if (order.OrderDate == DateTime.MinValue)
-                {
-                    order.OrderDate = trade["date"].ToDateTimeInvariant();
-                }
+				if (order.OrderDate == DateTime.MinValue)
+				{
+					order.OrderDate = trade["date"].ToDateTimeInvariant();
+				}
 
-                // fee is a percentage taken from the traded amount rounded to 8 decimals
-                order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, trade["fee"].ConvertInvariant<decimal>());
-            }
+				// fee is a percentage taken from the traded amount rounded to 8 decimals
+				order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, trade["fee"].ConvertInvariant<decimal>());
+			}
 
-            // Poloniex does not provide a way to get the original price
-            order.Price = order.AveragePrice;
-        }
+			if (order.AmountFilled >= order.Amount)
+			{
+				order.Result = ExchangeAPIOrderResult.Filled;
+			}
+			else
+			{
+				order.Result = ExchangeAPIOrderResult.FilledPartially;
+			}
+			// Poloniex does not provide a way to get the original price
+			order.Price = order.AveragePrice;
+		}
 
-        public void ParseClosePositionTrades(IEnumerable<JToken> trades, ExchangeCloseMarginPositionResult closePosition)
+		public void ParseClosePositionTrades(IEnumerable<JToken> trades, ExchangeCloseMarginPositionResult closePosition)
         {
             bool closePositionMetadataSet = false;
             var tradeIds = new List<string>();
@@ -383,7 +405,7 @@ namespace ExchangeSharp
         protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
         {
             Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-            return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 if (token[0].ConvertInvariant<int>() == 1002)
@@ -412,7 +434,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
 			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-			return await ConnectWebSocketAsync(string.Empty, async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				int msgId = token[0].ConvertInvariant<int>();
@@ -470,7 +492,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 20, params string[] marketSymbols)
         {
             Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-            return await ConnectWebSocketAsync(string.Empty, (_socket, msg) =>
+            return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
             {
                 JToken token = JToken.Parse(msg.ToStringFromUTF8());
                 int msgId = token[0].ConvertInvariant<int>();
@@ -765,9 +787,21 @@ namespace ExchangeSharp
                 orderParams.Add(kv.Value);
             }
 
-            JToken result = await MakePrivateAPIRequestAsync(order.IsBuy ? (order.IsMargin ? "marginBuy" : "buy") : (order.IsMargin ? "marginSell" : "sell"), orderParams);
-            ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result);
-            exchangeOrderResult.MarketSymbol = order.MarketSymbol;
+			JToken result = null;
+			try
+			{
+				result = await MakePrivateAPIRequestAsync(order.IsBuy ? (order.IsMargin ? "marginBuy" : "buy") : (order.IsMargin ? "marginSell" : "sell"), orderParams);
+			}
+			catch (Exception e)
+			{
+				if (!e.Message.Contains("Unable to fill order completely"))
+				{
+					throw;
+				}
+				result = JToken.FromObject(new { orderNumber = "0", currencyPair = order.MarketSymbol });
+			}
+			ExchangeOrderResult exchangeOrderResult = ParsePlacedOrder(result, order);
+			exchangeOrderResult.MarketSymbol = order.MarketSymbol;
             exchangeOrderResult.FeesCurrency = ParseFeesCurrency(order.IsBuy, order.MarketSymbol);
             return exchangeOrderResult;
         }

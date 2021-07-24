@@ -45,10 +45,53 @@ namespace ExchangeSharp
 		#region Private methods
 
 		private static readonly IReadOnlyCollection<Type> exchangeTypes = typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract).ToArray();
-		private static readonly ConcurrentDictionary<Type, ExchangeAPI> apis = new ConcurrentDictionary<Type, ExchangeAPI>();
+		private static readonly ConcurrentDictionary<Type, IExchangeAPI> apis = new ConcurrentDictionary<Type, IExchangeAPI>();
 
 		private bool initialized;
 		private bool disposed;
+
+		private static IExchangeAPI InitializeAPI(Type? type, Type? knownType = null)
+		{
+			if (type is null)
+			{
+				throw new ArgumentException($"Unable to find exchange of type {knownType?.FullName}");
+			}
+
+			// create the api
+			if (!(Activator.CreateInstance(type, true) is ExchangeAPI api))
+			{
+				throw new ApplicationException($"Failed to create exchange of type {type.FullName}, must inherit {nameof(ExchangeAPI)}.");
+			}
+
+			const int retryCount = 3;
+			Exception? ex = null;
+
+			// try up to 3 times to init
+			for (int i = 1; i <= 3; i++)
+			{
+				try
+				{
+					api.InitializeAsync().Sync();
+					ex = null;
+					break;
+				}
+				catch (Exception _ex)
+				{
+					ex = _ex;
+					if (i != retryCount)
+					{
+						Thread.Sleep(5000);
+					}
+				}
+			}
+
+			if (ex != null)
+			{
+				throw ex;
+			}
+
+			return api;
+		}
 
 		#endregion Private methods
 
@@ -180,6 +223,8 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols) =>
 			throw new NotImplementedException();
+		protected virtual Task<IWebSocket> OnGetPositionsWebSocketAsync(Action<ExchangePosition> callback) =>
+			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols) =>
 			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols) =>
@@ -280,7 +325,7 @@ namespace ExchangeSharp
 		/// <returns>Mapping with global currency as key</returns>
 		protected async Task<Dictionary<string, T>> ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync<T>(IReadOnlyDictionary<string, T> input)
 		{
-			Dictionary<string, T> globalCurrenciesDict = new Dictionary<string, T>(input.Count);
+			Dictionary<string, T> globalCurrenciesDict = new Dictionary<string, T>(input.Count, StringComparer.OrdinalIgnoreCase);
 			foreach (var i in input)
 			{
 				var globalCurrency = await ExchangeCurrencyToGlobalCurrencyAsync(i.Key);
@@ -320,7 +365,7 @@ namespace ExchangeSharp
 				Cache?.Dispose();
 
 				// take out of global api dictionary if disposed and we are the current exchange in the dictionary
-				if (apis.TryGetValue(GetType(), out ExchangeAPI existing) && this == existing)
+				if (apis.TryGetValue(GetType(), out IExchangeAPI existing) && this == existing)
 				{
 					apis.TryRemove(GetType(), out _);
 				}
@@ -341,40 +386,49 @@ namespace ExchangeSharp
 			initialized = true;
 		}
 
-		/// <summary>
-		/// Get an exchange API given an exchange name (see ExchangeName class)
-		/// </summary>
-		/// <param name="exchangeName">Exchange name</param>
-		/// <returns>Exchange API or null if not found</returns>
-		public static IExchangeAPI GetExchangeAPI(string exchangeName)
+		private static IExchangeAPI CreateExchangeAPI(Type? type)
 		{
-			// find the exchange with the name and creat it
-			foreach (Type type in exchangeTypes)
-			{
-				ExchangeAPI api = (Activator.CreateInstance(type, true)as ExchangeAPI) !;
-				if (api.Name.Equals(exchangeName, StringComparison.OrdinalIgnoreCase))
-				{
-					return GetExchangeAPI(type);
-				}
-			}
-			throw new ApplicationException("No exchange found with name " + exchangeName);
+			return InitializeAPI(type);
 		}
 
 		/// <summary>
-		/// Get an exchange API given a type
+		/// Create an exchange api, by-passing any cache. Use this method for cases
+		/// where you need multiple instances of the same exchange, for example
+		/// multiple credentials.
 		/// </summary>
-		/// <typeparam name="T">Type of exchange to get</typeparam>
-		/// <returns>Exchange API or null if not found</returns>
-		public static IExchangeAPI GetExchangeAPI<T>()where T : ExchangeAPI
+		/// <typeparam name="T">Type of exchange api to create</typeparam>
+		/// <returns>Created exchange api</returns>
+		public static T CreateExchangeAPI<T>() where T : ExchangeAPI
 		{
-			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
-			// subsequent calls with cache hits will be nanoseconds
-			Type type = typeof(T) !;
+			return (T)CreateExchangeAPI(typeof(T));
+		}
+
+		/// <summary>
+		/// Get a cached exchange API given an exchange name (see ExchangeName class)
+		/// </summary>
+		/// <param name="exchangeName">Exchange name. Must match the casing of the ExchangeName class name exactly.</param>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI GetExchangeAPI(string exchangeName)
+		{
+			Type type = ExchangeName.GetExchangeType(exchangeName);
 			return GetExchangeAPI(type);
 		}
 
 		/// <summary>
-		/// Get an exchange API given a type
+		/// Get a cached exchange API given a type
+		/// </summary>
+		/// <typeparam name="T">Type of exchange to get</typeparam>
+		/// <returns>Exchange API or null if not found</returns>
+		public static IExchangeAPI GetExchangeAPI<T>() where T : ExchangeAPI
+		{
+			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
+			// subsequent calls with cache hits will be nanoseconds
+			Type type = typeof(T)!;
+			return GetExchangeAPI(type);
+		}
+
+		/// <summary>
+		/// Get a cached exchange API given a type
 		/// </summary>
 		/// <param name="type">Type of exchange</param>
 		/// <returns>Exchange API or null if not found</returns>
@@ -384,46 +438,14 @@ namespace ExchangeSharp
 			// subsequent calls with cache hits will be nanoseconds
 			return apis.GetOrAdd(type, _exchangeName =>
 			{
-				// find an API with the right name
-				ExchangeAPI? api = null;
+				// find the api type
 				Type? foundType = exchangeTypes.FirstOrDefault(t => t == type);
-				if (foundType != null)
-				{
-					api = (Activator.CreateInstance(foundType, true)as ExchangeAPI) !;
-					Exception? ex = null;
-
-					// try up to 3 times to init
-					for (int i = 0; i < 3; i++)
-					{
-						try
-						{
-							api.InitializeAsync().Sync();
-							break;
-						}
-						catch (Exception _ex)
-						{
-							ex = _ex;
-							Thread.Sleep(5000);
-						}
-					}
-
-					if (ex != null)
-					{
-						throw ex;
-					}
-				}
-
-				if (api == null)
-				{
-					throw new ApplicationException("No exchange found with type " + type.FullName);
-				}
-
-				return api;
+				return InitializeAPI(foundType, type);
 			});
 		}
 
 		/// <summary>
-		/// Get all exchange APIs
+		/// Get all cached versions of exchange APIs
 		/// </summary>
 		/// <returns>All APIs</returns>
 		public static IExchangeAPI[] GetExchangeAPIs()
@@ -673,6 +695,11 @@ namespace ExchangeSharp
 		/// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
 		public virtual async Task<ExchangeMarket?> GetExchangeMarketFromCacheAsync(string marketSymbol)
 		{
+			if (string.IsNullOrWhiteSpace(marketSymbol))
+			{
+				return null;
+			}
+
 			try
 			{
 				// *NOTE*: custom caching, do not wrap in CacheMethodCall...
@@ -682,7 +709,7 @@ namespace ExchangeSharp
 				await new SynchronizationContextRemover();
 				Dictionary<string, ExchangeMarket> lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
 
-				foreach(KeyValuePair<string, ExchangeMarket> kvp in lookup)
+				foreach (KeyValuePair<string, ExchangeMarket> kvp in lookup)
 				{
 					if ((kvp.Key == marketSymbol)
 						|| (kvp.Value.MarketSymbol == marketSymbol)
@@ -1009,6 +1036,17 @@ namespace ExchangeSharp
 		{
 			callbackAsync.ThrowIfNull(nameof(callbackAsync), "Callback must not be null");
 			return OnGetCandlesWebSocketAsync(callbackAsync, periodSeconds, marketSymbols);
+		}
+
+		/// <summary>
+		/// Get all position updates via web socket
+		/// </summary>
+		/// <param name="callback">Callback</param>
+		/// <returns>Web socket, call Dispose to close</returns>
+		public virtual Task<IWebSocket> GetPositionsWebSocketAsync(Action<ExchangePosition> callback)
+		{
+			callback.ThrowIfNull(nameof(callback), "Callback must not be null");
+			return OnGetPositionsWebSocketAsync(callback);
 		}
 
 		/// <summary>

@@ -28,6 +28,8 @@ using NSubstitute;
 
 namespace ExchangeSharpTests
 {
+	// TODO: FIX: Poloniex order amount and amount filled are inconsistant
+
     [TestClass]
     public sealed class ExchangePoloniexAPITests
     {
@@ -60,7 +62,14 @@ namespace ExchangeSharpTests
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
             var polo = CreatePoloniexAPI();
-            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder);
+			var orderRequest = new ExchangeOrderRequest
+			{
+				MarketSymbol = "FOO_FOO",
+				Amount = 338.8732m,
+				Price = 0.00000173m,
+				IsBuy = true
+			};
+            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeTrue();
             order.Amount.Should().Be(338.8732m);
@@ -88,7 +97,14 @@ namespace ExchangeSharpTests
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
             var polo = CreatePoloniexAPI();
-            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder);
+			var orderRequest = new ExchangeOrderRequest
+			{
+				MarketSymbol = "FOO_FOO",
+				Amount = 338.8732m,
+				Price = 0.00000173m,
+				IsBuy = false
+			};
+			ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeFalse();
             order.Amount.Should().Be(338.8732m);
@@ -106,8 +122,8 @@ namespace ExchangeSharpTests
             var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTradesSell);
             var polo = CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
-            order.Amount.Should().Be(143.14m);
-            order.AmountFilled.Should().Be(order.Amount);
+            order.Amount.Should().Be(119.83405116M);
+            order.AmountFilled.Should().Be(143.14m);
             order.Fees.Should().Be(0.00006141m);
             order.FeesCurrency.Should().Be("BTC");
             order.IsBuy.Should().BeFalse();
@@ -125,8 +141,8 @@ namespace ExchangeSharpTests
             var polo = CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.OrderId.Should().BeNullOrEmpty();
-            order.Amount.Should().Be(19096.46996880m);
-            order.AmountFilled.Should().Be(order.Amount);
+            order.Amount.Should().Be(9096.4699688M);
+            order.AmountFilled.Should().Be(19096.46996880m);
             order.IsBuy.Should().BeTrue();
             order.Fees.Should().Be(28.64470495m);
             order.FeesCurrency.Should().Be("XEM");
@@ -238,8 +254,8 @@ namespace ExchangeSharpTests
             ExchangeOrderResult order = await polo.GetOrderDetailsAsync("1");
 
             order.OrderId.Should().Be("1");
-            order.Amount.Should().Be(19096.46996880m);
-            order.AmountFilled.Should().Be(order.Amount);
+            order.Amount.Should().Be(9096.4699688M);
+            order.AmountFilled.Should().Be(19096.46996880m);
             order.IsBuy.Should().BeTrue();
             order.Fees.Should().Be(28.64470495m);
             order.FeesCurrency.Should().Be("XEM");
@@ -334,22 +350,29 @@ namespace ExchangeSharpTests
                 }
             };
 
-            // retrieve without BTC_BCH in the result
-            (await polo.GetExchangeMarketFromCacheAsync("XMR_LTC")).Should().NotBeNull();
+			// retrieve without BTC_BCH in the result
+			var result = await polo.GetExchangeMarketFromCacheAsync("XMR_LTC");
+			result.Should().NotBeNull();
             requestCount.Should().Be(1);
-            (await polo.GetExchangeMarketFromCacheAsync("BTC_BCH")).Should().BeNull();
+			result = await polo.GetExchangeMarketFromCacheAsync("BTC_BCH");
+			result.Should().BeNull();
             requestCount.Should().Be(2);
 
             // now many moons later we request BTC_BCH, which wasn't in the first request but is in the latest exchange result
             (polo.RequestMaker as MockAPIRequestMaker).GlobalResponse = Resources.PoloniexGetSymbolsMetadata2;
-            (await polo.GetExchangeMarketFromCacheAsync("BTC_BCH")).Should().NotBeNull();
+			result = await polo.GetExchangeMarketFromCacheAsync("BTC_BCH");
+			result.Should().NotBeNull();
             requestCount.Should().Be(3);
 
-            // and lets make sure it doesn't return something for null and garbage symbols
-            (await polo.GetExchangeMarketFromCacheAsync(null)).Should().BeNull();
-            (await polo.GetExchangeMarketFromCacheAsync(string.Empty)).Should().BeNull();
-            (await polo.GetExchangeMarketFromCacheAsync("324235!@^%Q@#%^")).Should().BeNull();
-            (await polo.GetExchangeMarketFromCacheAsync("NOCOIN_NORESULT")).Should().BeNull();
+			// and lets make sure it doesn't return something for null and garbage symbols
+			result = await polo.GetExchangeMarketFromCacheAsync(null);
+			result.Should().BeNull();
+			result = await polo.GetExchangeMarketFromCacheAsync(string.Empty);
+			result.Should().BeNull();
+			result = await polo.GetExchangeMarketFromCacheAsync("324235!@^%Q@#%^");
+			result.Should().BeNull();
+			result = await polo.GetExchangeMarketFromCacheAsync("NOCOIN_NORESULT");
+			result.Should().BeNull();
         }
 
         private static Func<Task> Invoking(Func<Task> action) => action;

@@ -9,7 +9,7 @@ using ExchangeSharpConsole.Options.Interfaces;
 namespace ExchangeSharpConsole.Options
 {
 	[Verb("ws-tickers", HelpText =
-		"Connects to the given exchange websocket and keeps printing tickers from that exchange." +
+		"Connects to the given exchange websocket and keeps printing tickers from that exchange.\n" +
 		"If market symbol is not set then uses all.")]
 	public class WebSocketsTickersOption : BaseOption, IOptionPerExchange, IOptionWithMultipleMarketSymbol
 	{

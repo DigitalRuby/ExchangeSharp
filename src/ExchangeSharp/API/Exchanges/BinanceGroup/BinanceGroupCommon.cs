@@ -234,7 +234,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
 		{
-			return ConnectWebSocketAsync("/stream?streams=!ticker@arr", async (_socket, msg) =>
+			return ConnectPublicWebSocketAsync("/stream?streams=!ticker@arr", async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -274,7 +274,7 @@ namespace ExchangeSharp.BinanceGroup
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			string url = await GetWebSocketStreamUrlForSymbolsAsync("@aggTrade", marketSymbols);
-			return await ConnectWebSocketAsync(url, messageCallback: async (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync(url, messageCallback: async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				string name = token["stream"].ToStringInvariant();
@@ -297,7 +297,7 @@ namespace ExchangeSharp.BinanceGroup
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
 			string combined = string.Join("/", marketSymbols.Select(s => this.NormalizeMarketSymbol(s).ToLowerInvariant() + "@depth@100ms"));
-			return await ConnectWebSocketAsync($"/stream?streams={combined}", (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync($"/stream?streams={combined}", (_socket, msg) =>
 			{
 				string json = msg.ToStringFromUTF8();
 				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
@@ -1130,7 +1130,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback, string listenKey)
 		{
-			return await ConnectWebSocketAsync($"/ws/{listenKey}", (_socket, msg) =>
+			return await ConnectPublicWebSocketAsync($"/ws/{listenKey}", (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				var eventType = token["e"].ToStringInvariant();
