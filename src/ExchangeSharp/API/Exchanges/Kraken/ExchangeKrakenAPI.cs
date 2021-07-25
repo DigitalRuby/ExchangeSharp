@@ -551,6 +551,8 @@ namespace ExchangeSharp
 			var csvPairsList = string.Join(",", normalizedPairsList);
 			JToken apiTickers = await MakeJsonRequestAsync<JToken>("/0/public/Ticker", null, new Dictionary<string, object> { { "pair", csvPairsList } });
 			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			var unfoundSymbols = new List<String>();
+
 			foreach (string marketSymbol in normalizedPairsList)
 			{
 				JToken ticker = apiTickers[marketSymbol];
@@ -559,9 +561,14 @@ namespace ExchangeSharp
 
 				if (ticker == null)
 				{
-					// Some pairs like USDTZUSD are not found, but they can be found using Metadata.
+					// Some pairs like USDTZUSD are not found, but they (hopefully) can be found using Metadata.
 					var symbols = (await GetMarketSymbolsMetadataAsync()).ToList();
-					var symbol = symbols.FirstOrDefault(a => a.MarketSymbol.Replace("/", "").Equals(marketSymbol));
+					ExchangeMarket symbol = symbols.FirstOrDefault(a => a.AltMarketSymbol.Equals(marketSymbol));
+					if (symbol == null)
+					{
+						unfoundSymbols.Add(marketSymbol);
+						continue;
+					}
 					ticker = apiTickers[symbol.BaseCurrency + symbol.QuoteCurrency];
 				}
 
@@ -571,10 +578,14 @@ namespace ExchangeSharp
 				{
 					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ConvertToExchangeTickerAsync(marketSymbol, ticker)));
 				}
-				catch
+				catch(Exception e)
 				{
-					// if Kraken throws bogus json at us, just eat it
+					Logger.Error(e);
 				}
+			}
+			if(unfoundSymbols.Count > 0)
+			{
+				Logger.Warn($"Of {marketSymbols.Count()} symbols, tickers could not be found for {unfoundSymbols.Count}: [{String.Join(", ", unfoundSymbols)}]");
 			}
 			return tickers;
 		}
