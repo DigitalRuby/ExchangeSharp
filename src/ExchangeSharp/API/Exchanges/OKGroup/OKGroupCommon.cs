@@ -413,7 +413,8 @@ namespace ExchangeSharp.OKGroup
 
             // Okex has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
             decimal outputQuantity = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
+			if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+			decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 
             if (order.OrderType == OrderType.Market)
             {

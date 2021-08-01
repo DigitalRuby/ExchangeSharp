@@ -693,7 +693,8 @@ namespace ExchangeSharp
             else
             {
                 payload["type"] += "-limit";
-                payload["price"] = outputPrice.ToStringInvariant();
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+				payload["price"] = outputPrice.ToStringInvariant();
             }
 
             order.ExtraParameters.CopyTo(payload);

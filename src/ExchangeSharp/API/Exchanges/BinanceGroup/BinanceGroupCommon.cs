@@ -548,6 +548,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
+			if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload["symbol"] = order.MarketSymbol;
 			payload["newClientOrderId"] = order.ClientOrderId;

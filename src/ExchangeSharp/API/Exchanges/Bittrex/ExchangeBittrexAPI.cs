@@ -378,6 +378,7 @@ namespace ExchangeSharp
 		{
 
 			decimal orderAmount = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
+			if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 			decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 			string url = "/orders";
 			Dictionary<string, object> orderParams = await GetNoncePayloadAsync();

@@ -769,7 +769,8 @@ namespace ExchangeSharp
             }
 
             decimal orderAmount = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-            decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
+			if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+			decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 
             List<object> orderParams = new List<object>
             {

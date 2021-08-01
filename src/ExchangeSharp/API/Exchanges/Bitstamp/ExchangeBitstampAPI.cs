@@ -202,7 +202,8 @@ namespace ExchangeSharp
 
             if (order.OrderType != OrderType.Market)
             {
-                payload["price"] = order.Price.ToStringInvariant();
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+				payload["price"] = order.Price.ToStringInvariant();
             }
 
             payload["amount"] = order.RoundAmount().ToStringInvariant();

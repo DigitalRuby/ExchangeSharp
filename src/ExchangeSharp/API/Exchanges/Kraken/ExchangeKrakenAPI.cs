@@ -761,6 +761,7 @@ namespace ExchangeSharp
 			if (order.OrderType != OrderType.Market)
 			{
 				int precision = BitConverter.GetBytes(Decimal.GetBits((decimal)market.PriceStepSize)[3])[2];
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 				payload.Add("price", Math.Round(order.Price.Value, precision).ToStringInvariant());
 			}
 			order.ExtraParameters.CopyTo(payload);

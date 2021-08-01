@@ -573,12 +573,14 @@ namespace ExchangeSharp
 					// set payload["post_only"] to true for default scenario when order.ExtraParameters["post_only"] is not specified
 					// to place non-post-only limit order one can set and pass order.ExtraParameters["post_only"]="false"
 					payload["post_only"] = order.ExtraParameters.TryGetValueOrDefault("post_only", "true");
+					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 					payload["price"] = order.Price.ToStringInvariant();
 					break;
 
 				case OrderType.Stop:
 					payload["stop"] = (order.IsBuy ? "entry" : "loss");
 					payload["stop_price"] = order.StopPrice.ToStringInvariant();
+					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 					payload["type"] = order.Price > 0m ? "limit" : "market";
 					break;
 
