@@ -481,7 +481,8 @@ namespace ExchangeSharp
 
 			if (order.OrderType != OrderType.Market)
 			{
-				payload["price"] = (await ClampOrderPrice(marketSymbol, order.Price)).ToStringInvariant();
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+				payload["price"] = (await ClampOrderPrice(marketSymbol, order.Price.Value)).ToStringInvariant();
 			}
 			else
 			{

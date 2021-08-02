@@ -202,7 +202,8 @@ namespace ExchangeSharp
 
             if (order.OrderType != OrderType.Market)
             {
-                payload["price"] = order.Price.ToStringInvariant();
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+				payload["price"] = order.Price.ToStringInvariant();
             }
 
             payload["amount"] = order.RoundAmount().ToStringInvariant();
@@ -442,7 +443,7 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders2 = new List<ExchangeOrderResult>();
             foreach (var group in groupings)
             {
-                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice * o.AmountFilled);
+                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice.Value * o.AmountFilled);
                 ExchangeOrderResult order = group.First();
                 order.AmountFilled = group.Sum(o => o.AmountFilled);
                 order.AveragePrice = spentQuoteCurrency / order.AmountFilled;

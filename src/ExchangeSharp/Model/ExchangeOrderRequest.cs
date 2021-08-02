@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -34,13 +34,13 @@ namespace ExchangeSharp
         /// <summary>
         /// The price to buy or sell at
         /// </summary>
-        public decimal Price { get; set; }
+        public decimal? Price { get; set; }
 
         /// <summary>
         /// The price to trigger a stop
         /// </summary>
         public decimal StopPrice { get; set; }
-    
+
         /// <summary>
         /// True if this is a buy, false if a sell
         /// </summary>
