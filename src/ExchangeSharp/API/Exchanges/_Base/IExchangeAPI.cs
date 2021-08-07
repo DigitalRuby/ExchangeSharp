@@ -68,28 +68,13 @@ namespace ExchangeSharp
 
 		#endregion Utility Methods
 
-		#region REST
+		#region REST API
 
 		/// <summary>
 		/// Gets currencies and related data such as IsEnabled and TxFee (if available)
 		/// </summary>
 		/// <returns>Collection of Currencies</returns>
 		Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync();
-
-		/// <summary>
-		/// Gets the address to deposit to and applicable details.
-		/// </summary>
-		/// <param name="currency">Currency to get address for.</param>
-		/// <param name="forceRegenerate">True to regenerate the address</param>
-		/// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-		Task<ExchangeDepositDetails> GetDepositAddressAsync(string currency, bool forceRegenerate = false);
-
-		/// <summary>
-		/// Gets the deposit history for a currency
-		/// </summary>
-		/// <param name="currency">The currency to check. May be null.</param>
-		/// <returns>Collection of ExchangeCoinTransfers</returns>
-		Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string currency);
 
 		/// <summary>
 		/// Get symbols for the exchange markets
@@ -108,6 +93,29 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <returns>Collection of ExchangeMarkets</returns>
 		Task<IEnumerable<ExchangeMarket>> GetMarketSymbolsMetadataAsync();
+
+		/// <summary>
+		/// Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
+		/// Please note that sending a symbol that is not found over and over will result in many network requests. Only send symbols that you are confident exist on the exchange.
+		/// </summary>
+		/// <param name="marketSymbol">The market symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
+		/// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
+		Task<ExchangeMarket?> GetExchangeMarketFromCacheAsync(string marketSymbol);
+
+		/// <summary>
+		/// Gets the address to deposit to and applicable details.
+		/// </summary>
+		/// <param name="currency">Currency to get address for.</param>
+		/// <param name="forceRegenerate">True to regenerate the address</param>
+		/// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
+		Task<ExchangeDepositDetails> GetDepositAddressAsync(string currency, bool forceRegenerate = false);
+
+		/// <summary>
+		/// Gets the deposit history for a currency
+		/// </summary>
+		/// <param name="currency">The currency to check. May be null.</param>
+		/// <returns>Collection of ExchangeCoinTransfers</returns>
+		Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string currency);
 
 		/// <summary>
 		/// Get latest ticker
@@ -132,6 +140,10 @@ namespace ExchangeSharp
 		Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
 		//Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null);
 
+		// Task<ExchangeOrderBook> GetOrderBookAsync(string marketSymbol, int maxCount = 100); is in IOrderBookProvider
+
+		// Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooksAsync(int maxCount = 100); is in IOrderBookProvider
+
 		/// <summary>
 		/// Get the latest trades
 		/// </summary>
@@ -152,6 +164,12 @@ namespace ExchangeSharp
 		Task<IEnumerable<MarketCandle>> GetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
 
 		/// <summary>
+		/// Get fees
+		/// </summary>
+		/// <returns>The customer trading fees</returns>
+		Task<Dictionary<string, decimal>> GetFeesAync();
+
+		/// <summary>
 		/// Get total amounts, symbol / amount dictionary
 		/// </summary>
 		/// <returns>Dictionary of symbols and amounts</returns>
@@ -162,6 +180,13 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <returns>Dictionary of symbols and amounts available to trade</returns>
 		Task<Dictionary<string, decimal>> GetAmountsAvailableToTradeAsync();
+
+		/// <summary>
+		/// Get margin amounts available to trade, symbol / amount dictionary
+		/// </summary>
+		/// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
+		/// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
+		Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false);
 
 		/// <summary>
 		/// Place an order
@@ -208,11 +233,16 @@ namespace ExchangeSharp
 		Task CancelOrderAsync(string orderId, string? marketSymbol = null);
 
 		/// <summary>
-		/// Get margin amounts available to trade, symbol / amount dictionary
+		/// Asynchronous withdraws request.
 		/// </summary>
-		/// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
-		/// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
-		Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false);
+		/// <param name="withdrawalRequest">The withdrawal request.</param>
+		Task<ExchangeWithdrawalResponse> WithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest);
+
+		/// <summary>
+		/// Gets the withdraw history for a symbol
+		/// </summary>
+		/// <returns>Collection of ExchangeCoinTransfers</returns>
+		Task<IEnumerable<ExchangeTransaction>> GetWithdrawHistoryAsync(string currency);
 
 		/// <summary>
 		/// Get open margin position
@@ -228,15 +258,9 @@ namespace ExchangeSharp
 		/// <returns>Close margin position result</returns>
 		Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string marketSymbol);
 
-		/// <summary>
-		/// Get fees
-		/// </summary>
-		/// <returns>The customer trading fees</returns>
-		Task<Dictionary<string, decimal>> GetFeesAync();
-
 		#endregion REST
 
-		#region Web Socket
+		#region Web Socket API
 		/// <summary>
 		/// Gets Candles (OHLC) websocket
 		/// </summary>
@@ -285,6 +309,12 @@ namespace ExchangeSharp
 		/// <returns>Web socket, call Dispose to close</returns>
 		Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
 
+		/// <summary>
+		/// Get user detail over web socket
+		/// </summary>
+		/// <param name="callback">Callback</param>
+		/// <param name="listenKey">Listen key</param>
+		/// <returns>Web socket, call Dispose to close</returns>
 		Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback, string listenKey);
 		#endregion Web Socket
 	}
