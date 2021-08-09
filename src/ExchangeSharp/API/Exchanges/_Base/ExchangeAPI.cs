@@ -744,6 +744,34 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
+		/// Gets the address to deposit to and applicable details.
+		/// </summary>
+		/// <param name="currency">Currency to get address for.</param>
+		/// <param name="forceRegenerate">Regenerate the address</param>
+		/// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
+		public virtual async Task<ExchangeDepositDetails> GetDepositAddressAsync(string currency, bool forceRegenerate = false)
+		{
+			if (forceRegenerate)
+			{
+				// force regenetate, do not cache
+				return await OnGetDepositAddressAsync(currency, forceRegenerate);
+			}
+			else
+			{
+				return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetDepositAddressAsync(currency, forceRegenerate), nameof(GetDepositAddressAsync), nameof(currency), currency);
+			}
+		}
+
+		/// <summary>
+		/// Gets the deposit history for a symbol
+		/// </summary>
+		/// <returns>Collection of ExchangeCoinTransfers</returns>
+		public virtual async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string currency)
+		{
+			return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetDepositHistoryAsync(currency), nameof(GetDepositHistoryAsync), nameof(currency), currency);
+		}
+
+		/// <summary>
 		/// Get exchange ticker
 		/// </summary>
 		/// <param name="marketSymbol">Symbol to get ticker for</param>
@@ -812,34 +840,6 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
-		/// Gets the address to deposit to and applicable details.
-		/// </summary>
-		/// <param name="currency">Currency to get address for.</param>
-		/// <param name="forceRegenerate">Regenerate the address</param>
-		/// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-		public virtual async Task<ExchangeDepositDetails> GetDepositAddressAsync(string currency, bool forceRegenerate = false)
-		{
-			if (forceRegenerate)
-			{
-				// force regenetate, do not cache
-				return await OnGetDepositAddressAsync(currency, forceRegenerate);
-			}
-			else
-			{
-				return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetDepositAddressAsync(currency, forceRegenerate), nameof(GetDepositAddressAsync), nameof(currency), currency);
-			}
-		}
-
-		/// <summary>
-		/// Gets the deposit history for a symbol
-		/// </summary>
-		/// <returns>Collection of ExchangeCoinTransfers</returns>
-		public virtual async Task<IEnumerable<ExchangeTransaction>> GetDepositHistoryAsync(string currency)
-		{
-			return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetDepositHistoryAsync(currency), nameof(GetDepositHistoryAsync), nameof(currency), currency);
-		}
-
-		/// <summary>
 		/// Get candles (open, high, low, close)
 		/// </summary>
 		/// <param name="marketSymbol">Symbol to get candles for</param>
@@ -856,6 +856,15 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
+		/// Get fees
+		/// </summary>
+		/// <returns>The customer trading fees</returns>
+		public virtual async Task<Dictionary<string, decimal>> GetFeesAync()
+		{
+			return await Cache.CacheMethod(MethodCachePolicy, async () => await OnGetFeesAsync(), nameof(GetFeesAync));
+		}
+
+		/// <summary>
 		/// Get total amounts, symbol / amount dictionary
 		/// </summary>
 		/// <returns>Dictionary of symbols and amounts</returns>
@@ -865,15 +874,6 @@ namespace ExchangeSharp
 			var globalAmounts = await ExchangeCurrenciesDictionaryToGlobalCurrenciesDictionaryAsync(amounts);
 
 			return globalAmounts;
-		}
-
-		/// <summary>
-		/// Get fees
-		/// </summary>
-		/// <returns>The customer trading fees</returns>
-		public virtual async Task<Dictionary<string, decimal>> GetFeesAync()
-		{
-			return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetFeesAsync(), nameof(GetFeesAync));
 		}
 
 		/// <summary>
