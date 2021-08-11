@@ -682,7 +682,7 @@ namespace ExchangeSharp
             payload.Add("source", order.IsMargin ? "margin-api" : "api");
 
             decimal outputQuantity = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-            decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price);
+            decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 
             payload["amount"] = outputQuantity.ToStringInvariant();
 
@@ -693,7 +693,8 @@ namespace ExchangeSharp
             else
             {
                 payload["type"] += "-limit";
-                payload["price"] = outputPrice.ToStringInvariant();
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+				payload["price"] = outputPrice.ToStringInvariant();
             }
 
             order.ExtraParameters.CopyTo(payload);

@@ -252,10 +252,12 @@ namespace ExchangeSharp
 			switch (order.OrderType)
 			{
 				case OrderType.Limit:
-					data["price_int"] = converterToFive.FromDecimal(order.Price);
+					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+					data["price_int"] = converterToFive.FromDecimal(order.Price.Value);
 					break;
 				case OrderType.Market:
-					data["amount_funds_int"] = converterToFive.FromDecimal(roundedAmount * order.Price);
+					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+					data["amount_funds_int"] = converterToFive.FromDecimal(roundedAmount * order.Price.Value);
 					break;
 				default:
 					throw new NotSupportedException($"{order.OrderType} is not supported");
