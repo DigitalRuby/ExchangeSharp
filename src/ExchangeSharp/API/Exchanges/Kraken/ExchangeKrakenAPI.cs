@@ -206,6 +206,7 @@ namespace ExchangeSharp
 			orderResult.AmountFilled = order["vol_exec"].ConvertInvariant<decimal>();
 			orderResult.Price = order["descr"]["price"].ConvertInvariant<decimal>();
 			orderResult.AveragePrice = order["price"].ConvertInvariant<decimal>();
+			orderResult.Fees = order["fee"].ConvertInvariant<decimal>();
 
 			return orderResult;
 		}
