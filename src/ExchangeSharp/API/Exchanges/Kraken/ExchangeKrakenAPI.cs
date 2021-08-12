@@ -1142,6 +1142,15 @@ namespace ExchangeSharp
 			return marketSymbolList;
 		}
 
+		/// <summary>
+		/// Handle Kraken "book" channel message: https://docs.kraken.com/websockets/#message-book
+		/// Note in the "update payload" case there may be varying number of update blocks for
+		/// bid/ask updates. The last such block has a checksum. The market symbol is always the last item.
+		/// </summary>
+		/// <param name="callback"></param>
+		/// <param name="maxCount"></param>
+		/// <param name="marketSymbols"></param>
+		/// <returns></returns>
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
 			Action<ExchangeOrderBook> callback,
 			int maxCount = 20,
@@ -1158,15 +1167,16 @@ namespace ExchangeSharp
 				string message = msg.ToStringFromUTF8();
 				var book = new ExchangeOrderBook();
 
+				//	SNAPSHOT payload
 				if (message.Contains("\"as\"") || message.Contains("\"bs\""))
 				{
 					// parse delta update
-					var delta = JsonConvert.DeserializeObject(message) as JArray;
+					var snapshot = JsonConvert.DeserializeObject(message) as JArray;
 
-					book.MarketSymbol = delta[3].ToString();
+					book.MarketSymbol = snapshot[3].ToString();
 
-					var asks = delta[1]["as"].ToList();
-					var bids = delta[1]["bs"].ToList();
+					var asks = snapshot[1]["as"].ToList();
+					var bids = snapshot[1]["bs"].ToList();
 
 					var lastUpdatedTime = DateTime.MinValue;
 
@@ -1205,16 +1215,16 @@ namespace ExchangeSharp
 				{
 					// parse delta update
 					var delta = JsonConvert.DeserializeObject(message) as JArray;
+					book.MarketSymbol = delta.Last.ToString();
 
-					book.MarketSymbol = delta[3].ToString();
+					var _a = delta.FirstOrDefault(token => token is JObject && token["a"] != null);
+					var _b = delta.FirstOrDefault(token => token is JObject && token["b"] != null);
 
 					var lastUpdatedTime = DateTime.MinValue;
 
-					var updates = delta[1];
-
-					if (updates["a"] != null)
+					if (_a != null)
 					{
-						var asks = updates["a"].ToList();
+						var asks = _a["a"].ToList();
 
 						foreach (var ask in asks)
 						{
@@ -1230,9 +1240,9 @@ namespace ExchangeSharp
 						}
 					}
 
-					if (updates["b"] != null)
+					if (_b != null)
 					{
-						var bids = updates["b"].ToList();
+						var bids = _b["b"].ToList();
 
 						foreach (var bid in bids)
 						{
@@ -1250,6 +1260,11 @@ namespace ExchangeSharp
 
 					book.LastUpdatedUtc = lastUpdatedTime;
 					book.SequenceId = lastUpdatedTime.Ticks;
+
+					//https://docs.kraken.com/websockets/#book-checksum
+					//"c" belongs to the last update block
+					var checksum = _b?["c"] ?? _a?["c"];
+					book.Checksum = (checksum as JValue)?.ToString();
 
 					callback(book);
 				}

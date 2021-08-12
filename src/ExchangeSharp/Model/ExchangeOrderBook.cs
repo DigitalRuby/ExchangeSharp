@@ -93,10 +93,17 @@ namespace ExchangeSharp
         public SortedDictionary<decimal, ExchangeOrderPrice> Bids { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>(new DescendingComparer<decimal>());
 
         /// <summary>
-        /// ToString
-        /// </summary>
-        /// <returns>String</returns>
-        public override string ToString()
+		/// If provided by the exchange, a checksum value that may be used to check orderbook integrity.
+		/// Otherwise it will be null. 
+        /// This property is not serialized using the ToBinary and FromBinary methods.
+		/// </summary>
+        public string Checksum { get; set; }
+
+		/// <summary>
+		/// ToString
+		/// </summary>
+		/// <returns>String</returns>
+		public override string ToString()
         {
             return string.Format("Book {0}, Asks: {1} ({2:0.00}), Bids: {3} ({4:0.00})", MarketSymbol,
 				Asks.Count,
