@@ -195,5 +195,30 @@ namespace ExchangeSharp
 
             return sellPrice;
         }
+
+        /// <summary>
+		/// Updates this order book with a partial order book update. items with a price-level
+		/// of 0 are removed from the orderbook, all others are inserted/updated with the supplied value
+		/// </summary>
+		/// <param name="partialUpdate">Set of changes to make</param>
+        public void ApplyUpdates(ExchangeOrderBook partialUpdate)
+        {
+            MergeOrderBookDelta(partialUpdate.Asks, this.Asks);
+            MergeOrderBookDelta(partialUpdate.Bids, this.Bids);
+
+            static void MergeOrderBookDelta(
+                SortedDictionary<decimal, ExchangeOrderPrice> newData,
+                SortedDictionary<decimal, ExchangeOrderPrice> bookData)
+            {
+                newData.ToList().ForEach(x =>
+                {
+                    if (x.Value.Amount == 0m)
+                        bookData.Remove(x.Key);
+                    else
+                        bookData[x.Key] = x.Value;
+                });
+            }
+
+        }
     }
 }
