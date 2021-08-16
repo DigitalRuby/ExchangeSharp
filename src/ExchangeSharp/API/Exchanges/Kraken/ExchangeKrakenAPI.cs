@@ -720,7 +720,7 @@ namespace ExchangeSharp
 				JProperty prop = json.Children().First() as JProperty;
 				foreach (JToken jsonCandle in prop.Value)
 				{
-					MarketCandle candle = this.ParseCandle(jsonCandle, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 6, null, 5);
+					MarketCandle candle = this.ParseCandle(jsonCandle, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 6, null, 5, 7);
 					if (candle.Timestamp >= startDate.Value && candle.Timestamp <= endDate.Value)
 					{
 						candles.Add(candle);
@@ -950,7 +950,7 @@ namespace ExchangeSharp
 					string marketSymbol = token[3].ToStringInvariant();
 					//Kraken updates the candle open time to the current time, but we want it as open-time i.e. close-time - interval
 					token[1][0] = token[1][1].ConvertInvariant<long>() - interval * 60;
-					var candle = this.ParseCandle(token[1], marketSymbol, interval * 60, 2, 3, 4, 5, 0, TimestampType.UnixSeconds, 7, null, 6);
+					var candle = this.ParseCandle(token[1], marketSymbol, interval * 60, 2, 3, 4, 5, 0, TimestampType.UnixSeconds, 7, null, 6,8);
 					await callbackAsync(candle);
 				}
 			}, connectCallback: async (_socket) =>

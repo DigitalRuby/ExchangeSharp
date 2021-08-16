@@ -721,7 +721,7 @@ namespace ExchangeSharp
 		/// <param name="weightedAverageKey">Weighted average key</param>
 		/// <returns>MarketCandle</returns>
 		internal static MarketCandle ParseCandle(this INamed named, JToken token, string marketSymbol, int periodSeconds, object openKey, object highKey, object lowKey,
-			object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object? quoteVolumeKey = null, object? weightedAverageKey = null)
+			object closeKey, object timestampKey, TimestampType timestampType, object baseVolumeKey, object? quoteVolumeKey = null, object? weightedAverageKey = null, object? countKey = null)
 		{
 			MarketCandle candle = new MarketCandle
 			{
@@ -741,6 +741,10 @@ namespace ExchangeSharp
 			if (weightedAverageKey != null)
 			{
 				candle.WeightedAverage = token[weightedAverageKey].ConvertInvariant<decimal>();
+			}
+			if( countKey != null)	
+			{
+				candle.Count = token[countKey].ConvertInvariant<int>();
 			}
 			return candle;
 		}
