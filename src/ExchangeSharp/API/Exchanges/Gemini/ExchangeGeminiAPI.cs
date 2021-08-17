@@ -642,10 +642,8 @@ namespace ExchangeSharp
 							decimal amount = change[2].ConvertInvariant<decimal>();
 
 							SortedDictionary<decimal, ExchangeOrderPrice> dict = (sell ? book.Asks : book.Bids);
-							if (amount == 0m)
-								dict.Remove(price);
-							else
-								dict[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
+
+							dict[price] = new ExchangeOrderPrice { Amount = amount, Price = price };
 						}
 					}
 
