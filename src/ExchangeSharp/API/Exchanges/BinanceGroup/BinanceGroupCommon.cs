@@ -934,6 +934,7 @@ namespace ExchangeSharp.BinanceGroup
 			};
 
 			result.Result = ParseExchangeAPIOrderResult(token["status"].ToStringInvariant(), result.AmountFilled);
+			ParseAveragePriceAndFeesFromFills(result, token["fills"]);
 
 			return result;
 		}
