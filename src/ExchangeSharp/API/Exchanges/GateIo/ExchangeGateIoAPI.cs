@@ -73,6 +73,36 @@ namespace ExchangeSharp
 			return tickers;
 		}
 
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol, int? limit = null)
+		{
+			var trades = new List<ExchangeTrade>();
+			int maxRequestLimit = (limit == null || limit < 1 || limit > 100) ? 100 : (int)limit;
+			var json = await MakeJsonRequestAsync<JToken>($"/spot/trades?currency_pair={symbol}&limit={maxRequestLimit}");
+
+			foreach (JToken tradeToken in json)
+			{
+				/*
+					{
+						"id": "1232893232",
+						"create_time": "1548000000",
+						"create_time_ms": "1548000000123.456",
+						"order_id": "4128442423",
+						"side": "buy",
+						"role": "maker",
+						"amount": "0.15",
+						"price": "0.03",
+						"fee": "0.0005",
+						"fee_currency": "ETH",
+						"point_fee": "0",
+						"gt_fee": "0"
+					}
+				*/
+
+				trades.Add(tradeToken.ParseTrade("amount", "price", "side", "create_time_ms", TimestampType.UnixMillisecondsDouble, "id"));
+			}
+			return trades;
+		}
+
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
 			List<string> symbols = new List<string>();
