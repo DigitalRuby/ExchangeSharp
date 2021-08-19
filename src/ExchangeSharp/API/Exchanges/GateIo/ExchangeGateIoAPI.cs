@@ -31,6 +31,48 @@ namespace ExchangeSharp
 			RequestContentType = "application/json";
 		}
 
+		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		{
+			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			var json = await MakeJsonRequestAsync<JToken>("/spot/tickers");
+
+			bool IsEmptyString(JToken token) => token.Type == JTokenType.String && token.ToObject<string>() == string.Empty;
+
+			foreach (JToken tickerToken in json)
+			{
+				/*
+					{
+						"currency_pair": "BTC3L_USDT",
+						"last": "2.46140352",
+						"lowest_ask": "2.477",
+						"highest_bid": "2.4606821",
+						"change_percentage": "-8.91",
+						"base_volume": "656614.0845820589",
+						"quote_volume": "1602221.66468375534639404191",
+						"high_24h": "2.7431",
+						"low_24h": "1.9863",
+						"etf_net_value": "2.46316141",
+						"etf_pre_net_value": "2.43201848",
+						"etf_pre_timestamp": 1611244800,
+						"etf_leverage": "2.2803019447281203"
+					}
+				*/
+
+				var ticker = new ExchangeTicker
+				{
+					MarketSymbol = tickerToken["currency_pair"].ToStringInvariant(),
+					Bid = IsEmptyString(tickerToken["lowest_ask"]) ? default : tickerToken["lowest_ask"].ConvertInvariant<decimal>(),
+					Ask = IsEmptyString(tickerToken["highest_bid"]) ? default : tickerToken["highest_bid"].ConvertInvariant<decimal>(),
+					Last = tickerToken["last"].ConvertInvariant<decimal>(),
+					ApiResponse = tickerToken
+				};
+
+				tickers.Add(new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
+			}
+
+			return tickers;
+		}
+
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
 			List<string> symbols = new List<string>();
