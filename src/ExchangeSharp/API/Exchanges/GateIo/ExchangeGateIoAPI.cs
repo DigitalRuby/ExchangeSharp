@@ -140,6 +140,43 @@ namespace ExchangeSharp
 			return ParseTicker(json.First());
 		}
 
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+		{
+			var json = await MakeJsonRequestAsync<JToken>($"/spot/order_book?currency_pair={symbol}");
+
+			/*
+				{
+				"id": 123456,
+				"current": 1623898993123,
+				"update": 1623898993121,
+				"asks": [
+					[
+						"1.52",
+						"1.151"
+					],
+					[
+						"1.53",
+						"1.218"
+					]
+				],
+				"bids": [
+					[
+						"1.17",
+						"201.863"
+					],
+					[
+						"1.16",
+						"725.464"
+					]
+				]
+				}
+			*/
+
+			var orderBook = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(json, sequence: "current", maxCount: maxCount);
+			orderBook.LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(json["current"].ConvertInvariant<long>());
+			return orderBook;
+		}
+
 		private ExchangeTicker ParseTicker(JToken tickerToken)
 		{
 			bool IsEmptyString(JToken token) => token.Type == JTokenType.String && token.ToObject<string>() == string.Empty;
