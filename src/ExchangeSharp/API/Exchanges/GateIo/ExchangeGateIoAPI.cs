@@ -177,6 +177,60 @@ namespace ExchangeSharp
 			return orderBook;
 		}
 
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(
+			string symbol,
+			int periodSeconds,
+			DateTime? startDate = null,
+			DateTime? endDate = null,
+			int? limit = null)
+		{
+			string url = $"/spot/candlesticks?currency_pair={symbol}&interval={PeriodSecondsToString(periodSeconds)}";
+
+			if (limit != null)
+			{
+				limit = (limit == null || limit < 1 || limit > 999) ? 999 : (int)limit;
+				url += $"&limit={limit.ToStringInvariant()}";
+			}
+
+			if (startDate != null || endDate != null)
+			{
+				if (startDate == null)
+				{
+					startDate = endDate.Value.AddSeconds(periodSeconds * (limit ?? 999) * -1);
+				}
+				else if (endDate == null)
+				{
+					endDate = startDate.Value.AddSeconds(periodSeconds * (limit ?? 999));
+				}
+				else
+				{
+					if (endDate > startDate.Value.AddSeconds(periodSeconds * (limit ?? 999)))
+					{
+						endDate = startDate.Value.AddSeconds(periodSeconds * (limit ?? 999));
+					}
+				}
+				url += $"&from={((long)startDate.Value.UnixTimestampFromDateTimeSeconds()).ToStringInvariant()}";
+				url += $"&to={((long)endDate.Value.UnixTimestampFromDateTimeSeconds()).ToStringInvariant()}";
+			}
+
+			var json = await MakeJsonRequestAsync<JToken>(url);
+
+			var candles = json.Select(candleToken => new MarketCandle
+			{
+				Timestamp = CryptoUtility.ParseTimestamp(candleToken[0], TimestampType.UnixSeconds),
+				BaseCurrencyVolume = candleToken[1].ConvertInvariant<double>(),
+				ClosePrice = candleToken[2].ConvertInvariant<decimal>(),
+				ExchangeName = Name,
+				HighPrice = candleToken[3].ConvertInvariant<decimal>(),
+				LowPrice = candleToken[4].ConvertInvariant<decimal>(),
+				Name = symbol,
+				OpenPrice = candleToken[5].ConvertInvariant<decimal>(),
+				PeriodSeconds = periodSeconds,
+			}).ToList();
+
+			return candles;
+		}
+
 		private ExchangeTicker ParseTicker(JToken tickerToken)
 		{
 			bool IsEmptyString(JToken token) => token.Type == JTokenType.String && token.ToObject<string>() == string.Empty;
