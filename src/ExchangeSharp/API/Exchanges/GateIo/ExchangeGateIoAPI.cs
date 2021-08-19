@@ -44,5 +44,52 @@ namespace ExchangeSharp
 			}
 			return symbols;
 		}
+
+		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		{
+			/*
+				{
+					"id": "ETH_USDT",
+					"base": "ETH",
+					"quote": "USDT",
+					"fee": "0.2",
+					"min_base_amount": "0.001",
+					"min_quote_amount": "1.0",
+					"amount_precision": 3,
+					"precision": 6,
+					"trade_status": "tradable",
+					"sell_start": 1516378650,
+					"buy_start": 1516378650
+				}
+			*/
+
+			var markets = new List<ExchangeMarket>();
+			JToken obj = await MakeJsonRequestAsync<JToken>("/spot/currency_pairs");
+
+			if (!(obj is null))
+			{
+				foreach (JToken marketSymbolToken in obj)
+				{
+					var market = new ExchangeMarket
+					{
+						MarketSymbol = marketSymbolToken["id"].ToStringUpperInvariant(),
+						IsActive = marketSymbolToken["trade_status"].ToStringUpperInvariant() == "tradable",
+						QuoteCurrency = marketSymbolToken["quote"].ToStringUpperInvariant(),
+						BaseCurrency = marketSymbolToken["base"].ToStringUpperInvariant(),
+					};
+					int pricePrecision = marketSymbolToken["precision"].ConvertInvariant<int>();
+					market.PriceStepSize = (decimal)Math.Pow(0.1, pricePrecision);
+					int quantityPrecision = marketSymbolToken["amount_precision"].ConvertInvariant<int>();
+					market.QuantityStepSize = (decimal)Math.Pow(0.1, quantityPrecision);
+
+					market.MinTradeSizeInQuoteCurrency = marketSymbolToken["min_quote_amount"].ConvertInvariant<decimal>();
+					market.MinTradeSize = marketSymbolToken["min_base_amount"].ConvertInvariant<decimal>();
+
+					markets.Add(market);
+				}
+			}
+
+			return markets;
+		}
 	}
 }
