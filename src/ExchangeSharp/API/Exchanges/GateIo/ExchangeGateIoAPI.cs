@@ -142,6 +142,37 @@ namespace ExchangeSharp
 			return ParseTicker(json.First());
 		}
 
+		private ExchangeTicker ParseTicker(JToken tickerToken)
+		{
+			bool IsEmptyString(JToken token) => token.Type == JTokenType.String && token.ToObject<string>() == string.Empty;
+
+			/*
+				{
+					"currency_pair": "BTC3L_USDT",
+					"last": "2.46140352",
+					"lowest_ask": "2.477",
+					"highest_bid": "2.4606821",
+					"change_percentage": "-8.91",
+					"base_volume": "656614.0845820589",
+					"quote_volume": "1602221.66468375534639404191",
+					"high_24h": "2.7431",
+					"low_24h": "1.9863",
+					"etf_net_value": "2.46316141",
+					"etf_pre_net_value": "2.43201848",
+					"etf_pre_timestamp": 1611244800,
+					"etf_leverage": "2.2803019447281203"
+				}
+			*/
+
+			return new ExchangeTicker
+			{
+				MarketSymbol = tickerToken["currency_pair"].ToStringInvariant(),
+				Bid = IsEmptyString(tickerToken["lowest_ask"]) ? default : tickerToken["lowest_ask"].ConvertInvariant<decimal>(),
+				Ask = IsEmptyString(tickerToken["highest_bid"]) ? default : tickerToken["highest_bid"].ConvertInvariant<decimal>(),
+				Last = tickerToken["last"].ConvertInvariant<decimal>(),
+			};
+		}
+
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
 		{
 			var json = await MakeJsonRequestAsync<JToken>($"/spot/order_book?currency_pair={symbol}");
@@ -238,7 +269,37 @@ namespace ExchangeSharp
 			if (order.OrderType != OrderType.Limit)
 				throw new InvalidOperationException("Gate.io API supports only limit orders");
 
-			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			var payload = await GetNoncePayloadAsync();
+			AddOrderToPayload(order, payload);
+
+			JToken responseToken = await MakeJsonRequestAsync<JToken>("/spot/orders", payload: payload, requestMethod: "POST");
+
+			return ParseOrder(responseToken);
+		}
+
+		protected override async Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] orders)
+		{
+			var orderRequests = orders.Select((order, i) =>
+			{
+				var subPayload = new Dictionary<string, object>();
+
+				if (string.IsNullOrEmpty(order.ClientOrderId))
+				{
+					order.ClientOrderId = i.ToStringInvariant();
+				}
+				AddOrderToPayload(order, subPayload);
+				return subPayload;
+			}).ToList();
+
+			var payload = await GetNoncePayloadAsync();
+			payload[CryptoUtility.PayloadKeyArray] = orderRequests;
+
+			var responseToken = await MakeJsonRequestAsync<JToken>("/spot/batch_orders", payload: payload, requestMethod: "POST");
+			return responseToken.Select(x => ParseOrder(x)).ToArray();
+		}
+
+		private void AddOrderToPayload(ExchangeOrderRequest order, Dictionary<string, object> payload)
+		{
 			if (!string.IsNullOrEmpty(order.ClientOrderId))
 			{
 				payload.Add("text", $"t-{order.ClientOrderId}");
@@ -249,10 +310,6 @@ namespace ExchangeSharp
 			payload.Add("side", order.IsBuy ? "buy" : "sell");
 			payload.Add("amount", order.Amount.ToStringInvariant());
 			payload.Add("price", order.Price);
-
-			JToken responseToken = await MakeJsonRequestAsync<JToken>("/spot/orders", payload: payload, requestMethod: "POST");
-
-			return ParseOrder(responseToken);
 		}
 
 		private ExchangeOrderResult ParseOrder(JToken order)
@@ -310,38 +367,6 @@ namespace ExchangeSharp
 			{
 				await base.ProcessRequestAsync(request, payload);
 			}
-		}
-
-		private ExchangeTicker ParseTicker(JToken tickerToken)
-		{
-			bool IsEmptyString(JToken token) => token.Type == JTokenType.String && token.ToObject<string>() == string.Empty;
-
-			/*
-				{
-					"currency_pair": "BTC3L_USDT",
-					"last": "2.46140352",
-					"lowest_ask": "2.477",
-					"highest_bid": "2.4606821",
-					"change_percentage": "-8.91",
-					"base_volume": "656614.0845820589",
-					"quote_volume": "1602221.66468375534639404191",
-					"high_24h": "2.7431",
-					"low_24h": "1.9863",
-					"etf_net_value": "2.46316141",
-					"etf_pre_net_value": "2.43201848",
-					"etf_pre_timestamp": 1611244800,
-					"etf_leverage": "2.2803019447281203"
-				}
-			*/
-
-			return new ExchangeTicker
-			{
-				MarketSymbol = tickerToken["currency_pair"].ToStringInvariant(),
-				Bid = IsEmptyString(tickerToken["lowest_ask"]) ? default : tickerToken["lowest_ask"].ConvertInvariant<decimal>(),
-				Ask = IsEmptyString(tickerToken["highest_bid"]) ? default : tickerToken["highest_bid"].ConvertInvariant<decimal>(),
-				Last = tickerToken["last"].ConvertInvariant<decimal>(),
-				ApiResponse = tickerToken
-			};
 		}
 	}
 }
