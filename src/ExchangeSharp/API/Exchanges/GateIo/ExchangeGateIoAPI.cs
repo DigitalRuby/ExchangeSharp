@@ -14,6 +14,8 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -229,6 +231,85 @@ namespace ExchangeSharp
 			}).ToList();
 
 			return candles;
+		}
+
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		{
+			if (order.OrderType != OrderType.Limit)
+				throw new InvalidOperationException("Gate.io API supports only limit orders");
+
+			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			if (!string.IsNullOrEmpty(order.ClientOrderId))
+			{
+				payload.Add("text", $"t-{order.ClientOrderId}");
+			}
+
+			payload.Add("currency_pair", NormalizeMarketSymbol(order.MarketSymbol));
+			payload.Add("type", order.OrderType.ToStringLowerInvariant());
+			payload.Add("side", order.IsBuy ? "buy" : "sell");
+			payload.Add("amount", order.Amount.ToStringInvariant());
+			payload.Add("price", order.Price);
+
+			JToken responseToken = await MakeJsonRequestAsync<JToken>("/spot/orders", payload: payload, requestMethod: "POST");
+
+			return ParseOrder(responseToken);
+		}
+
+		private ExchangeOrderResult ParseOrder(JToken order)
+		{
+			decimal amount = order["amount"].ConvertInvariant<decimal>();
+			decimal amountFilled = order["filled_total"].ConvertInvariant<decimal>();
+			decimal price = order["price"].ConvertInvariant<decimal>();
+			return new ExchangeOrderResult
+			{
+				Amount = amount,
+				AmountFilled = amountFilled,
+				Price = price,
+				AveragePrice = order["fill_price"].ConvertInvariant<decimal>(),
+				Message = string.Empty,
+				OrderId = order["id"].ToStringInvariant(),
+				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order["create_time_ms"].ConvertInvariant<long>()),
+				MarketSymbol = order["currency_pair"].ToStringInvariant(),
+				IsBuy = order["side"].ToStringInvariant() == "buy"
+			};
+		}
+
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				payload.Remove("nonce");
+				var timestamp = ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.Now)).ToStringInvariant();
+
+				request.AddHeader("KEY", PublicApiKey!.ToUnsecureString());
+				request.AddHeader("Timestamp", timestamp);
+
+				var privateApiKey = PrivateApiKey!.ToUnsecureString();
+
+				var jsonForPayload = CryptoUtility.GetJsonForPayload(payload);
+				var sourceBytes = Encoding.UTF8.GetBytes(jsonForPayload ?? "");
+
+				using (SHA512 sha512Hash = SHA512.Create())
+				{
+					var hashBytes = sha512Hash.ComputeHash(sourceBytes);
+					var bodyHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+					var queryString = string.IsNullOrEmpty(request.RequestUri.Query) ? "" : request.RequestUri.Query.Substring(1);
+					var signatureString = $"{request.Method}\n{request.RequestUri.AbsolutePath}\n{queryString}\n{bodyHash}\n{timestamp}";
+
+					using (HMACSHA512 hmac = new HMACSHA512(Encoding.UTF8.GetBytes(privateApiKey)))
+					{
+						var signature = CryptoUtility.SHA512Sign(signatureString, privateApiKey).ToLowerInvariant();
+						request.AddHeader("SIGN", signature);
+					}
+				}
+
+				await CryptoUtility.WriteToRequestAsync(request, jsonForPayload);
+			}
+			else
+			{
+				await base.ProcessRequestAsync(request, payload);
+			}
 		}
 
 		private ExchangeTicker ParseTicker(JToken tickerToken)
