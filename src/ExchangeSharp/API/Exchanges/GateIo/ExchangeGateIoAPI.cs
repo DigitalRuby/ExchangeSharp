@@ -315,22 +315,40 @@ namespace ExchangeSharp
 		private ExchangeOrderResult ParseOrder(JToken order)
 		{
 			decimal amount = order["amount"].ConvertInvariant<decimal>();
-			decimal amountFilled = order["filled_total"].ConvertInvariant<decimal>();
+			decimal amountFilled = amount - order["left"].ConvertInvariant<decimal>();
+			decimal fillPrice = amountFilled == 0 ? 0 : order["filled_total"].ConvertInvariant<decimal>() / amountFilled;
 			decimal price = order["price"].ConvertInvariant<decimal>();
-			return new ExchangeOrderResult
+			var result = new ExchangeOrderResult
 			{
 				Amount = amount,
 				AmountFilled = amountFilled,
 				Price = price,
-				AveragePrice = order["fill_price"].ConvertInvariant<decimal>(),
+				AveragePrice = fillPrice,
 				Message = string.Empty,
 				OrderId = order["id"].ToStringInvariant(),
-				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order["create_time_ms"].ConvertInvariant<long>()),
 				MarketSymbol = order["currency_pair"].ToStringInvariant(),
 				IsBuy = order["side"].ToStringInvariant() == "buy",
 				ClientOrderId = order["text"].ToStringInvariant(),
 			};
+			result.Result = ParseExchangeAPIOrderResult(order["status"].ToStringInvariant(), amountFilled);
+
+			return result;
+		}
+
+		private static ExchangeAPIOrderResult ParseExchangeAPIOrderResult(string status, decimal amountFilled)
+		{
+			switch (status)
+			{
+				case "open":
+					return ExchangeAPIOrderResult.Pending;
+				case "closed":
+					return ExchangeAPIOrderResult.Filled;
+				case "cancelled":
+					return amountFilled > 0 ? ExchangeAPIOrderResult.FilledPartiallyAndCancelled : ExchangeAPIOrderResult.Canceled;
+				default:
+					return ExchangeAPIOrderResult.Error;
+			}
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
@@ -355,6 +373,23 @@ namespace ExchangeSharp
 
 			var payload = await GetNoncePayloadAsync();
 			var responseToken = await MakeJsonRequestAsync<JToken>($"/spot/orders?currency_pair={symbol}&status=open", payload: payload);
+			return responseToken.Select(x => ParseOrder(x)).ToArray();
+		}
+
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string symbol = null, DateTime? afterDate = null)
+		{
+			var payload = await GetNoncePayloadAsync();
+			var url = $"/spot/orders?status=finished";
+			if (!string.IsNullOrEmpty(symbol))
+			{
+				url += $"&currency_pair={symbol}";
+			}
+			if (afterDate.HasValue)
+			{
+				url += $"&from={(long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(afterDate.Value)}";
+				url += $"&to={(long)CryptoUtility.UnixTimestampFromDateTimeMilliseconds(DateTime.Now)}";
+			}
+			var responseToken = await MakeJsonRequestAsync<JToken>(url, payload: payload);
 			return responseToken.Select(x => ParseOrder(x)).ToArray();
 		}
 
