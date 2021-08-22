@@ -333,6 +333,18 @@ namespace ExchangeSharp
 			};
 		}
 
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
+		{
+			if (string.IsNullOrEmpty(symbol))
+			{
+				throw new InvalidOperationException("MarketSymbol is required for querying open orders with Gate.io API");
+			}
+
+			var payload = await GetNoncePayloadAsync();
+			var responseToken = await MakeJsonRequestAsync<JToken>($"/spot/orders?currency_pair={symbol}&status=open", payload: payload);
+			return responseToken.Select(x => ParseOrder(x)).ToArray();
+		}
+
 		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
 		{
 			if (string.IsNullOrEmpty(symbol))
