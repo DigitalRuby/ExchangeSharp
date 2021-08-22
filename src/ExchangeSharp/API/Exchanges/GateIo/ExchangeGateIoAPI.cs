@@ -285,7 +285,7 @@ namespace ExchangeSharp
 
 				if (string.IsNullOrEmpty(order.ClientOrderId))
 				{
-					order.ClientOrderId = i.ToStringInvariant();
+					order.ClientOrderId = $"{CryptoUtility.UnixTimestampFromDateTimeMilliseconds(DateTime.Now)}-{i.ToStringInvariant()}" ;
 				}
 				AddOrderToPayload(order, subPayload);
 				return subPayload;
@@ -328,8 +328,20 @@ namespace ExchangeSharp
 				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(order["create_time_ms"].ConvertInvariant<long>()),
 				MarketSymbol = order["currency_pair"].ToStringInvariant(),
-				IsBuy = order["side"].ToStringInvariant() == "buy"
+				IsBuy = order["side"].ToStringInvariant() == "buy",
+				ClientOrderId = order["text"].ToStringInvariant(),
 			};
+		}
+
+		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+		{
+			if (string.IsNullOrEmpty(symbol))
+			{
+				throw new InvalidOperationException("MarketSymbol is required for cancelling order with Gate.io API");
+			}
+
+			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			await MakeJsonRequestAsync<JToken>($"/spot/orders/{orderId}?currency_pair={symbol}", BaseUrl, payload, "DELETE");
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload)
