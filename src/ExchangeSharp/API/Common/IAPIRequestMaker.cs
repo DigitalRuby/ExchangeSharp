@@ -151,31 +151,31 @@ namespace ExchangeSharp
         /// <summary>
         /// Base url for the request
         /// </summary>
-        string BaseUrl { get; }
+        string BaseUrl { get; set; }
 
         /// <summary>
         /// Request method, i.e. GET
         /// </summary>
-        string RequestMethod { get; }
+        string RequestMethod { get; set; }
 
         /// <summary>
         /// Request content type, i.e. application/json
         /// </summary>
-        string RequestContentType { get; }
+        string RequestContentType { get; set; }
 
         /// <summary>
         /// Request cache policy
         /// </summary>
-        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; }
+        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
         
         /// <summary>
         /// Request timeout, this will get assigned to the request before sending it off
         /// </summary>
-        TimeSpan RequestTimeout { get; }
+        TimeSpan RequestTimeout { get; set; }
 
         /// <summary>
         /// Rate limiter
         /// </summary>
-        RateGate RateLimit { get; }
+        RateGate RateLimit { get; set; }
     }
 }
