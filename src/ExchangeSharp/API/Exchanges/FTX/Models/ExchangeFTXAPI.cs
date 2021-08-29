@@ -11,6 +11,7 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 	public sealed partial class ExchangeFTXAPI : ExchangeAPI
 	{
 		public override string BaseUrl { get; set; } = "https://ftx.com/api";
+		public override string BaseUrlWebSocket { get; set; } = "wss://ftx.com/ws/";
 
 		protected async override Task<IEnumerable<string>> OnGetMarketSymbolsAsync(bool isWebSocket = false)
 		{
