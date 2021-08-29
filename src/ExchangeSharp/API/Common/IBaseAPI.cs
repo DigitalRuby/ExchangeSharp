@@ -31,14 +31,27 @@ namespace ExchangeSharp
     /// <summary>
     /// Base interface for all API implementations
     /// </summary>
-    public interface IBaseAPI : INamed
-    {
-        #region Properties
+    public interface IBaseAPI : IAPIRequestHandler, INamed
+	{
+		#region Properties
+		// BaseUrl is in IAPIRequestHandler
 
-        /// <summary>
-        /// Optional public API key
-        /// </summary>
-        SecureString? PublicApiKey { get; set; }
+		/// <summary>
+		/// Base URL for the API for web sockets
+		/// </summary>
+		string BaseUrlWebSocket { get; set; }
+
+		/// <summary>
+		/// Base URL for the private API for web sockets
+		/// </summary>
+		string BaseUrlPrivateWebSocket { get; set; }
+
+		// Name is in INamed
+
+		/// <summary>
+		/// Optional public API key
+		/// </summary>
+		SecureString? PublicApiKey { get; set; }
 
         /// <summary>
         /// Optional private API key
@@ -51,10 +64,9 @@ namespace ExchangeSharp
         /// </summary>
         System.Security.SecureString? Passphrase { get; set; }
 
-        /// <summary>
-        /// Request timeout
-        /// </summary>
-        TimeSpan RequestTimeout { get; set; }
+		// RateLimit is in IAPIRequestHandler
+
+		// RequestTimeout is in IAPIRequestHandler
 
         /// <summary>
         /// Request window - most services do not use this, but Binance API is an example of one that does
@@ -66,25 +78,43 @@ namespace ExchangeSharp
         /// </summary>
         NonceStyle NonceStyle { get; }
 
-        /// <summary>
-        /// Cache policy - defaults to no cache, don't change unless you have specific needs
-        /// </summary>
-        System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
+		/// <summary>
+		/// The nonce end point for pulling down a server timestamp - override OnGetNonceOffset if you need custom handling
+		/// </summary>
+		string? NonceEndPoint { get; }
 
-        /// <summary>
-        /// Cache policy for api methods (method name, cache time)
-        /// </summary>
-        Dictionary<string, TimeSpan> MethodCachePolicy { get; }
+		/// <summary>
+		/// The field in the json returned by the nonce end point to parse out - override OnGetNonceOffset if you need custom handling
+		/// </summary>
+		string? NonceEndPointField { get; }
 
-        #endregion Properties
+		/// <summary>
+		/// The type of value in the nonce end point field - override OnGetNonceOffset if you need custom handling.
+		/// Supported values are Iso8601 and UnixMilliseconds.
+		/// </summary>
+		NonceStyle NonceEndPointStyle { get; }
 
-        #region Methods
+		// RequestCachePolicy is in IAPIRequestHandler
 
-        /// <summary>
-        /// Load API keys from an encrypted file - keys will stay encrypted in memory
-        /// </summary>
-        /// <param name="encryptedFile">Encrypted file to load keys from</param>
-        void LoadAPIKeys(string encryptedFile);
+		/// <summary>
+		/// Cache policy for api methods (method name, cache time)
+		/// </summary>
+		Dictionary<string, TimeSpan> MethodCachePolicy { get; }
+
+		/// <summary>
+		/// Get or set the current cache. Defaults to MemoryCache.
+		/// </summary>
+		ICache Cache { get; set; }
+
+		#endregion Properties
+
+		#region Methods
+
+		/// <summary>
+		/// Load API keys from an encrypted file - keys will stay encrypted in memory
+		/// </summary>
+		/// <param name="encryptedFile">Encrypted file to load keys from</param>
+		void LoadAPIKeys(string encryptedFile);
 
         /// <summary>
         ///  Load API keys from unsecure strings
