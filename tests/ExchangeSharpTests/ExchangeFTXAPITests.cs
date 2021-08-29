@@ -12,7 +12,7 @@ namespace ExchangeSharpTests
 		{
 			var exchange = new ExchangeFTXAPI();
 
-			await exchange.GetMarketSymbolsAsync();
+			await exchange.GetMarketSymbolsMetadataAsync();
 		}
 	}
 }
