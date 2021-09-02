@@ -26,9 +26,9 @@ namespace ExchangeSharp
     public abstract partial class ExchangeAPI
     {
 		/*
-        protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync();
+		protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync();
         protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100);
-        protected virtual Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol);
+		protected virtual Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol, int? limit = null);
         protected virtual Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync();
         protected virtual Task<IEnumerable<string>> OnGetSymbolsAsync();
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync();
