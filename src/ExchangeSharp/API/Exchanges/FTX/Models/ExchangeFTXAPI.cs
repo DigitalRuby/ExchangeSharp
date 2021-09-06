@@ -122,6 +122,11 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 			{
 				JToken result = await MakeJsonRequestAsync<JToken>(baseUrl);
 
+				foreach (JToken trade in result.Children())
+				{
+					trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "id", "buy"));
+				}
+
 				if (!callback(trades))
 				{
 					break;
