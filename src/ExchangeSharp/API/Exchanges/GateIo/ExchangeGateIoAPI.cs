@@ -264,6 +264,31 @@ namespace ExchangeSharp
 			return candles;
 		}
 
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		{
+			var payload = await GetNoncePayloadAsync();
+			var responseToken = await MakeJsonRequestAsync<JToken>("/spot/accounts", payload: payload);
+			return responseToken.Select(x => ParseBalance(x))
+				.ToDictionary(x => x.currency, x => x.available + x.locked);
+		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		{
+			var payload = await GetNoncePayloadAsync();
+			var responseToken = await MakeJsonRequestAsync<JToken>("/spot/accounts", payload: payload);
+			return responseToken.Select(x => ParseBalance(x))
+				.ToDictionary(x => x.currency, x => x.available);
+		}
+
+		private (string currency, decimal available, decimal locked) ParseBalance(JToken balanceToken)
+		{
+			var currency = balanceToken["currency"].ToStringInvariant();
+			var available = balanceToken["available"].ConvertInvariant<decimal>();
+			var locked = balanceToken["locked"].ConvertInvariant<decimal>();
+
+			return (currency, available, locked);
+		}
+
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			if (order.OrderType != OrderType.Limit)
