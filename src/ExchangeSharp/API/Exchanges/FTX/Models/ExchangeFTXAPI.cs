@@ -35,6 +35,40 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 			return balances;
 		}
 
+		protected async override Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		{
+			string baseUrl = $"/markets/{marketSymbol}/trades?";
+
+			if (startDate != null)
+			{
+				baseUrl += $"start_time={startDate?.UnixTimestampFromDateTimeMilliseconds()}";
+			}
+
+			if (endDate != null)
+			{
+				baseUrl += $"start_time={endDate?.UnixTimestampFromDateTimeMilliseconds()}";
+			}
+
+			List<ExchangeTrade> trades = new List<ExchangeTrade>();
+
+			while (true)
+			{
+				JToken result = await MakeJsonRequestAsync<JToken>(baseUrl);
+
+				foreach (JToken trade in result.Children())
+				{
+					trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "id", "buy"));
+				}
+
+				if (!callback(trades))
+				{
+					break;
+				}
+
+				Task.Delay(1000).Wait();
+			}
+		}
+
 		protected async override Task<IEnumerable<string>> OnGetMarketSymbolsAsync(bool isWebSocket = false)
 		{
 			JToken result = await MakeJsonRequestAsync<JToken>("/markets");
@@ -100,40 +134,6 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 			}
 
 			return markets;
-		}
-
-		protected async override Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-		{
-			string baseUrl = $"/markets/{marketSymbol}/trades?";
-			
-			if (startDate != null)
-			{
-				baseUrl += $"start_time={startDate?.UnixTimestampFromDateTimeMilliseconds()}";
-			}
-
-			if (endDate != null)
-			{
-				baseUrl += $"start_time={endDate?.UnixTimestampFromDateTimeMilliseconds()}";
-			}
-
-			List<ExchangeTrade> trades = new List<ExchangeTrade>();
-
-			while (true)
-			{
-				JToken result = await MakeJsonRequestAsync<JToken>(baseUrl);
-
-				foreach (JToken trade in result.Children())
-				{
-					trades.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "id", "buy"));
-				}
-
-				if (!callback(trades))
-				{
-					break;
-				}
-
-				Task.Delay(1000).Wait();
-			}
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
