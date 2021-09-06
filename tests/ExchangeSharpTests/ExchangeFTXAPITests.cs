@@ -12,7 +12,9 @@ namespace ExchangeSharpTests
 		{
 			var exchange = new ExchangeFTXAPI();
 
-			await exchange.GetMarketSymbolsMetadataAsync();
+			exchange.LoadAPIKeysUnsecure("qq0Y6JKAbefgU4GBllT_iGwrhhhJnM7YExkP8q_F", "BvdkXp4vJHxigx5W5d97YmCVEv9TEr944dDQBpLR");
+
+			var result = await exchange.GetAmountsAsync();
 		}
 	}
 }

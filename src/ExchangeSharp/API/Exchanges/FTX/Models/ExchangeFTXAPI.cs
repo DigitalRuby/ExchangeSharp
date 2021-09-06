@@ -13,6 +13,27 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 		public override string BaseUrl { get; set; } = "https://ftx.com/api";
 		public override string BaseUrlWebSocket { get; set; } = "wss://ftx.com/ws/";
 
+		public ExchangeFTXAPI()
+		{
+			NonceStyle = NonceStyle.UnixMillisecondsString;
+		}
+
+		protected async override Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		{
+			var balances = new Dictionary<string, decimal>();
+
+			JToken result = await MakeJsonRequestAsync<JToken>("/wallet/balances", null, await GetNoncePayloadAsync());
+
+			foreach (JObject obj in result)
+			{
+				decimal amount = obj["total"].ConvertInvariant<decimal>();
+
+				balances[obj["coin"].ToStringInvariant()] = amount;
+			}
+
+			return balances;
+		}
+
 		protected async override Task<IEnumerable<string>> OnGetMarketSymbolsAsync(bool isWebSocket = false)
 		{
 			JToken result = await MakeJsonRequestAsync<JToken>("/markets");
@@ -78,6 +99,35 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 			}
 
 			return markets;
+		}
+
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				// Coinbase is funny and wants a seconds double for the nonce, weird... we convert it to double and back to string invariantly to ensure decimal dot is used and not comma
+				string timestamp = payload["nonce"].ToStringInvariant();
+
+				string form = CryptoUtility.GetJsonForPayload(payload);
+
+				//Create the signature payload
+				string toHash = $"{timestamp}{request.Method.ToUpperInvariant()}{request.RequestUri.PathAndQuery}";
+
+				if (request.Method == "POST")
+				{
+					toHash += form;
+
+					await CryptoUtility.WriteToRequestAsync(request, form);
+				}
+
+				byte[] secret = CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey);
+
+				string signatureHexString = CryptoUtility.SHA256Sign(toHash, secret);
+
+				request.AddHeader("FTX-KEY", PublicApiKey.ToUnsecureString());
+				request.AddHeader("FTX-SIGN", signatureHexString);
+				request.AddHeader("FTX-TS", timestamp);
+			}
 		}
 	}
 }
