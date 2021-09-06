@@ -43,4 +43,8 @@
     <EmbeddedResource Include="nlog.config" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="API\Exchanges\FTX\Models\" />
+  </ItemGroup>
+
 </Project>

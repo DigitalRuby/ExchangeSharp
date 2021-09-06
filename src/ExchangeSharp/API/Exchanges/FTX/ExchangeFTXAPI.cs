@@ -2,11 +2,10 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace ExchangeSharp.API.Exchanges.FTX.Models
+namespace ExchangeSharp.API.Exchanges.FTX
 {
 	public sealed partial class ExchangeFTXAPI : ExchangeAPI
 	{
@@ -96,6 +95,38 @@ namespace ExchangeSharp.API.Exchanges.FTX.Models
 				};
 
 				markets.Add(market);
+			}
+
+			return markets;
+		}
+
+		protected async override Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+		{
+			var markets = new List<ExchangeOrderResult>();
+
+			JToken result = await MakeJsonRequestAsync<JToken>($"/orders?market={marketSymbol}");
+
+			foreach (JToken token in result.Children())
+			{
+				//var symbol = token["name"].ToStringInvariant();
+
+				//if (!Regex.Match(symbol, @"[\w\d]*\/[[\w\d]]*").Success)
+				//{
+				//	continue;
+				//}
+
+				markets.Add(new ExchangeOrderResult()
+				{
+					MarketSymbol = token["market"].ToStringInvariant(),
+					Price = token["price"].ConvertInvariant<decimal>(),
+					AveragePrice = token["avgFillPrice"].ConvertInvariant<decimal>(),
+					OrderDate = token["createdAt"].ConvertInvariant<DateTime>(),
+					IsBuy = token["side"].ToStringInvariant().Equals("buy"),
+					OrderId = token["id"].ToStringInvariant(),
+					Amount = token["size"].ConvertInvariant<decimal>(),
+					AmountFilled = token["filledSize"].ConvertInvariant<decimal>(), // ?
+					ClientOrderId = token["clientId"].ToStringInvariant()
+				});
 			}
 
 			return markets;
