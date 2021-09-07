@@ -16,6 +16,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 		{
 			NonceStyle = NonceStyle.UnixMillisecondsString;
 			MarketSymbolSeparator = "/";
+			//WebSocketOrderBookType = WebSocketOrderBookType.
 		}
 
 		protected async override Task<Dictionary<string, decimal>> OnGetAmountsAsync()
@@ -181,6 +182,50 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				OrderDate = resp["createdAt"].ConvertInvariant<DateTime>(),
 				Result = resp["id"].ToStringLowerInvariant().ToExchangeAPIOrderResult()
 			};
+		}
+
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
+			}
+			return await ConnectPublicWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken parsedMsg = JToken.Parse(msg.ToStringFromUTF8());
+
+				if (parsedMsg["channel"].ToStringInvariant().Equals("ticker"))
+				{
+					JToken data = parsedMsg["data"];
+
+					var exchangeTicker = new ExchangeTicker()
+					{
+						Exchange = Name,
+						MarketSymbol = parsedMsg["market"].ToStringInvariant(),
+						Ask = CryptoUtility.ConvertInvariant<decimal>(data["ask"]),
+						Bid = CryptoUtility.ConvertInvariant<decimal>(data["bid"]),
+						Last = CryptoUtility.ConvertInvariant<decimal>(data["last"])
+					};
+
+					var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
+					tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				List<string> marketSymbolList = marketSymbols.ToList();
+
+				//{'op': 'subscribe', 'channel': 'trades', 'market': 'BTC-PERP'}
+
+				for (int i = 0; i < marketSymbolList.Count; i++)
+				{
+					await _socket.SendMessageAsync(new
+					{
+						op = "subscribe",
+						market = marketSymbolList[i],
+						channel = "ticker"
+					});
+				}				
+			});
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
