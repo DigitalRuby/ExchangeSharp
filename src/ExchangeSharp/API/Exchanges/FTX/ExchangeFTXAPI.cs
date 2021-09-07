@@ -167,6 +167,22 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return markets;
 		}
 
+		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		{
+			// https://docs.ftx.com/#get-order-status
+
+			JToken result = await MakeJsonRequestAsync<JToken>($"/orders?{orderId}");
+
+			var resp = result.First();
+
+			return new ExchangeOrderResult()
+			{
+				OrderId = resp["id"].ToStringInvariant(),
+				OrderDate = resp["createdAt"].ConvertInvariant<DateTime>(),
+				Result = resp["id"].ToStringLowerInvariant().ToExchangeAPIOrderResult()
+			};
+		}
+
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
 			if (CanMakeAuthenticatedRequest(payload))
