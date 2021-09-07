@@ -198,16 +198,10 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				{
 					JToken data = parsedMsg["data"];
 
-					var exchangeTicker = new ExchangeTicker()
-					{
-						Exchange = Name,
-						MarketSymbol = parsedMsg["market"].ToStringInvariant(),
-						Ask = CryptoUtility.ConvertInvariant<decimal>(data["ask"]),
-						Bid = CryptoUtility.ConvertInvariant<decimal>(data["bid"]),
-						Last = CryptoUtility.ConvertInvariant<decimal>(data["last"])
-					};
+					var exchangeTicker = await this.ParseTickerAsync(data, parsedMsg["market"].ToStringInvariant(), "ask", "bid", "last", null, null, "time", TimestampType.UnixSecondsDouble);
 
 					var kv = new KeyValuePair<string, ExchangeTicker>(exchangeTicker.MarketSymbol, exchangeTicker);
+
 					tickers(new List<KeyValuePair<string, ExchangeTicker>> { kv });
 				}
 			}, connectCallback: async (_socket) =>
