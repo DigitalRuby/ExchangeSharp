@@ -184,6 +184,30 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			};
 		}
 
+		protected async override Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		{
+			// https://docs.ftx.com/#get-balances
+			// NOTE there is also is "Get balances of all accounts"?
+			//"coin": "USDTBEAR",
+		 //   "free": 2320.2,
+		 //   "spotBorrow": 0.0,
+		 //   "total": 2340.2,
+		 //   "usdValue": 2340.2,
+		 //   "availableWithoutBorrow": 2320.2
+
+			var balances = new Dictionary<string, decimal>();
+
+			JToken result = await MakeJsonRequestAsync<JToken>($"/wallet/balances");
+
+			foreach (JToken token in result.Children())
+			{
+				balances.Add(token["coin"].ToStringInvariant(),
+					token["availableWithoutBorrow"].ConvertInvariant<decimal>());
+			}
+
+			return balances;
+		}
+
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
@@ -249,5 +273,6 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				request.AddHeader("FTX-TS", timestamp);
 			}
 		}
+
 	}
 }
