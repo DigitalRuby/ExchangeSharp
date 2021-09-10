@@ -12,6 +12,8 @@ namespace ExchangeSharp.API.Exchanges.FTX
 		public override string BaseUrl { get; set; } = "https://ftx.com/api";
 		public override string BaseUrlWebSocket { get; set; } = "wss://ftx.com/ws/";
 
+		#region [ Constructor(s) ]
+
 		public ExchangeFTXAPI()
 		{
 			NonceStyle = NonceStyle.UnixMillisecondsString;
@@ -19,6 +21,11 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			//WebSocketOrderBookType = WebSocketOrderBookType.
 		}
 
+		#endregion
+
+		#region [ Implementation ]
+
+		/// <inheritdoc />
 		protected async override Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
 			var balances = new Dictionary<string, decimal>();
@@ -35,6 +42,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return balances;
 		}
 
+		/// <inheritdoc />
 		protected async override Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
 			string baseUrl = $"/markets/{marketSymbol}/trades?";
@@ -69,6 +77,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			}
 		}
 
+		/// <inheritdoc />
 		protected async override Task<IEnumerable<string>> OnGetMarketSymbolsAsync(bool isWebSocket = false)
 		{
 			JToken result = await MakeJsonRequestAsync<JToken>("/markets");
@@ -80,6 +89,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return names;
 		}
 
+		/// <inheritdoc />
 		protected async internal override Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
 			//{
@@ -136,21 +146,25 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return markets;
 		}
 
+		/// <inheritdoc />
 		protected async override Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
 		{
+			// https://docs.ftx.com/#get-open-orders
+
+
 			var markets = new List<ExchangeOrderResult>();
 
 			JToken result = await MakeJsonRequestAsync<JToken>($"/orders?market={marketSymbol}");
 
 			foreach (JToken token in result.Children())
 			{
-				//var symbol = token["name"].ToStringInvariant();
+				var symbol = token["name"].ToStringInvariant();
 
-				//if (!Regex.Match(symbol, @"[\w\d]*\/[[\w\d]]*").Success)
-				//{
-				//	continue;
-				//}
-
+				if (!Regex.Match(symbol, @"[\w\d]*\/[[\w\d]]*").Success)
+				{
+					continue;
+				}
+				
 				markets.Add(new ExchangeOrderResult()
 				{
 					MarketSymbol = token["market"].ToStringInvariant(),
@@ -160,7 +174,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 					IsBuy = token["side"].ToStringInvariant().Equals("buy"),
 					OrderId = token["id"].ToStringInvariant(),
 					Amount = token["size"].ConvertInvariant<decimal>(),
-					AmountFilled = token["filledSize"].ConvertInvariant<decimal>(), // ?
+					AmountFilled = token["filledSize"].ConvertInvariant<decimal>(),
 					ClientOrderId = token["clientId"].ToStringInvariant()
 				});
 			}
@@ -168,6 +182,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return markets;
 		}
 
+		/// <inheritdoc />
 		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
 		{
 			// https://docs.ftx.com/#get-order-status
@@ -184,16 +199,17 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			};
 		}
 
+		/// <inheritdoc />
 		protected async override Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
 		{
 			// https://docs.ftx.com/#get-balances
 			// NOTE there is also is "Get balances of all accounts"?
-			//"coin": "USDTBEAR",
-		 //   "free": 2320.2,
-		 //   "spotBorrow": 0.0,
-		 //   "total": 2340.2,
-		 //   "usdValue": 2340.2,
-		 //   "availableWithoutBorrow": 2320.2
+			// "coin": "USDTBEAR",
+			// "free": 2320.2,
+			// "spotBorrow": 0.0,
+			// "total": 2340.2,
+			// "usdValue": 2340.2,
+			// "availableWithoutBorrow": 2320.2
 
 			var balances = new Dictionary<string, decimal>();
 
@@ -201,6 +217,11 @@ namespace ExchangeSharp.API.Exchanges.FTX
 
 			foreach (JToken token in result.Children())
 			{
+				if (!Regex.Match(token["coin"].ToStringInvariant(), @"[\w\d]*\/[[\w\d]]*").Success)
+				{
+					continue;
+				}
+
 				balances.Add(token["coin"].ToStringInvariant(),
 					token["availableWithoutBorrow"].ConvertInvariant<decimal>());
 			}
@@ -208,6 +229,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return balances;
 		}
 
+		/// <inheritdoc />
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
@@ -274,5 +296,6 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			}
 		}
 
+		#endregion
 	}
 }
