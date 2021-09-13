@@ -123,7 +123,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
 			JToken ticker = await MakeJsonRequestAsync<JToken>("/ticker/t" + marketSymbol);
-			return await this.ParseTickerAsync(ticker, marketSymbol, 2, 0, 6, 7);
+			return await this.ParseTickerAsync(ticker, NormalizeMarketSymbolV1(marketSymbol), 2, 0, 6, 7);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
