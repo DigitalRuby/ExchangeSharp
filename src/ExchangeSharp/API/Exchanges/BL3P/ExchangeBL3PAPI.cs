@@ -335,7 +335,7 @@ namespace ExchangeSharp
 				Price = result.Price.Value,
 				Result = result.Status.ToResult(result.TotalAmount),
 				AmountFilled = result.TotalAmount.Value,
-				AveragePrice = result.AverageCost?.Value ?? 0M,
+				AveragePrice = result.AverageCost?.Value,
 				FeesCurrency = result.TotalFee.Currency,
 				FillDate = result.DateClosed ?? DateTime.MinValue,
 				IsBuy = result.Type == BL3POrderType.Bid,

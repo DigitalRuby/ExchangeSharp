@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp.BinanceGroup
 {
-	internal class ExecutionReport
+	public class ExecutionReport
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }
@@ -75,7 +75,7 @@ namespace ExchangeSharp.BinanceGroup
 
 	}
 
-	internal class Order
+	public class Order
 	{
 		[JsonProperty("s")]
 		public string Symbol { get; set; }
@@ -90,7 +90,7 @@ namespace ExchangeSharp.BinanceGroup
 		}
 	}
 
-	internal class ListStatus
+	public class ListStatus
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }
@@ -121,7 +121,7 @@ namespace ExchangeSharp.BinanceGroup
 		}
 	}
 
-	internal class Balance
+	public class Balance
 	{
 		[JsonProperty("a")]
 		public string Asset { get; set; }
@@ -136,7 +136,7 @@ namespace ExchangeSharp.BinanceGroup
 		}
 	}
 
-	internal class OutboundAccount
+	public class OutboundAccount
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }
