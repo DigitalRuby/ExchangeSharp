@@ -18,6 +18,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 		{
 			NonceStyle = NonceStyle.UnixMillisecondsString;
 			MarketSymbolSeparator = "/";
+			RequestContentType = "application/json";
 			//WebSocketOrderBookType = WebSocketOrderBookType.
 		}
 
@@ -229,6 +230,69 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return balances;
 		}
 
+		protected async override Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		{
+			//{
+			//	"market": "XRP-PERP",
+			//  "side": "sell",
+			//  "price": 0.306525,
+			//  "type": "limit",
+			//  "size": 31431.0,
+			//  "reduceOnly": false,
+			//  "ioc": false,
+			//  "postOnly": false,
+			//  "clientId": null
+			//}
+
+			IEnumerable<ExchangeMarket> markets = await OnGetMarketSymbolsMetadataAsync();
+			ExchangeMarket market = markets.Where(m => m.MarketSymbol == order.MarketSymbol).First();
+
+			var payload = await GetNoncePayloadAsync();
+
+			var parameters = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+			{
+				{"market", market.MarketSymbol},
+				{"side", order.IsBuy ? "buy" : "sell" },
+				{"type", order.OrderType.ToStringLowerInvariant() },
+				{"size", order.RoundAmount() },	
+			};
+
+			if (!string.IsNullOrEmpty(order.ClientOrderId))
+			{
+				parameters.Add("clientId", order.ClientOrderId);
+			}
+
+			if (order.OrderType != OrderType.Market)
+			{
+				int precision = BitConverter.GetBytes(decimal.GetBits((decimal)market.PriceStepSize)[3])[2];
+
+				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+
+				parameters.Add("price", Math.Round(order.Price.Value, precision));
+			}
+
+			parameters.CopyTo(payload);
+
+			order.ExtraParameters.CopyTo(payload);
+
+			var response = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
+
+			ExchangeOrderResult result = new ExchangeOrderResult
+			{
+				OrderId = response["id"].ToStringInvariant(),
+				ClientOrderId = response["clientId"].ToStringInvariant(),
+				OrderDate = CryptoUtility.ToDateTimeInvariant(response["createdAt"]),
+				Price = CryptoUtility.ConvertInvariant<decimal>(response["price"]),
+				AmountFilled = CryptoUtility.ConvertInvariant<decimal>(response["filledSize"]),
+				AveragePrice = CryptoUtility.ConvertInvariant<decimal>(response["avgFillPrice"]),
+				Amount  = CryptoUtility.ConvertInvariant<decimal>(response["size"]),
+				MarketSymbol = response["market"].ToStringInvariant(),
+				IsBuy = response["side"].ToStringInvariant() == "buy"
+			};
+
+			return result;
+		}
+
 		/// <inheritdoc />
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
 		{
@@ -273,6 +337,8 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			if (CanMakeAuthenticatedRequest(payload))
 			{
 				string timestamp = payload["nonce"].ToStringInvariant();
+
+				payload.Remove("nonce");
 
 				string form = CryptoUtility.GetJsonForPayload(payload);
 
