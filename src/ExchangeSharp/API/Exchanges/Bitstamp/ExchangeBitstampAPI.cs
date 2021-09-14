@@ -244,11 +244,24 @@ namespace ExchangeSharp
             payload["id"] = orderId;
             JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
 
-            // status can be 'In Queue', 'Open' or 'Finished'
-            JArray transactions = result["transactions"] as JArray;
+			var transactions = result["transactions"] as JArray;
+			var anyTransaction = transactions.Any();
+
+			// status can be 'Canceled', 'Open' or 'Finished'
+			var statusCode = result.Value<string>("status");
+			var status = GetOrderResultFromStatus(statusCode, anyTransaction);
+			
             // empty transaction array means that order is InQueue or Open and AmountFilled == 0
             // return empty order in this case. no any additional info available at this point
-            if (!transactions.Any()) { return new ExchangeOrderResult() { OrderId = orderId }; }
+            if (!anyTransaction)
+			{
+				return new ExchangeOrderResult
+				{
+					OrderId = orderId,
+					Result = status,
+					ResultCode = statusCode
+				};
+			}
             JObject first = transactions.First() as JObject;
             List<string> excludeStrings = new List<string>() { "tid", "price", "fee", "datetime", "type", "btc", "usd", "eur" };
 
@@ -291,7 +304,9 @@ namespace ExchangeSharp
                 MarketSymbol = _symbol,
                 AveragePrice = spentQuoteCurrency / amountFilled,
                 Price = price,
-            };
+				Result = status,
+				ResultCode = statusCode
+			};
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
@@ -322,7 +337,20 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public class BitstampTransaction
+		private ExchangeAPIOrderResult GetOrderResultFromStatus(string status, bool anyTransactions)
+		{
+			switch (status?.ToLower())
+			{
+				case "finished": return ExchangeAPIOrderResult.Filled;
+				case "open": return anyTransactions
+						? ExchangeAPIOrderResult.FilledPartially
+						: ExchangeAPIOrderResult.Pending;
+				case "canceled": return ExchangeAPIOrderResult.Canceled;
+				default: return ExchangeAPIOrderResult.Unknown;
+			}
+		}
+
+		public class BitstampTransaction
         {
             public BitstampTransaction(string id, DateTime dateTime, int type, string symbol, decimal fees, string orderId, decimal quantity, decimal price, bool isBuy)
             {
