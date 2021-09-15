@@ -50,12 +50,12 @@ namespace ExchangeSharp.API.Exchanges.FTX
 
 			if (startDate != null)
 			{
-				baseUrl += $"start_time={startDate?.UnixTimestampFromDateTimeMilliseconds()}";
+				baseUrl += $"&start_time={startDate?.UnixTimestampFromDateTimeMilliseconds()}";
 			}
 
 			if (endDate != null)
 			{
-				baseUrl += $"start_time={endDate?.UnixTimestampFromDateTimeMilliseconds()}";
+				baseUrl += $"&end_time={endDate?.UnixTimestampFromDateTimeMilliseconds()}";
 			}
 
 			List<ExchangeTrade> trades = new List<ExchangeTrade>();
@@ -360,6 +360,87 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				request.AddHeader("FTX-SIGN", signatureHexString);
 				request.AddHeader("FTX-TS", timestamp);
 			}
+		}
+
+		protected override Task OnInitializeAsync()
+		{
+			return base.OnInitializeAsync();
+		}
+
+		protected override Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		{
+			return base.OnGetRecentTradesAsync(marketSymbol, limit);
+		}
+
+		protected override Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+		{
+			return base.OnGetOrderBookAsync(marketSymbol, maxCount);
+		}
+
+		protected async override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		{
+
+			//period options: 15, 60, 300, 900, 3600, 14400, 86400, or any multiple of 86400 up to 30*86400
+
+			var queryUrl = $"/markets/{marketSymbol}/candles?resolution={periodSeconds}";
+
+			if (startDate.HasValue)
+			{
+				queryUrl += $"&start_time={startDate?.UnixTimestampFromDateTimeSeconds()}"; 
+			}
+
+			if (endDate.HasValue)
+			{
+				queryUrl += $"&end_time={endDate?.UnixTimestampFromDateTimeSeconds()}";
+			}
+
+			var candles = new List<MarketCandle>();
+
+			var response = await MakeJsonRequestAsync<JToken>(queryUrl, null, await GetNoncePayloadAsync());
+
+			foreach (JToken candle in response.Children())
+			{
+				var parsedCandle = this.ParseCandle(candle, marketSymbol, periodSeconds, "open", "high", "low", "close", "startTime", TimestampType.Iso8601, "volume");
+
+				candles.Add(parsedCandle);
+			}
+
+			return candles;
+		}
+
+		protected override Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+		{
+			return base.OnGetCompletedOrderDetailsAsync(marketSymbol, afterDate);
+		}
+
+		protected async override Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		{
+			var response = await MakeJsonRequestAsync<JToken>($"/orders/{orderId}", null, await GetNoncePayloadAsync(), "DELETE");
+		}
+
+		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
+		{
+			return base.ExchangeMarketSymbolToGlobalMarketSymbolAsync(marketSymbol);
+		}
+
+		public override Task<(string baseCurrency, string quoteCurrency)> ExchangeMarketSymbolToCurrenciesAsync(string marketSymbol)
+		{
+			return base.ExchangeMarketSymbolToCurrenciesAsync(marketSymbol);
+		}
+
+		public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
+		{
+			return base.GlobalMarketSymbolToExchangeMarketSymbolAsync(marketSymbol);
+		}
+
+		public override Task<IReadOnlyDictionary<string, ExchangeCurrency>> GetCurrenciesAsync()
+		{
+			return base.GetCurrenciesAsync();
+		}
+
+		public override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> GetTickersAsync()
+		{
+			return base.GetTickersAsync();
 		}
 
 		#endregion
