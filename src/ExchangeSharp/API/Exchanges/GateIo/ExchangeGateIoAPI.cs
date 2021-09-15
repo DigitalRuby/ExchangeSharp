@@ -341,7 +341,7 @@ namespace ExchangeSharp
 		{
 			decimal amount = order["amount"].ConvertInvariant<decimal>();
 			decimal amountFilled = amount - order["left"].ConvertInvariant<decimal>();
-			decimal fillPrice = amountFilled == 0 ? 0 : order["filled_total"].ConvertInvariant<decimal>() / amountFilled;
+			decimal? fillPrice = amountFilled == 0 ? null : (decimal?)(order["filled_total"].ConvertInvariant<decimal>() / amountFilled);
 			decimal price = order["price"].ConvertInvariant<decimal>();
 			var result = new ExchangeOrderResult
 			{

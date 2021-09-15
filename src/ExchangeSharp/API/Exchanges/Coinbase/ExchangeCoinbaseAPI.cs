@@ -80,7 +80,7 @@ namespace ExchangeSharp
 			decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
 			decimal price = result["price"].ConvertInvariant<decimal>();
 			decimal stop_price = result["stop_price"].ConvertInvariant<decimal>();
-			decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
+			decimal? averagePrice = (amountFilled <= 0m ? null : (decimal?)(executedValue / amountFilled));
 			decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
 			string marketSymbol = result["product_id"].ToStringInvariant(result["id"].ToStringInvariant());
 
@@ -603,7 +603,7 @@ namespace ExchangeSharp
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
 		{
 			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-			JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "&product_id=" + marketSymbol), null, await GetNoncePayloadAsync(), "GET");
+			JArray array = await MakeJsonRequestAsync<JArray>("orders?status=open,pending,active" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "&product_id=" + marketSymbol), null, await GetNoncePayloadAsync(), "GET");
 			foreach (JToken token in array)
 			{
 				orders.Add(ParseOrder(token));

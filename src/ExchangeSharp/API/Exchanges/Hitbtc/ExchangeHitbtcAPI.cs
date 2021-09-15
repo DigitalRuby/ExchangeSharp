@@ -375,7 +375,7 @@ namespace ExchangeSharp
                 }
             }
 
-            result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
+            result.AveragePrice = (totalQuantity == 0 ? null : (decimal?)(totalCost / totalQuantity));
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)

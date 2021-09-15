@@ -318,7 +318,6 @@ namespace ExchangeSharp.BinanceGroup
 			});
 		}
 
-
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
 			JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + marketSymbol + "&limit=" + maxCount);
@@ -952,7 +951,9 @@ namespace ExchangeSharp.BinanceGroup
 				case "CANCELED":
 					return amountFilled > 0 ? ExchangeAPIOrderResult.FilledPartiallyAndCancelled : ExchangeAPIOrderResult.Canceled;
 				case "PENDING_CANCEL":
+					return ExchangeAPIOrderResult.PendingCancel;
 				case "EXPIRED":
+					return ExchangeAPIOrderResult.Error;
 				case "REJECTED":
 					return ExchangeAPIOrderResult.Canceled;
 				default:
@@ -1022,7 +1023,7 @@ namespace ExchangeSharp.BinanceGroup
 				}
 			}
 
-			result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
+			result.AveragePrice = (totalQuantity == 0 ? null : (decimal?)(totalCost / totalQuantity));
 		}
 
 		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload)
