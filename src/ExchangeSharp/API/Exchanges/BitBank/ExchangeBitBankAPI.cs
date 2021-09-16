@@ -148,8 +148,9 @@ namespace ExchangeSharp
 			await MakeJsonRequestAsync<JToken>("/user/spot/cancel_order", baseUrl: BaseUrlPrivate, payload: payload, requestMethod: "POST");
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
 		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			payload.Add("order_id", orderId);
 			if (marketSymbol == null)

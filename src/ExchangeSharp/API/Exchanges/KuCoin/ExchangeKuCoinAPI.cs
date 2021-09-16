@@ -374,18 +374,24 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Kucoin does not support retrieving Orders by ID. This uses the GetCompletedOrderDetails and GetOpenOrderDetails filtered by orderId
+        ///  Get Order by ID or ClientOrderId
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            var orders = await GetCompletedOrderDetailsAsync(marketSymbol);
-            orders = orders.Concat(await GetOpenOrderDetailsAsync(marketSymbol)).ToList();
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
+		{
+			var payload = await GetNoncePayloadAsync();
+			if (isClientOrderId)
+				payload["clientOid"] = Guid.NewGuid();
+			else
+				payload["clientOid"] = Guid.NewGuid();
 
-            var ordertmp = orders?.Where(o => o.OrderId == orderId).FirstOrDefault();
-            return ordertmp;
-        }
+			JToken token = await MakeJsonRequestAsync<JToken>("/orders?&" + CryptoUtility.GetFormForPayload(payload, false), null, payload);
+			var isActive = token["id"].ToObject<bool>();
+			if (isActive)
+				return ParseOpenOrder(token);
+			else return ParseCompletedOrder(token);
+		}
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
@@ -418,7 +424,7 @@ namespace ExchangeSharp
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
         {
             // Find order detail
-            ExchangeOrderResult order = await GetOrderDetailsAsync(orderId, marketSymbol);
+            ExchangeOrderResult order = await GetOrderDetailsAsync(orderId, marketSymbol: marketSymbol);
 
             // There is no order to be cancelled
             if (order == null)

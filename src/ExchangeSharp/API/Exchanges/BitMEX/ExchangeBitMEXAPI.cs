@@ -600,11 +600,11 @@ namespace ExchangeSharp
 			return orders;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
 		{
 			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			string query = $"/order?filter={{\"orderID\": \"{orderId}\"}}";
+			string query = $"/order?filter={{\"{(isClientOrderId ? "clOrdID" : "orderID")}\": \"{orderId}\"}}";
 			JToken token = await MakeJsonRequestAsync<JToken>(query, BaseUrl, payload, "GET");
 			foreach (JToken order in token)
 			{

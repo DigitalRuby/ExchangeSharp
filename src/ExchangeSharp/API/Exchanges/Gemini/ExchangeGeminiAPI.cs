@@ -320,7 +320,7 @@ namespace ExchangeSharp
 			return ParseOrder(obj);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
 		{
 			if (string.IsNullOrWhiteSpace(orderId))
 			{
@@ -328,7 +328,9 @@ namespace ExchangeSharp
 			}
 
 			object nonce = await GenerateNonceAsync();
-			JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", nonce }, { "order_id", orderId } });
+			var payload = new Dictionary<string, object> { { "nonce", nonce },
+				{ isClientOrderId ? "client_order_id" : "order_id", orderId } }; // client_order_id cannot be used in combination with order_id
+			JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, payload: payload);
 			return ParseOrder(result);
 		}
 

@@ -327,7 +327,7 @@ namespace ExchangeSharp
 			for (; i < maxTries; i++)
 			{
 				await System.Threading.Tasks.Task.Delay(500);
-				result = await api.GetOrderDetailsAsync(result.OrderId, symbol);
+				result = await api.GetOrderDetailsAsync(result.OrderId, marketSymbol: symbol);
 				switch (result.Result)
 				{
 					case ExchangeAPIOrderResult.Filled:

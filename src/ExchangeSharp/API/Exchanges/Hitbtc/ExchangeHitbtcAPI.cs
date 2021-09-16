@@ -257,9 +257,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, await GetNoncePayloadAsync());
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
+		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, await GetNoncePayloadAsync());
             if (obj != null && obj.HasValues) return ParseCompletedOrder(obj);
             return null;
         }

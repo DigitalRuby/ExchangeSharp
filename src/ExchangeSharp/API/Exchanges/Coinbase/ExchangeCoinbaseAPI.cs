@@ -594,9 +594,10 @@ namespace ExchangeSharp
 			return ParseOrder(result);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-		{
-			JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "GET");
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
+		{ // Orders may be queried using either the exchange assigned id or the client assigned client_oid. When using client_oid it must be preceded by the client: namespace.
+			JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + (isClientOrderId ? "client:" : "") + orderId,
+				null, await GetNoncePayloadAsync(), "GET");
 			return ParseOrder(obj);
 		}
 

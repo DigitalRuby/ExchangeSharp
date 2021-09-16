@@ -361,8 +361,9 @@ namespace ExchangeSharp
 			});
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
 		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			JToken token = await MakeJsonRequestAsync<JToken>($"/spot/order?order_id={orderId}", payload: payload);
 			var x = token["data"];

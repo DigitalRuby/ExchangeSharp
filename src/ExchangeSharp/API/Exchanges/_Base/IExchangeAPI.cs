@@ -206,9 +206,10 @@ namespace ExchangeSharp
 		/// Get details of an order
 		/// </summary>
 		/// <param name="orderId">order id</param>
+		/// <param name="isClientOrderId"></param>
 		/// <param name="marketSymbol">Market Symbol</param>
 		/// <returns>Order details</returns>
-		Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null);
+		Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string? marketSymbol = null);
 
 		/// <summary>
 		/// Get the details of all open orders
