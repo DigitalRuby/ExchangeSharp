@@ -202,9 +202,10 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            var payload = await GetNoncePayloadAsync();
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getInfo");
             payload.Add("order_id", orderId);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");

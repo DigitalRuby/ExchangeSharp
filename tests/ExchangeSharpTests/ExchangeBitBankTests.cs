@@ -189,7 +189,7 @@ namespace ExchangeSharpTests
             ";
             var api = MakeMockRequestMaker(data);
             // Throws error when no Market Symbol
-            var resp = await api.GetOrderDetailsAsync("558167000", "BTC-JPY");
+            var resp = await api.GetOrderDetailsAsync("558167000", marketSymbol: "BTC-JPY");
             ExchangeOrderResult resp2 = await api.GetOrderDetailsAsync("58037954");
             resp.Should().BeEquivalentTo(resp2);
         }

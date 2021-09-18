@@ -356,8 +356,9 @@ namespace ExchangeSharp
 		}
 
 		//GetOrderDetails   13
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = new Dictionary<string, object>
 			{
 				{ "api_key", PublicApiKey.ToUnsecureString() },

@@ -376,12 +376,13 @@ namespace ExchangeSharp
 			}
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrEmpty(symbol))
 			{
 				throw new InvalidOperationException("MarketSymbol is required for querying order details with Gate.io API");
 			}
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var payload = await GetNoncePayloadAsync();
 			var responseToken = await MakeJsonRequestAsync<JToken>($"/spot/orders/{orderId}?currency_pair={symbol}", payload: payload);

@@ -461,8 +461,8 @@ namespace ExchangeSharp.OKGroup
             await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (marketSymbol.Length == 0)
@@ -470,8 +470,13 @@ namespace ExchangeSharp.OKGroup
                 throw new InvalidOperationException("Okex single order details request requires symbol");
             }
             payload["symbol"] = marketSymbol;
-            payload["order_id"] = orderId;
-            JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
+
+			if (isClientOrderId) // Either client_oid or order_id must be present.
+				payload["client_oid"] = orderId;
+			else
+				payload["order_id"] = orderId;
+
+			JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
             foreach (JToken order in token["orders"])
             {
                 orders.Add(ParseOrder(order));

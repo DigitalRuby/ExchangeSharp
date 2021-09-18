@@ -54,7 +54,7 @@ namespace ExchangeSharpConsole.Options
 				await Task.Delay(IntervalMs)
 					.ConfigureAwait(false);
 
-				order = await api.GetOrderDetailsAsync(order.OrderId, order.MarketSymbol);
+				order = await api.GetOrderDetailsAsync(order.OrderId, marketSymbol: order.MarketSymbol);
 			}
 
 			Console.Clear();

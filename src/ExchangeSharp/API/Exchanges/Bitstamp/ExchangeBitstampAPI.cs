@@ -219,8 +219,8 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             //{
             //    "status": "Finished",
             //    "id": 1022694747,
@@ -241,8 +241,11 @@ namespace ExchangeSharp
             }
             string url = "/order_status/";
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["id"] = orderId;
-            JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
+			if (isClientOrderId) // Order can be fetched by using either id or client_order_id parameter.
+				payload["client_order_id"] = orderId;
+			else
+				payload["id"] = orderId;
+			JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
 
 			var transactions = result["transactions"] as JArray;
 			var anyTransaction = transactions.Any();

@@ -580,7 +580,7 @@ namespace ExchangeSharp.BinanceGroup
 			return ParseOrder(token);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string? marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (string.IsNullOrWhiteSpace(marketSymbol))
@@ -588,7 +588,12 @@ namespace ExchangeSharp.BinanceGroup
 				throw new InvalidOperationException("Binance single order details request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
-			payload["orderId"] = orderId;
+			
+			if (isClientOrderId) // Either orderId or origClientOrderId must be sent.
+				payload["origClientOrderId"] = orderId;
+			else
+				payload["orderId"] = orderId;
+
 			JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
 			ExchangeOrderResult result = ParseOrder(token);
 
