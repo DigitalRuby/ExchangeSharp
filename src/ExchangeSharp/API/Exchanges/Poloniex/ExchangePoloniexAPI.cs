@@ -910,10 +910,14 @@ namespace ExchangeSharp
                 paramsList.Add(withdrawalRequest.AddressTag);
             }
 
-            JToken token = await MakePrivateAPIRequestAsync("withdraw", paramsList.ToArray());
-            ExchangeWithdrawalResponse resp = new ExchangeWithdrawalResponse { Message = token["response"].ToStringInvariant() };
-            return resp;
-        }
+			var token = await MakePrivateAPIRequestAsync("withdraw", paramsList.ToArray());
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = token["withdrawalNumber"]?.ToString(),
+				Message = token["response"].ToStringInvariant()
+			};
+		}
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {
