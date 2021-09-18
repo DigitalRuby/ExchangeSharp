@@ -378,7 +378,7 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			var payload = await GetNoncePayloadAsync();
 			if (isClientOrderId)

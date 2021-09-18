@@ -203,7 +203,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) =>
 			throw new NotImplementedException();
-		protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string? marketSymbol = null) =>
+		protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false) =>
 			throw new NotImplementedException();
 		protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string? marketSymbol = null) =>
 			throw new NotImplementedException();
@@ -935,13 +935,13 @@ namespace ExchangeSharp
 		/// Get order details
 		/// </summary>
 		/// <param name="orderId">Order id to get details for</param>
-		/// <param name="isClientOrderId"></param>
 		/// <param name="marketSymbol">Symbol of order (most exchanges do not require this)</param>
+		/// <param name="isClientOrderId"></param>
 		/// <returns>Order details</returns>
-		public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string? marketSymbol = null)
+		public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			marketSymbol = NormalizeMarketSymbol(marketSymbol);
-			return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetOrderDetailsAsync(orderId, isClientOrderId: isClientOrderId, marketSymbol: marketSymbol), nameof(GetOrderDetailsAsync), nameof(orderId), orderId, nameof(isClientOrderId), isClientOrderId, nameof(marketSymbol), marketSymbol);
+			return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetOrderDetailsAsync(orderId, marketSymbol: marketSymbol, isClientOrderId: isClientOrderId), nameof(GetOrderDetailsAsync), nameof(orderId), orderId, nameof(isClientOrderId), isClientOrderId, nameof(marketSymbol), marketSymbol);
 		}
 
 		/// <summary>

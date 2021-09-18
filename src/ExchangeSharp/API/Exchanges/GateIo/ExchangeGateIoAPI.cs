@@ -376,7 +376,7 @@ namespace ExchangeSharp
 			}
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string symbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrEmpty(symbol))
 			{
