@@ -300,6 +300,7 @@ namespace ExchangeSharp
             // No way to know if order IsBuy, Amount, OrderDate
             return new ExchangeOrderResult()
             {
+				OrderId = orderId,
                 AmountFilled = amountFilled,
                 MarketSymbol = _symbol,
                 AveragePrice = spentQuoteCurrency / amountFilled,
