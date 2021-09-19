@@ -776,6 +776,7 @@ namespace ExchangeSharp
 				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 				payload.Add("price", Math.Round(order.Price.Value, precision).ToStringInvariant());
 			}
+			if (order.IsPostOnly == true) payload["oflags"] = "post"; //  post-only order (available when ordertype = limit)
 			order.ExtraParameters.CopyTo(payload);
 
 			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);

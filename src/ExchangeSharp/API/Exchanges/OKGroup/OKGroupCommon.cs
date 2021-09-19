@@ -440,8 +440,9 @@ namespace ExchangeSharp.OKGroup
             {
                 payload["price"] = outputPrice;
                 payload["amount"] = outputQuantity;
-            }
-            order.ExtraParameters.CopyTo(payload);
+				if (order.IsPostOnly == true) payload["order_type"] = "1"; // Specify 0: Normal order (Unfilled and 0 imply normal limit order) 1: Post only 2: Fill or Kill 3: Immediate Or Cancel
+			}
+			order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/trade.do", BaseUrl, payload, "POST");
             order.Amount = outputQuantity;

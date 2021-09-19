@@ -570,9 +570,7 @@ namespace ExchangeSharp
 			switch (order.OrderType)
 			{
 				case OrderType.Limit:
-					// set payload["post_only"] to true for default scenario when order.ExtraParameters["post_only"] is not specified
-					// to place non-post-only limit order one can set and pass order.ExtraParameters["post_only"]="false"
-					payload["post_only"] = order.ExtraParameters.TryGetValueOrDefault("post_only", "true");
+					if (order.IsPostOnly != null) payload["post_only"] = order.IsPostOnly; // [optional]** Post only flag, ** Invalid when time_in_force is IOC or FOK
 					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 					payload["price"] = order.Price.ToStringInvariant();
 					break;

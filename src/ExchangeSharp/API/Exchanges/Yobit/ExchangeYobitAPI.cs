@@ -250,7 +250,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var payload = await GetNoncePayloadAsync();
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			var payload = await GetNoncePayloadAsync();
             payload.Add("method", "Trade");
             payload.Add("pair", order.MarketSymbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");

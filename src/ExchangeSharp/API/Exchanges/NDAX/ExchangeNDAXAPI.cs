@@ -151,7 +151,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var orderType = 0;
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			var orderType = 0;
             var side = order.IsBuy? 0: 1;
             switch (order.OrderType)
             {

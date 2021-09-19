@@ -488,6 +488,7 @@ namespace ExchangeSharp
 			{
 				payload["price"] = "1";
 			}
+			if (order.IsPostOnly == true) payload["flags"] = "4096"; // The post-only limit order option ensures the limit order will be added to the order book and not match with a pre-existing order unless the pre-existing order is a hidden order.
 			order.ExtraParameters.CopyTo(payload);
 			JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", BaseUrlV1, payload);
 			return ParseOrder(obj);

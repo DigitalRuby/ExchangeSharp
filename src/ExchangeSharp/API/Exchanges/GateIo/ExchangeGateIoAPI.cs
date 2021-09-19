@@ -335,6 +335,7 @@ namespace ExchangeSharp
 			payload.Add("side", order.IsBuy ? "buy" : "sell");
 			payload.Add("amount", order.Amount.ToStringInvariant());
 			payload.Add("price", order.Price);
+			if (order.IsPostOnly == true) payload["time_in_force"] += "poc"; // PendingOrCancelled, makes a post-only order that always enjoys a maker fee
 		}
 
 		private ExchangeOrderResult ParseOrder(JToken order)

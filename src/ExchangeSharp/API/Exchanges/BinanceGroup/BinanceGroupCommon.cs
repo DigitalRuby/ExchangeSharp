@@ -554,6 +554,11 @@ namespace ExchangeSharp.BinanceGroup
 			payload["side"] = order.IsBuy ? "BUY" : "SELL";
 			if (order.OrderType == OrderType.Stop)
 				payload["type"] = "STOP_LOSS";//if order type is stop loss/limit, then binance expect word 'STOP_LOSS' inestead of 'STOP'
+			else if (order.IsPostOnly == true)
+			{
+				if (order.OrderType == OrderType.Limit)	payload["type"] = "LIMIT_MAKER"; // LIMIT_MAKER are LIMIT orders that will be rejected if they would immediately match and trade as a taker.
+				else throw new NotImplementedException("PostOnly with non limit orders are not currently supported on Binance. Please submit a PR if you are interested in this feature");
+			}
 			else
 				payload["type"] = order.OrderType.ToStringUpperInvariant();
 

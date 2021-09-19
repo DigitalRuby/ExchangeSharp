@@ -408,6 +408,7 @@ namespace ExchangeSharp
 			{
 				payload["type"] = "limit";
 				payload["price"] = order.Price.ToStringInvariant();
+				if (order.IsPostOnly != null) payload["postOnly"] = order.IsPostOnly; // [Optional] Post only flag, invalid when timeInForce is IOC or FOK
 			}
 			order.ExtraParameters.CopyTo(payload);
 
