@@ -782,7 +782,8 @@ namespace ExchangeSharp
                 "rate", orderPrice.ToStringInvariant(),
                 "amount", orderAmount.ToStringInvariant()
             };
-            foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
+			if (order.IsPostOnly != null) { orderParams.Add("postOnly"); orderParams.Add(order.IsPostOnly.Value ? "1" : "0"); } // (optional) Set to "1" if you want this sell order to only be placed if no portion of it fills immediately.
+			foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
             {
                 orderParams.Add(kv.Key);
                 orderParams.Add(kv.Value);

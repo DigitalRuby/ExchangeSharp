@@ -705,7 +705,9 @@ namespace ExchangeSharp
 				payload["price"] = outputPrice.ToStringInvariant();
             }
 
-            order.ExtraParameters.CopyTo(payload);
+			if (order.IsPostOnly == true) payload["timeInForce"] += "boc"; // timeInForce enum values: gtc - good till cancel，boc - book or cancel (also called as post only, or book only), ioc - immediate or cancel, fok - fill or kill
+
+			order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/orders/place", PrivateUrlV1, payload, "POST");
             order.Amount = outputQuantity;

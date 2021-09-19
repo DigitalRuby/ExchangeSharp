@@ -165,6 +165,7 @@ namespace ExchangeSharp
 			dict.Add("size", request.Amount);
 			dict.Add("side", request.IsBuy ? "BUY" : "SELL");
 			dict.Add("symbol", request.MarketSymbol);
+			if (request.IsPostOnly != null) payload["postOnly"] = request.IsPostOnly;
 
 			switch (request.OrderType )
 			{

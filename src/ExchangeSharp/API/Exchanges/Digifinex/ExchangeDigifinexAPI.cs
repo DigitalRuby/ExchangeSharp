@@ -423,6 +423,7 @@ namespace ExchangeSharp
 			payload["type"] = GetOrderType(order);
 			payload["price"] = order.Price;
 			payload["amount"] = order.Amount;
+			if (order.IsPostOnly != null) payload["post_only"] = order.IsPostOnly.Value ? "1" : "0";  // Default 0, enabled by 1, if enabled the order will be cancelled if it can be executed immediately, making sure there will be no market taking
 			var market = order.IsMargin ? "margin" : "spot";
 			JToken token = await MakeJsonRequestAsync<JToken>($"/{market}/order/new", payload: payload, requestMethod: "POST");
 			return new ExchangeOrderResult { OrderId = token["order_id"].ToStringInvariant() };

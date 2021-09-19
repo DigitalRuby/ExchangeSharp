@@ -389,7 +389,8 @@ namespace ExchangeSharp
 			if (order.OrderType == ExchangeSharp.OrderType.Limit)
 			{
 				orderParams.Add("limit", orderPrice);
-				orderParams.Add("timeInForce", "GOOD_TIL_CANCELLED");
+				if (order.IsPostOnly == true) orderParams.Add("timeInForce", "POST_ONLY_GOOD_TIL_CANCELLED"); // This option allows market makers to ensure that their orders are making it to the order book instead of matching with a pre-existing order. Note: If the order is not a maker order, you will return an error and the order will be cancelled
+				else orderParams.Add("timeInForce", "GOOD_TIL_CANCELLED");
 			}
 
 			foreach (KeyValuePair<string, object> kv in order.ExtraParameters)

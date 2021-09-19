@@ -203,11 +203,11 @@ namespace ExchangeSharp
 		Task<ExchangeOrderResult[]> PlaceOrdersAsync(params ExchangeOrderRequest[] orders);
 
 		/// <summary>
-		/// Get details of an order
+		/// Get details of an order, searching by order id
 		/// </summary>
-		/// <param name="orderId">order id</param>
+		/// <param name="orderId">order id to search for (either server assigned id or client provided id</param>
 		/// <param name="marketSymbol">Market Symbol</param>
-		/// <param name="isClientOrderId"></param>
+		/// <param name="isClientOrderId">Whether the order id parameter is the server assigned id or client provided id</param>
 		/// <returns>Order details</returns>
 		Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false);
 

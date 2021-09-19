@@ -816,6 +816,7 @@ namespace ExchangeSharp
 
 		public async Task<ExchangeOrderResult> OnAmendOrderAsync(ExchangeOrderRequest order)
 		{
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			var payload = new Dictionary<string, object>();
 			payload["symbol"] = order.MarketSymbol;
 			if(order.OrderId != null)

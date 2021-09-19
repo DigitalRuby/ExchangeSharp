@@ -129,6 +129,8 @@ namespace ExchangeSharp
 			if (order.OrderType == OrderType.Stop)
 				throw new InvalidOperationException("Bitbank does not support stop order");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			if (order.IsPostOnly != null)
+				payload["post_only"] = order.IsPostOnly;
 			payload.Add("pair", NormalizeMarketSymbol(order.MarketSymbol));
 			payload.Add("amount", order.Amount.ToStringInvariant());
 			payload.Add("side", order.IsBuy ? "buy" : "sell");

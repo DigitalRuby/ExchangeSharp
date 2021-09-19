@@ -75,12 +75,18 @@ namespace ExchangeSharp
         /// </summary>
         public OrderType OrderType { get; set; } = OrderType.Limit;
 
-        /// <summary>
-        /// Additional order parameters specific to the exchange that don't fit in common order properties. These will be forwarded on to the exchange as key=value pairs.
-        /// Not all exchanges will use this dictionary.
-        /// These are added after all other parameters and will replace existing properties, such as order type.
-        /// </summary>
-        public Dictionary<string, object> ExtraParameters { get; private set; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+		/// <summary>
+		/// a.k.a. MakerOnly or BookOrCancel or PendingOrCancelled. Whether the order is "Post Only" (limit order will be added to the order book and not match with a pre-existing order)
+		/// To leave unspecified, set to null
+		/// </summary>
+		public bool? IsPostOnly { get; set; }
+
+		/// <summary>
+		/// Additional order parameters specific to the exchange that don't fit in common order properties. These will be forwarded on to the exchange as key=value pairs.
+		/// Not all exchanges will use this dictionary.
+		/// These are added after all other parameters and will replace existing properties, such as order type.
+		/// </summary>
+		public Dictionary<string, object> ExtraParameters { get; private set; } = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Return a rounded amount if needed
@@ -112,5 +118,5 @@ namespace ExchangeSharp
         /// A stop order, you will sell if price reaches a low enough level down to a limit
         /// </summary>
         Stop
-  }
+	}
 }

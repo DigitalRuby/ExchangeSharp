@@ -693,10 +693,10 @@ namespace ExchangeSharp
 			if(order.OrderType!=OrderType.Market)
 				payload["price"] = order.Price;
 
-			if (order.ExtraParameters.TryGetValue("execInst", out var execInst))
-			{
-				payload["execInst"] = execInst;
-			}
+			if (order.IsPostOnly == true)
+				payload["execInst"] = "ParticipateDoNotInitiate"; // Also known as a Post-Only order. If this order would have executed on placement, it will cancel instead. This is intended to protect you from the far touch moving towards you while the order is in transit. It is not intended for speculating on the far touch moving away after submission - we consider such behaviour abusive and monitor for it.
+
+			order.ExtraParameters.CopyTo(payload);
 		}
 
 		private ExchangePosition ParsePosition(JToken token)

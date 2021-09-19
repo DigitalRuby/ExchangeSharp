@@ -315,6 +315,7 @@ namespace ExchangeSharp
 					{ "side", (order.IsBuy ? "buy" : "sell") },
 					{ "type", "exchange limit" }
 				};
+			if (order.IsPostOnly == true) payload["options"] = "[maker-or-cancel]"; // This order will only add liquidity to the order book. If any part of the order could be filled immediately, the whole order will instead be canceled before any execution occurs. If that happens, the response back from the API will indicate that the order has already been canceled("is_cancelled": true in JSON). Note: some other exchanges call this option "post-only".
 			order.ExtraParameters.CopyTo(payload);
 			JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", null, payload);
 			return ParseOrder(obj);

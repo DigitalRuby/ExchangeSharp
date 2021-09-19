@@ -910,6 +910,7 @@ namespace ExchangeSharp
 		public virtual async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			// *NOTE* do not wrap in CacheMethodCall
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			await new SynchronizationContextRemover();
 			order.MarketSymbol = NormalizeMarketSymbol(order.MarketSymbol);
 			return await OnPlaceOrderAsync(order);
