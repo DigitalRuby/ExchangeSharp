@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace ExchangeSharp.API.Exchanges.BinanceGroup
+namespace ExchangeSharp.BinanceGroup
 {
 	public class HistoryRecord
 	{
