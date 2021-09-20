@@ -547,7 +547,8 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+			if (order.Price == null && order.OrderType != OrderType.Market) throw new ArgumentNullException(nameof(order.Price));
+
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload["symbol"] = order.MarketSymbol;
 			payload["newClientOrderId"] = order.ClientOrderId;
@@ -564,7 +565,6 @@ namespace ExchangeSharp.BinanceGroup
 
 			// Binance has strict rules on which prices and quantities are allowed. They have to match the rules defined in the market definition.
 			decimal outputQuantity = await ClampOrderQuantity(order.MarketSymbol, order.Amount);
-			decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 
 			// Binance does not accept quantities with more than 20 decimal places.
 			payload["quantity"] = Math.Round(outputQuantity, 20);
@@ -572,6 +572,7 @@ namespace ExchangeSharp.BinanceGroup
 
 			if (order.OrderType != OrderType.Market)
 			{
+				decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
 				payload["timeInForce"] = "GTC";
 				payload["price"] = outputPrice;
 			}
@@ -942,7 +943,8 @@ namespace ExchangeSharp.BinanceGroup
 				ClientOrderId = token["clientOrderId"].ToStringInvariant()
 			};
 
-			result.Result = ParseExchangeAPIOrderResult(token["status"].ToStringInvariant(), result.AmountFilled);
+			result.ResultCode = token["status"].ToStringInvariant();
+			result.Result = ParseExchangeAPIOrderResult(result.ResultCode, result.AmountFilled);
 			ParseAveragePriceAndFeesFromFills(result, token["fills"]);
 
 			return result;
