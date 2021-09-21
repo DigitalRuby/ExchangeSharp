@@ -555,6 +555,29 @@ namespace ExchangeSharp
 			return amounts;
 		}
 
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest request)
+		{
+			var payload = new Dictionary<string, object>
+			{
+				{ "amount", request.Amount },
+				{ "currency", request.Currency },
+				{ "crypto_address", request.Address },
+				{ "add_network_fee_to_total", !request.TakeFeeFromAmount },
+			};
+
+			if (!string.IsNullOrEmpty(request.AddressTag))
+			{
+				payload.Add("destination_tag", request.AddressTag);
+			}
+
+			var result = await MakeJsonRequestAsync<WithdrawalResult>("/withdrawals/crypto", null, payload, "POST");
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = result.Id
+			};
+		}
+
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			object nonce = await GenerateNonceAsync();
