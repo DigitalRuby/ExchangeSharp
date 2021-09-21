@@ -557,8 +557,10 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest request)
 		{
+			var nonce = await GetNoncePayloadAsync();
 			var payload = new Dictionary<string, object>
 			{
+				{ "nonce", nonce },
 				{ "amount", request.Amount },
 				{ "currency", request.Currency },
 				{ "crypto_address", request.Address },
