@@ -19,6 +19,7 @@ namespace ExchangeSharpConsole
 			typeof(CandlesOption),
 			typeof(ConvertOption),
 			typeof(DepositAddressOption),
+			typeof(CurrenciesOption),
 			typeof(ExampleOption),
 			typeof(ExportOption),
 			typeof(InteractiveOption),
