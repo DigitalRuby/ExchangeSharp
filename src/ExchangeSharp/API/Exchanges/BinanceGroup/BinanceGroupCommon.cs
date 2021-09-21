@@ -22,14 +22,9 @@ namespace ExchangeSharp.BinanceGroup
 {
 	public abstract class BinanceGroupCommon : ExchangeAPI
 	{
-		public abstract string BaseUrlPrivate { get; set; }
-		public abstract string WithdrawalUrlPrivate { get; set; }
-		/// <summary>
-		/// base address for APIs used by the Binance website and not published in the API docs
-		/// </summary>
-		public abstract string BaseWebUrl { get; set; }
+		public string BaseUrlApi => $"{BaseUrl}/api/v3";
 
-		public const string GetCurrenciesUrl = "/assetWithdraw/getAllAsset.html";
+		public string BaseUrlSApi => $"{BaseUrl}/sapi/v1";
 
 		protected async Task<string> GetWebSocketStreamUrlForSymbolsAsync(string suffix, params string[] marketSymbols)
 		{
@@ -88,6 +83,25 @@ namespace ExchangeSharp.BinanceGroup
 		{
 			await new SynchronizationContextRemover();
 			return await OnGetMyTradesAsync(marketSymbol, afterDate);
+		}
+
+		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		{
+			var result = await MakeJsonRequestAsync<List<Currency>>("/capital/config/getall", BaseUrlSApi);
+			
+			return result.ToDictionary(x => x.Coin.ToUpper(), x => {
+				var network = x.NetworkList.FirstOrDefault(x => x.IsDefault);
+				return new ExchangeCurrency
+				{
+					Name = x.Coin,
+					FullName = x.Name,
+					DepositEnabled = network?.DepositEnable ?? x.DepositAllEnable,
+					WithdrawalEnabled = network?.WithdrawEnable ?? x.WithdrawAllEnable,
+					MinConfirmations = network?.MinConfirm ?? 0,
+					MinWithdrawalSize = decimal.Parse(network?.WithdrawMin ?? "0"),
+					TxFee = decimal.Parse(network?.WithdrawFee ?? "0")
+				};
+			});
 		}
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
@@ -187,30 +201,6 @@ namespace ExchangeSharp.BinanceGroup
 			}
 
 			return markets;
-		}
-
-		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
-		{
-			// https://www.binance.com/assetWithdraw/getAllAsset.html
-			Dictionary<string, ExchangeCurrency> allCoins = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
-
-			List<Currency> currencies = await MakeJsonRequestAsync<List<Currency>>(GetCurrenciesUrl, BaseWebUrl);
-			foreach (Currency coin in currencies)
-			{
-				allCoins[coin.AssetCode] = new ExchangeCurrency
-				{
-					CoinType = coin.ParentCode,
-					DepositEnabled = coin.EnableCharge,
-					FullName = coin.AssetName,
-					MinConfirmations = coin.ConfirmTimes.ConvertInvariant<int>(),
-					Name = coin.AssetCode,
-					TxFee = coin.TransactionFee,
-					WithdrawalEnabled = coin.EnableWithdraw,
-					MinWithdrawalSize = coin.MinProductWithdraw.ConvertInvariant<decimal>(),
-				};
-			}
-
-			return allCoins;
 		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
@@ -517,7 +507,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
-			JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, await GetNoncePayloadAsync());
+			JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlApi, await GetNoncePayloadAsync());
 			Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 			foreach (JToken balance in token["balances"])
 			{
@@ -532,7 +522,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
 		{
-			JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlPrivate, await GetNoncePayloadAsync());
+			JToken token = await MakeJsonRequestAsync<JToken>("/account", BaseUrlApi, await GetNoncePayloadAsync());
 			Dictionary<string, decimal> balances = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 			foreach (JToken balance in token["balances"])
 			{
@@ -578,7 +568,7 @@ namespace ExchangeSharp.BinanceGroup
 			}
 			order.ExtraParameters.CopyTo(payload);
 
-			JToken? token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "POST");
+			JToken? token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload, "POST");
             if (token is null)
             {
                 return null;
@@ -600,13 +590,13 @@ namespace ExchangeSharp.BinanceGroup
 			else
 				payload["orderId"] = orderId;
 
-			JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload);
+			JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload);
 			ExchangeOrderResult result = ParseOrder(token);
 
 			// Add up the fees from each trade in the order
 			Dictionary<string, object> feesPayload = await GetNoncePayloadAsync();
 			feesPayload["symbol"] = marketSymbol!;
-			JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, feesPayload);
+			JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlApi, feesPayload);
 			ParseFees(feesToken, result);
 
 			return result;
@@ -641,7 +631,7 @@ namespace ExchangeSharp.BinanceGroup
 			{
 				payload["symbol"] = marketSymbol!;
 			}
-			JToken token = await MakeJsonRequestAsync<JToken>("/openOrders", BaseUrlPrivate, payload);
+			JToken token = await MakeJsonRequestAsync<JToken>("/openOrders", BaseUrlApi, payload);
 			foreach (JToken order in token)
 			{
 				orders.Add(ParseOrder(order));
@@ -704,73 +694,12 @@ namespace ExchangeSharp.BinanceGroup
 				{
 					payload["startTime"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
 				}
-				JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, payload);
+				JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlApi, payload);
 				foreach (JToken trade in token)
 				{
 					trades.Add(ParseTrade(trade, marketSymbol!));
 				}
 			}
-			return trades;
-
-			//old way
-
-			//List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-			//if (string.IsNullOrWhiteSpace(marketSymbol))
-			//{
-			//    orders.AddRange(await GetCompletedOrdersForAllSymbolsAsync(afterDate));
-			//}
-			//else
-			//{
-			//    Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			//    payload["symbol"] = marketSymbol;
-			//    if (afterDate != null)
-			//    {
-			//        payload["startTime"] = Math.Round(afterDate.Value.UnixTimestampFromDateTimeMilliseconds());
-			//    }
-			//    JToken token = await MakeJsonRequestAsync<JToken>("/allOrders", BaseUrlPrivate, payload);
-			//    foreach (JToken order in token)
-			//    {
-			//        orders.Add(ParseOrder(order));
-			//    }
-			//}
-			//return orders;
-		}
-
-		private async Task<IEnumerable<ExchangeOrderResult>> GetMyTradesForAllSymbols(DateTime? afterDate)
-		{
-			// TODO: This is a HACK, Binance API needs to add a single API call to get all orders for all symbols, terrible...
-			List<ExchangeOrderResult> trades = new List<ExchangeOrderResult>();
-			Exception? ex = null;
-			string? failedSymbol = null;
-			Parallel.ForEach((await GetMarketSymbolsAsync()).Where(s => s.IndexOf("BTC", StringComparison.OrdinalIgnoreCase) >= 0), async (s) =>
-			{
-				try
-				{
-					foreach (ExchangeOrderResult trade in (await GetMyTradesAsync(s, afterDate)))
-					{
-						lock (trades)
-						{
-							trades.Add(trade);
-						}
-					}
-				}
-				catch (Exception _ex)
-				{
-					failedSymbol = s;
-					ex = _ex;
-				}
-			});
-
-			if (ex != null)
-			{
-				throw new APIException("Failed to get my trades for symbol " + failedSymbol, ex);
-			}
-
-			// sort timestamp desc
-			trades.Sort((o1, o2) =>
-			{
-				return o2.OrderDate.CompareTo(o1.OrderDate);
-			});
 			return trades;
 		}
 
@@ -789,7 +718,7 @@ namespace ExchangeSharp.BinanceGroup
 				{
 					payload["timestamp"] = afterDate.Value.UnixTimestampFromDateTimeMilliseconds();
 				}
-				JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlPrivate, payload);
+				JToken token = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlApi, payload);
 				foreach (JToken trade in token)
 				{
 					trades.Add(ParseTrade(trade, marketSymbol!));
@@ -807,7 +736,7 @@ namespace ExchangeSharp.BinanceGroup
 			}
 			payload["symbol"] = marketSymbol!;
 			payload["orderId"] = orderId;
-            _ = await MakeJsonRequestAsync<JToken>("/order", BaseUrlPrivate, payload, "DELETE");
+            _ = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload, "DELETE");
 		}
 
 		/// <summary>A withdrawal request. Fee is automatically subtracted from the amount.</summary>
@@ -829,17 +758,21 @@ namespace ExchangeSharp.BinanceGroup
 			}
 
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			payload["asset"] = withdrawalRequest.Currency;
+			payload["coin"] = withdrawalRequest.Currency;
 			payload["address"] = withdrawalRequest.Address;
 			payload["amount"] = withdrawalRequest.Amount;
-			payload["name"] = withdrawalRequest.Description ?? "apiwithdrawal"; // Contrary to what the API docs say, name is required
+
+			if (!string.IsNullOrWhiteSpace(withdrawalRequest.Description))
+			{
+				payload["name"] = withdrawalRequest.Description;
+			}
 
 			if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
 			{
 				payload["addressTag"] = withdrawalRequest.AddressTag;
 			}
 
-			JToken response = await MakeJsonRequestAsync<JToken>("/withdraw.html", WithdrawalUrlPrivate, payload, "POST");
+			JToken response = await MakeJsonRequestAsync<JToken>("/capital/withdraw/apply", BaseUrlSApi, payload, "POST");
 			ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
 			{
 				Id = response["id"].ToStringInvariant(),
@@ -1081,14 +1014,14 @@ namespace ExchangeSharp.BinanceGroup
             */
 
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			payload["asset"] = currency;
+			payload["coin"] = currency;
 
-			JToken response = await MakeJsonRequestAsync<JToken>("/depositAddress.html", WithdrawalUrlPrivate, payload);
+			JToken response = await MakeJsonRequestAsync<JToken>("/capital/deposit/address", BaseUrlSApi, payload);
 			ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
 			{
-				Currency = response["asset"].ToStringInvariant(),
+				Currency = response["coin"].ToStringInvariant(),
 				Address = response["address"].ToStringInvariant(),
-				AddressTag = response["addressTag"].ToStringInvariant()
+				AddressTag = response["tag"].ToStringInvariant()
 			};
 
 			return depositDetails;
@@ -1100,44 +1033,33 @@ namespace ExchangeSharp.BinanceGroup
 		protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
 		{
 			// TODO: API supports searching on status, startTime, endTime
-			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			var payload = await GetNoncePayloadAsync();
+
 			if (!string.IsNullOrWhiteSpace(currency))
 			{
-				payload["asset"] = currency;
+				payload["coin"] = currency;
 			}
 
-			JToken response = await MakeJsonRequestAsync<JToken>("/depositHistory.html", WithdrawalUrlPrivate, payload);
+			var response = await MakeJsonRequestAsync<List<HistoryRecord>>("/capital/deposit/hisrec", BaseUrlSApi, payload);
 			var transactions = new List<ExchangeTransaction>();
-			foreach (JToken token in response["depositList"])
+
+			foreach (var item in response)
 			{
-				var transaction = new ExchangeTransaction
+				transactions.Add(new ExchangeTransaction
 				{
-					Timestamp = token["insertTime"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds(),
-					Amount = token["amount"].ConvertInvariant<decimal>(),
-					Currency = token["asset"].ToStringUpperInvariant(),
-					Address = token["address"].ToStringInvariant(),
-					AddressTag = token["addressTag"].ToStringInvariant(),
-					BlockchainTxId = token["txId"].ToStringInvariant()
-				};
-				int status = token["status"].ConvertInvariant<int>();
-				switch (status)
-				{
-					case 0:
-						transaction.Status = TransactionStatus.Processing;
-						break;
-
-					case 1:
-						transaction.Status = TransactionStatus.Complete;
-						break;
-
-					default:
-						// If new states are added, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/wapi-api.md
-						transaction.Status = TransactionStatus.Unknown;
-						transaction.Notes = "Unknown transaction status: " + status;
-						break;
-				}
-
-				transactions.Add(transaction);
+					Timestamp = item.InsertTime.UnixTimeStampToDateTimeMilliseconds(),
+					Amount = decimal.Parse(item.Amount),
+					Currency = item.Coin.ToUpperInvariant(),
+					Address = item.Address,
+					AddressTag = item.AddressTag,
+					BlockchainTxId = item.TxId,
+					Status = item.Status switch
+					{
+						0 => TransactionStatus.Processing,
+						1 => TransactionStatus.Complete,
+						_ => TransactionStatus.Unknown
+					}
+				});
 			}
 
 			return transactions;
@@ -1170,7 +1092,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		public async Task<string> GetListenKeyAsync()
 		{
-			JToken response = await MakeJsonRequestAsync<JToken>("/userDataStream", BaseUrl, null, "POST");
+			JToken response = await MakeJsonRequestAsync<JToken>("/userDataStream", BaseUrlApi, null, "POST");
 			var listenKey = response["listenKey"].ToStringInvariant();
 			return listenKey;
 		}

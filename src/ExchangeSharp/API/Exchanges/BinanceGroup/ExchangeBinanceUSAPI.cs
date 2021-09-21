@@ -16,11 +16,8 @@ namespace ExchangeSharp
 {
 	public sealed class ExchangeBinanceUSAPI : BinanceGroupCommon
 	{
-		public override string BaseUrl { get; set; } = "https://api.binance.us/api/v1";
+		public override string BaseUrl { get; set; } = "https://api.binance.us";
 		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.us:9443";
-		public override string BaseUrlPrivate { get; set; } = "https://api.binance.us/api/v3";
-		public override string WithdrawalUrlPrivate { get; set; } = "https://api.binance.us/wapi/v3";
-		public override string BaseWebUrl { get; set; } = "https://www.binance.us";
 	}
 
 	public partial class ExchangeName { public const string BinanceUS = "BinanceUS"; }
