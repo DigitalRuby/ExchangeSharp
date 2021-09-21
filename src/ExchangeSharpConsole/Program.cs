@@ -18,6 +18,7 @@ namespace ExchangeSharpConsole
 			typeof(CancelOrderOption),
 			typeof(CandlesOption),
 			typeof(ConvertOption),
+			typeof(CurrenciesOption),
 			typeof(ExampleOption),
 			typeof(ExportOption),
 			typeof(InteractiveOption),
