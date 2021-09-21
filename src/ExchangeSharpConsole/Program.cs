@@ -18,6 +18,7 @@ namespace ExchangeSharpConsole
 			typeof(CancelOrderOption),
 			typeof(CandlesOption),
 			typeof(ConvertOption),
+			typeof(DepositAddressOption),
 			typeof(CurrenciesOption),
 			typeof(ExampleOption),
 			typeof(ExportOption),
@@ -38,7 +39,8 @@ namespace ExchangeSharpConsole
 			typeof(WebSocketsPositionsOption),
 			typeof(WebSocketsTickersOption),
 			typeof(WebSocketsTradesOption),
-			typeof(WebSocketsCandlesOption)
+			typeof(WebSocketsCandlesOption),
+			typeof(WithdrawOption)
 		};
 
 		public Program()
