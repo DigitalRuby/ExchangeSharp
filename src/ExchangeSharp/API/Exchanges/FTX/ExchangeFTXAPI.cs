@@ -367,14 +367,11 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return base.OnInitializeAsync();
 		}
 
-		protected override Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		protected async override Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
-			return base.OnGetRecentTradesAsync(marketSymbol, limit);
-		}
+			JToken response = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}/orderbook?depth={maxCount}");
 
-		protected override Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
-		{
-			return base.OnGetOrderBookAsync(marketSymbol, maxCount);
+			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(response,  maxCount: maxCount);
 		}
 
 		protected async override Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
