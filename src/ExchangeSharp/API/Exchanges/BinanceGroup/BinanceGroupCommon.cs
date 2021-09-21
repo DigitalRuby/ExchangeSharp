@@ -24,7 +24,7 @@ namespace ExchangeSharp.BinanceGroup
 	{
 		public string BaseUrlApi => $"{BaseUrl}/api/v3";
 
-		public string BaseUrlUrlSApi => $"{BaseUrl}/sapi/v1";
+		public string BaseUrlSApi => $"{BaseUrl}/sapi/v1";
 
 		protected async Task<string> GetWebSocketStreamUrlForSymbolsAsync(string suffix, params string[] marketSymbols)
 		{
@@ -83,6 +83,25 @@ namespace ExchangeSharp.BinanceGroup
 		{
 			await new SynchronizationContextRemover();
 			return await OnGetMyTradesAsync(marketSymbol, afterDate);
+		}
+
+		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		{
+			var result = await MakeJsonRequestAsync<List<Currency>>("/capital/config/getall", BaseUrlSApi);
+			
+			return result.ToDictionary(x => x.Coin.ToUpper(), x => {
+				var network = x.NetworkList.FirstOrDefault(x => x.IsDefault);
+				return new ExchangeCurrency
+				{
+					Name = x.Coin,
+					FullName = x.Name,
+					DepositEnabled = network?.DepositEnable ?? x.DepositAllEnable,
+					WithdrawalEnabled = network?.WithdrawEnable ?? x.WithdrawAllEnable,
+					MinConfirmations = network?.MinConfirm ?? 0,
+					MinWithdrawalSize = decimal.Parse(network?.WithdrawMin ?? "0"),
+					TxFee = decimal.Parse(network?.WithdrawFee ?? "0")
+				};
+			});
 		}
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
@@ -752,7 +771,7 @@ namespace ExchangeSharp.BinanceGroup
 				payload["addressTag"] = withdrawalRequest.AddressTag;
 			}
 
-			JToken response = await MakeJsonRequestAsync<JToken>("/capital/withdraw/apply", BaseUrlUrlSApi, payload, "POST");
+			JToken response = await MakeJsonRequestAsync<JToken>("/capital/withdraw/apply", BaseUrlSApi, payload, "POST");
 			ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
 			{
 				Id = response["id"].ToStringInvariant(),
@@ -995,7 +1014,7 @@ namespace ExchangeSharp.BinanceGroup
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload["coin"] = currency;
 
-			JToken response = await MakeJsonRequestAsync<JToken>("/capital/deposit/address", BaseUrlUrlSApi, payload);
+			JToken response = await MakeJsonRequestAsync<JToken>("/capital/deposit/address", BaseUrlSApi, payload);
 			ExchangeDepositDetails depositDetails = new ExchangeDepositDetails
 			{
 				Currency = response["coin"].ToStringInvariant(),
@@ -1019,7 +1038,7 @@ namespace ExchangeSharp.BinanceGroup
 				payload["coin"] = currency;
 			}
 
-			var response = await MakeJsonRequestAsync<List<HistoryRecord>>("/capital/deposit/hisrec", BaseUrlUrlSApi, payload);
+			var response = await MakeJsonRequestAsync<List<HistoryRecord>>("/capital/deposit/hisrec", BaseUrlSApi, payload);
 			var transactions = new List<ExchangeTransaction>();
 
 			foreach (var item in response)
