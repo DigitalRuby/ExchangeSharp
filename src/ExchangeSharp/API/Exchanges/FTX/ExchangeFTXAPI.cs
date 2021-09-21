@@ -166,21 +166,26 @@ namespace ExchangeSharp.API.Exchanges.FTX
 					continue;
 				}
 				
-				markets.Add(new ExchangeOrderResult()
-				{
-					MarketSymbol = token["market"].ToStringInvariant(),
-					Price = token["price"].ConvertInvariant<decimal>(),
-					AveragePrice = token["avgFillPrice"].ConvertInvariant<decimal>(),
-					OrderDate = token["createdAt"].ConvertInvariant<DateTime>(),
-					IsBuy = token["side"].ToStringInvariant().Equals("buy"),
-					OrderId = token["id"].ToStringInvariant(),
-					Amount = token["size"].ConvertInvariant<decimal>(),
-					AmountFilled = token["filledSize"].ConvertInvariant<decimal>(),
-					ClientOrderId = token["clientId"].ToStringInvariant()
-				});
+				markets.Add(ParseOrder(token));
 			}
-
+			
 			return markets;
+		}
+
+		private ExchangeOrderResult ParseOrder(JToken token)
+		{
+			return new ExchangeOrderResult()
+			{
+				MarketSymbol = token["market"].ToStringInvariant(),
+				Price = token["price"].ConvertInvariant<decimal>(),
+				AveragePrice = token["avgFillPrice"].ConvertInvariant<decimal>(),
+				OrderDate = token["createdAt"].ConvertInvariant<DateTime>(),
+				IsBuy = token["side"].ToStringInvariant().Equals("buy"),
+				OrderId = token["id"].ToStringInvariant(),
+				Amount = token["size"].ConvertInvariant<decimal>(),
+				AmountFilled = token["filledSize"].ConvertInvariant<decimal>(),
+				ClientOrderId = token["clientId"].ToStringInvariant()
+			};
 		}
 
 		/// <inheritdoc />
@@ -269,6 +274,10 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 
 				parameters.Add("price", Math.Round(order.Price.Value, precision));
+			}
+			else
+			{
+				parameters.Add("price", null);
 			}
 
 			parameters.CopyTo(payload);
@@ -405,9 +414,39 @@ namespace ExchangeSharp.API.Exchanges.FTX
 			return candles;
 		}
 
-		protected override Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+		protected async override Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
 		{
-			return base.OnGetCompletedOrderDetailsAsync(marketSymbol, afterDate);
+			string query = "/orders/history";
+
+			var param = new Dictionary<string, string>();
+
+			if (!string.IsNullOrEmpty(marketSymbol))
+			{
+				query += $"&market={marketSymbol}";
+			}
+
+			if (afterDate != null)
+			{
+				query += $"&start_time={afterDate?.UnixTimestampFromDateTimeSeconds()}";
+			}
+
+			JToken response = await MakeJsonRequestAsync<JToken>(query, null, await GetNoncePayloadAsync());
+
+			var orders = new List<ExchangeOrderResult>();
+
+			foreach (JToken token in response.Children())
+			{
+				var symbol = token["market"].ToStringInvariant();
+
+				if (!Regex.Match(symbol, @"[\w\d]*\/[[\w\d]]*").Success)
+				{
+					continue;
+				}
+
+				orders.Add(ParseOrder(token));
+			}
+
+			return orders;
 		}
 
 		protected async override Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
