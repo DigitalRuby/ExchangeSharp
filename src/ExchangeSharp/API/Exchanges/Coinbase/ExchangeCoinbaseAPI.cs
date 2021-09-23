@@ -557,7 +557,7 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest request)
 		{
-			var nonce = await GetNoncePayloadAsync();
+			var nonce = await GenerateNonceAsync();
 			var payload = new Dictionary<string, object>
 			{
 				{ "nonce", nonce },
