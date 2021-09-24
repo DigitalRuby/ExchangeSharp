@@ -235,7 +235,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback) =>
 			throw new NotImplementedException();
-		protected virtual Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback, string listenKey) =>
+		protected virtual Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback) =>
 			throw new NotImplementedException();
 
 		#endregion API implementation
@@ -1114,12 +1114,11 @@ namespace ExchangeSharp
 		/// Get user detail over web socket
 		/// </summary>
 		/// <param name="callback">Callback</param>
-		/// <param name="listenKey">Listen key</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		public virtual Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback, string listenKey)
+		public virtual Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback)
 		{
 			callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-			return OnUserDataWebSocketAsync(callback, listenKey);
+			return OnUserDataWebSocketAsync(callback);
 		}
 		#endregion Web Socket API
 	}

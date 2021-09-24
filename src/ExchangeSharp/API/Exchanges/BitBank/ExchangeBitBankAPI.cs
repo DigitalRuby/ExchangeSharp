@@ -402,7 +402,7 @@ namespace ExchangeSharp
 			};
 			res.Fees = token["type"].ToStringInvariant() == "limit" ? MakerFee * res.Amount : TakerFee * res.Amount;
 			res.Price = token["price"].ConvertInvariant<decimal>();
-			res.FillDate = token["executed_at"] == null ? default : token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
+			res.CompletedDate = token["executed_at"] == null ? default : token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
 			res.FeesCurrency = res.MarketSymbol.Substring(0, 3);
 			return res;
 		}

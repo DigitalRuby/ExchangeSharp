@@ -43,8 +43,8 @@ namespace ExchangeSharp
         /// E.g. ADA/BTC would be ADA</summary>
         public decimal Amount { get; set; }
 
-        /// <summary>Amount filled in the market currency.</summary>
-        public decimal AmountFilled { get; set; }
+        /// <summary>Amount filled in the market currency. May be null if not provided by exchange</summary>
+        public decimal? AmountFilled { get; set; }
 
         /// <summary>The limit price on the order in the ratio of base/market currency.
         /// E.g. 0.000342 ADA/ETH</summary>
@@ -57,8 +57,8 @@ namespace ExchangeSharp
         /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
 
-        /// <summary>Fill datetime in UTC</summary>
-        public DateTime FillDate { get; set; }
+        /// <summary>datetime in UTC order was completed (could be filled, cancelled, expired, rejected, etc...). Null if still open.</summary>
+        public DateTime? CompletedDate { get; set; }
 
         /// <summary>Market Symbol. E.g. ADA/ETH</summary>
         public string MarketSymbol { get; set; }

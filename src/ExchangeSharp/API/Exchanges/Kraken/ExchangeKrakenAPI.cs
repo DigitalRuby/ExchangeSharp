@@ -242,7 +242,7 @@ namespace ExchangeSharp
 			orderResult.TradeId = order["postxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.OrderId = order["ordertxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.AmountFilled = order["vol"].ConvertInvariant<decimal>();
-			orderResult.FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
+			orderResult.CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
 
 			string[] pairs = (await ExchangeMarketSymbolToGlobalMarketSymbolAsync(order["pair"].ToStringInvariant())).Split('-');
 			orderResult.FeesCurrency = pairs[1];

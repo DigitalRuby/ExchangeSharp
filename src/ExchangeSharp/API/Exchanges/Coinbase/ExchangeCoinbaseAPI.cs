@@ -94,7 +94,7 @@ namespace ExchangeSharp
 				AveragePrice = averagePrice,
 				IsBuy = (result["side"].ToStringInvariant() == "buy"),
 				OrderDate = result["created_at"].ToDateTimeInvariant(),
-				FillDate = result["done_at"].ToDateTimeInvariant(),
+				CompletedDate = result["done_at"].ToDateTimeInvariant(),
 				MarketSymbol = marketSymbol,
 				OrderId = result["id"].ToStringInvariant()
 			};

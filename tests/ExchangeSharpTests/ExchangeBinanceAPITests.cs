@@ -100,7 +100,7 @@ namespace ExchangeSharpTests
         public async Task CurrenciesParsedCorrectly()
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
-            requestMaker.MakeRequestAsync(ExchangeBinanceAPI.GetCurrenciesUrl, new ExchangeBinanceAPI().BaseWebUrl).Returns(Resources.BinanceGetAllAssets);
+            requestMaker.MakeRequestAsync("/capital/config/getall", new ExchangeBinanceAPI().BaseUrlSApi).Returns(Resources.BinanceGetAllAssets);
             var binance = new ExchangeBinanceAPI { RequestMaker = requestMaker };
             IReadOnlyDictionary<string, ExchangeCurrency> currencies = await binance.GetCurrenciesAsync();
             currencies.Should().HaveCount(3);

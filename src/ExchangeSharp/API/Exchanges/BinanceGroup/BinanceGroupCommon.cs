@@ -107,7 +107,7 @@ namespace ExchangeSharp.BinanceGroup
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
 			List<string> symbols = new List<string>();
-			JToken? obj = await MakeJsonRequestAsync<JToken>("/ticker/allPrices");
+			JToken? obj = await MakeJsonRequestAsync<JToken>("/ticker/price", BaseUrlApi);
             if (!(obj is null))
             {
                 foreach (JToken token in obj)
@@ -782,7 +782,7 @@ namespace ExchangeSharp.BinanceGroup
 			return withdrawalResponse;
 		}
 
-		private bool ParseMarketStatus(string status)
+		private static bool ParseMarketStatus(string status)
 		{
 			bool isActive = false;
 			if (!string.IsNullOrWhiteSpace(status))
@@ -817,7 +817,7 @@ namespace ExchangeSharp.BinanceGroup
 			return await this.ParseTickerAsync(token, marketSymbol, "a", "b", "c", "v", "q", "E", TimestampType.UnixMilliseconds);
 		}
 
-		private ExchangeOrderResult ParseOrder(JToken token)
+		private static ExchangeOrderResult ParseOrder(JToken token)
 		{
 			/*
               "symbol": "IOTABTC",
@@ -877,13 +877,13 @@ namespace ExchangeSharp.BinanceGroup
 			};
 
 			result.ResultCode = token["status"].ToStringInvariant();
-			result.Result = ParseExchangeAPIOrderResult(result.ResultCode, result.AmountFilled);
+			result.Result = ParseExchangeAPIOrderResult(result.ResultCode, result.AmountFilled.Value);
 			ParseAveragePriceAndFeesFromFills(result, token["fills"]);
 
 			return result;
 		}
 
-		private ExchangeAPIOrderResult ParseExchangeAPIOrderResult(string status, decimal amountFilled)
+		internal static ExchangeAPIOrderResult ParseExchangeAPIOrderResult(string status, decimal amountFilled)
 		{
 			switch (status)
 			{
@@ -906,7 +906,7 @@ namespace ExchangeSharp.BinanceGroup
 			}
 		}
 
-		private ExchangeOrderResult ParseTrade(JToken token, string symbol)
+		private static ExchangeOrderResult ParseTrade(JToken token, string symbol)
 		{
 			/*
               [
@@ -943,7 +943,7 @@ namespace ExchangeSharp.BinanceGroup
 			return result;
 		}
 
-		private void ParseAveragePriceAndFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
+		private static void ParseAveragePriceAndFeesFromFills(ExchangeOrderResult result, JToken fillsToken)
 		{
 			decimal totalCost = 0;
 			decimal totalQuantity = 0;
@@ -1065,26 +1065,74 @@ namespace ExchangeSharp.BinanceGroup
 			return transactions;
 		}
 
-		protected override async Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback, string listenKey)
+		protected override async Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback)
 		{
+			var listenKey = await GetListenKeyAsync();
 			return await ConnectPublicWebSocketAsync($"/ws/{listenKey}", (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				var eventType = token["e"].ToStringInvariant();
-				if (eventType == "executionReport")
+				switch (eventType)
 				{
-					var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant());
-					callback(update);
-				}
-				else if (eventType == "outboundAccountInfo" || eventType == "outboundAccountPosition")
-				{
-					var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant());
-					callback(update);
-				}
-				else if (eventType == "listStatus")
-				{
-					var update = JsonConvert.DeserializeObject<ListStatus>(token.ToStringInvariant());
-					callback(update);
+					case "executionReport": // systematically check to make sure we are dealing with expected cases here
+						{
+							var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant());
+							switch (update.CurrentExecutionType)
+							{
+								case "NEW ": // The order has been accepted into the engine.
+									break;
+								case "CANCELED": // The order has been canceled by the user.
+									break;
+								case "REPLACED": // (currently unused)
+									throw new NotImplementedException($"ExecutionType {update.CurrentExecutionType} is currently unused"); ;
+								case "REJECTED": // The order has been rejected and was not processed. (This is never pushed into the User Data Stream)
+									throw new NotImplementedException($"ExecutionType {update.CurrentExecutionType} is never pushed into the User Data Stream"); ;
+								case "TRADE": // Part of the order or all of the order's quantity has filled.
+									break;
+								case "EXPIRED": // The order was canceled according to the order type's rules (e.g. LIMIT FOK orders with no fill, LIMIT IOC or MARKET orders that partially fill) or by the exchange, (e.g. orders canceled during liquidation, orders canceled during maintenance)
+									break;
+								default: throw new NotImplementedException($"Unexpected ExecutionType {update.CurrentExecutionType}");
+							}
+							callback(update.ExchangeOrderResult);
+							break;
+						}
+					case "outboundAccountInfo":
+						throw new NotImplementedException("has been removed (per binance 2021-01-01)");
+					case "outboundAccountPosition":
+						{
+							var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant());
+							callback(new ExchangeBalances()
+							{
+								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),
+								BalancesUpdateType = BalancesUpdateType.Total,
+								Balances = update.BalancesAsTotalDictionary
+							});
+							callback(new ExchangeBalances()
+							{
+								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),
+								BalancesUpdateType = BalancesUpdateType.AvailableToTrade,
+								Balances = update.BalancesAsAvailableToTradeDictionary
+							});
+							break;
+						}
+					case "listStatus":
+						{	// fired as part of OCO order update
+							// var update = JsonConvert.DeserializeObject<ListStatus>(token.ToStringInvariant());
+							// no need to parse or call callback(), since OCO updates also send "executionReport"
+							break;
+						}
+					case "balanceUpdate":
+						{
+							var update = JsonConvert.DeserializeObject<BalanceUpdate>(token.ToStringInvariant());
+							callback(new ExchangeBalances()
+							{
+								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),
+								BalancesUpdateType = BalancesUpdateType.Delta,
+								Balances = new Dictionary<string, decimal>() { { update.Asset, update.BalanceDelta } }
+							});
+							break;
+						}
+					default: throw new NotImplementedException($"Unexpected event type {eventType}");
 				}
 				return Task.CompletedTask;
 			});
