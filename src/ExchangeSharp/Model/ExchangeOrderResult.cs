@@ -68,7 +68,7 @@ namespace ExchangeSharp
 
         /// <summary>The fees on the order (not a percent).
         /// E.g. 0.0025 ETH</summary>
-        public decimal Fees { get; set; }
+        public decimal? Fees { get; set; }
 
         /// <summary>The currency the fees are in.
         /// If not set, this is probably the base currency</summary>
