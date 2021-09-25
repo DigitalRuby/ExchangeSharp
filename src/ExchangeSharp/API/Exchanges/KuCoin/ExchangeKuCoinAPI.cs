@@ -645,7 +645,7 @@ namespace ExchangeSharp
 
             // Amount and Filled are returned as Sold and Pending, so we'll adjust
             order.AmountFilled = token["dealSize"].ConvertInvariant<decimal>();
-            order.Amount = token["size"].ConvertInvariant<decimal>() + order.AmountFilled;
+            order.Amount = token["size"].ConvertInvariant<decimal>() + order.AmountFilled.Value;
 
             if (order.Amount == order.AmountFilled) order.Result = ExchangeAPIOrderResult.Filled;
             else if (order.AmountFilled == 0m) order.Result = ExchangeAPIOrderResult.Pending;

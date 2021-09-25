@@ -339,7 +339,7 @@ namespace ExchangeSharp
 				AmountFilled = result.TotalAmount.Value,
 				AveragePrice = result.AverageCost?.Value,
 				FeesCurrency = result.TotalFee.Currency,
-				FillDate = result.DateClosed ?? DateTime.MinValue,
+				CompletedDate = result.DateClosed ?? DateTime.MinValue,
 				IsBuy = result.Type == BL3POrderType.Bid,
 				MarketSymbol = marketSymbol,
 				OrderDate = result.Date,

@@ -314,9 +314,8 @@ namespace ExchangeSharp
 		/// Get user detail over web socket
 		/// </summary>
 		/// <param name="callback">Callback</param>
-		/// <param name="listenKey">Listen key</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback, string listenKey);
+		Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback);
 		#endregion Web Socket
 	}
 }

@@ -987,7 +987,8 @@ namespace ExchangeSharp
 				foreach (JToken trade in kv.Value)
 				{
 					ExchangeOrderResult append = new ExchangeOrderResult { MarketSymbol = kv.Key, OrderId = trade[3].ToStringInvariant() };
-					append.Amount = append.AmountFilled = Math.Abs(trade[4].ConvertInvariant<decimal>());
+					append.Amount = Math.Abs(trade[4].ConvertInvariant<decimal>());
+					append.AmountFilled = Math.Abs(trade[4].ConvertInvariant<decimal>());
 					append.Price = trade[7].ConvertInvariant<decimal>();
 					append.AveragePrice = trade[5].ConvertInvariant<decimal>();
 					append.IsBuy = trade[4].ConvertInvariant<decimal>() >= 0m;

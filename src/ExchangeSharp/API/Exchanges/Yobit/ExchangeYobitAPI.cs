@@ -268,7 +268,7 @@ namespace ExchangeSharp
                 AmountFilled = token["received"].ConvertInvariant<decimal>(),
             };
 
-            result.Amount = token["remains"].ConvertInvariant<decimal>() + result.AmountFilled;
+            result.Amount = token["remains"].ConvertInvariant<decimal>() + result.AmountFilled.Value;
             if (result.Amount == result.AmountFilled) result.Result = ExchangeAPIOrderResult.Filled;
             else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Pending;
             else result.Result = ExchangeAPIOrderResult.FilledPartially;
