@@ -10,8 +10,6 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using System.Collections.Generic;
-
 namespace ExchangeSharp
 {
     /// <summary>Representation of a market on an exchange.</summary>
@@ -75,27 +73,7 @@ namespace ExchangeSharp
         /// </summary>
         public bool MarginEnabled { get; set; }
 
-		/// <summary>
-		/// Amount of leverage allowed on a buy.
-		/// </summary>
-		public IEnumerable<long> MarginBuy { get; set; }
-
-		/// <summary>
-		/// Amount of leverage allowed on a sell.
-		/// </summary>
-		public IEnumerable<long> MarginSell { get; set; }
-
-		/// <summary>
-		/// The threshold at which a warning will be issued on a postion
-		/// </summary>
-		public long MarginStop { get; set; }
-
-		/// <summary>
-		/// The threshold at which a position will be liquidated.
-		/// </summary>
-		public long MarginCall { get; set; }
-
-		public override string ToString()
+        public override string ToString()
         {
             return $"{MarketSymbol}, {BaseCurrency}-{QuoteCurrency}";
         }

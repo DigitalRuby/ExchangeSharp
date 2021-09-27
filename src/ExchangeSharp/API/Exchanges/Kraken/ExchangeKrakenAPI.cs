@@ -537,35 +537,8 @@ namespace ExchangeSharp
 					BaseCurrency = pair["base"].ToStringInvariant(),
 					QuoteCurrency = pair["quote"].ToStringInvariant(),
 					QuantityStepSize = quantityStepSize,
-					PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>(),
-					MarginCall = pair["margin_call"].ConvertInvariant<long>(),
-					MarginStop = pair["margin_stop"].ConvertInvariant<long>()
+					PriceStepSize = Math.Pow(0.1, pair["pair_decimals"].ConvertInvariant<int>()).ConvertInvariant<decimal>()
 				};
-
-				if (pair["leverage_sell"].Children().Any())
-				{
-					var marginSell = new List<long>();
-
-					foreach (var margin in pair["leverage_sell"].Children())
-					{
-						marginSell.Add(margin.ConvertInvariant<long>());
-					}
-
-					market.MarginSell = marginSell;
-				}
-
-				if (pair["leverage_buy"].Children().Any())
-				{
-					var marginBuy = new List<long>();
-
-					foreach (var margin in pair["leverage_buy"].Children())
-					{
-						marginBuy.Add(margin.ConvertInvariant<long>());
-					}
-
-					market.MarginBuy = marginBuy;
-				}
-
 				markets.Add(market);
 			}
 
