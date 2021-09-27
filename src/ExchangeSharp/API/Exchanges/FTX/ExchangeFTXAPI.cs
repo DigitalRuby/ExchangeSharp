@@ -286,7 +286,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 		}
 
 		/// <inheritdoc />
-		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			// https://docs.ftx.com/#get-order-status
 
