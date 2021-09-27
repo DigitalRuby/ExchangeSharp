@@ -257,9 +257,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="orderId"></param>
         /// <returns></returns>
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, await GetNoncePayloadAsync());
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			JToken obj = await MakeJsonRequestAsync<JToken>("/history/order/" + orderId + "/trades", null, await GetNoncePayloadAsync());
             if (obj != null && obj.HasValues) return ParseCompletedOrder(obj);
             return null;
         }
@@ -319,7 +320,8 @@ namespace ExchangeSharp
                 payload["price"] = order.Price;
                 payload["timeInForce"] = "GTC";
             }
-            order.ExtraParameters.CopyTo(payload);
+			if (order.IsPostOnly != null) payload["post_only"] = order.IsPostOnly; // Optional. If your post-only order causes a match with a pre-existing order as a taker, then the order will be cancelled.
+			order.ExtraParameters.CopyTo(payload);
 
             // { "id": 0,"clientOrderId": "d8574207d9e3b16a4a5511753eeef175","symbol": "ETHBTC","side": "sell","status": "new","type": "limit","timeInForce": "GTC","quantity": "0.063","price": "0.046016","cumQuantity": "0.000","createdAt": "2017-05-15T17:01:05.092Z","updatedAt": "2017-05-15T17:01:05.092Z"  }
             JToken token = await MakeJsonRequestAsync<JToken>("/order", null, payload, "POST");
@@ -375,7 +377,7 @@ namespace ExchangeSharp
                 }
             }
 
-            result.AveragePrice = (totalQuantity == 0 ? 0 : totalCost / totalQuantity);
+            result.AveragePrice = (totalQuantity == 0 ? null : (decimal?)(totalCost / totalQuantity));
         }
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)

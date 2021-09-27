@@ -600,11 +600,11 @@ namespace ExchangeSharp
 			return orders;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			string query = $"/order?filter={{\"orderID\": \"{orderId}\"}}";
+			string query = $"/order?filter={{\"{(isClientOrderId ? "clOrdID" : "orderID")}\": \"{orderId}\"}}";
 			JToken token = await MakeJsonRequestAsync<JToken>(query, BaseUrl, payload, "GET");
 			foreach (JToken order in token)
 			{
@@ -693,10 +693,10 @@ namespace ExchangeSharp
 			if(order.OrderType!=OrderType.Market)
 				payload["price"] = order.Price;
 
-			if (order.ExtraParameters.TryGetValue("execInst", out var execInst))
-			{
-				payload["execInst"] = execInst;
-			}
+			if (order.IsPostOnly == true)
+				payload["execInst"] = "ParticipateDoNotInitiate"; // Also known as a Post-Only order. If this order would have executed on placement, it will cancel instead. This is intended to protect you from the far touch moving towards you while the order is in transit. It is not intended for speculating on the far touch moving away after submission - we consider such behaviour abusive and monitor for it.
+
+			order.ExtraParameters.CopyTo(payload);
 		}
 
 		private ExchangePosition ParsePosition(JToken token)

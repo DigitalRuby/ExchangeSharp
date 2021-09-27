@@ -50,7 +50,7 @@ namespace ExchangeSharp.BinanceGroup
 		[JsonProperty("L")]
 		public decimal LastExecutedPrice { get; set; }
 		[JsonProperty("n")]
-		public string CommissionAmount { get; set; }
+		public decimal CommissionAmount { get; set; }
 		[JsonProperty("N")]
 		public string CommissionAsset { get; set; }
 		[JsonProperty("T")]
@@ -62,7 +62,7 @@ namespace ExchangeSharp.BinanceGroup
 		[JsonProperty("m")]
 		public string IsThisTradeTheMakerSide { get; set; }
 		[JsonProperty("O")]
-		public string OrderCreationTime { get; set; }
+		public long OrderCreationTime { get; set; }
 		[JsonProperty("Z")]
 		public decimal CumulativeQuoteAssetTransactedQuantity { get; set; }
 		[JsonProperty("Y")]
@@ -73,6 +73,34 @@ namespace ExchangeSharp.BinanceGroup
 			return $"{nameof(Symbol)}: {Symbol}, {nameof(OrderType)}: {OrderType}, {nameof(OrderQuantity)}: {OrderQuantity}, {nameof(OrderPrice)}: {OrderPrice}, {nameof(CurrentOrderStatus)}: {CurrentOrderStatus}, {nameof(OrderId)}: {OrderId}";
 		}
 
+		/// <summary>
+		/// convert current instance to ExchangeOrderResult
+		/// </summary>
+		public ExchangeOrderResult ExchangeOrderResult
+		{
+			get
+			{
+				var status = BinanceGroupCommon.ParseExchangeAPIOrderResult(status: CurrentOrderStatus, amountFilled: CumulativeFilledQuantity);
+				return new ExchangeOrderResult()
+				{
+					OrderId = OrderId.ToString(),
+					ClientOrderId = ClientOrderId,
+					Result = status,
+					ResultCode = CurrentOrderStatus,
+					Message = null, // can use for something in the future if needed
+					Amount = CumulativeFilledQuantity,
+					Price = OrderPrice,
+					AveragePrice = CumulativeQuoteAssetTransactedQuantity / CumulativeFilledQuantity, // Average price can be found by doing Z divided by z.
+					OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(OrderCreationTime),
+					CompletedDate = status.IsCompleted() ? (DateTime?)CryptoUtility.UnixTimeStampToDateTimeMilliseconds(EventTime) : null,
+					MarketSymbol = Symbol,
+					// IsBuy is not provided here
+					Fees = CommissionAmount,
+					FeesCurrency = CommissionAsset,
+					TradeId = TradeId,
+				};
+			}
+		}
 	}
 
 	internal class Order
@@ -121,6 +149,28 @@ namespace ExchangeSharp.BinanceGroup
 		}
 	}
 
+	/// <summary>
+	/// For Binance User Data stream (different from Balance): Balance Update occurs during the following:
+	/// - Deposits or withdrawals from the account
+	/// - Transfer of funds between accounts(e.g.Spot to Margin)
+	/// </summary>
+	internal class BalanceUpdate
+	{
+		[JsonProperty("e")]
+		public string EventType { get; set; }
+		[JsonProperty("E")]
+		public long EventTime { get; set; }
+		[JsonProperty("a")]
+		public string Asset { get; set; }
+		[JsonProperty("d")]
+		public decimal BalanceDelta { get; set; }
+		[JsonProperty("T")]
+		public long ClearTime { get; set; }
+	}
+
+	/// <summary>
+	/// As part of outboundAccountPosition from Binance User Data Stream (different from BalanceUpdate)
+	/// </summary>
 	internal class Balance
 	{
 		[JsonProperty("a")]
@@ -136,29 +186,48 @@ namespace ExchangeSharp.BinanceGroup
 		}
 	}
 
+	/// <summary>
+	/// outboundAccountPosition is sent any time an account balance has changed and contains
+	/// the assets that were possibly changed by the event that generated the balance change.
+	/// </summary>
 	internal class OutboundAccount
 	{
 		[JsonProperty("e")]
 		public string EventType { get; set; }
 		[JsonProperty("E")]
 		public long EventTime { get; set; }
-		[JsonProperty("m")]
-		public int MakerCommissionRate { get; set; }
-		[JsonProperty("t")]
-		public int TakerCommissionRate { get; set; }
-		[JsonProperty("b")]
-		public int BuyerCommissionRate { get; set; }
-		[JsonProperty("s")]
-		public int SellerCommissionRate { get; set; }
-		[JsonProperty("T")]
-		public bool CanTrade { get; set; }
-		[JsonProperty("W")]
-		public bool CanWithdraw { get; set; }
-		[JsonProperty("D")]
-		public bool CanDeposit { get; set; }
 		[JsonProperty("u")]
 		public long LastAccountUpdate { get; set; }
 		[JsonProperty("B")]
 		public List<Balance> Balances { get; set; }
+
+		/// <summary> convert the Balances list to a dictionary of total amounts </summary>
+		public Dictionary<string, decimal> BalancesAsTotalDictionary
+		{
+			get
+			{
+				var dict = new Dictionary<string, decimal>();
+				foreach (var balance in Balances)
+				{
+					dict.Add(balance.Asset, balance.Free + balance.Locked);
+				}
+				return dict;
+			}
+		}
+
+		/// <summary> convert the Balances list to a dictionary of available to trade amounts </summary>
+		public Dictionary<string, decimal> BalancesAsAvailableToTradeDictionary
+		{
+			get
+			{
+				var dict = new Dictionary<string, decimal>();
+				foreach (var balance in Balances)
+				{
+					dict.Add(balance.Asset, balance.Free);
+				}
+				return dict;
+			}
+		}
+
 	}
 }

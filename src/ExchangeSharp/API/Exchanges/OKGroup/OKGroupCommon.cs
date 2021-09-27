@@ -440,8 +440,9 @@ namespace ExchangeSharp.OKGroup
             {
                 payload["price"] = outputPrice;
                 payload["amount"] = outputQuantity;
-            }
-            order.ExtraParameters.CopyTo(payload);
+				if (order.IsPostOnly == true) payload["order_type"] = "1"; // Specify 0: Normal order (Unfilled and 0 imply normal limit order) 1: Post only 2: Fill or Kill 3: Immediate Or Cancel
+			}
+			order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/trade.do", BaseUrl, payload, "POST");
             order.Amount = outputQuantity;
@@ -461,8 +462,8 @@ namespace ExchangeSharp.OKGroup
             await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (marketSymbol.Length == 0)
@@ -470,8 +471,13 @@ namespace ExchangeSharp.OKGroup
                 throw new InvalidOperationException("Okex single order details request requires symbol");
             }
             payload["symbol"] = marketSymbol;
-            payload["order_id"] = orderId;
-            JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
+
+			if (isClientOrderId) // Either client_oid or order_id must be present.
+				payload["client_oid"] = orderId;
+			else
+				payload["order_id"] = orderId;
+
+			JToken token = await MakeJsonRequestAsync<JToken>("/order_info.do", BaseUrl, payload, "POST");
             foreach (JToken order in token["orders"])
             {
                 orders.Add(ParseOrder(order));

@@ -233,6 +233,7 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			var roundedAmount = order.RoundAmount();
 			var amountInt = converterToEight.FromDecimal(roundedAmount);
 
@@ -271,7 +272,7 @@ namespace ExchangeSharp
 			var result = JsonConvert.DeserializeObject<BL3POrderAddResponse>(resultBody)
 				.Except();
 
-			var orderDetails = await GetOrderDetailsAsync(result.OrderId, order.MarketSymbol);
+			var orderDetails = await GetOrderDetailsAsync(result.OrderId, marketSymbol: order.MarketSymbol);
 
 			return orderDetails;
 		}
@@ -308,10 +309,11 @@ namespace ExchangeSharp
 				.Except();
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var data = new Dictionary<string, object>
 			{
@@ -335,9 +337,9 @@ namespace ExchangeSharp
 				Price = result.Price.Value,
 				Result = result.Status.ToResult(result.TotalAmount),
 				AmountFilled = result.TotalAmount.Value,
-				AveragePrice = result.AverageCost?.Value ?? 0M,
+				AveragePrice = result.AverageCost?.Value,
 				FeesCurrency = result.TotalFee.Currency,
-				FillDate = result.DateClosed ?? DateTime.MinValue,
+				CompletedDate = result.DateClosed ?? DateTime.MinValue,
 				IsBuy = result.Type == BL3POrderType.Bid,
 				MarketSymbol = marketSymbol,
 				OrderDate = result.Date,

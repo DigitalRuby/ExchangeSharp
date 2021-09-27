@@ -54,7 +54,7 @@ namespace ExchangeSharpConsole.Options
 				await Task.Delay(IntervalMs)
 					.ConfigureAwait(false);
 
-				order = await api.GetOrderDetailsAsync(order.OrderId, order.MarketSymbol);
+				order = await api.GetOrderDetailsAsync(order.OrderId, marketSymbol: order.MarketSymbol);
 			}
 
 			Console.Clear();
@@ -86,7 +86,7 @@ namespace ExchangeSharpConsole.Options
 			Console.WriteLine($"Order Id:      {orderResult.OrderId}");
 			Console.WriteLine($"Trade Id:      {orderResult.TradeId}");
 			Console.WriteLine($"Order Date:    {orderResult.OrderDate:R}");
-			Console.WriteLine($"Fill Date:     {orderResult.FillDate:R}");
+			Console.WriteLine($"Fill Date:     {orderResult.CompletedDate:R}");
 			Console.WriteLine($"Type:          {(orderResult.IsBuy ? "Bid" : "Ask")}");
 			Console.WriteLine($"Market symbol: {orderResult.MarketSymbol}");
 			Console.WriteLine($"Status:        {orderResult.Result}");

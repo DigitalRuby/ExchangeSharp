@@ -319,7 +319,7 @@ namespace ExchangeSharp
 				MarketSymbol = x["symbol"].ToStringUpperInvariant(),
 				OrderId = x["order_id"].ToStringInvariant(),
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["created_date"].ConvertInvariant<long>()),
-				FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["finished_date"].ConvertInvariant<long>()),
+				CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["finished_date"].ConvertInvariant<long>()),
 				Price = x["price"].ConvertInvariant<decimal>(),
 				AveragePrice = x["avg_price"].ConvertInvariant<decimal>(),
 				Amount = x["amount"].ConvertInvariant<decimal>(),
@@ -355,14 +355,15 @@ namespace ExchangeSharp
 				AmountFilled = x["amount"].ConvertInvariant<decimal>(),
 				Fees = x["fee"].ConvertInvariant<decimal>(),
 				FeesCurrency = x["fee_currency"].ToStringInvariant(),
-				FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["timestamp"].ConvertInvariant<long>()),
+				CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["timestamp"].ConvertInvariant<long>()),
 				IsBuy = x["side"].ToStringLowerInvariant() == "buy",
 				Result = ExchangeAPIOrderResult.Unknown,
 			});
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			JToken token = await MakeJsonRequestAsync<JToken>($"/spot/order?order_id={orderId}", payload: payload);
 			var x = token["data"];
@@ -371,7 +372,7 @@ namespace ExchangeSharp
 				MarketSymbol = x["symbol"].ToStringUpperInvariant(),
 				OrderId = x["order_id"].ToStringInvariant(),
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["created_date"].ConvertInvariant<long>()),
-				FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["finished_date"].ConvertInvariant<long>()),
+				CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["finished_date"].ConvertInvariant<long>()),
 				Price = x["price"].ConvertInvariant<decimal>(),
 				AveragePrice = x["avg_price"].ConvertInvariant<decimal>(),
 				Amount = x["amount"].ConvertInvariant<decimal>(),
@@ -422,6 +423,7 @@ namespace ExchangeSharp
 			payload["type"] = GetOrderType(order);
 			payload["price"] = order.Price;
 			payload["amount"] = order.Amount;
+			if (order.IsPostOnly != null) payload["post_only"] = order.IsPostOnly.Value ? "1" : "0";  // Default 0, enabled by 1, if enabled the order will be cancelled if it can be executed immediately, making sure there will be no market taking
 			var market = order.IsMargin ? "margin" : "spot";
 			JToken token = await MakeJsonRequestAsync<JToken>($"/{market}/order/new", payload: payload, requestMethod: "POST");
 			return new ExchangeOrderResult { OrderId = token["order_id"].ToStringInvariant() };

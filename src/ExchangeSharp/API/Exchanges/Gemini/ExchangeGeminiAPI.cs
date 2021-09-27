@@ -315,12 +315,13 @@ namespace ExchangeSharp
 					{ "side", (order.IsBuy ? "buy" : "sell") },
 					{ "type", "exchange limit" }
 				};
+			if (order.IsPostOnly == true) payload["options"] = "[maker-or-cancel]"; // This order will only add liquidity to the order book. If any part of the order could be filled immediately, the whole order will instead be canceled before any execution occurs. If that happens, the response back from the API will indicate that the order has already been canceled("is_cancelled": true in JSON). Note: some other exchanges call this option "post-only".
 			order.ExtraParameters.CopyTo(payload);
 			JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", null, payload);
 			return ParseOrder(obj);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrWhiteSpace(orderId))
 			{
@@ -328,7 +329,9 @@ namespace ExchangeSharp
 			}
 
 			object nonce = await GenerateNonceAsync();
-			JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, new Dictionary<string, object> { { "nonce", nonce }, { "order_id", orderId } });
+			var payload = new Dictionary<string, object> { { "nonce", nonce },
+				{ isClientOrderId ? "client_order_id" : "order_id", orderId } }; // client_order_id cannot be used in combination with order_id
+			JToken result = await MakeJsonRequestAsync<JToken>("/order/status", null, payload: payload);
 			return ParseOrder(result);
 		}
 

@@ -129,6 +129,8 @@ namespace ExchangeSharp
 			if (order.OrderType == OrderType.Stop)
 				throw new InvalidOperationException("Bitbank does not support stop order");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			if (order.IsPostOnly != null)
+				payload["post_only"] = order.IsPostOnly;
 			payload.Add("pair", NormalizeMarketSymbol(order.MarketSymbol));
 			payload.Add("amount", order.Amount.ToStringInvariant());
 			payload.Add("side", order.IsBuy ? "buy" : "sell");
@@ -148,8 +150,9 @@ namespace ExchangeSharp
 			await MakeJsonRequestAsync<JToken>("/user/spot/cancel_order", baseUrl: BaseUrlPrivate, payload: payload, requestMethod: "POST");
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			payload.Add("order_id", orderId);
 			if (marketSymbol == null)
@@ -399,7 +402,7 @@ namespace ExchangeSharp
 			};
 			res.Fees = token["type"].ToStringInvariant() == "limit" ? MakerFee * res.Amount : TakerFee * res.Amount;
 			res.Price = token["price"].ConvertInvariant<decimal>();
-			res.FillDate = token["executed_at"] == null ? default : token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
+			res.CompletedDate = token["executed_at"] == null ? default : token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
 			res.FeesCurrency = res.MarketSymbol.Substring(0, 3);
 			return res;
 		}

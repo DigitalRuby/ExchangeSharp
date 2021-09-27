@@ -123,7 +123,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
 			JToken ticker = await MakeJsonRequestAsync<JToken>("/ticker/t" + marketSymbol);
-			return await this.ParseTickerAsync(ticker, marketSymbol, 2, 0, 6, 7);
+			return await this.ParseTickerAsync(ticker, NormalizeMarketSymbolV1(marketSymbol), 2, 0, 6, 7);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -488,13 +488,15 @@ namespace ExchangeSharp
 			{
 				payload["price"] = "1";
 			}
+			if (order.IsPostOnly == true) payload["flags"] = "4096"; // The post-only limit order option ensures the limit order will be added to the order book and not match with a pre-existing order unless the pre-existing order is a hidden order.
 			order.ExtraParameters.CopyTo(payload);
 			JToken obj = await MakeJsonRequestAsync<JToken>("/order/new", BaseUrlV1, payload);
 			return ParseOrder(obj);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			if (string.IsNullOrWhiteSpace(orderId))
 			{
 				return null;
@@ -985,7 +987,8 @@ namespace ExchangeSharp
 				foreach (JToken trade in kv.Value)
 				{
 					ExchangeOrderResult append = new ExchangeOrderResult { MarketSymbol = kv.Key, OrderId = trade[3].ToStringInvariant() };
-					append.Amount = append.AmountFilled = Math.Abs(trade[4].ConvertInvariant<decimal>());
+					append.Amount = Math.Abs(trade[4].ConvertInvariant<decimal>());
+					append.AmountFilled = Math.Abs(trade[4].ConvertInvariant<decimal>());
 					append.Price = trade[7].ConvertInvariant<decimal>();
 					append.AveragePrice = trade[5].ConvertInvariant<decimal>();
 					append.IsBuy = trade[4].ConvertInvariant<decimal>() >= 0m;

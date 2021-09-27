@@ -14,7 +14,7 @@ namespace ExchangeSharpConsole.Options
 
 			Authenticate(api);
 
-			var orderDetails = await api.GetOrderDetailsAsync(OrderId, MarketSymbol);
+			var orderDetails = await api.GetOrderDetailsAsync(OrderId, marketSymbol: MarketSymbol);
 			Console.WriteLine(orderDetails);
 
 			WaitInteractively();

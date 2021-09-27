@@ -718,13 +718,16 @@ namespace ExchangeSharp
 			return funding;
 		}
 
-		private async Task<IEnumerable<ExchangeOrderResult>> DoGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		private async Task<IEnumerable<ExchangeOrderResult>> DoGetOrderDetailsAsync(string orderId, bool isClientOrderId = false, string marketSymbol = null)
 		{
 			var extraParams = new Dictionary<string, object>();
 
 			if (orderId != null) 
 			{
-				extraParams["order_id"] = orderId;
+				if (isClientOrderId)
+					extraParams["order_link_id"] = orderId;
+				else
+					extraParams["order_id"] = orderId;
 			}
 
 			if (!string.IsNullOrWhiteSpace(marketSymbol))
@@ -758,13 +761,13 @@ namespace ExchangeSharp
 		//Note, Bybit is not recommending the use of "/v2/private/order/list" now that "/v2/private/order" is capable of returning multiple results
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
 		{
-			var orders = await DoGetOrderDetailsAsync(null, marketSymbol);
+			var orders = await DoGetOrderDetailsAsync(null, isClientOrderId: false, marketSymbol: marketSymbol);
 			return orders;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			var orders = await DoGetOrderDetailsAsync(orderId, marketSymbol);
+			var orders = await DoGetOrderDetailsAsync(orderId, isClientOrderId: isClientOrderId, marketSymbol: marketSymbol);
 			if (orders.Count() > 0)
 			{
 				return orders.First();
@@ -813,6 +816,7 @@ namespace ExchangeSharp
 
 		public async Task<ExchangeOrderResult> OnAmendOrderAsync(ExchangeOrderRequest order)
 		{
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			var payload = new Dictionary<string, object>();
 			payload["symbol"] = order.MarketSymbol;
 			if(order.OrderId != null)

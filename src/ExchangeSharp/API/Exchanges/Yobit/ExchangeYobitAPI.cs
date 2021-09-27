@@ -202,9 +202,10 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            var payload = await GetNoncePayloadAsync();
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			var payload = await GetNoncePayloadAsync();
             payload.Add("method", "getInfo");
             payload.Add("order_id", orderId);
             JToken token = await MakeJsonRequestAsync<JToken>("/", PrivateURL, payload, "POST");
@@ -249,7 +250,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            var payload = await GetNoncePayloadAsync();
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			var payload = await GetNoncePayloadAsync();
             payload.Add("method", "Trade");
             payload.Add("pair", order.MarketSymbol);
             payload.Add("type", order.IsBuy ? "buy" : "sell");
@@ -266,7 +268,7 @@ namespace ExchangeSharp
                 AmountFilled = token["received"].ConvertInvariant<decimal>(),
             };
 
-            result.Amount = token["remains"].ConvertInvariant<decimal>() + result.AmountFilled;
+            result.Amount = token["remains"].ConvertInvariant<decimal>() + result.AmountFilled.Value;
             if (result.Amount == result.AmountFilled) result.Result = ExchangeAPIOrderResult.Filled;
             else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Pending;
             else result.Result = ExchangeAPIOrderResult.FilledPartially;

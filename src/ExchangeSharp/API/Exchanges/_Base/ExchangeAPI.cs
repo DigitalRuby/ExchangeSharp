@@ -203,7 +203,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) =>
 			throw new NotImplementedException();
-		protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string? marketSymbol = null) =>
+		protected virtual Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false) =>
 			throw new NotImplementedException();
 		protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string? marketSymbol = null) =>
 			throw new NotImplementedException();
@@ -235,7 +235,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<IWebSocket> OnGetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback) =>
 			throw new NotImplementedException();
-		protected virtual Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback, string listenKey) =>
+		protected virtual Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback) =>
 			throw new NotImplementedException();
 
 		#endregion API implementation
@@ -910,6 +910,7 @@ namespace ExchangeSharp
 		public virtual async Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			// *NOTE* do not wrap in CacheMethodCall
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			await new SynchronizationContextRemover();
 			order.MarketSymbol = NormalizeMarketSymbol(order.MarketSymbol);
 			return await OnPlaceOrderAsync(order);
@@ -936,11 +937,12 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="orderId">Order id to get details for</param>
 		/// <param name="marketSymbol">Symbol of order (most exchanges do not require this)</param>
+		/// <param name="isClientOrderId"></param>
 		/// <returns>Order details</returns>
-		public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null)
+		public virtual async Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			marketSymbol = NormalizeMarketSymbol(marketSymbol);
-			return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetOrderDetailsAsync(orderId, marketSymbol), nameof(GetOrderDetailsAsync), nameof(orderId), orderId, nameof(marketSymbol), marketSymbol);
+			return await Cache.CacheMethod(MethodCachePolicy, async() => await OnGetOrderDetailsAsync(orderId, marketSymbol: marketSymbol, isClientOrderId: isClientOrderId), nameof(GetOrderDetailsAsync), nameof(orderId), orderId, nameof(isClientOrderId), isClientOrderId, nameof(marketSymbol), marketSymbol);
 		}
 
 		/// <summary>
@@ -1112,12 +1114,11 @@ namespace ExchangeSharp
 		/// Get user detail over web socket
 		/// </summary>
 		/// <param name="callback">Callback</param>
-		/// <param name="listenKey">Listen key</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		public virtual Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback, string listenKey)
+		public virtual Task<IWebSocket> GetUserDataWebSocketAsync(Action<object> callback)
 		{
 			callback.ThrowIfNull(nameof(callback), "Callback must not be null");
-			return OnUserDataWebSocketAsync(callback, listenKey);
+			return OnUserDataWebSocketAsync(callback);
 		}
 		#endregion Web Socket API
 	}

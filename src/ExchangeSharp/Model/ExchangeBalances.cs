@@ -10,15 +10,52 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using ExchangeSharp.BinanceGroup;
+using System;
+using System.Collections.Generic;
 
 namespace ExchangeSharp
 {
-	public sealed class ExchangeBinanceUSAPI : BinanceGroupCommon
+	public class ExchangeBalances
 	{
-		public override string BaseUrl { get; set; } = "https://api.binance.us";
-		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.us:9443";
+		/// <summary>
+		/// DateTime of the balances update
+		/// </summary>
+		public DateTime EventTime { get; set; }
+
+		/// <summary>
+		/// What the balances represent in this update
+		/// </summary>
+		public BalancesUpdateType BalancesUpdateType { get; set; }
+
+		/// <summary>
+		/// Dictionary of symbols and amounts
+		/// </summary>
+		public Dictionary<string, decimal> Balances { get; set; }
 	}
 
-	public partial class ExchangeName { public const string BinanceUS = "BinanceUS"; }
+	/// <summary>
+	/// What the balances represent in the update
+	/// </summary>
+	public enum BalancesUpdateType
+	{
+		/// <summary>
+		/// Total amount in acount
+		/// </summary>
+		Total,
+
+		/// <summary>
+		/// Amount available to trade
+		/// </summary>
+		AvailableToTrade,
+
+		/// <summary>
+		/// Amounts available using margin
+		/// </summary>
+		AvailableToMargin,
+
+		/// <summary>
+		/// The amount that is moving (such as uring a withdrawal or transfer
+		/// </summary>
+		Delta,
+	}
 }

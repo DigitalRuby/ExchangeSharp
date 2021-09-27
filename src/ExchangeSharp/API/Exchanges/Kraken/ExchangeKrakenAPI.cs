@@ -242,7 +242,7 @@ namespace ExchangeSharp
 			orderResult.TradeId = order["postxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.OrderId = order["ordertxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.AmountFilled = order["vol"].ConvertInvariant<decimal>();
-			orderResult.FillDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
+			orderResult.CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
 
 			string[] pairs = (await ExchangeMarketSymbolToGlobalMarketSymbolAsync(order["pair"].ToStringInvariant())).Split('-');
 			orderResult.FeesCurrency = pairs[1];
@@ -804,6 +804,7 @@ namespace ExchangeSharp
 				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 				payload.Add("price", Math.Round(order.Price.Value, precision).ToStringInvariant());
 			}
+			if (order.IsPostOnly == true) payload["oflags"] = "post"; //  post-only order (available when ordertype = limit)
 			order.ExtraParameters.CopyTo(payload);
 
 			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
@@ -818,13 +819,13 @@ namespace ExchangeSharp
 			return result;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrWhiteSpace(orderId))
 			{
 				return null;
 			}
-
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			object nonce = await GenerateNonceAsync();
 			Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
 			{ { "txid", orderId }, { "nonce", nonce }

@@ -607,8 +607,8 @@ namespace ExchangeSharp
             return amounts;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             /*
              {{
               "status": "ok",
@@ -631,8 +631,14 @@ namespace ExchangeSharp
             }}
              */
             var payload = await GetNoncePayloadAsync();
-            JToken data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload);
-            return ParseOrder(data);
+			JToken data;
+			if (isClientOrderId)
+			{
+				payload.Add("clientOrderId", orderId);
+				data = await MakeJsonRequestAsync<JToken>($"/order/orders/getClientOrder", PrivateUrlV1, payload);
+			}
+			else data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}", PrivateUrlV1, payload);
+			return ParseOrder(data);
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
@@ -644,8 +650,10 @@ namespace ExchangeSharp
             payload.Add("symbol", marketSymbol);
             payload.Add("states", "partial-canceled,filled,canceled");
             if (afterDate != null)
-            {
-                payload.Add("start-date", afterDate.Value.ToString("yyyy-MM-dd"));
+			{ // This endpoint returns the detail of one order by specified client order id (within 8 hours).
+			  // The order created via API will no longer be queryable after being cancelled for more than 2 hours.
+			  // It is suggested to cancel orders via GET /v1/order/orders/{order-id}, which is faster and more stable.
+				payload.Add("start-date", afterDate.Value.ToString("yyyy-MM-dd"));
             }
             JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", PrivateUrlV1, payload);
             foreach (var prop in data)
@@ -697,7 +705,9 @@ namespace ExchangeSharp
 				payload["price"] = outputPrice.ToStringInvariant();
             }
 
-            order.ExtraParameters.CopyTo(payload);
+			if (order.IsPostOnly == true) payload["timeInForce"] += "boc"; // timeInForce enum values: gtc - good till cancel，boc - book or cancel (also called as post only, or book only), ioc - immediate or cancel, fok - fill or kill
+
+			order.ExtraParameters.CopyTo(payload);
 
             JToken obj = await MakeJsonRequestAsync<JToken>("/order/orders/place", PrivateUrlV1, payload, "POST");
             order.Amount = outputQuantity;

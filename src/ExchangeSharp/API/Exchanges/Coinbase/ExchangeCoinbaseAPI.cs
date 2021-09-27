@@ -80,7 +80,7 @@ namespace ExchangeSharp
 			decimal amount = result["size"].ConvertInvariant<decimal>(amountFilled);
 			decimal price = result["price"].ConvertInvariant<decimal>();
 			decimal stop_price = result["stop_price"].ConvertInvariant<decimal>();
-			decimal averagePrice = (amountFilled <= 0m ? 0m : executedValue / amountFilled);
+			decimal? averagePrice = (amountFilled <= 0m ? null : (decimal?)(executedValue / amountFilled));
 			decimal fees = result["fill_fees"].ConvertInvariant<decimal>();
 			string marketSymbol = result["product_id"].ToStringInvariant(result["id"].ToStringInvariant());
 
@@ -94,7 +94,7 @@ namespace ExchangeSharp
 				AveragePrice = averagePrice,
 				IsBuy = (result["side"].ToStringInvariant() == "buy"),
 				OrderDate = result["created_at"].ToDateTimeInvariant(),
-				FillDate = result["done_at"].ToDateTimeInvariant(),
+				CompletedDate = result["done_at"].ToDateTimeInvariant(),
 				MarketSymbol = marketSymbol,
 				OrderId = result["id"].ToStringInvariant()
 			};
@@ -555,6 +555,31 @@ namespace ExchangeSharp
 			return amounts;
 		}
 
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest request)
+		{
+			var nonce = await GenerateNonceAsync();
+			var payload = new Dictionary<string, object>
+			{
+				{ "nonce", nonce },
+				{ "amount", request.Amount },
+				{ "currency", request.Currency },
+				{ "crypto_address", request.Address },
+				{ "add_network_fee_to_total", !request.TakeFeeFromAmount },
+			};
+
+			if (!string.IsNullOrEmpty(request.AddressTag))
+			{
+				payload.Add("destination_tag", request.AddressTag);
+			}
+
+			var result = await MakeJsonRequestAsync<WithdrawalResult>("/withdrawals/crypto", null, payload, "POST");
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = result.Id
+			};
+		}
+
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			object nonce = await GenerateNonceAsync();
@@ -570,9 +595,7 @@ namespace ExchangeSharp
 			switch (order.OrderType)
 			{
 				case OrderType.Limit:
-					// set payload["post_only"] to true for default scenario when order.ExtraParameters["post_only"] is not specified
-					// to place non-post-only limit order one can set and pass order.ExtraParameters["post_only"]="false"
-					payload["post_only"] = order.ExtraParameters.TryGetValueOrDefault("post_only", "true");
+					if (order.IsPostOnly != null) payload["post_only"] = order.IsPostOnly; // [optional]** Post only flag, ** Invalid when time_in_force is IOC or FOK
 					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
 					payload["price"] = order.Price.ToStringInvariant();
 					break;
@@ -594,16 +617,17 @@ namespace ExchangeSharp
 			return ParseOrder(result);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-		{
-			JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + orderId, null, await GetNoncePayloadAsync(), "GET");
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{ // Orders may be queried using either the exchange assigned id or the client assigned client_oid. When using client_oid it must be preceded by the client: namespace.
+			JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + (isClientOrderId ? "client:" : "") + orderId,
+				null, await GetNoncePayloadAsync(), "GET");
 			return ParseOrder(obj);
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
 		{
 			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-			JArray array = await MakeJsonRequestAsync<JArray>("orders?status=all" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "&product_id=" + marketSymbol), null, await GetNoncePayloadAsync(), "GET");
+			JArray array = await MakeJsonRequestAsync<JArray>("orders?status=open,pending,active" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "&product_id=" + marketSymbol), null, await GetNoncePayloadAsync(), "GET");
 			foreach (JToken token in array)
 			{
 				orders.Add(ParseOrder(token));

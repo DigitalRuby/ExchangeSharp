@@ -782,7 +782,8 @@ namespace ExchangeSharp
                 "rate", orderPrice.ToStringInvariant(),
                 "amount", orderAmount.ToStringInvariant()
             };
-            foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
+			if (order.IsPostOnly != null) { orderParams.Add("postOnly"); orderParams.Add(order.IsPostOnly.Value ? "1" : "0"); } // (optional) Set to "1" if you want this sell order to only be placed if no portion of it fills immediately.
+			foreach (KeyValuePair<string, object> kv in order.ExtraParameters)
             {
                 orderParams.Add(kv.Key);
                 orderParams.Add(kv.Value);
@@ -840,9 +841,10 @@ namespace ExchangeSharp
             return orders;
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
-            JToken resultArray = await MakePrivateAPIRequestAsync("returnOrderTrades", new object[] { "orderNumber", orderId });
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			JToken resultArray = await MakePrivateAPIRequestAsync("returnOrderTrades", new object[] { "orderNumber", orderId });
             string tickerSymbol = resultArray[0]["currencyPair"].ToStringInvariant();
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             ParseCompletedOrderDetails(orders, resultArray, tickerSymbol);
@@ -909,10 +911,14 @@ namespace ExchangeSharp
                 paramsList.Add(withdrawalRequest.AddressTag);
             }
 
-            JToken token = await MakePrivateAPIRequestAsync("withdraw", paramsList.ToArray());
-            ExchangeWithdrawalResponse resp = new ExchangeWithdrawalResponse { Message = token["response"].ToStringInvariant() };
-            return resp;
-        }
+			var token = await MakePrivateAPIRequestAsync("withdraw", paramsList.ToArray());
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = token["withdrawalNumber"]?.ToString(),
+				Message = token["response"].ToStringInvariant()
+			};
+		}
 
         protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
         {

@@ -195,7 +195,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-            string action = order.IsBuy ? "buy" : "sell";
+			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
             string url = $"/{action}{market}/{order.MarketSymbol}/";
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
@@ -219,8 +220,8 @@ namespace ExchangeSharp
             };
         }
 
-        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             //{
             //    "status": "Finished",
             //    "id": 1022694747,
@@ -241,14 +242,30 @@ namespace ExchangeSharp
             }
             string url = "/order_status/";
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            payload["id"] = orderId;
-            JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
+			if (isClientOrderId) // Order can be fetched by using either id or client_order_id parameter.
+				payload["client_order_id"] = orderId;
+			else
+				payload["id"] = orderId;
+			JObject result = await MakeJsonRequestAsync<JObject>(url, null, payload, "POST");
 
-            // status can be 'In Queue', 'Open' or 'Finished'
-            JArray transactions = result["transactions"] as JArray;
+			var transactions = result["transactions"] as JArray;
+			var anyTransaction = transactions.Any();
+
+			// status can be 'Canceled', 'Open' or 'Finished'
+			var statusCode = result.Value<string>("status");
+			var status = GetOrderResultFromStatus(statusCode, anyTransaction);
+			
             // empty transaction array means that order is InQueue or Open and AmountFilled == 0
             // return empty order in this case. no any additional info available at this point
-            if (!transactions.Any()) { return new ExchangeOrderResult() { OrderId = orderId }; }
+            if (!anyTransaction)
+			{
+				return new ExchangeOrderResult
+				{
+					OrderId = orderId,
+					Result = status,
+					ResultCode = statusCode
+				};
+			}
             JObject first = transactions.First() as JObject;
             List<string> excludeStrings = new List<string>() { "tid", "price", "fee", "datetime", "type", "btc", "usd", "eur" };
 
@@ -287,11 +304,14 @@ namespace ExchangeSharp
             // No way to know if order IsBuy, Amount, OrderDate
             return new ExchangeOrderResult()
             {
+				OrderId = orderId,
                 AmountFilled = amountFilled,
                 MarketSymbol = _symbol,
                 AveragePrice = spentQuoteCurrency / amountFilled,
                 Price = price,
-            };
+				Result = status,
+				ResultCode = statusCode
+			};
         }
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
@@ -322,7 +342,20 @@ namespace ExchangeSharp
             return orders;
         }
 
-        public class BitstampTransaction
+		private ExchangeAPIOrderResult GetOrderResultFromStatus(string status, bool anyTransactions)
+		{
+			switch (status?.ToLower())
+			{
+				case "finished": return ExchangeAPIOrderResult.Filled;
+				case "open": return anyTransactions
+						? ExchangeAPIOrderResult.FilledPartially
+						: ExchangeAPIOrderResult.Pending;
+				case "canceled": return ExchangeAPIOrderResult.Canceled;
+				default: return ExchangeAPIOrderResult.Unknown;
+			}
+		}
+
+		public class BitstampTransaction
         {
             public BitstampTransaction(string id, DateTime dateTime, int type, string symbol, decimal fees, string orderId, decimal quantity, decimal price, bool isBuy)
             {
@@ -443,7 +476,7 @@ namespace ExchangeSharp
             List<ExchangeOrderResult> orders2 = new List<ExchangeOrderResult>();
             foreach (var group in groupings)
             {
-                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice.Value * o.AmountFilled);
+                decimal spentQuoteCurrency = group.Sum(o => o.AveragePrice.Value * o.AmountFilled.Value);
                 ExchangeOrderResult order = group.First();
                 order.AmountFilled = group.Sum(o => o.AmountFilled);
                 order.AveragePrice = spentQuoteCurrency / order.AmountFilled;
