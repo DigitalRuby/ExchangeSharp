@@ -5,34 +5,34 @@ VisualStudioVersion = 16.0.29318.209
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{1AA29282-C764-47CA-83AB-A6017E941D76}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		azure-pipelines.yml = azure-pipelines.yml
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		CONTRIBUTING.md = CONTRIBUTING.md
+		global.json = global.json
 		icon.png = icon.png
 		ISSUE_TEMPLATE.md = ISSUE_TEMPLATE.md
 		LICENSE.txt = LICENSE.txt
 		logo.png = logo.png
 		README.md = README.md
-		.gitignore = .gitignore
-		.editorconfig = .editorconfig
-		azure-pipelines.yml = azure-pipelines.yml
-		global.json = global.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{51222217-63AE-4881-9972-E0966299D416}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpConsole", "src\ExchangeSharpConsole\ExchangeSharpConsole.csproj", "{2CC066B2-715E-43F2-B50F-4BCD80164B7D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpConsole", "src\ExchangeSharpConsole\ExchangeSharpConsole.csproj", "{2CC066B2-715E-43F2-B50F-4BCD80164B7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharp", "src\ExchangeSharp\ExchangeSharp.csproj", "{E9321D38-DBCF-4387-9547-47EABF60423F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharp", "src\ExchangeSharp\ExchangeSharp.csproj", "{E9321D38-DBCF-4387-9547-47EABF60423F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{83784E6A-9582-4001-9491-C70BBA71334F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpTests", "tests\ExchangeSharpTests\ExchangeSharpTests.csproj", "{DF09A8D9-9BC2-4B50-BE45-A83C9D29B994}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpTests", "tests\ExchangeSharpTests\ExchangeSharpTests.csproj", "{DF09A8D9-9BC2-4B50-BE45-A83C9D29B994}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{9E02A8EA-70EE-4C89-80C6-BD2EC51854CE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharpWinForms", "examples\ExchangeSharpWinForms\ExchangeSharpWinForms.csproj", "{571623F9-1652-4669-8E17-A6FAD1426181}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpWinForms", "examples\ExchangeSharpWinForms\ExchangeSharpWinForms.csproj", "{571623F9-1652-4669-8E17-A6FAD1426181}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExchangeSharp.Forms", "src\ExchangeSharp.Forms\ExchangeSharp.Forms.csproj", "{0EA8DE09-C8D4-410E-A345-D172A72EC77C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharp.Forms", "src\ExchangeSharp.Forms\ExchangeSharp.Forms.csproj", "{0EA8DE09-C8D4-410E-A345-D172A72EC77C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -64,14 +64,14 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {46DCEF62-6B50-4260-8C47-4368B05CFAB4}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2CC066B2-715E-43F2-B50F-4BCD80164B7D} = {51222217-63AE-4881-9972-E0966299D416}
 		{E9321D38-DBCF-4387-9547-47EABF60423F} = {51222217-63AE-4881-9972-E0966299D416}
 		{DF09A8D9-9BC2-4B50-BE45-A83C9D29B994} = {83784E6A-9582-4001-9491-C70BBA71334F}
 		{571623F9-1652-4669-8E17-A6FAD1426181} = {9E02A8EA-70EE-4C89-80C6-BD2EC51854CE}
 		{0EA8DE09-C8D4-410E-A345-D172A72EC77C} = {51222217-63AE-4881-9972-E0966299D416}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {46DCEF62-6B50-4260-8C47-4368B05CFAB4}
 	EndGlobalSection
 EndGlobal

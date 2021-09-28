@@ -166,11 +166,16 @@ namespace ExchangeSharp
 				decimal tradeAmt = trade["amount"].ConvertInvariant<decimal>();
 				decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
 
-				order.AveragePrice = (order.AveragePrice.GetValueOrDefault(decimal.Zero) * order.AmountFilled + tradeAmt * tradeRate) / (order.AmountFilled + tradeAmt);
+				order.AveragePrice =
+					(order.AveragePrice.GetValueOrDefault(decimal.Zero) *
+						order.AmountFilled.GetValueOrDefault(decimal.Zero) + tradeAmt * tradeRate) /
+					(order.AmountFilled.GetValueOrDefault(decimal.Zero) + tradeAmt);
 				if (order.Amount == 0m)
 				{
 					order.Amount += tradeAmt;
 				}
+
+				order.AmountFilled = order.AmountFilled.GetValueOrDefault(decimal.Zero);
 				order.AmountFilled += tradeAmt;
 
 				if (order.OrderDate == DateTime.MinValue)
@@ -179,10 +184,11 @@ namespace ExchangeSharp
 				}
 
 				// fee is a percentage taken from the traded amount rounded to 8 decimals
+				order.Fees = order.Fees.GetValueOrDefault(decimal.Zero);
 				order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, trade["fee"].ConvertInvariant<decimal>());
 			}
 
-			if (order.AmountFilled >= order.Amount)
+			if (order.AmountFilled.GetValueOrDefault(decimal.Zero) >= order.Amount)
 			{
 				order.Result = ExchangeAPIOrderResult.Filled;
 			}
@@ -191,6 +197,7 @@ namespace ExchangeSharp
 				order.Result = ExchangeAPIOrderResult.FilledPartially;
 			}
 			// Poloniex does not provide a way to get the original price
+			order.AveragePrice = order.AveragePrice?.Normalize();
 			order.Price = order.AveragePrice;
 		}
 
@@ -246,7 +253,7 @@ namespace ExchangeSharp
                 IEnumerable<JToken> tradesForOrder = trades.Where(x => x["orderNumber"].ToStringInvariant() == orderNum);
                 ExchangeOrderResult order = new ExchangeOrderResult { OrderId = orderNum, MarketSymbol = marketSymbol };
                 ParseOrderTrades(tradesForOrder, order);
-                order.Price = order.AveragePrice;
+                //order.Price = order.AveragePrice;
                 order.Result = ExchangeAPIOrderResult.Filled;
                 orders.Add(order);
             }

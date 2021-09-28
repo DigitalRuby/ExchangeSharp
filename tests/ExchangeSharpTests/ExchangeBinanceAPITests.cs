@@ -110,7 +110,7 @@ namespace ExchangeSharpTests
             bnb.MinConfirmations.Should().Be(30);
             bnb.FullName.Should().Be("Binance Coin");
             bnb.Name.Should().Be("BNB");
-            bnb.TxFee.Should().Be(0.23m);
+            bnb.TxFee.Should().Be(0.006m);
             bnb.CoinType.Should().Be("ETH");
 
             bnb.BaseAddress.Should().BeNullOrEmpty("api does not provide this info");
