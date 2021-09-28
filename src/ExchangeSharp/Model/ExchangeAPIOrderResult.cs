@@ -17,8 +17,8 @@ namespace ExchangeSharp
     /// <summary>Result of exchange order</summary>
     public enum ExchangeAPIOrderResult
     {
-        /// <summary>Order status is unknown</summary>
-        Unknown,
+		/// <summary>Order status is unknown - equivalent of setting ExchangeAPIOrderResult property to null</summary>
+		Unknown,
 
         /// <summary>Order has been filled completely</summary>
         Filled,

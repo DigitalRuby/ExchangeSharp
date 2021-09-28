@@ -575,7 +575,6 @@ namespace ExchangeSharp
 		/// <param name="url">The sub url for the web socket, or null for none</param>
 		/// <param name="messageCallback">Callback for messages</param>
 		/// <param name="connectCallback">Connect callback</param>
-		/// <param name="textMessageCallback">Text Message callback</param>
 		/// <returns>Web socket - dispose of the wrapper to shutdown the socket</returns>
 		public virtual Task<IWebSocket> ConnectPrivateWebSocketAsync
 		(

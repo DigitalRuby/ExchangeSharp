@@ -34,6 +34,11 @@ namespace ExchangeSharp
     public interface IBaseAPI : IAPIRequestHandler, INamed
 	{
 		#region Properties
+		/// <summary>
+		/// API request maker
+		/// </summary>
+		IAPIRequestMaker RequestMaker { get; set; }
+
 		// BaseUrl is in IAPIRequestHandler
 
 		/// <summary>

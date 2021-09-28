@@ -83,20 +83,20 @@ namespace ExchangeSharpConsole.Options
 
 		private void DumpResponse(ExchangeOrderResult orderResult)
 		{
-			Console.WriteLine($"Order Id:      {orderResult.OrderId}");
-			Console.WriteLine($"Trade Id:      {orderResult.TradeId}");
-			Console.WriteLine($"Order Date:    {orderResult.OrderDate:R}");
-			Console.WriteLine($"Fill Date:     {orderResult.CompletedDate:R}");
-			Console.WriteLine($"Type:          {(orderResult.IsBuy ? "Bid" : "Ask")}");
-			Console.WriteLine($"Market symbol: {orderResult.MarketSymbol}");
-			Console.WriteLine($"Status:        {orderResult.Result}");
-			Console.WriteLine($"Price:         {orderResult.Price:N}");
-			Console.WriteLine($"Amount:        {orderResult.Amount:N}");
-			Console.WriteLine($"Amount Filled: {orderResult.AmountFilled:N}");
-			Console.WriteLine($"Fees:          {orderResult.Fees:N}");
-			Console.WriteLine($"Fees currency: {orderResult.FeesCurrency}");
-			Console.WriteLine($"Message:       {orderResult.Message}");
-			Console.WriteLine($"Average Price: {orderResult.AveragePrice:N}");
+			Console.WriteLine($"Order Id:			{orderResult.OrderId}");
+			Console.WriteLine($"Trade Id:			{orderResult.TradeId}");
+			Console.WriteLine($"Order Date:			{orderResult.OrderDate:R}");
+			Console.WriteLine($"Completed Date:     {orderResult.CompletedDate:R}");
+			Console.WriteLine($"Side:				{(orderResult.IsBuy ? "Bid" : "Ask")}");
+			Console.WriteLine($"Market symbol:		{orderResult.MarketSymbol}");
+			Console.WriteLine($"Status:				{orderResult.Result}");
+			Console.WriteLine($"Price:				{orderResult.Price:N}");
+			Console.WriteLine($"Amount:				{orderResult.Amount:N}");
+			Console.WriteLine($"Amount Filled:		{orderResult.AmountFilled:N}");
+			Console.WriteLine($"Fees:				{orderResult.Fees:N}");
+			Console.WriteLine($"Fees currency:		{orderResult.FeesCurrency}");
+			Console.WriteLine($"Message:			{orderResult.Message}");
+			Console.WriteLine($"Average Price:		{orderResult.AveragePrice:N}");
 		}
 
 		private void DumpRequest(ExchangeOrderRequest orderRequest)
