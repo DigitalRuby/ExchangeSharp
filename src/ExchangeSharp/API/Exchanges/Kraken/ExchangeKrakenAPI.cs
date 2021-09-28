@@ -604,6 +604,7 @@ namespace ExchangeSharp
 			var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
 			return new ExchangeTicker
 			{
+				Exchange = Name,
 				MarketSymbol = symbol,
 				ApiResponse = ticker,
 				Ask = ticker["a"][0].ConvertInvariant<decimal>(),

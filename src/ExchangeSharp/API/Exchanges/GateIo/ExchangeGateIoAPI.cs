@@ -166,6 +166,7 @@ namespace ExchangeSharp
 
 			return new ExchangeTicker
 			{
+				Exchange = Name,
 				MarketSymbol = tickerToken["currency_pair"].ToStringInvariant(),
 				Bid = IsEmptyString(tickerToken["lowest_ask"]) ? default : tickerToken["lowest_ask"].ConvertInvariant<decimal>(),
 				Ask = IsEmptyString(tickerToken["highest_bid"]) ? default : tickerToken["highest_bid"].ConvertInvariant<decimal>(),

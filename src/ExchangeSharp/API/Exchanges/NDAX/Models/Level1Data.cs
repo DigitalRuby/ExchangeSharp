@@ -67,11 +67,12 @@ namespace ExchangeSharp
 			[JsonProperty("TimeStamp")]
 			public string TimeStamp { get; set; }
 
-			public ExchangeTicker ToExchangeTicker(string currencyPair)
+			public ExchangeTicker ToExchangeTicker(string exchangeName, string currencyPair)
 			{
 				var currencyParts = currencyPair.Split(new[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
 				return new ExchangeTicker()
 				{
+					Exchange = exchangeName,
 					Bid = BestBid.GetValueOrDefault(),
 					Ask = BestOffer.GetValueOrDefault(),
 					Id = InstrumentId.ToString(),

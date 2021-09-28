@@ -33,6 +33,7 @@ namespace ExchangeSharp
 				// TODO: Parse out fields...
 				// Ticker JSON { "GenTime":12345678901234 "Label":"UFO/BTC", "Ask":0.00000005, "Bid":0.00000003, "Open":0.00000006, "High":0.00000007, "Low":0.00000004, "Close":0.00000003, "Volume":3240956.04453450, "BaseVolume":455533325.98457433 }
 				Id = token["GenTime"].ConvertInvariant<string>(), // ????
+				Exchange = Name,
 				ApiResponse = token,
 				Ask = token["Ask"].ConvertInvariant<decimal>(),
 				Bid = token["Bid"].ConvertInvariant<decimal>(),

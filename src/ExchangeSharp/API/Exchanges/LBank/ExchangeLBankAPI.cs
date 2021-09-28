@@ -211,6 +211,7 @@ namespace ExchangeSharp
 
 			ExchangeTicker ticker = new ExchangeTicker
 			{
+				Exchange = Name,
 				MarketSymbol = symbol,
 				ApiResponse = obj,
 				Ask = obj["high"].ConvertInvariant<decimal>(),

@@ -507,6 +507,7 @@ namespace ExchangeSharp
 			}
 			ExchangeTicker ticker = new ExchangeTicker
 			{
+				Exchange = api.Name,
 				MarketSymbol = marketSymbol,
 				ApiResponse = token,
 				Ask = ask,

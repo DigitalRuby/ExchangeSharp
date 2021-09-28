@@ -33,6 +33,11 @@ namespace ExchangeSharp
 		public string Id { get; set; }
 
 		/// <summary>
+		/// The name of the exchange the tick was sent from.
+		/// </summary>
+		public string Exchange { get; set; }
+
+		/// <summary>
 		/// The currency pair symbol that this ticker is in reference to
 		/// </summary>
 		public string MarketSymbol { get; set; }

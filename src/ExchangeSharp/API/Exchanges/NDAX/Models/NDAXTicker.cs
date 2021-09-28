@@ -21,11 +21,12 @@ namespace ExchangeSharp
 			[JsonProperty("baseVolume")] public decimal? BaseVolume { get; set; }
 			[JsonProperty("quoteVolume")] public decimal? QuoteVolume { get; set; }
 
-			public ExchangeTicker ToExchangeTicker(string currencyPair)
+			public ExchangeTicker ToExchangeTicker(string exchangeName, string currencyPair)
 			{
 				var currencyParts = currencyPair.Split(new[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
 				return new ExchangeTicker()
 				{
+					Exchange  = exchangeName,
 					MarketSymbol = currencyPair,
 					Ask = LowestAsk.GetValueOrDefault(),
 					Bid = HighestBid.GetValueOrDefault(),
