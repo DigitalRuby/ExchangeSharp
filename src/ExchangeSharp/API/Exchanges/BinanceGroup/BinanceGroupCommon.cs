@@ -88,19 +88,17 @@ namespace ExchangeSharp.BinanceGroup
 		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
 		{
 			var result = await MakeJsonRequestAsync<List<Currency>>("/capital/config/getall", BaseUrlSApi);
-			
-			return result.ToDictionary(x => x.Coin.ToUpper(), x => {
-				var network = x.NetworkList.FirstOrDefault(x => x.IsDefault);
-				return new ExchangeCurrency
-				{
-					Name = x.Coin,
-					FullName = x.Name,
-					DepositEnabled = network?.DepositEnable ?? x.DepositAllEnable,
-					WithdrawalEnabled = network?.WithdrawEnable ?? x.WithdrawAllEnable,
-					MinConfirmations = network?.MinConfirm ?? 0,
-					MinWithdrawalSize = decimal.Parse(network?.WithdrawMin ?? "0"),
-					TxFee = decimal.Parse(network?.WithdrawFee ?? "0")
-				};
+
+			return result.ToDictionary(x => x.AssetCode, x => new ExchangeCurrency
+			{
+				Name = x.AssetCode,
+				FullName = x.AssetName,
+				DepositEnabled = x.EnableCharge ?? false,
+				WithdrawalEnabled = x.EnableWithdraw.GetValueOrDefault(false),
+				MinConfirmations = x.ConfirmTimes.GetValueOrDefault(0),
+				MinWithdrawalSize = x.MinProductWithdraw.GetValueOrDefault(decimal.Zero),
+				TxFee = x.FeeRate.GetValueOrDefault(decimal.Zero),
+				CoinType = x.ParentCode
 			});
 		}
 
