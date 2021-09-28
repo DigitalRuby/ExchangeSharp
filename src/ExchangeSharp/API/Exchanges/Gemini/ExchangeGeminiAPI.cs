@@ -376,7 +376,7 @@ namespace ExchangeSharp
 					(string baseCurrency, string quoteCurrency) = api.ExchangeMarketSymbolToCurrenciesAsync(_marketSymbol).Sync();
 					return new ExchangeTicker
 					{
-						Exchange = Name,
+						Exchange = api.Name,
 						MarketSymbol = _marketSymbol,
 						Volume = new ExchangeVolume
 						{
