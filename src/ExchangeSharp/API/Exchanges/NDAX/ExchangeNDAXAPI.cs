@@ -33,7 +33,7 @@ namespace ExchangeSharp
                 await MakeJsonRequestAsync<Dictionary<string, NDAXTicker>>("ticker", "https://core.ndax.io/v1", null, "GET");
             _marketSymbolToInstrumentIdMapping = result.ToDictionary(pair => pair.Key.Replace("_", ""), pair => pair.Value.Id); // remove the _
             return result.Select(pair =>
-                new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(pair.Key)));
+                new KeyValuePair<string, ExchangeTicker>(pair.Key, pair.Value.ToExchangeTicker(Name, pair.Key)));
         }
 
         protected override async Task<ExchangeTicker> OnGetTickerAsync(string symbol)
@@ -395,7 +395,7 @@ namespace ExchangeSharp
 							var symbol = await GetMarketSymbolFromInstrumentId(rawPayload.InstrumentId);
 							tickers.Invoke(new[]
 							{
-								new KeyValuePair<string, ExchangeTicker>(symbol, rawPayload.ToExchangeTicker(symbol)),
+								new KeyValuePair<string, ExchangeTicker>(symbol, rawPayload.ToExchangeTicker(Name, symbol)),
 							});
 						}
 						else // "{\"result\":false,\"errormsg\":\"Resource Not Found\",\"errorcode\":104,\"detail\":\"Instrument not Found\"}"

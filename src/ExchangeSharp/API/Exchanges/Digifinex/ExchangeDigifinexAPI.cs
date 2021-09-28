@@ -185,6 +185,7 @@ namespace ExchangeSharp
 
 			return new ExchangeTicker
 			{
+				Exchange = Name,
 				ApiResponse = t,
 				Ask = t["sell"].ConvertInvariant<decimal>(),
 				Bid = t["buy"].ConvertInvariant<decimal>(),

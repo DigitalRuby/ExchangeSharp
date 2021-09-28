@@ -22,13 +22,7 @@
     <RepositoryType>git</RepositoryType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="API\Exchanges\FTX\Models\**" />
-    <EmbeddedResource Remove="API\Exchanges\FTX\Models\**" />
-    <None Remove="API\Exchanges\FTX\Models\**" />
-  </ItemGroup>
-  
+	
   <ItemGroup>
     <None Include="../../icon.png" Pack="true" PackagePath="\" />
     <None Include="../../LICENSE.txt" Link="LICENSE.txt" Pack="true" PackagePath="" />

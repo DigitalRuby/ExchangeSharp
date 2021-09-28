@@ -234,6 +234,7 @@ namespace ExchangeSharp
 			}
 			ExchangeTicker t = new ExchangeTicker
 			{
+				Exchange = Name,
 				MarketSymbol = marketSymbol,
 				ApiResponse = obj,
 				Ask = obj["ask"].ConvertInvariant<decimal>(),
@@ -375,6 +376,7 @@ namespace ExchangeSharp
 					(string baseCurrency, string quoteCurrency) = api.ExchangeMarketSymbolToCurrenciesAsync(_marketSymbol).Sync();
 					return new ExchangeTicker
 					{
+						Exchange = Name,
 						MarketSymbol = _marketSymbol,
 						Volume = new ExchangeVolume
 						{

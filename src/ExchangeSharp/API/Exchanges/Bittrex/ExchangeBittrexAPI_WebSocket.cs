@@ -141,6 +141,7 @@ namespace ExchangeSharp
 					DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ticker["T"].ConvertInvariant<long>());
 					var t = new ExchangeTicker
 					{
+						Exchange = Name,
 						MarketSymbol = marketName,
 						ApiResponse = ticker,
 						Ask = ask,

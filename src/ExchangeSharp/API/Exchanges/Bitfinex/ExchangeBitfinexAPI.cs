@@ -166,6 +166,7 @@ namespace ExchangeSharp
 					var market = marketsBySymbol[marketSymbol.ToLowerInvariant()];
 					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, new ExchangeTicker
 					{
+						Exchange = Name,
 						MarketSymbol = marketSymbol,
 						ApiResponse = token,
 						Ask = array[3].ConvertInvariant<decimal>(),

@@ -49,6 +49,7 @@ namespace ExchangeSharp
 				var data = token[GlobalMarketSymbolToExchangeMarketSymbolAsync(symbol)];
 				var ticker = new ExchangeTicker()
 				{
+					Exchange = Name,
 					ApiResponse = token,
 					Ask = data["sell"].ConvertInvariant<decimal>(),
 					Bid = data["buy"].ConvertInvariant<decimal>(),
