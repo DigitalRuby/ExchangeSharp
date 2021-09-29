@@ -39,20 +39,30 @@ namespace ExchangeSharp
         /// <summary>Message if any</summary>
         public string Message { get; set; }
 
-        /// <summary>Original order amount in the market currency.
-        /// E.g. ADA/BTC would be ADA</summary>
+        /// <summary>
+		/// Original order amount in the market currency.
+        /// E.g. ADA/BTC would be ADA
+		/// Consider making this property nullable in the future, such as for Coinbase
+		/// </summary>
         public decimal Amount { get; set; }
 
         /// <summary>Amount filled in the market currency. May be null if not provided by exchange</summary>
         public decimal? AmountFilled { get; set; }
 
-        /// <summary>The limit price on the order in the ratio of base/market currency.
-        /// E.g. 0.000342 ADA/ETH</summary>
-        public decimal? Price { get; set; }
+		/// <summary>
+		/// Some exchanges (such as coinbase) only provide RemainingSize.
+		/// For these, AmountFilled will be set to remaining size/amount, and IsAmountFilledReversed will be set to true
+		/// </summary>
+		public bool IsAmountFilledReversed { get; set; }
 
-        /// <summary>Price per unit in the ratio of base/market currency.
-        /// E.g. 0.000342 ADA/ETH</summary>
-        public decimal? AveragePrice { get; set; }
+		/// <summary>The limit price on the order in the ratio of base/market currency.
+		/// E.g. 0.000342 ADA/ETH</summary>
+		public decimal? Price { get; set; }
+
+		/// <summary>Price per unit in the ratio of base/market currency. Note, that if this is a trade (TradeId is not null),
+		/// this represents only the Avg Price on this particular trade/fill, not the Avg Price over the entire order.
+		/// E.g. 0.000342 ADA/ETH</summary>
+		public decimal? AveragePrice { get; set; }
 
         /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
@@ -66,7 +76,8 @@ namespace ExchangeSharp
         /// <summary>Whether the order is a buy or sell</summary>
         public bool IsBuy { get; set; }
 
-        /// <summary>The fees on the order (not a percent).
+        /// <summary>The fees on the order (not a percent). Note, that if this is a trade (TradeId is not null),
+		/// this represents only the fees on this particular trade/fill, not the cumulative amount in the order.
         /// E.g. 0.0025 ETH</summary>
         public decimal? Fees { get; set; }
 

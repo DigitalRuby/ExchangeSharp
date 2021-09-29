@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -10,10 +10,31 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System.Runtime.Serialization;
+
 namespace ExchangeSharp.Coinbase
 {
-    internal class BaseMessage
-    {
-        public ResponseType Type { get; set; }
-    }
+	internal enum OrderSide
+	{
+		[EnumMember(Value = "buy")]
+		Buy,
+		[EnumMember(Value = "sell")]
+		Sell
+	}
+
+	internal enum StopType
+	{
+		[EnumMember(Value = "Unknown")]
+		Unknown,
+		[EnumMember(Value = "loss")]
+		Loss,
+		[EnumMember(Value = "entry")]
+		Entry,
+	}
+
+	internal enum DoneReasonType
+	{
+		Canceled,
+		Filled
+	}
 }

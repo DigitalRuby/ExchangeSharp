@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -43,6 +43,8 @@ namespace ExchangeSharp.Coinbase
 
         Activate,
 
-        Error
+        Error,
+
+		Status,
     }
 }

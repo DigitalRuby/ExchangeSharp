@@ -205,7 +205,7 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			return (await GetMarketSymbolsMetadataAsync()).Select(market => market.MarketSymbol);
+			return (await GetMarketSymbolsMetadataAsync()).Where(market => market.IsActive).Select(market => market.MarketSymbol);
 		}
 
 		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
@@ -436,6 +436,99 @@ namespace ExchangeSharp
 			return token.ParseTradeCoinbase("size", "price", "side", "time", TimestampType.Iso8601, "trade_id");
 		}
 
+		protected override async Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback)
+		{
+			return await ConnectPublicWebSocketAsync("/", async (_socket, msg) =>
+			{
+				var token = msg.ToStringFromUTF8();
+				var response = JsonConvert.DeserializeObject<BaseMessage>(token);
+				switch (response.Type)
+				{
+					case ResponseType.Subscriptions:
+						var subscription = JsonConvert.DeserializeObject<Subscription>(token);
+						if (subscription.Channels == null || !subscription.Channels.Any())
+						{
+							Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() no channels subscribed");
+						}
+						else
+						{
+							Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() subscribed to " +
+								$"{string.Join(",", subscription.Channels.Select(c => c.ToString()))}");
+						}
+						break;
+					case ResponseType.Ticker:
+						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
+					case ResponseType.Snapshot:
+						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
+					case ResponseType.L2Update:
+						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
+					case ResponseType.Heartbeat:
+						var heartbeat = JsonConvert.DeserializeObject<Heartbeat>(token);
+						Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() heartbeat received {heartbeat}");
+						break;
+					case ResponseType.Received:
+						var received = JsonConvert.DeserializeObject<Received>(token);
+						callback(received.ExchangeOrderResult);
+						break;
+					case ResponseType.Open:
+						var open = JsonConvert.DeserializeObject<Open>(token);
+						callback(open.ExchangeOrderResult);
+						break;
+					case ResponseType.Done:
+						var done = JsonConvert.DeserializeObject<Done>(token);
+						callback(done.ExchangeOrderResult);
+						break;
+					case ResponseType.Match:
+						var match = JsonConvert.DeserializeObject<Match>(token);
+						callback(match.ExchangeOrderResult);
+						break;
+					case ResponseType.LastMatch:
+						//var lastMatch = JsonConvert.DeserializeObject<LastMatch>(token);
+						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
+					case ResponseType.Error:
+						var error = JsonConvert.DeserializeObject<Error>(token);
+						throw new APIException($"{error.Reason}: {error.Message}");
+					case ResponseType.Change:
+						var change = JsonConvert.DeserializeObject<Change>(token);
+						callback(change.ExchangeOrderResult);
+						break;
+					case ResponseType.Activate:
+						var activate = JsonConvert.DeserializeObject<Activate>(token);
+						callback(activate.ExchangeOrderResult);
+						break;
+					case ResponseType.Status:
+						//var status = JsonConvert.DeserializeObject<Status>(token);
+						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
+					default:
+						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
+				}
+			}, async (_socket) =>
+			{
+				var marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+				var nonce = await GetNoncePayloadAsync();
+				string timestamp = nonce["nonce"].ToStringInvariant();
+				byte[] secret = CryptoUtility.ToBytesBase64Decode(PrivateApiKey);
+				string toHash = timestamp + "GET" + "/users/self/verify";
+				var subscribeRequest = new
+				{
+					type = "subscribe",
+					channels = new object[]
+					{
+						new
+						{
+							name = "user",
+							product_ids = marketSymbols,
+						}
+					},
+					signature = CryptoUtility.SHA256SignBase64(toHash, secret), // signature base 64 string
+					key = PublicApiKey.ToUnsecureString(),
+					passphrase = CryptoUtility.ToUnsecureString(Passphrase),
+					timestamp = timestamp
+			};
+				await _socket.SendMessageAsync(subscribeRequest);
+			});
+		}
+
 		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
 			/*
@@ -627,7 +720,7 @@ namespace ExchangeSharp
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
 		{
 			List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-			JArray array = await MakeJsonRequestAsync<JArray>("orders?status=open,pending,active" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "&product_id=" + marketSymbol), null, await GetNoncePayloadAsync(), "GET");
+			JArray array = await MakeJsonRequestAsync<JArray>("orders?status=open&status=pending&status=active" + (string.IsNullOrWhiteSpace(marketSymbol) ? string.Empty : "&product_id=" + marketSymbol), null, await GetNoncePayloadAsync(), "GET");
 			foreach (JToken token in array)
 			{
 				orders.Add(ParseOrder(token));

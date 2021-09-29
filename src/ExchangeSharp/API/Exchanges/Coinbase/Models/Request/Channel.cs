@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -25,5 +25,7 @@ namespace ExchangeSharp.Coinbase
 
         [JsonProperty("product_ids")]
         public List<string> ProductIds { get; set; }
-    }
+
+		public override string ToString() => $"{Name} channel w/ {ProductIds.Count} symbols";
+	}
 }

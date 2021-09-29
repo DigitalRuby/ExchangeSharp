@@ -125,11 +125,11 @@ namespace ExchangeSharp
 
 			public IReadOnlyList<string> GetHeader(string name)
 			{
-				try
+				if (response.Headers.TryGetValues(name: name, out var header))
 				{
-					return response.Headers.GetValues(name).ToArray(); // throws InvalidOperationException when name not exist
+					return header.ToArray();
 				}
-				catch (Exception)
+				else
 				{
 					return CryptoUtility.EmptyStringArray;
 				}
