@@ -1,4 +1,4 @@
-namespace ExchangeSharp.API.Exchanges.FTX
+namespace ExchangeSharp
 {
 	/// <summary>
 	/// Extension helper methods.

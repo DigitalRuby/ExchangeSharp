@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace ExchangeSharp.API.Exchanges.FTX
+namespace ExchangeSharp
 {
 	public sealed partial class ExchangeFTXAPI : ExchangeAPI
 	{
