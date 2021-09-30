@@ -67,7 +67,7 @@ namespace ExchangeSharpConsole.Options
 			var exchangeOrderRequest = new ExchangeOrderRequest
 			{
 				Amount = Amount,
-				//Price = Price,
+				Price = Price,
 				IsBuy = isBuyOrder,
 				IsMargin = IsMargin,
 				MarketSymbol = api.NormalizeMarketSymbol(MarketSymbol),
