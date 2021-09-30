@@ -72,7 +72,7 @@ namespace ExchangeSharpTests
 			Assert.IsInstanceOfType(ex2, typeof(ExchangeGeminiAPI));
 
 			// make sure create exchange serves up new instances
-			var ex3 = await ExchangeAPI.GetExchangeAPIAsync<ExchangeGeminiAPI>();
+			var ex3 = await ExchangeAPI.CreateExchangeAPIAsync<ExchangeGeminiAPI>();
 			Assert.AreNotSame(ex3, ex2);
 
 			// make sure a bad exchange name throws correct exception
