@@ -20,7 +20,7 @@ namespace ExchangeSharpConsole.Options
 
 		protected async Task AddOrder(bool isBuyOrder)
 		{
-			using var api = GetExchangeInstance(ExchangeName);
+			using var api = await GetExchangeInstanceAsync(ExchangeName);
 
 			var exchangeOrderRequest = GetExchangeOrderRequest(isBuyOrder, api);
 
@@ -67,7 +67,7 @@ namespace ExchangeSharpConsole.Options
 			var exchangeOrderRequest = new ExchangeOrderRequest
 			{
 				Amount = Amount,
-				Price = Price,
+				//Price = Price,
 				IsBuy = isBuyOrder,
 				IsMargin = IsMargin,
 				MarketSymbol = api.NormalizeMarketSymbol(MarketSymbol),

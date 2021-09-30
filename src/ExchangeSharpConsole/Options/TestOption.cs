@@ -21,7 +21,7 @@ namespace ExchangeSharpConsole.Options
 
 		public override async Task RunCommand()
 		{
-			var apis = ExchangeAPI.GetExchangeAPIs();
+			var apis = await ExchangeAPI.GetExchangeAPIsAsync();
 
 			foreach (var api in apis)
 			{

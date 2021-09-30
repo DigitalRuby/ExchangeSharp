@@ -14,7 +14,7 @@ namespace ExchangeSharpConsole.Options
 	{
 		public override async Task RunCommand()
 		{
-			using var api = GetExchangeInstance(ExchangeName);
+			using var api = await GetExchangeInstanceAsync(ExchangeName);
 
 			Console.WriteLine($"Showing historical trades for exchange {ExchangeName}...");
 

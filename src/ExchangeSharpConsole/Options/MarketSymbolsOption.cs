@@ -10,7 +10,7 @@ namespace ExchangeSharpConsole.Options
 	{
 		public override async Task RunCommand()
 		{
-			using var api = GetExchangeInstance(ExchangeName);
+			using var api = await GetExchangeInstanceAsync(ExchangeName);
 
 			try
 			{
