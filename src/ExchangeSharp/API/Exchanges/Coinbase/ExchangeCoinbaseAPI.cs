@@ -101,7 +101,7 @@ namespace ExchangeSharp
 			switch (result["status"].ToStringInvariant())
 			{
 				case "pending":
-					order.Result = ExchangeAPIOrderResult.Pending;
+					order.Result = ExchangeAPIOrderResult.PendingOpen;
 					break;
 				case "active":
 				case "open":
@@ -115,7 +115,7 @@ namespace ExchangeSharp
 					}
 					else
 					{
-						order.Result = ExchangeAPIOrderResult.Pending;
+						order.Result = ExchangeAPIOrderResult.Open;
 					}
 					break;
 				case "done":
@@ -134,13 +134,15 @@ namespace ExchangeSharp
 							break;
 					}
 					break;
+				case "rejected":
+					order.Result = ExchangeAPIOrderResult.Rejected;
+					break;
 				case "cancelled":
 				case "canceled":
 					order.Result = ExchangeAPIOrderResult.Canceled;
 					break;
 				default:
-					order.Result = ExchangeAPIOrderResult.Unknown;
-					break;
+					throw new NotImplementedException($"Unexpected status type: {result["status"].ToStringInvariant()}");
 			}
 			return order;
 		}

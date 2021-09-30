@@ -94,7 +94,7 @@ namespace ExchangeSharp
 			}
 			else if (amountFilled == 0m)
 			{
-				order.Result = ExchangeAPIOrderResult.Pending;
+				order.Result = ExchangeAPIOrderResult.Open;
 			}
 			else
 			{
@@ -406,7 +406,7 @@ namespace ExchangeSharp
 				IsBuy = order.IsBuy,
 				OrderDate = result["createdAt"].ToDateTimeInvariant(),
 				OrderId = result["id"].ToStringInvariant(),
-				Result = ExchangeAPIOrderResult.Pending,
+				Result = ExchangeAPIOrderResult.Open,
 				MarketSymbol = result["marketSymbol"].ToStringInvariant(),
 				Price = decimal.Parse(result["limit"].ToStringInvariant())
 			};

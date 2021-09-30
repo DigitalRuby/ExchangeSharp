@@ -41,7 +41,7 @@ namespace ExchangeSharp.Coinbase
 		{
 			OrderId = OrderId.ToString(),
 			ClientOrderId = null, // not provided here
-			Result = ExchangeAPIOrderResult.Pending, // order has just been activated (so it starts in PendingOpen)
+			Result = ExchangeAPIOrderResult.PendingOpen, // order has just been activated (so it starts in PendingOpen)
 			Message = null, // can use for something in the future if needed
 			Amount = Size,
 			AmountFilled = 0, // just activated, so none filled
@@ -205,7 +205,7 @@ namespace ExchangeSharp.Coinbase
 		{
 			OrderId = OrderId.ToString(),
 			ClientOrderId = null, // not provided here
-			Result = ExchangeAPIOrderResult.Pending, // order is now Open
+			Result = ExchangeAPIOrderResult.Open, // order is now Open
 			Message = null, // can use for something in the future if needed
 			Amount = 0, // ideally, this would be null, but ExchangeOrderResult.Amount is not nullable
 			AmountFilled = RemainingSize,
@@ -237,7 +237,7 @@ namespace ExchangeSharp.Coinbase
 		{
 			OrderId = OrderId.ToString(),
 			ClientOrderId = ClientOid.ToString(),
-			Result = ExchangeAPIOrderResult.Pending, // order is now Pending
+			Result = ExchangeAPIOrderResult.PendingOpen, // order is now Pending
 			Message = null, // can use for something in the future if needed
 			Amount = Size,
 			AmountFilled = 0, // order received but not yet open, so none filled

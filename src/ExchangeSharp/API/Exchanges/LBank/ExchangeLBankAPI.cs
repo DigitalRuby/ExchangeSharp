@@ -327,7 +327,7 @@ namespace ExchangeSharp
 
 			CheckResponseToken(resp);
 
-			return ParseOrderList(resp, ExchangeAPIOrderResult.Pending);
+			return ParseOrderList(resp, ExchangeAPIOrderResult.Open);
 		}
 
 		//GetCompletedOrderDetails  11
@@ -465,7 +465,7 @@ namespace ExchangeSharp
 				IsBuy = payload["type"].ToString().Equals("buy"),
 				Price = payload["price"].ConvertInvariant<decimal>(),
 				OrderDate = CryptoUtility.UtcNow,
-				Result = ExchangeAPIOrderResult.Pending
+				Result = ExchangeAPIOrderResult.Open
 			};
 
 			return orderResult;
@@ -577,7 +577,7 @@ namespace ExchangeSharp
 					return ExchangeAPIOrderResult.Canceled;
 
 				case 0:
-					return ExchangeAPIOrderResult.Pending;
+					return ExchangeAPIOrderResult.Open;
 
 				case 1:
 					return ExchangeAPIOrderResult.FilledPartially;

@@ -345,7 +345,7 @@ namespace ExchangeSharp
             }
             else
             {
-                result.Result = ExchangeAPIOrderResult.Pending;
+                result.Result = ExchangeAPIOrderResult.Open;
             }
 
             ParseAveragePriceAndFeesFromFills(result, token["tradesReport"]);
@@ -660,13 +660,13 @@ namespace ExchangeSharp
             // new, suspended, partiallyFilled, filled, canceled, expired
             string status = token["status"].ToStringInvariant();
             switch (status)
-            {
-                case "filled": result.Result = ExchangeAPIOrderResult.Filled; break;
+			{ // Possible values: new, suspended, partiallyFilled, filled, canceled, expired
+				case "filled": result.Result = ExchangeAPIOrderResult.Filled; break;
                 case "partiallyFilled": result.Result = ExchangeAPIOrderResult.FilledPartially; break;
-                case "canceled":
-                case "expired": result.Result = ExchangeAPIOrderResult.Canceled; break;
-                case "new": result.Result = ExchangeAPIOrderResult.Pending; break;
-                default: result.Result = ExchangeAPIOrderResult.Error; break;
+                case "canceled": result.Result = ExchangeAPIOrderResult.Canceled; break;
+				case "expired": result.Result = ExchangeAPIOrderResult.Expired; break;
+                case "new": result.Result = ExchangeAPIOrderResult.Open; break;
+                default: result.Result = ExchangeAPIOrderResult.Rejected; break;
             }
             return result;
         }

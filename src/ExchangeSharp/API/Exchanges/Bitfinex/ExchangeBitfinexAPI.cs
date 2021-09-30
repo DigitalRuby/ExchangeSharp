@@ -914,7 +914,7 @@ namespace ExchangeSharp
 				AveragePrice = order["avg_execution_price"].ConvertInvariant<decimal>(order["price"].ConvertInvariant<decimal>()),
 				Message = string.Empty,
 				OrderId = order["id"].ToStringInvariant(),
-				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Open : ExchangeAPIOrderResult.FilledPartially)),
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["timestamp"].ConvertInvariant<double>()),
 				MarketSymbol = order["symbol"].ToStringInvariant(),
 				IsBuy = order["side"].ToStringInvariant() == "buy"
@@ -954,10 +954,10 @@ namespace ExchangeSharp
 				IsBuy = (amount > 0m),
 				OrderDate = order[8].ToDateTimeInvariant(),
 				OrderId = order[0].ToStringInvariant(),
-				Result = orderStatusString == "ACTIVE" ? ExchangeAPIOrderResult.Pending
+				Result = orderStatusString == "ACTIVE" ? ExchangeAPIOrderResult.Open
 					   : orderStatusString == "EXECUTED" ? ExchangeAPIOrderResult.Filled
 					   : orderStatusString == "PARTIALLY" ? ExchangeAPIOrderResult.FilledPartially
-					   : orderStatusString == "INSUFFICIENT" ? ExchangeAPIOrderResult.Canceled
+					   : orderStatusString == "INSUFFICIENT" ? ExchangeAPIOrderResult.Rejected
 					   : orderStatusString == "CANCELED" ? ExchangeAPIOrderResult.Canceled
 					   : ExchangeAPIOrderResult.Unknown,
 				MarketSymbol = order[1].ToStringInvariant(),

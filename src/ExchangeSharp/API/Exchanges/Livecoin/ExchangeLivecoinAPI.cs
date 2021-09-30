@@ -283,7 +283,7 @@ namespace ExchangeSharp
 
             //{ "success": true, "added": true, "orderId": 4912
             JToken token = await MakeJsonRequestAsync<JToken>(orderType, null, payload, "POST");
-            return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Pending };
+            return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Open };
         }
 
         protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)

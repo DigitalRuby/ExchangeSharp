@@ -332,7 +332,8 @@ namespace ExchangeSharp
 				{
 					case ExchangeAPIOrderResult.Filled:
 					case ExchangeAPIOrderResult.Canceled:
-					case ExchangeAPIOrderResult.Error:
+					case ExchangeAPIOrderResult.Rejected:
+					case ExchangeAPIOrderResult.Expired:
 						i = maxTries + 1;
 						break;
 				}

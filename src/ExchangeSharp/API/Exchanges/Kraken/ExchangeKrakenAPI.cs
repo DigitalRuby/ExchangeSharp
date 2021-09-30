@@ -175,29 +175,6 @@ namespace ExchangeSharp
 		{
 			ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
 
-			switch (order["status"].ToStringInvariant())
-			{
-				case "pending":
-					orderResult.Result = ExchangeAPIOrderResult.Pending;
-					break;
-
-				case "open":
-					orderResult.Result = ExchangeAPIOrderResult.FilledPartially;
-					break;
-
-				case "closed":
-					orderResult.Result = ExchangeAPIOrderResult.Filled;
-					break;
-
-				case "canceled":
-				case "expired":
-					orderResult.Result = ExchangeAPIOrderResult.Canceled;
-					break;
-
-				default:
-					orderResult.Result = ExchangeAPIOrderResult.Error;
-					break;
-			}
 			orderResult.Message = (orderResult.Message ?? order["reason"].ToStringInvariant());
 			orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["opentm"].ConvertInvariant<double>());
 			orderResult.MarketSymbol = order["descr"]["pair"].ToStringInvariant();
@@ -207,6 +184,36 @@ namespace ExchangeSharp
 			orderResult.Price = order["descr"]["price"].ConvertInvariant<decimal>();
 			orderResult.AveragePrice = order["price"].ConvertInvariant<decimal>();
 			orderResult.Fees = order["fee"].ConvertInvariant<decimal>();
+
+			switch (order["status"].ToStringInvariant())
+			{
+				case "pending":
+					orderResult.Result = ExchangeAPIOrderResult.PendingOpen;
+					break;
+
+				case "open":
+					orderResult.Result = ExchangeAPIOrderResult.Open;
+					break;
+
+				case "closed":
+					orderResult.Result = ExchangeAPIOrderResult.Filled;
+					break;
+
+				case "canceled":
+					if (orderResult.AmountFilled > 0)
+						orderResult.Result = ExchangeAPIOrderResult.FilledPartiallyAndCancelled;
+					else
+						orderResult.Result = ExchangeAPIOrderResult.Canceled;
+					break;
+
+				case "expired":
+					orderResult.Result = ExchangeAPIOrderResult.Expired;
+					break;
+
+				default:
+					orderResult.Result = ExchangeAPIOrderResult.Rejected;
+					break;
+			}
 
 			return orderResult;
 		}

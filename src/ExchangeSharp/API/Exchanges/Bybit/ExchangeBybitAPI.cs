@@ -1026,10 +1026,15 @@ namespace ExchangeSharp
 				result.MarketSymbol = token["symbol"].ToStringInvariant();
 
 				switch (token["order_status"].ToStringInvariant())
-				{
+				{ // https://bybit-exchange.github.io/docs/inverse/#order-status-order_status
 					case "Created":
+						result.Result = ExchangeAPIOrderResult.PendingOpen;
+						break;
+					case "Rejected":
+						result.Result = ExchangeAPIOrderResult.Rejected;
+						break;
 					case "New":
-						result.Result = ExchangeAPIOrderResult.Pending;
+						result.Result = ExchangeAPIOrderResult.Open;
 						break;
 					case "PartiallyFilled":
 						result.Result = ExchangeAPIOrderResult.FilledPartially;
@@ -1040,10 +1045,12 @@ namespace ExchangeSharp
 					case "Cancelled":
 						result.Result = ExchangeAPIOrderResult.Canceled;
 						break;
+					case "PendingCancel":
+						result.Result = ExchangeAPIOrderResult.PendingCancel;
+						break;
 
 					default:
-						result.Result = ExchangeAPIOrderResult.Error;
-						break;
+						throw new NotImplementedException($"Unexpected status type: {token["order_status"].ToStringInvariant()}");
 				}
 			}
 			result.ResultCode = resultCode;

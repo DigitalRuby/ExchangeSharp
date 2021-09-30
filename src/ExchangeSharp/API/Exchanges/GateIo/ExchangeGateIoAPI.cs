@@ -368,13 +368,13 @@ namespace ExchangeSharp
 			switch (status)
 			{
 				case "open":
-					return ExchangeAPIOrderResult.Pending;
+					return ExchangeAPIOrderResult.Open;
 				case "closed":
 					return ExchangeAPIOrderResult.Filled;
 				case "cancelled":
 					return amountFilled > 0 ? ExchangeAPIOrderResult.FilledPartiallyAndCancelled : ExchangeAPIOrderResult.Canceled;
 				default:
-					return ExchangeAPIOrderResult.Error;
+					throw new NotImplementedException($"Unexpected status type: {status}");
 			}
 		}
 
