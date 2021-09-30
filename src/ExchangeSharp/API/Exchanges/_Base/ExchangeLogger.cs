@@ -195,15 +195,29 @@ namespace ExchangeSharp
             return new BinaryReader(new System.IO.Compression.GZipStream(File.OpenRead(basePath + ".gz"), System.IO.Compression.CompressionMode.Decompress, false));
         }
 
+		/// <summary>
+		/// Begins logging exchanges - writes errors to console. You should block the app using Console.ReadLine.
+		/// </summary>
+		/// <param name="path">Path to write files to</param>
+		/// <param name="intervalSeconds">Interval in seconds in between each log calls for each exchange</param>
+		/// <param name="terminateAction">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</param>
+		/// <param name="compress">Whether to compress the log files</param>
+		/// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
+		[Obsolete("Use the async version")]
+        public static void LogExchanges(string path, float intervalSeconds, out Action terminateAction, bool compress, params string[] exchangeNamesAndSymbols)
+		{
+			terminateAction = LogExchangesAsync(path, intervalSeconds, compress, exchangeNamesAndSymbols).Result;
+		}
+
         /// <summary>
         /// Begins logging exchanges - writes errors to console. You should block the app using Console.ReadLine.
         /// </summary>
         /// <param name="path">Path to write files to</param>
         /// <param name="intervalSeconds">Interval in seconds in between each log calls for each exchange</param>
-        /// <param name="terminateAction">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</param>
         /// <param name="compress">Whether to compress the log files</param>
         /// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
-        public static void LogExchanges(string path, float intervalSeconds, out Action terminateAction, bool compress, params string[] exchangeNamesAndSymbols)
+        /// <returns">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</returns>
+        public static async Task<Action> LogExchangesAsync(string path, float intervalSeconds, bool compress, params string[] exchangeNamesAndSymbols)
         {
             bool terminating = false;
             Action terminator = null;
@@ -212,7 +226,7 @@ namespace ExchangeSharp
             List<ExchangeLogger> loggers = new List<ExchangeLogger>();
             for (int i = 0; i < exchangeNamesAndSymbols.Length;)
             {
-                loggers.Add(new ExchangeLogger(ExchangeAPI.GetExchangeAPI(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path, compress));
+                loggers.Add(new ExchangeLogger(await ExchangeAPI.GetExchangeAPIAsync(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path, compress));
             };
             foreach (ExchangeLogger logger in loggers)
             {
@@ -244,7 +258,6 @@ namespace ExchangeSharp
                     loggers.Clear();
                 }
             };
-            terminateAction = terminator;
 
             // make sure to close properly
             Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
@@ -256,6 +269,8 @@ namespace ExchangeSharp
                 terminator();
             };
             Logger.Info("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
+
+            return terminator;
         }
 
         /// <summary>

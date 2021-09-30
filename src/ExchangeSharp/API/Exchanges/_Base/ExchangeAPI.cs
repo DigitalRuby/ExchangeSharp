@@ -464,20 +464,15 @@ namespace ExchangeSharp
 		/// <returns>Exchange API or null if not found</returns>
 		public static async Task<IExchangeAPI> GetExchangeAPIAsync(Type type)
 		{
-			// Try to fetch from catch
 			if (apis.TryGetValue(type, out var result)) return await result;
 
-			// Get some resource lock here, for example use SemaphoreSlim 
-			// which has async wait function:
 			await semaphore.WaitAsync();
 			try
 			{
-				// Try to fetch from cache again now that we have entered 
-				// the critical section
+				// try again inside semaphore
 				if (apis.TryGetValue(type, out result)) return await result;
 
-				// Fetch data from source (using your HttpClient or whatever), 
-				// update your cache and return.
+				// still not found, initialize it
 				var foundType = exchangeTypes.FirstOrDefault(t => t == type);
 			    return await (apis[type] = InitializeAPIAsync(foundType, type));
 			}
