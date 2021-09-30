@@ -770,8 +770,11 @@ namespace ExchangeSharp
 			// http://www.onixs.biz/fix-dictionary/5.0.SP2/tagNum_39.html
 			switch (token["ordStatus"].ToStringInvariant())
 			{
+				case "Pending New":
+					result.Result = ExchangeAPIOrderResult.PendingOpen;
+					break;
 				case "New":
-					result.Result = ExchangeAPIOrderResult.Pending;
+					result.Result = ExchangeAPIOrderResult.Open;
 					break;
 				case "PartiallyFilled":
 					result.Result = ExchangeAPIOrderResult.FilledPartially;
@@ -782,9 +785,15 @@ namespace ExchangeSharp
 				case "Canceled":
 					result.Result = ExchangeAPIOrderResult.Canceled;
 					break;
+				case "Rejected":
+					result.Result = ExchangeAPIOrderResult.Rejected;
+					break;
+				case "Expired":
+					result.Result = ExchangeAPIOrderResult.Expired;
+					break;
 
 				default:
-					result.Result = ExchangeAPIOrderResult.Error;
+					result.Result = ExchangeAPIOrderResult.Rejected;
 					break;
 			}
 

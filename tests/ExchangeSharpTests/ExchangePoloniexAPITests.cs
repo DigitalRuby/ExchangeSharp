@@ -194,7 +194,7 @@ namespace ExchangeSharpTests
             orders[0].OrderId.Should().Be("120466");
             orders[0].IsBuy.Should().BeFalse();
             orders[0].Price.Should().Be(0.025m);
-            orders[0].Result.Should().Be(ExchangeAPIOrderResult.Pending);
+            orders[0].Result.Should().Be(ExchangeAPIOrderResult.Open);
         }
 
         [TestMethod]
@@ -210,7 +210,7 @@ namespace ExchangeSharpTests
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45, DateTimeKind.Utc));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
-            order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
+            order.Result.Should().Be(ExchangeAPIOrderResult.Open);
         }
 
         [TestMethod]
@@ -227,7 +227,7 @@ namespace ExchangeSharpTests
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45, DateTimeKind.Utc));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
-            order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
+            order.Result.Should().Be(ExchangeAPIOrderResult.Open);
         }
 
         [TestMethod]
@@ -244,7 +244,7 @@ namespace ExchangeSharpTests
             order.OrderDate.Should().Be(new DateTime(2018, 4, 6, 1, 3, 45, DateTimeKind.Utc));
             order.Fees.Should().Be(0);
             order.FeesCurrency.Should().BeNullOrEmpty();
-            order.Result.Should().Be(ExchangeAPIOrderResult.Pending);
+            order.Result.Should().Be(ExchangeAPIOrderResult.Open);
         }
 
         [TestMethod]

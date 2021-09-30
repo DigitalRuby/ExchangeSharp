@@ -66,7 +66,7 @@ namespace ExchangeSharp
 				AveragePrice = result["avg_execution_price"].ConvertInvariant<decimal>(),
 				Message = string.Empty,
 				OrderId = result["id"].ToStringInvariant(),
-				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Pending : ExchangeAPIOrderResult.FilledPartially)),
+				Result = (amountFilled == amount ? ExchangeAPIOrderResult.Filled : (amountFilled == 0 ? ExchangeAPIOrderResult.Open : ExchangeAPIOrderResult.FilledPartially)),
 				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["timestampms"].ConvertInvariant<double>()),
 				MarketSymbol = result["symbol"].ToStringInvariant(),
 				IsBuy = result["side"].ToStringInvariant() == "buy"

@@ -284,9 +284,9 @@ namespace ExchangeSharp
 		{
 			var x = (int)token;
 			switch (x)
-			{
+			{ // Order status, 0 for none executed, 1 for partially executed, 2 for fully executed, 3 for cancelled with none executed, 4 for cancelled with partially executed
 				case 0:
-					return ExchangeAPIOrderResult.Pending;
+					return ExchangeAPIOrderResult.Open;
 
 				case 1:
 					return ExchangeAPIOrderResult.FilledPartially;

@@ -26,11 +26,17 @@ namespace ExchangeSharp
         /// <summary>Order partially filled</summary>
         FilledPartially,
 
-        /// <summary>Order is pending or open but no amount has been filled yet</summary>
-        Pending,
+        /// <summary>Order is open but no amount has been filled yet</summary>
+        Open,
 
-        /// <summary>Error</summary>
-        Error,
+		/// <summary>Order is pending but not yet open</summary>
+		PendingOpen,
+
+        /// <summary>Order rejected by exchange, likely due to error in order</summary>
+        Rejected,
+
+		/// <summary> Order expired on exchange and no longer active </summary>
+		Expired,
 
         /// <summary>Order was cancelled</summary>
         Canceled,
@@ -45,7 +51,8 @@ namespace ExchangeSharp
 	public static class ExchangeAPIOrderResultExtensions
 	{
 		public static ExchangeAPIOrderResult[] Completed => new[] { ExchangeAPIOrderResult.Filled,
-			ExchangeAPIOrderResult.FilledPartially, ExchangeAPIOrderResult.Error,
+			// don't include FilledPartially, since this means order is still open
+			ExchangeAPIOrderResult.Rejected, ExchangeAPIOrderResult.Expired,
 			ExchangeAPIOrderResult.Canceled, ExchangeAPIOrderResult.FilledPartiallyAndCancelled,
 		};
 
