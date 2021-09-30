@@ -324,30 +324,6 @@ namespace ExchangeSharp
 			return orders;
 		}
 
-		//private async Task<IEnumerable<ExchangeOrderResult>> QueryClosedOrdersAsync(string symbol, string path)
-		//{
-		//    List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-		//    JToken result = await MakeJsonRequestAsync<JToken>(path, null, await GetNoncePayloadAsync());
-		//    //result = result["closed"];
-		//    foreach (JProperty order in result)
-		//    {
-		//        orders.Add(ParseOrder(order.Name, order.Value));
-		//    }
-
-		//    //if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
-		//    //{
-		//    //    foreach (JProperty order in result)
-		//    //    {
-		//    //        if (normalizedSymbol == null || order.Value["descr"]["pair"].ToStringInvariant() == normalizedSymbol.ToUpperInvariant())
-		//    //        {
-		//    //            orders.Add(ParseOrder(order.Name, order.Value));
-		//    //        }
-		//    //    }
-		//    //}
-
-		//    return orders;
-		//}
-
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
 			if (payload == null || PrivateApiKey == null || PublicApiKey == null || !payload.ContainsKey("nonce"))
@@ -424,99 +400,7 @@ namespace ExchangeSharp
 		}
 
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
-		{ //{"ADACAD": {
-		  //  "altname": "ADACAD",
-		  //  "wsname": "ADA/CAD",
-		  //  "aclass_base": "currency",
-		  //  "base": "ADA",
-		  //  "aclass_quote": "currency",
-		  //  "quote": "ZCAD",
-		  //  "lot": "unit",
-		  //  "pair_decimals": 6,
-		  //  "lot_decimals": 8,
-		  //  "lot_multiplier": 1,
-		  //  "leverage_buy": [],
-		  //  "leverage_sell": [],
-		  //  "fees": [
-		  //    [
-		  //      0,
-		  //      0.26
-		  //    ],
-		  //    [
-		  //      50000,
-		  //      0.24
-		  //    ],
-		  //    [
-		  //      100000,
-		  //      0.22
-		  //    ],
-		  //    [
-		  //      250000,
-		  //      0.2
-		  //    ],
-		  //    [
-		  //      500000,
-		  //      0.18
-		  //    ],
-		  //    [
-		  //      1000000,
-		  //      0.16
-		  //    ],
-		  //    [
-		  //      2500000,
-		  //      0.14
-		  //    ],
-		  //    [
-		  //      5000000,
-		  //      0.12
-		  //    ],
-		  //    [
-		  //      10000000,
-		  //      0.1
-		  //    ]
-		  //  ],
-		  //  "fees_maker": [
-		  //    [
-		  //      0,
-		  //      0.16
-		  //    ],
-		  //    [
-		  //      50000,
-		  //      0.14
-		  //    ],
-		  //    [
-		  //      100000,
-		  //      0.12
-		  //    ],
-		  //    [
-		  //      250000,
-		  //      0.1
-		  //    ],
-		  //    [
-		  //      500000,
-		  //      0.08
-		  //    ],
-		  //    [
-		  //      1000000,
-		  //      0.06
-		  //    ],
-		  //    [
-		  //      2500000,
-		  //      0.04
-		  //    ],
-		  //    [
-		  //      5000000,
-		  //      0.02
-		  //    ],
-		  //    [
-		  //      10000000,
-		  //      0
-		  //    ]
-		  //  ],
-		  //  "fee_volume_currency": "ZUSD",
-		  //  "margin_call": 80,
-		  //  "margin_stop": 40
-		  //}}
+		{ 
 			var markets = new List<ExchangeMarket>();
 			JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
 			var res = (from prop in allPairs.Children<JProperty>() select prop).ToArray();
@@ -544,6 +428,30 @@ namespace ExchangeSharp
 
 			return markets;
 		}
+
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+		{
+			if (!string.IsNullOrEmpty(withdrawalRequest.Address) || string.IsNullOrEmpty(withdrawalRequest.AddressTag))
+			{
+				throw new APIException($"Kraken only supports withdrawals to addresses setup beforehand and identified by a 'key'. Set this key in the {nameof(ExchangeWithdrawalRequest.AddressTag)} property.");
+			}
+
+			var request = new Dictionary<string, object>
+			{
+				["nonce"] = await GenerateNonceAsync(),
+				["asset"] = withdrawalRequest.Currency,
+				["amount"] = withdrawalRequest.Amount,
+				["key"] = withdrawalRequest.AddressTag
+			};
+
+			var result = await MakeJsonRequestAsync<JToken>("/0/private/Withdraw", null, request, "POST");
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = result["refid"].ToString()
+			};
+		}
+
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
