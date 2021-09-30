@@ -189,7 +189,7 @@ namespace ExchangeSharp
 					break;
 
 				default:
-					orderDetails.Result = ExchangeAPIOrderResult.Error;
+					orderDetails.Result = ExchangeAPIOrderResult.Rejected;
 					break;
 			}
 			return orderDetails;
@@ -226,7 +226,7 @@ namespace ExchangeSharp
 					break;
 
 				default:
-					orderDetails.Result = ExchangeAPIOrderResult.Error;
+					orderDetails.Result = ExchangeAPIOrderResult.Rejected;
 					break;
 			}
 

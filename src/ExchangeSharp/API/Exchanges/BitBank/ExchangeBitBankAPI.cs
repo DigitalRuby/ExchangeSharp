@@ -350,9 +350,13 @@ namespace ExchangeSharp
 			res.AmountFilled = token["executed_amount"].ConvertInvariant<decimal>();
 			res.OrderDate = token["ordered_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
 			switch (token["status"].ToStringInvariant())
-			{
+			{ // status enum: INACTIVE, UNFILLED, PARTIALLY_FILLED, FULLY_FILLED, CANCELED_UNFILLED, CANCELED_PARTIALLY_FILLED
+				case "INACTIVE":
+					res.Result = ExchangeAPIOrderResult.PendingOpen;
+					break;
+
 				case "UNFILLED":
-					res.Result = ExchangeAPIOrderResult.Pending;
+					res.Result = ExchangeAPIOrderResult.Open;
 					break;
 
 				case "PARTIALLY_FILLED":
@@ -372,8 +376,7 @@ namespace ExchangeSharp
 					break;
 
 				default:
-					res.Result = ExchangeAPIOrderResult.Unknown;
-					break;
+					throw new NotImplementedException($"Unexpected status type: {token["status"].ToStringInvariant()}");
 			}
 			return res;
 		}

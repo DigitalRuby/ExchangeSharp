@@ -595,32 +595,40 @@ namespace ExchangeSharp.OKGroup
                 MarketSymbol = order.MarketSymbol
             };
             result.AveragePrice = result.Price;
-            result.Result = ExchangeAPIOrderResult.Pending;
+            result.Result = ExchangeAPIOrderResult.Open;
 
             return result;
         }
 
         private ExchangeAPIOrderResult ParseOrderStatus(int status)
         {
-            // status: -1 = cancelled, 0 = unfilled, 1 = partially filled, 2 = fully filled, 3 = cancel request in process
-            switch (status)
+			// OKCoin: 	Order Status: -2 = Failed -1 = Canceled 0 = Open 1 = Partially Filled 2 = Fully Filled 3 = Submitting 4 = Canceling 6 = Incomplete (open + partially filled) 7 = Complete (canceled + fully filled)
+			// OKEx: 	Order Status: -2 = Failed -1 = Canceled 0 = Open 1 = Partially Filled 2 = Fully Filled 3 = Submitting 4 = Canceling
+			// (not sure where these old statuses came from) status: -1 = cancelled, 0 = unfilled, 1 = partially filled, 2 = fully filled, 3 = cancel request in process
+			switch (status)
             {
-                case -1:
-                    return ExchangeAPIOrderResult.Canceled;
-                case 0:
-                    return ExchangeAPIOrderResult.Pending;
+				case -2:
+					return ExchangeAPIOrderResult.Rejected;
+				case -1:
+					return ExchangeAPIOrderResult.Canceled;
+				case 0:
+                    return ExchangeAPIOrderResult.Open;
                 case 1:
                     return ExchangeAPIOrderResult.FilledPartially;
                 case 2:
                     return ExchangeAPIOrderResult.Filled;
-                case 3:
-                    return ExchangeAPIOrderResult.PendingCancel;
+				case 3:
+					return ExchangeAPIOrderResult.PendingOpen;
 				case 4:
-					return ExchangeAPIOrderResult.Error;
+					return ExchangeAPIOrderResult.PendingCancel;
+				case 6:
+					return ExchangeAPIOrderResult.FilledPartially;
+				case 7:
+					return ExchangeAPIOrderResult.Filled;
 				default:
-                    return ExchangeAPIOrderResult.Unknown;
-            }
-        }
+					throw new NotImplementedException($"Unexpected status type: {status}");
+			}
+		}
 
         private ExchangeOrderResult ParseOrder(JToken token)
         {

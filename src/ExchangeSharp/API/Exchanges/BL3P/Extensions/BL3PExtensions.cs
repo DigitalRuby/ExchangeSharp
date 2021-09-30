@@ -9,9 +9,9 @@ namespace ExchangeSharp.BL3P
 				BL3POrderStatus.Cancelled => ExchangeAPIOrderResult.Canceled,
 				BL3POrderStatus.Closed => ExchangeAPIOrderResult.Filled,
 				BL3POrderStatus.Open when amount.Value > 0 => ExchangeAPIOrderResult.FilledPartially,
-				BL3POrderStatus.Open => ExchangeAPIOrderResult.Pending,
-				BL3POrderStatus.Pending => ExchangeAPIOrderResult.Pending,
-				BL3POrderStatus.Placed => ExchangeAPIOrderResult.Pending,
+				BL3POrderStatus.Open => ExchangeAPIOrderResult.Open,
+				BL3POrderStatus.Pending => ExchangeAPIOrderResult.PendingOpen,
+				BL3POrderStatus.Placed => ExchangeAPIOrderResult.Open,
 				_ => ExchangeAPIOrderResult.Unknown
 			};
 		}

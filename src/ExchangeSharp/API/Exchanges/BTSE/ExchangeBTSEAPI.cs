@@ -138,7 +138,7 @@ namespace ExchangeSharp
 			switch (s)
 			{
 				case "STATUS_ACTIVE":
-					return ExchangeAPIOrderResult.Pending;
+					return ExchangeAPIOrderResult.Open;
 				case "ORDER_CANCELLED":
 					return ExchangeAPIOrderResult.Canceled;
 				case "ORDER_FULLY_TRANSACTED":
@@ -202,24 +202,27 @@ namespace ExchangeSharp
 				var status = ExchangeAPIOrderResult.Unknown;
 				switch (token["status"].Value<int>())
 				{
-					case 2:
-						status = ExchangeAPIOrderResult.Pending;
+					case 2: // ORDER_INSERTED
+						status = ExchangeAPIOrderResult.Open;
 						break;
-					case 4:
+					case 4: // ORDER_FULLY_TRANSACTED
 						status = ExchangeAPIOrderResult.Filled;
 						break;
-					case 5:
+					case 5: // ORDER_PARTIALLY_TRANSACTED
 						status = ExchangeAPIOrderResult.FilledPartially;
 						break;
-					case 6:
+					case 6: // ORDER_CANCELLED
 						status = ExchangeAPIOrderResult.Canceled;
+						break;
+					case 8: // INSUFFICIENT_BALANCE
+						status = ExchangeAPIOrderResult.Rejected;
 						break;
 					case 9: //trigger inserted
 					case 10: //trigger activated
-						status = ExchangeAPIOrderResult.Pending;
+						status = ExchangeAPIOrderResult.Open;
 						break;
 					case 15: //rejected
-						status = ExchangeAPIOrderResult.Error;
+						status = ExchangeAPIOrderResult.Rejected;
 						break;
 					case 16: //not found
 						status = ExchangeAPIOrderResult.Unknown;

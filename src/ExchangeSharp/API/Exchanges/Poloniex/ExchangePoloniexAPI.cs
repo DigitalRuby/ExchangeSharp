@@ -101,7 +101,7 @@ namespace ExchangeSharp
 			}
 			else if (trades != null && trades.Count() == 0)
 			{
-				order.Result = ExchangeAPIOrderResult.Pending;
+				order.Result = ExchangeAPIOrderResult.Open;
 			}
 			else if (trades != null && trades.Children().Count() != 0)
 			{
@@ -126,7 +126,7 @@ namespace ExchangeSharp
                 OrderDate = result["date"].ToDateTimeInvariant(),
                 OrderId = result["orderNumber"].ToStringInvariant(),
                 Price = result["rate"].ConvertInvariant<decimal>(),
-                Result = ExchangeAPIOrderResult.Pending,
+                Result = ExchangeAPIOrderResult.Open,
                 MarketSymbol = (marketSymbol ?? result.Parent.Path)
             };
 

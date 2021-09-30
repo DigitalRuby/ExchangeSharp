@@ -287,11 +287,10 @@ namespace ExchangeSharp.API.Exchanges.FTX
 
 		/// <inheritdoc />
 		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
-		{
-			// https://docs.ftx.com/#get-order-status
+		{ // https://docs.ftx.com/#get-order-status and https://docs.ftx.com/#get-order-status-by-client-id
+			if (marketSymbol != null) throw new NotImplementedException("Searching by marketSymbol is either not implemented by or supported by this exchange. Please submit a PR if you are interested in this feature");
 
 			var url = "/orders/";
-
 			if (isClientOrderId)
 			{
 				url += "by_client_id/";
@@ -391,12 +390,16 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				{"side", order.IsBuy ? "buy" : "sell" },
 				{"type", order.OrderType.ToStringLowerInvariant() },
 				{"size", order.RoundAmount() },
-				{"postOnly", order.IsPostOnly }
 			};
 
 			if (!string.IsNullOrEmpty(order.ClientOrderId))
 			{
 				parameters.Add("clientId", order.ClientOrderId);
+			}
+
+			if (order.IsPostOnly != null)
+			{
+				parameters.Add("postOnly", order.IsPostOnly);
 			}
 
 			if (order.OrderType != OrderType.Market)
@@ -487,7 +490,7 @@ namespace ExchangeSharp.API.Exchanges.FTX
 				Amount = token["size"].ConvertInvariant<decimal>(),
 				AmountFilled = token["filledSize"].ConvertInvariant<decimal>(),
 				ClientOrderId = token["clientId"].ToStringInvariant(),
-				Result = token["status"].ToStringInvariant().ToExchangeAPIOrderResult(),
+				Result = token["status"].ToStringInvariant().ToExchangeAPIOrderResult(token["size"].ConvertInvariant<decimal>() - token["filledSize"].ConvertInvariant<decimal>()),
 				ResultCode = token["status"].ToStringInvariant()			
 			};				
 		}

@@ -46,7 +46,7 @@ namespace ExchangeSharpConsole.Options
 
 		private async Task WaitForOrder(ExchangeOrderResult order, IExchangeAPI api)
 		{
-			while (order.Result == ExchangeAPIOrderResult.Pending)
+			while (order.Result == ExchangeAPIOrderResult.Open)
 			{
 				Console.Clear();
 				Console.WriteLine(order);

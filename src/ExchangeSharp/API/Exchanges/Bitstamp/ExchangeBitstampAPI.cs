@@ -349,7 +349,7 @@ namespace ExchangeSharp
 				case "finished": return ExchangeAPIOrderResult.Filled;
 				case "open": return anyTransactions
 						? ExchangeAPIOrderResult.FilledPartially
-						: ExchangeAPIOrderResult.Pending;
+						: ExchangeAPIOrderResult.Open;
 				case "canceled": return ExchangeAPIOrderResult.Canceled;
 				default: return ExchangeAPIOrderResult.Unknown;
 			}
