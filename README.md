@@ -74,7 +74,7 @@ On Windows (or manually):
 
 - Download the [latest binaries](https://github.com/jjxtra/ExchangeSharp/releases/latest) for your OS.
 - Unzip it into a folder that is in your environment variable `PATH` (`ctrl` + `shift` + `pause|break` -> Environment Variables)
-- Use it from the your preferred command-line emulator (e.g. Powershell, cmd, etc.)
+- Use it from your preferred command-line emulator (e.g. Powershell, cmd, etc.)
 - `exchange-sharp --help` shows all available commands
 
 ### Notes
@@ -161,7 +161,7 @@ I'm happy to make customizations to the software for you and keep in private rep
 
 ### Donations Gratefully Accepted
 
-Believe it or not, donations are quite rare. I've posted publicly the total donation amounts below. If ExchangeSharp has helped you in anyway, please consider donating.
+Believe it or not, donations are quite rare. I've posted publicly the total donation amounts below. If ExchangeSharp has helped you in any way, please consider donating.
 
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/small/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)](https://en.cryptobadges.io/donate/1GBz8ithHvTqeRZxkmpHx5kQ9wBXuSH8AG)
 
