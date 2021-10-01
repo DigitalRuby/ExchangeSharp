@@ -270,7 +270,7 @@ namespace ExchangeSharp
 
             result.Amount = token["remains"].ConvertInvariant<decimal>() + result.AmountFilled.Value;
             if (result.Amount == result.AmountFilled) result.Result = ExchangeAPIOrderResult.Filled;
-            else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Pending;
+            else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Open;
             else result.Result = ExchangeAPIOrderResult.FilledPartially;
 
             return result;
@@ -358,7 +358,7 @@ namespace ExchangeSharp
             };
 
             if (result.Amount == result.AmountFilled) result.Result = ExchangeAPIOrderResult.Filled;
-            else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Pending;
+            else if (result.AmountFilled == 0m) result.Result = ExchangeAPIOrderResult.Open;
             else result.Result = ExchangeAPIOrderResult.FilledPartially;
 
             return result;

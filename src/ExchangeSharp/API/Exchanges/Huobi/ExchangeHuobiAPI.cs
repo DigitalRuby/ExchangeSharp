@@ -853,7 +853,7 @@ namespace ExchangeSharp
                 MarketSymbol = order.MarketSymbol
             };
             result.AveragePrice = result.Price;
-            result.Result = ExchangeAPIOrderResult.Pending;
+            result.Result = ExchangeAPIOrderResult.Open;
 
             return result;
         }
@@ -862,21 +862,26 @@ namespace ExchangeSharp
         {
             switch (state)
             {
-                case "pre-submitted":
-                case "submitting":
-                case "submitted":
-                    return ExchangeAPIOrderResult.Pending;
+				case "created":
+				case "pre-submitted":
+				case "submitting":
+					return ExchangeAPIOrderResult.PendingOpen;
+				case "submitted":
+                    return ExchangeAPIOrderResult.Open;
                 case "partial-filled":
                     return ExchangeAPIOrderResult.FilledPartially;
                 case "filled":
                     return ExchangeAPIOrderResult.Filled;
                 case "partial-canceled":
-                case "canceled":
-                    return ExchangeAPIOrderResult.Canceled;
-                default:
-                    return ExchangeAPIOrderResult.Unknown;
-            }
-        }
+					return ExchangeAPIOrderResult.FilledPartiallyAndCancelled;
+				case "canceling":
+					return ExchangeAPIOrderResult.PendingCancel;
+				case "canceled":
+					return ExchangeAPIOrderResult.Canceled;
+				default:
+					throw new NotImplementedException($"Unexpected status type: {state}");
+			}
+		}
 
         private ExchangeOrderResult ParseOrder(JToken token)
         {

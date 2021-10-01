@@ -101,11 +101,14 @@ namespace ExchangeSharp
 				ExchangeAPIOrderResult orderResult;
 				switch (OrderState.ToLowerInvariant())
 				{
+					case "unknown":
+						orderResult = ExchangeAPIOrderResult.Unknown;
+						break;
 					case "working":
-						orderResult = ExchangeAPIOrderResult.Pending;
+						orderResult = ExchangeAPIOrderResult.Open;
 						break;
 					case "rejected":
-						orderResult = ExchangeAPIOrderResult.Error;
+						orderResult = ExchangeAPIOrderResult.Rejected;
 						break;
 					case "canceled":
 						orderResult = ExchangeAPIOrderResult.Canceled;
@@ -117,8 +120,7 @@ namespace ExchangeSharp
 						orderResult = ExchangeAPIOrderResult.Filled;
 						break;
 					default:
-						orderResult = ExchangeAPIOrderResult.Unknown;
-						break;
+						throw new NotImplementedException($"Unexpected status type: {OrderState.ToLowerInvariant()}");
 				};
 				var symbol = symbolToIdMapping.Where(pair => pair.Value.Equals(Instrument));
 				return new ExchangeOrderResult()

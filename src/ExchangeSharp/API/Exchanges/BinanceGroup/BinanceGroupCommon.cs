@@ -886,7 +886,7 @@ namespace ExchangeSharp.BinanceGroup
 			switch (status)
 			{
 				case "NEW":
-					return ExchangeAPIOrderResult.Pending;
+					return ExchangeAPIOrderResult.Open;
 				case "PARTIALLY_FILLED":
 					return ExchangeAPIOrderResult.FilledPartially;
 				case "FILLED":
@@ -896,11 +896,11 @@ namespace ExchangeSharp.BinanceGroup
 				case "PENDING_CANCEL":
 					return ExchangeAPIOrderResult.PendingCancel;
 				case "EXPIRED":
-					return ExchangeAPIOrderResult.Error;
+					return ExchangeAPIOrderResult.Expired;
 				case "REJECTED":
-					return ExchangeAPIOrderResult.Canceled;
+					return ExchangeAPIOrderResult.Rejected;
 				default:
-					return ExchangeAPIOrderResult.Error;
+					throw new NotImplementedException($"Unexpected status type: {status}");
 			}
 		}
 
