@@ -37,7 +37,7 @@ namespace ExchangeSharpTests
         {
             Dictionary<string, string[]> allSymbols = new Dictionary<string, string[]>();
             List<Task> tasks = new List<Task>();
-            foreach (ExchangeAPI api in ExchangeAPI.GetExchangeAPIs())
+            foreach (ExchangeAPI api in await ExchangeAPI.GetExchangeAPIsAsync())
             {
                 tasks.Add(Task.Run(async () =>
                 {
@@ -63,22 +63,22 @@ namespace ExchangeSharpTests
         }
 
 		[TestMethod]
-		public void ExchangeGetCreateTest()
+		public async Task ExchangeGetCreateTest()
 		{
 			// make sure get exchange api calls serve up the same instance
-			var ex1 = ExchangeAPI.GetExchangeAPI<ExchangeGeminiAPI>();
-			var ex2 = ExchangeAPI.GetExchangeAPI(ExchangeName.Gemini);
+			var ex1 = await ExchangeAPI.GetExchangeAPIAsync<ExchangeGeminiAPI>();
+			var ex2 = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Gemini);
 			Assert.AreSame(ex1, ex2);
 			Assert.IsInstanceOfType(ex2, typeof(ExchangeGeminiAPI));
 
 			// make sure create exchange serves up new instances
-			var ex3 = ExchangeAPI.CreateExchangeAPI<ExchangeGeminiAPI>();
+			var ex3 = await ExchangeAPI.CreateExchangeAPIAsync<ExchangeGeminiAPI>();
 			Assert.AreNotSame(ex3, ex2);
 
 			// make sure a bad exchange name throws correct exception
-			Assert.ThrowsException<ApplicationException>(() =>
+			await Assert.ThrowsExceptionAsync<ApplicationException>(() =>
 			{
-				ExchangeAPI.GetExchangeAPI("SirExchangeNotAppearingInThisFilm");
+				return ExchangeAPI.GetExchangeAPIAsync("SirExchangeNotAppearingInThisFilm");
 			});
 		}
 
@@ -86,14 +86,14 @@ namespace ExchangeSharpTests
         public async Task GlobalSymbolTest()
         {
             // if tests fail, uncomment this and it will save a new test file
-            // string allSymbolsJson = GetAllSymbolsJsonAsync().Sync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
+            // string allSymbolsJson = await GetAllSymbolsJsonAsync(); System.IO.File.WriteAllText("TestData/AllSymbols.json", allSymbolsJson);
 
             string globalMarketSymbol = "ETH-BTC"; //1 ETH is worth 0.0192 BTC...
             string globalMarketSymbolAlt = "BTC-KRW"; // WTF Bitthumb... //1 BTC worth 9,783,000 won
             Dictionary<string, string[]> allSymbols = JsonConvert.DeserializeObject<Dictionary<string, string[]>>(System.IO.File.ReadAllText("TestData/AllSymbols.json"));
 
             // sanity test that all exchanges return the same global symbol when converted back and forth
-            foreach (IExchangeAPI api in ExchangeAPI.GetExchangeAPIs())
+            foreach (IExchangeAPI api in await ExchangeAPI.GetExchangeAPIsAsync())
             {
                 try
                 {

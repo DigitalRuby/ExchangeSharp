@@ -45,12 +45,13 @@ namespace ExchangeSharp
 		#region Private methods
 
 		private static readonly IReadOnlyCollection<Type> exchangeTypes = typeof(ExchangeAPI).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(ExchangeAPI)) && !type.IsAbstract).ToArray();
-		private static readonly ConcurrentDictionary<Type, IExchangeAPI> apis = new ConcurrentDictionary<Type, IExchangeAPI>();
+		private static readonly ConcurrentDictionary<Type, Task<IExchangeAPI>> apis = new ConcurrentDictionary<Type, Task<IExchangeAPI>>();
+		private static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1);
 
 		private bool initialized;
 		private bool disposed;
 
-		private static IExchangeAPI InitializeAPI(Type? type, Type? knownType = null)
+		private static async Task<IExchangeAPI> InitializeAPIAsync(Type? type, Type? knownType = null)
 		{
 			if (type is null)
 			{
@@ -64,30 +65,23 @@ namespace ExchangeSharp
 			}
 
 			const int retryCount = 3;
-			Exception? ex = null;
-
+			
 			// try up to 3 times to init
-			for (int i = 1; i <= 3; i++)
+			for (int i = 1; i <= retryCount; i++)
 			{
 				try
 				{
-					api.InitializeAsync().Sync();
-					ex = null;
-					break;
+					await api.InitializeAsync();
 				}
-				catch (Exception _ex)
+				catch (Exception)
 				{
-					ex = _ex;
-					if (i != retryCount)
+					if (i == retryCount)
 					{
-						Thread.Sleep(5000);
+						throw;
 					}
-				}
-			}
 
-			if (ex != null)
-			{
-				throw ex;
+					Thread.Sleep(5000);
+				}
 			}
 
 			return api;
@@ -365,7 +359,7 @@ namespace ExchangeSharp
 				Cache?.Dispose();
 
 				// take out of global api dictionary if disposed and we are the current exchange in the dictionary
-				if (apis.TryGetValue(GetType(), out IExchangeAPI existing) && this == existing)
+				if (apis.TryGetValue(GetType(), out Task<IExchangeAPI> existing) && this == existing.Result)
 				{
 					apis.TryRemove(GetType(), out _);
 				}
@@ -386,9 +380,17 @@ namespace ExchangeSharp
 			initialized = true;
 		}
 
-		private static IExchangeAPI CreateExchangeAPI(Type? type)
+		/// <summary>
+		/// Create an exchange api, by-passing any cache. Use this method for cases
+		/// where you need multiple instances of the same exchange, for example
+		/// multiple credentials.
+		/// </summary>
+		/// <typeparam name="T">Type of exchange api to create</typeparam>
+		/// <returns>Created exchange api</returns>
+		[Obsolete("Use the async version")]
+		public static T CreateExchangeAPI<T>() where T : ExchangeAPI
 		{
-			return InitializeAPI(type);
+			return CreateExchangeAPIAsync<T>().Result;
 		}
 
 		/// <summary>
@@ -398,9 +400,9 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <typeparam name="T">Type of exchange api to create</typeparam>
 		/// <returns>Created exchange api</returns>
-		public static T CreateExchangeAPI<T>() where T : ExchangeAPI
+		public static async Task<T> CreateExchangeAPIAsync<T>() where T : ExchangeAPI
 		{
-			return (T)CreateExchangeAPI(typeof(T));
+			return (T)await InitializeAPIAsync(typeof(T));
 		}
 
 		/// <summary>
@@ -408,10 +410,21 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="exchangeName">Exchange name. Must match the casing of the ExchangeName class name exactly.</param>
 		/// <returns>Exchange API or null if not found</returns>
+		[Obsolete("Use the async version")]
 		public static IExchangeAPI GetExchangeAPI(string exchangeName)
 		{
+			return GetExchangeAPIAsync(exchangeName).Result;
+		}
+
+		/// <summary>
+		/// Get a cached exchange API given an exchange name (see ExchangeName class)
+		/// </summary>
+		/// <param name="exchangeName">Exchange name. Must match the casing of the ExchangeName class name exactly.</param>
+		/// <returns>Exchange API or null if not found</returns>
+		public static Task<IExchangeAPI> GetExchangeAPIAsync(string exchangeName)
+		{
 			Type type = ExchangeName.GetExchangeType(exchangeName);
-			return GetExchangeAPI(type);
+			return GetExchangeAPIAsync(type);
 		}
 
 		/// <summary>
@@ -419,12 +432,18 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <typeparam name="T">Type of exchange to get</typeparam>
 		/// <returns>Exchange API or null if not found</returns>
+		[Obsolete("Use the async version")]
 		public static IExchangeAPI GetExchangeAPI<T>() where T : ExchangeAPI
+		{
+			return GetExchangeAPIAsync<T>().Result;
+		}
+
+		public static Task<IExchangeAPI> GetExchangeAPIAsync<T>() where T : ExchangeAPI
 		{
 			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
 			// subsequent calls with cache hits will be nanoseconds
 			Type type = typeof(T)!;
-			return GetExchangeAPI(type);
+			return GetExchangeAPIAsync(type);
 		}
 
 		/// <summary>
@@ -432,41 +451,66 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="type">Type of exchange</param>
 		/// <returns>Exchange API or null if not found</returns>
+		[Obsolete("Use the async version")]
 		public static IExchangeAPI GetExchangeAPI(Type type)
 		{
-			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
-			// subsequent calls with cache hits will be nanoseconds
-			return apis.GetOrAdd(type, _exchangeName =>
+			return GetExchangeAPIAsync(type).Result;
+		}
+
+		/// <summary>
+		/// Get a cached exchange API given a type
+		/// </summary>
+		/// <param name="type">Type of exchange</param>
+		/// <returns>Exchange API or null if not found</returns>
+		public static async Task<IExchangeAPI> GetExchangeAPIAsync(Type type)
+		{
+			if (apis.TryGetValue(type, out var result)) return await result;
+
+			await semaphore.WaitAsync();
+			try
 			{
-				// find the api type
-				Type? foundType = exchangeTypes.FirstOrDefault(t => t == type);
-				return InitializeAPI(foundType, type);
-			});
+				// try again inside semaphore
+				if (apis.TryGetValue(type, out result)) return await result;
+
+				// still not found, initialize it
+				var foundType = exchangeTypes.FirstOrDefault(t => t == type);
+			    return await (apis[type] = InitializeAPIAsync(foundType, type));
+			}
+			finally
+			{
+				semaphore.Release();
+			}
 		}
 
 		/// <summary>
 		/// Get all cached versions of exchange APIs
 		/// </summary>
 		/// <returns>All APIs</returns>
+		[Obsolete("Use the async version")]
 		public static IExchangeAPI[] GetExchangeAPIs()
 		{
-			foreach (Type type in exchangeTypes)
+			return GetExchangeAPIsAsync().Result;
+		}
+
+		/// <summary>
+		/// Get all cached versions of exchange APIs
+		/// </summary>
+		/// <returns>All APIs</returns>
+		public static async Task<IExchangeAPI[]> GetExchangeAPIsAsync()
+		{
+			var apiList = new List<IExchangeAPI>();
+			foreach (var kv in apis.ToArray())
 			{
-				List<IExchangeAPI> apiList = new List<IExchangeAPI>();
-				foreach (var kv in apis.ToArray())
+				if (kv.Value == null)
 				{
-					if (kv.Value == null)
-					{
-						apiList.Add(GetExchangeAPI(kv.Key));
-					}
-					else
-					{
-						apiList.Add(kv.Value);
-					}
+					apiList.Add(await GetExchangeAPIAsync(kv.Key));
 				}
-				return apiList.ToArray();
+				else
+				{
+					apiList.Add(await kv.Value);
+				}
 			}
-			return apis.Values.ToArray();
+			return apiList.ToArray();
 		}
 
 		/// <summary>

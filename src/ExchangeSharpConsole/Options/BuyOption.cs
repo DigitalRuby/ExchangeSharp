@@ -20,7 +20,7 @@ namespace ExchangeSharpConsole.Options
 
 		protected async Task AddOrder(bool isBuyOrder)
 		{
-			using var api = GetExchangeInstance(ExchangeName);
+			using var api = await GetExchangeInstanceAsync(ExchangeName);
 
 			var exchangeOrderRequest = GetExchangeOrderRequest(isBuyOrder, api);
 

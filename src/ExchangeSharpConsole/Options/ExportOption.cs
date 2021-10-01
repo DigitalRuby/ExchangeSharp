@@ -17,12 +17,12 @@ namespace ExchangeSharpConsole.Options
 	public class ExportOption : BaseOption, IOptionPerExchange, IOptionPerMarketSymbol, IOptionWithIO,
 		IOptionWithStartDate
 	{
-		public override Task RunCommand()
+		public override async Task RunCommand()
 		{
 			long total = 0;
 
-			TraderExchangeExport.ExportExchangeTrades(
-				ExchangeAPI.GetExchangeAPI(ExchangeName),
+			await TraderExchangeExport.ExportExchangeTrades(
+				await ExchangeAPI.GetExchangeAPIAsync(ExchangeName),
 				MarketSymbol,
 				Path,
 				DateTime.Parse(SinceDateString, CultureInfo.InvariantCulture),
@@ -34,8 +34,6 @@ namespace ExchangeSharpConsole.Options
 			);
 
 			Console.WriteLine($"Finished Exporting {ExchangeName}: {total}");
-
-			return Task.CompletedTask;
 		}
 
 		public string ExchangeName { get; set; }

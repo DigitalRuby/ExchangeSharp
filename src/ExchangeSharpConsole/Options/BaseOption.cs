@@ -117,14 +117,14 @@ namespace ExchangeSharpConsole.Options
 			Console.CursorLeft = 0;
 		}
 
-		protected IExchangeAPI GetExchangeInstance(string exchangeName)
+		protected Task<IExchangeAPI> GetExchangeInstanceAsync(string exchangeName)
 		{
-			return ExchangeAPI.GetExchangeAPI(exchangeName);
+			return ExchangeAPI.GetExchangeAPIAsync(exchangeName);
 		}
 
 		protected async Task RunWebSocket(string exchangeName, Func<IExchangeAPI, Task<IWebSocket>> getWebSocket)
 		{
-			using var api = ExchangeAPI.GetExchangeAPI(exchangeName);
+			using var api = await ExchangeAPI.GetExchangeAPIAsync(exchangeName);
 
 			Console.WriteLine("Connecting web socket to {0}...", api.Name);
 

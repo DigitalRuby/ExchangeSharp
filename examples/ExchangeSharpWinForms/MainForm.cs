@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Windows.Forms;
 using ExchangeSharp;
@@ -28,7 +28,7 @@ namespace ExchangeSharpWinForms
             this.UseWaitCursor = true;
             try
             {
-                var api = ExchangeAPI.GetExchangeAPI(cmbExchange.SelectedItem as string);
+                var api = await ExchangeAPI.GetExchangeAPIAsync(cmbExchange.SelectedItem as string);
                 var tickers = await api.GetTickersAsync();
                 StringBuilder b = new StringBuilder();
                 foreach (var ticker in tickers)
@@ -52,10 +52,10 @@ namespace ExchangeSharpWinForms
             InitializeComponent();
         }
 
-        protected override void OnShown(EventArgs e)
+        protected override async void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            foreach (var exchange in ExchangeAPI.GetExchangeAPIs())
+			foreach (var exchange in await ExchangeAPI.GetExchangeAPIsAsync())
             {
                 cmbExchange.Items.Add(exchange.Name);
             }

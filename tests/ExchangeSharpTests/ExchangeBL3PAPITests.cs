@@ -8,7 +8,7 @@ namespace ExchangeSharpTests
 	[TestClass]
 	public sealed class ExchangeBL3PAPITests
 	{
-		private static ExchangeBL3PAPI CreateBL3PAPI(string response = null)
+		private static async Task<ExchangeBL3PAPI> CreateBL3PAPI(string response = null)
 		{
 			var requestMaker = new MockAPIRequestMaker();
 			if (response != null)
@@ -16,7 +16,7 @@ namespace ExchangeSharpTests
 				requestMaker.GlobalResponse = response;
 			}
 
-			var api = (ExchangeAPI.GetExchangeAPI(ExchangeName.BL3P) as ExchangeBL3PAPI)!;
+			var api = (await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.BL3P) as ExchangeBL3PAPI)!;
 			api.RequestMaker = requestMaker;
 			return api;
 		}
@@ -37,7 +37,7 @@ namespace ExchangeSharpTests
     ""30d"": 2297.00207822
   }
 }";
-			var api = CreateBL3PAPI(json);
+			var api = await CreateBL3PAPI(json);
 
 			var ticker = await api.GetTickerAsync("BTCEUR");
 
