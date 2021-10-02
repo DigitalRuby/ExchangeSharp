@@ -20,14 +20,14 @@ Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat wi
 ### Exchanges
 
 The following cryptocurrency exchanges are supported:  
-(Web socket key: T = tickers, R = trades, B = order book, O = private orders)
+(Web socket key: T = tickers, R = trades, B = order book, O = private orders, U = user data)
 
 | Exchange Name  | Public REST | Private REST | Web Socket | Notes                                    |
 | -------------- | ----------- | ------------ | ---------- | ---------------------------------------- |
 | Aquanow        | wip         | x            |            |
-| Binance        | x           | x            | T R B      |
-| Binance Jersey | x           | x            | T R B      |
-| Binance.US     | x           | x            | T R B      |
+| Binance        | x           | x            | T R B U    |
+| Binance Jersey | x           | x            | T R B U    |
+| Binance.US     | x           | x            | T R B U    |
 | Binance DEX    |             |              | R          |
 | Bitbank        | x           | x            |            |
 | Bitfinex       | x           | x            | T R O      |
@@ -39,9 +39,10 @@ The following cryptocurrency exchanges are supported:
 | Bleutrade      | x           | x            |            |
 | BTSE           | x           | x            |            |
 | Bybit          | x           | x            | R          | Has public method for Websocket Positions
-| Coinbase       | x           | x            | T R        |
+| Coinbase       | x           | x            | T R U      |
 | Digifinex      | x           | x            | R B        |
 | FTX            | x           | x            | T          |
+| gate.io        | x           | x            |            |
 | Gemini         | x           | x            | T R B      |
 | HitBTC         | x           | x            | R          |
 | Huobi          | x           | x            | R B        |
@@ -101,11 +102,11 @@ See [`WebSocket4NetClientWebSocket.cs`][websocket4net] for implementation detail
 
 #### dotnet CLI
 
-[`dotnet add package DigitalRuby.ExchangeSharp --version 0.8.2`][nuget]
+[`dotnet add package DigitalRuby.ExchangeSharp --version 0.9.0`][nuget]
 
 #### Package Manager on VS
 
-[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.8.2`][nuget]
+[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 0.9.0`][nuget]
 
 ### Examples
 
