@@ -158,7 +158,7 @@ namespace ExchangeSharp.BinanceGroup
              */
 
 			var markets = new List<ExchangeMarket>();
-			JToken obj = await MakeJsonRequestAsync<JToken>("/exchangeInfo");
+			JToken obj = await MakeJsonRequestAsync<JToken>("/exchangeInfo", BaseUrlApi);
 			JToken allSymbols = obj["symbols"];
 			foreach (JToken marketSymbolToken in allSymbols)
 			{
