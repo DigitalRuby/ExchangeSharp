@@ -12,8 +12,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using ExchangeSharp.OKGroup;
 using Newtonsoft.Json.Linq;
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ExchangeSharp
@@ -61,43 +61,35 @@ namespace ExchangeSharp
 			  ]
 			}
 			*/
-			List<ExchangeMarket> markets = new List<ExchangeMarket>();
+			var markets = new List<ExchangeMarket>();
 			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 				"/public/instruments?instType=SPOT", BaseUrlV5));
-			if (IsFuturesAndSwapEnabled)
-			{
-				parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
-					"/public/instruments?instType=FUTURES", BaseUrlV5));
-				parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
-					"/public/instruments?instType=SWAP", BaseUrlV5));
-			}
+			if (!IsFuturesAndSwapEnabled)
+				return markets;
+			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
+				"/public/instruments?instType=FUTURES", BaseUrlV5));
+			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
+				"/public/instruments?instType=SWAP", BaseUrlV5));
+			return markets;
+
 			void parseMarketSymbolTokens(JToken allMarketSymbolTokens)
 			{
-				foreach (JToken marketSymbolToken in allMarketSymbolTokens)
-				{
-					var isSpot = marketSymbolToken["instType"].Value<string>() == "SPOT";
-					var baseCurrency = isSpot
-						? marketSymbolToken["baseCcy"].Value<string>()
-						: marketSymbolToken["settleCcy"].Value<string>();
-					var quoteCurrency = isSpot
-						? marketSymbolToken["quoteCcy"].Value<string>()
-						: marketSymbolToken["ctValCcy"].Value<string>();
-					var market = new ExchangeMarket
-					{
-						MarketSymbol = marketSymbolToken["instId"].Value<string>(),
-						IsActive = marketSymbolToken["state"].Value<string>() == "live",
-						QuoteCurrency = quoteCurrency,
-						BaseCurrency = baseCurrency,
-						PriceStepSize = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(),
-						MinPrice = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(), // assuming that this is also the min price since it isn't provided explicitly by the exchange
-						MinTradeSize = marketSymbolToken["minSz"].ConvertInvariant<decimal>(),
-						QuantityStepSize = marketSymbolToken["lotSz"].ConvertInvariant<decimal>(),
-					};
-					markets.Add(market);
-				}
+				markets.AddRange(from marketSymbolToken in allMarketSymbolTokens
+				                 let isSpot = marketSymbolToken["instType"].Value<string>() == "SPOT"
+				                 let baseCurrency = isSpot ? marketSymbolToken["baseCcy"].Value<string>() : marketSymbolToken["settleCcy"].Value<string>()
+				                 let quoteCurrency = isSpot ? marketSymbolToken["quoteCcy"].Value<string>() : marketSymbolToken["ctValCcy"].Value<string>()
+				                 select new ExchangeMarket
+				                 {
+					                 MarketSymbol = marketSymbolToken["instId"].Value<string>(),
+					                 IsActive = marketSymbolToken["state"].Value<string>() == "live",
+					                 QuoteCurrency = quoteCurrency,
+					                 BaseCurrency = baseCurrency,
+					                 PriceStepSize = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(),
+					                 MinPrice = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(), // assuming that this is also the min price since it isn't provided explicitly by the exchange
+					                 MinTradeSize = marketSymbolToken["minSz"].ConvertInvariant<decimal>(),
+					                 QuantityStepSize = marketSymbolToken["lotSz"].ConvertInvariant<decimal>()
+				                 });
 			}
-
-			return markets;
 		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
@@ -109,13 +101,14 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
-			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
 			await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SPOT", BaseUrlV5));
-			if (IsFuturesAndSwapEnabled)
-			{
-				await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=FUTURES", BaseUrlV5));
-				await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SWAP", BaseUrlV5));
-			}
+			if (!IsFuturesAndSwapEnabled)
+				return tickers;
+			await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=FUTURES", BaseUrlV5));
+			await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SWAP", BaseUrlV5));
+			return tickers;
+
 			async Task parseData(JToken tickerResponse)
 			{
 				/*{
@@ -148,49 +141,41 @@ namespace ExchangeSharp
 				foreach (JToken t in tickerResponse)
 				{
 					var symbol = t["instId"].Value<string>();
-					ExchangeTicker ticker = await ParseTickerV5Async(t, symbol);
+					var ticker = await ParseTickerV5Async(t, symbol);
 					tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
 				}
 			}
-
-			return tickers;
 		}
 
-		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol,
+			int? limit = null)
 		{
-			limit = limit ?? 500;
+			limit ??= 500;
 			marketSymbol = NormalizeMarketSymbol(marketSymbol);
-			List<ExchangeTrade> trades = new List<ExchangeTrade>();
-			var recentTradesResponse = await MakeJsonRequestAsync<JToken>($"/market/trades?instId={marketSymbol}&limit={limit}", BaseUrlV5);
-			foreach (var t in recentTradesResponse)
-			{
-				trades.Add(
-					t.ParseTrade(
-					amountKey: "sz",
-					priceKey: "px",
-					typeKey: "side",
-					timestampKey: "ts",
-					timestampType: TimestampType.UnixMilliseconds,
-					idKey: "tradeId"));
-			}
-
-			return trades;
+			var recentTradesResponse =
+				await MakeJsonRequestAsync<JToken>($"/market/trades?instId={marketSymbol}&limit={limit}", BaseUrlV5);
+			return recentTradesResponse.Select(t => t.ParseTrade(
+					"sz", "px", "side", "ts", TimestampType.UnixMilliseconds, "tradeId"))
+				.ToList();
 		}
 
 		private async Task<ExchangeTicker> ParseTickerV5Async(JToken t, string symbol)
 		{
 			return await this.ParseTickerAsync(
-									t,
-									symbol,
-									askKey: "askPx",
-									bidKey: "bidPx",
-									lastKey: "last",
-									baseVolumeKey: "vol24h",
-									quoteVolumeKey: "volCcy24h",
-									timestampKey: "ts",
-									timestampType: TimestampType.UnixMilliseconds);
+				token: t,
+				marketSymbol: symbol,
+				askKey: "askPx",
+				bidKey: "bidPx",
+				lastKey: "last",
+				baseVolumeKey: "vol24h",
+				quoteVolumeKey: "volCcy24h",
+				timestampKey: "ts",
+				timestampType: TimestampType.UnixMilliseconds);
 		}
 	}
 
-	public partial class ExchangeName { public const string OKEx = "OKEx"; }
+	public partial class ExchangeName
+	{
+		public const string OKEx = "OKEx";
+	}
 }
