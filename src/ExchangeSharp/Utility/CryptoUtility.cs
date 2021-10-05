@@ -1137,8 +1137,9 @@ namespace ExchangeSharp
         /// Convert seconds to a period string, i.e. 5s, 1m, 2h, 3d, 1w, 1M, etc.
         /// </summary>
         /// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <param name="capitalAfterMinute">Capitalize all letters after m, i.e. 5s, 1m, 30m, 1H, 2H, 3D, 1W, 1M, etc.</param>
         /// <returns>Period string</returns>
-        public static string SecondsToPeriodString(int seconds)
+        public static string SecondsToPeriodString(int seconds, bool capitalAfterMinute = false)
         {
             const int minuteThreshold = 60;
             const int hourThreshold = 60 * 60;
@@ -1152,15 +1153,15 @@ namespace ExchangeSharp
             }
             else if (seconds >= weekThreshold)
             {
-                return seconds / weekThreshold + "w";
+                return seconds / weekThreshold + (capitalAfterMinute ? "W" : "w");
             }
             else if (seconds >= dayThreshold)
             {
-                return seconds / dayThreshold + "d";
+                return seconds / dayThreshold + (capitalAfterMinute ? "D" : "d");
             }
             else if (seconds >= hourThreshold)
             {
-                return seconds / hourThreshold + "h";
+                return seconds / hourThreshold + (capitalAfterMinute ? "H" : "h");
             }
             else if (seconds >= minuteThreshold)
             {
