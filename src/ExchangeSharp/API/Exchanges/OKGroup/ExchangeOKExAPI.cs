@@ -10,6 +10,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,6 +27,11 @@ namespace ExchangeSharp
 		public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:8443/ws/v3";
 		public string BaseUrlV5 { get; set; } = "https://okex.com/api/v5";
 		protected override bool IsFuturesAndSwapEnabled { get; } = true;
+
+		public override string PeriodSecondsToString(int seconds)
+		{
+			return CryptoUtility.SecondsToPeriodString(seconds, true);
+		}
 
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
@@ -95,8 +101,8 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
 			var tickerResponse = await MakeJsonRequestAsync<JToken>($"/market/ticker?instId={marketSymbol}", BaseUrlV5);
-			var symbol = tickerResponse["instId"].Value<string>();
-			return await ParseTickerV5Async(tickerResponse, symbol);
+			var symbol = tickerResponse[0]["instId"].Value<string>();
+			return await ParseTickerV5Async(tickerResponse[0], symbol);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -163,6 +169,42 @@ namespace ExchangeSharp
 		{
 			var token = await MakeJsonRequestAsync<JToken>($"/market/books?instId={marketSymbol}&sz={maxCount}", BaseUrlV5);
 			return token[0].ParseOrderBookFromJTokenArrays(maxCount: maxCount);
+		}
+
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		{
+			/*
+			 {
+			    "code":"0",
+			    "msg":"",
+			    "data":[
+			     [
+			        "1597026383085", timestamp
+			        "3.721", open
+			        "3.743", high
+			        "3.677", low
+			        "3.708", close
+			        "8422410", volume
+			        "22698348.04828491" volCcy (Quote)
+			    ],..
+			    ]
+			}
+			*/
+
+			var candles = new List<MarketCandle>();
+			var url = $"/market/history-candles?instId={marketSymbol}";
+			if (startDate.HasValue)
+				url += "&after=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
+			if (endDate.HasValue)
+				url += "&before=" + (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds();
+			if (limit.HasValue)
+				url += "&limit=" + limit.Value.ToStringInvariant();
+			var periodString = PeriodSecondsToString(periodSeconds);
+			url += $"&bar={periodString}";
+			var obj = await MakeJsonRequestAsync<JToken>(url, BaseUrlV5);
+			foreach (JArray token in obj)
+				candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 6));
+			return candles;
 		}
 
 		private async Task<ExchangeTicker> ParseTickerV5Async(JToken t, string symbol)
