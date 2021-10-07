@@ -325,6 +325,34 @@ namespace ExchangeSharp
 			return tickers;
 		}
 
+		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+		{
+			var result = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}");
+
+			return await this.ParseTickerAsync(result, marketSymbol, "ask", "bid", "last", null, null, "time", TimestampType.UnixSecondsDouble);
+		}
+
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest request)
+		{
+			var parameters = new Dictionary<string, object>
+			{
+				{ "coin", request.Currency },
+				{ "size", request.Amount },
+				{ "address", request.Address },
+				{ "tag", request.AddressTag },
+				{ "nonce", await GenerateNonceAsync() },
+				{ "password", request.Password },
+				{ "code", request.Code }
+			};
+
+			var result = await MakeJsonRequestAsync<JToken>("/wallet/withdrawals", null, parameters, "POST");
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = result["id"].ToString()
+			};
+		}
+
 		/// <inheritdoc />
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> tickers, params string[] marketSymbols)
 		{
@@ -389,7 +417,7 @@ namespace ExchangeSharp
 				{"market", market.MarketSymbol},
 				{"side", order.IsBuy ? "buy" : "sell" },
 				{"type", order.OrderType.ToStringLowerInvariant() },
-				{"size", order.RoundAmount() },
+				{"size", order.RoundAmount() }
 			};
 
 			if (!string.IsNullOrEmpty(order.ClientOrderId))
