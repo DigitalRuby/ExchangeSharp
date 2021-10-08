@@ -339,7 +339,6 @@ namespace ExchangeSharp
 				{ "coin", request.Currency },
 				{ "size", request.Amount },
 				{ "address", request.Address },
-				{ "tag", request.AddressTag },
 				{ "nonce", await GenerateNonceAsync() },
 				{ "password", request.Password },
 				{ "code", request.Code }
