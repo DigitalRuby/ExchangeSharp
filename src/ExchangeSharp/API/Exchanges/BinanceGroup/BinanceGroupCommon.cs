@@ -210,11 +210,10 @@ namespace ExchangeSharp.BinanceGroup
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
 			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-			string marketSymbol;
-			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr");
+			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr", BaseUrlApi);
 			foreach (JToken child in obj)
 			{
-				marketSymbol = child["symbol"].ToStringInvariant();
+				string marketSymbol = child["symbol"].ToStringInvariant();
 				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(marketSymbol, child)));
 			}
 			return tickers;
