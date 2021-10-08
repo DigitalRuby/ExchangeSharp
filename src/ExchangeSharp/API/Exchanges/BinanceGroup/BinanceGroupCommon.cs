@@ -457,9 +457,8 @@ namespace ExchangeSharp.BinanceGroup
 		}
 
 
-
-
-		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol,
+			int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
 			/* [
             [
@@ -477,25 +476,25 @@ namespace ExchangeSharp.BinanceGroup
 		    "17928899.62484339" // Can be ignored
 		    ]] */
 
-			List<MarketCandle> candles = new List<MarketCandle>();
 			string url = "/klines?symbol=" + marketSymbol;
 			if (startDate != null)
 			{
 				url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
-				url += "&endTime=" + ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds())).ToStringInvariant();
+				url += "&endTime=" +
+				       ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds()))
+				       .ToStringInvariant();
 			}
+
 			if (limit != null)
 			{
 				url += "&limit=" + (limit.Value.ToStringInvariant());
 			}
-			url += "&interval=" + PeriodSecondsToString(periodSeconds);
-			JToken obj = await MakeJsonRequestAsync<JToken>(url);
-			foreach (JToken token in obj)
-			{
-				candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 7));
-			}
 
-			return candles;
+			url += "&interval=" + PeriodSecondsToString(periodSeconds);
+			JToken obj = await MakeJsonRequestAsync<JToken>(url, BaseUrlApi);
+
+			return obj.Select(token => this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0,
+				TimestampType.UnixMilliseconds, 5, 7)).ToList();
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
