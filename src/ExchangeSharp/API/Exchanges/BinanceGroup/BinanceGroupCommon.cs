@@ -203,7 +203,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
-			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol);
+			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol, BaseUrlApi);
 			return await ParseTickerAsync(marketSymbol, obj);
 		}
 
@@ -582,7 +582,7 @@ namespace ExchangeSharp.BinanceGroup
 				throw new InvalidOperationException("Binance single order details request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
-			
+
 			if (isClientOrderId) // Either orderId or origClientOrderId must be sent.
 				payload["origClientOrderId"] = orderId;
 			else
