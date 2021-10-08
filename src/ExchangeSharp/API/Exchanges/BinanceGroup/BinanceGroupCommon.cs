@@ -347,21 +347,17 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
 		{
-			List<ExchangeTrade> trades = new List<ExchangeTrade>();
-			//var maxRequestLimit = 1000; //hard coded for now, should add limit as an argument
-			//https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#compressedaggregate-trades-list
-			int maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
+			//https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md
+			var trades = new List<ExchangeTrade>();
+			var maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
 
-			JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}");
-			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
-			if(obj.HasValues) { //
-				foreach(JToken token in obj) {
-					var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
-					trades.Add(trade);
-				}
+			JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}", BaseUrlApi);
+			if (obj.HasValues)
+			{
+				trades.AddRange(obj.Select(token =>
+					token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false")));
 			}
 			return trades.AsEnumerable().Reverse(); //Descending order (ie newest trades first)
-			//return trades;
 		}
 
 		public async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
