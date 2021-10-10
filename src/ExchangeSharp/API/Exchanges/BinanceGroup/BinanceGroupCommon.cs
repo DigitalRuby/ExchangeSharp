@@ -203,18 +203,17 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
-			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol);
+			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr?symbol=" + marketSymbol, BaseUrlApi);
 			return await ParseTickerAsync(marketSymbol, obj);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
 			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-			string marketSymbol;
-			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr");
+			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr", BaseUrlApi);
 			foreach (JToken child in obj)
 			{
-				marketSymbol = child["symbol"].ToStringInvariant();
+				string marketSymbol = child["symbol"].ToStringInvariant();
 				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(marketSymbol, child)));
 			}
 			return tickers;
@@ -308,7 +307,7 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
-			JToken obj = await MakeJsonRequestAsync<JToken>("/depth?symbol=" + marketSymbol + "&limit=" + maxCount);
+			JToken obj = await MakeJsonRequestAsync<JToken>($"/depth?symbol={marketSymbol}&limit={maxCount}", BaseUrlApi);
 			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "lastUpdateId", maxCount: maxCount);
 		}
 
@@ -348,21 +347,17 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
 		{
-			List<ExchangeTrade> trades = new List<ExchangeTrade>();
-			//var maxRequestLimit = 1000; //hard coded for now, should add limit as an argument
-			//https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#compressedaggregate-trades-list
-			int maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
+			//https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md
+			var trades = new List<ExchangeTrade>();
+			var maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
 
-			JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}");
-			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
-			if(obj.HasValues) { //
-				foreach(JToken token in obj) {
-					var trade = token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false");
-					trades.Add(trade);
-				}
+			JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}", BaseUrlApi);
+			if (obj.HasValues)
+			{
+				trades.AddRange(obj.Select(token =>
+					token.ParseTrade("q", "p", "m", "T", TimestampType.UnixMilliseconds, "a", "false")));
 			}
 			return trades.AsEnumerable().Reverse(); //Descending order (ie newest trades first)
-			//return trades;
 		}
 
 		public async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, long startId, long? endId = null)
@@ -462,9 +457,8 @@ namespace ExchangeSharp.BinanceGroup
 		}
 
 
-
-
-		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol,
+			int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
 			/* [
             [
@@ -482,25 +476,25 @@ namespace ExchangeSharp.BinanceGroup
 		    "17928899.62484339" // Can be ignored
 		    ]] */
 
-			List<MarketCandle> candles = new List<MarketCandle>();
 			string url = "/klines?symbol=" + marketSymbol;
 			if (startDate != null)
 			{
 				url += "&startTime=" + (long)startDate.Value.UnixTimestampFromDateTimeMilliseconds();
-				url += "&endTime=" + ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds())).ToStringInvariant();
+				url += "&endTime=" +
+				       ((endDate == null ? long.MaxValue : (long)endDate.Value.UnixTimestampFromDateTimeMilliseconds()))
+				       .ToStringInvariant();
 			}
+
 			if (limit != null)
 			{
 				url += "&limit=" + (limit.Value.ToStringInvariant());
 			}
-			url += "&interval=" + PeriodSecondsToString(periodSeconds);
-			JToken obj = await MakeJsonRequestAsync<JToken>(url);
-			foreach (JToken token in obj)
-			{
-				candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 7));
-			}
 
-			return candles;
+			url += "&interval=" + PeriodSecondsToString(periodSeconds);
+			JToken obj = await MakeJsonRequestAsync<JToken>(url, BaseUrlApi);
+
+			return obj.Select(token => this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0,
+				TimestampType.UnixMilliseconds, 5, 7)).ToList();
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
@@ -582,7 +576,7 @@ namespace ExchangeSharp.BinanceGroup
 				throw new InvalidOperationException("Binance single order details request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
-			
+
 			if (isClientOrderId) // Either orderId or origClientOrderId must be sent.
 				payload["origClientOrderId"] = orderId;
 			else
