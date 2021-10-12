@@ -182,8 +182,9 @@ namespace ExchangeSharp.Coinbase
 			IsAmountFilledReversed = false, // the size here appears to be amount filled, no no need to reverse
 			Price = Price,
 			AveragePrice = Price, // not specified here
-			// OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate
+			// OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
 			CompletedDate = null, // order not necessarily fullly filled at this point
+			TradeDate = Time.ToDateTimeInvariant(),
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = (MakerFeeRate ?? TakerFeeRate) * Price * Size,

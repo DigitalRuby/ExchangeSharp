@@ -65,7 +65,9 @@ namespace ExchangeSharp
 				Fees = fees,
 				AveragePrice = price,
 				IsBuy = (result["side"].ToStringInvariant() == "buy"),
-				OrderDate = result["created_at"].ToDateTimeInvariant(),
+				// OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
+				CompletedDate = null, // order not necessarily fully filled at this point
+				TradeDate = result["created_at"].ToDateTimeInvariant(), // even though it is named "created_at", the documentation says that it is the: timestamp of fill
 				MarketSymbol = symbol,
 				OrderId = result["order_id"].ToStringInvariant(),
 			};
