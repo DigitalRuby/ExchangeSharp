@@ -385,6 +385,7 @@ namespace ExchangeSharp
 		{
 			var res = ParseOrderCore(token);
 			res.TradeId = token["trade_id"].ToStringInvariant();
+			res.TradeDate = token["executed_at"].ConvertInvariant<double>().UnixTimeStampToDateTimeMilliseconds();
 			res.Amount = token["amount"].ConvertInvariant<decimal>();
 			res.AmountFilled = res.Amount;
 			res.Fees = token["fee_amount_base"].ConvertInvariant<decimal>();

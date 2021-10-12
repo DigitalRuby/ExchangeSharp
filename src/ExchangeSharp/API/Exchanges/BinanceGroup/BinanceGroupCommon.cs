@@ -924,7 +924,9 @@ namespace ExchangeSharp.BinanceGroup
 				Price = token["price"].ConvertInvariant<decimal>(),
 				AveragePrice = token["price"].ConvertInvariant<decimal>(),
 				IsBuy = token["isBuyer"].ConvertInvariant<bool>() == true,
-				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>()),
+				// OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
+				CompletedDate = null, // order not necessarily fullly filled at this point
+				TradeDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["time"].ConvertInvariant<long>()),
 				OrderId = token["orderId"].ToStringInvariant(),
 				TradeId = token["id"].ToStringInvariant(),
 				Fees = token["commission"].ConvertInvariant<decimal>(),

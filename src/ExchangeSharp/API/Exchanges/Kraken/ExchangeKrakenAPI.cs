@@ -239,7 +239,6 @@ namespace ExchangeSharp
 			ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
 			orderResult.Result = ExchangeAPIOrderResult.Filled;
 			orderResult.Message = "";
-			orderResult.OrderDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
 			orderResult.MarketSymbol = order["pair"].ToStringInvariant();
 			orderResult.IsBuy = (order["type"].ToStringInvariant() == "buy");
 			orderResult.Amount = order["vol"].ConvertInvariant<decimal>();
@@ -249,7 +248,9 @@ namespace ExchangeSharp
 			orderResult.TradeId = order["postxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.OrderId = order["ordertxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.AmountFilled = order["vol"].ConvertInvariant<decimal>();
-			orderResult.CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
+			// orderResult.OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
+			orderResult.CompletedDate = null; // order not necessarily fully filled at this point
+			orderResult.TradeDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(order["time"].ConvertInvariant<double>());
 
 			string[] pairs = (await ExchangeMarketSymbolToGlobalMarketSymbolAsync(order["pair"].ToStringInvariant())).Split('-');
 			orderResult.FeesCurrency = pairs[1];

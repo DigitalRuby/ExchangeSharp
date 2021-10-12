@@ -356,7 +356,9 @@ namespace ExchangeSharp
 				AmountFilled = x["amount"].ConvertInvariant<decimal>(),
 				Fees = x["fee"].ConvertInvariant<decimal>(),
 				FeesCurrency = x["fee_currency"].ToStringInvariant(),
-				CompletedDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["timestamp"].ConvertInvariant<long>()),
+				// OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
+				CompletedDate = null, // order not necessarily fully filled at this point
+				TradeDate = CryptoUtility.UnixTimeStampToDateTimeSeconds(x["timestamp"].ConvertInvariant<long>()),
 				IsBuy = x["side"].ToStringLowerInvariant() == "buy",
 				Result = ExchangeAPIOrderResult.Unknown,
 			});
