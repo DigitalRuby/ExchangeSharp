@@ -10,11 +10,15 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using ExchangeSharp.OKGroup;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -205,6 +209,49 @@ namespace ExchangeSharp
 			foreach (JArray token in obj)
 				candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 6));
 			return candles;
+		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		{
+			var payload = await GetNoncePayloadAsync();
+			JToken token = await MakeJsonRequestAsync<JToken>("/account/balance", BaseUrlV5, payload);
+			return token[0]["details"]
+				.Select(x => new { Currency = x["ccy"].Value<string>(), TotalBalance = x["cashBal"].Value<decimal>() })
+				.ToDictionary(k => k.Currency, v => v.TotalBalance);;
+		}
+
+		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (!CanMakeAuthenticatedRequest(payload)) return Task.CompletedTask;
+			// We don't need nonce in the request. Using it only to not break CanMakeAuthenticatedRequest.
+			payload.Remove("nonce");
+
+			var method = request.Method;
+			var now = DateTime.Now;
+			var timeStamp = TimeZoneInfo.ConvertTimeToUtc(now).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+			var requestUrl = request.RequestUri.PathAndQuery;
+			var body = payload.Any() ? JsonConvert.SerializeObject(payload) : string.Empty;
+
+			var sign = string.IsNullOrEmpty(body)
+				? HmacSHA256($"{timeStamp}{method}{requestUrl}", PrivateApiKey!.ToUnsecureString())
+				: HmacSHA256($"{timeStamp}{method}{requestUrl}{body}", PrivateApiKey!.ToUnsecureString());
+
+			request.AddHeader("OK-ACCESS-KEY", PublicApiKey!.ToUnsecureString());
+			request.AddHeader("OK-ACCESS-SIGN", sign);
+			request.AddHeader("OK-ACCESS-TIMESTAMP", timeStamp.ToString());
+			request.AddHeader("OK-ACCESS-PASSPHRASE", Passphrase!.ToUnsecureString());
+			request.AddHeader("x-simulated-trading", "0");
+
+			string HmacSHA256(string infoStr, string secret)
+			{
+				var sha256Data = Encoding.UTF8.GetBytes(infoStr);
+				var secretData = Encoding.UTF8.GetBytes(secret);
+				using var hmacsha256 = new HMACSHA256(secretData);
+				var buffer = hmacsha256.ComputeHash(sha256Data);
+				return Convert.ToBase64String(buffer);
+			}
+
+			return Task.CompletedTask;
 		}
 
 		private async Task<ExchangeTicker> ParseTickerV5Async(JToken t, string symbol)
