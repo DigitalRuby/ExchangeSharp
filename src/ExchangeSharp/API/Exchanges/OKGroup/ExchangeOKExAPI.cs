@@ -257,6 +257,28 @@ namespace ExchangeSharp
 					.ToDictionary(k => k.Key, v => v.Value);
 		}
 
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol)
+		{
+			var token = await MakeJsonRequestAsync<JToken>("/trade/orders-pending", BaseUrlV5,
+				await GetNoncePayloadAsync());
+			return token
+				.Select(x => new ExchangeOrderResult()
+				{
+					OrderId = x["ordId"].Value<string>(),
+					OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(x["cTime"].Value<long>()).DateTime,
+					Result = x["state"].Value<string>() == "live" ? ExchangeAPIOrderResult.Open : ExchangeAPIOrderResult.FilledPartially,
+					IsBuy = x["side"].Value<string>() == "buy" ? true : false,
+					IsAmountFilledReversed = false,
+					Amount = x["sz"].Value<decimal>(),
+					AmountFilled = x["accFillSz"].Value<decimal>(),
+					AveragePrice = x["avgPx"].Value<string>() == string.Empty ? default : x["avgPx"].Value<decimal>(),
+					Price = x["px"].Value<decimal>(),
+					ClientOrderId = x["clOrdId"].Value<string>(),
+					FeesCurrency = x["feeCcy"].Value<string>(),
+					MarketSymbol = x["instId"].Value<string>()
+				});
+		}
+
 		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
 			if (!CanMakeAuthenticatedRequest(payload)) return Task.CompletedTask;
