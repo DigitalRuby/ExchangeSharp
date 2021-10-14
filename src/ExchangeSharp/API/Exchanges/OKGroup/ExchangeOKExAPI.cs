@@ -85,20 +85,26 @@ namespace ExchangeSharp
 			void parseMarketSymbolTokens(JToken allMarketSymbolTokens)
 			{
 				markets.AddRange(from marketSymbolToken in allMarketSymbolTokens
-				                 let isSpot = marketSymbolToken["instType"].Value<string>() == "SPOT"
-				                 let baseCurrency = isSpot ? marketSymbolToken["baseCcy"].Value<string>() : marketSymbolToken["settleCcy"].Value<string>()
-				                 let quoteCurrency = isSpot ? marketSymbolToken["quoteCcy"].Value<string>() : marketSymbolToken["ctValCcy"].Value<string>()
-				                 select new ExchangeMarket
-				                 {
-					                 MarketSymbol = marketSymbolToken["instId"].Value<string>(),
-					                 IsActive = marketSymbolToken["state"].Value<string>() == "live",
-					                 QuoteCurrency = quoteCurrency,
-					                 BaseCurrency = baseCurrency,
-					                 PriceStepSize = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(),
-					                 MinPrice = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(), // assuming that this is also the min price since it isn't provided explicitly by the exchange
-					                 MinTradeSize = marketSymbolToken["minSz"].ConvertInvariant<decimal>(),
-					                 QuantityStepSize = marketSymbolToken["lotSz"].ConvertInvariant<decimal>()
-				                 });
+					let isSpot = marketSymbolToken["instType"].Value<string>() == "SPOT"
+					let baseCurrency = isSpot
+						? marketSymbolToken["baseCcy"].Value<string>()
+						: marketSymbolToken["settleCcy"].Value<string>()
+					let quoteCurrency = isSpot
+						? marketSymbolToken["quoteCcy"].Value<string>()
+						: marketSymbolToken["ctValCcy"].Value<string>()
+					select new ExchangeMarket
+					{
+						MarketSymbol = marketSymbolToken["instId"].Value<string>(),
+						IsActive = marketSymbolToken["state"].Value<string>() == "live",
+						QuoteCurrency = quoteCurrency,
+						BaseCurrency = baseCurrency,
+						PriceStepSize = marketSymbolToken["tickSz"].ConvertInvariant<decimal>(),
+						MinPrice = marketSymbolToken["tickSz"]
+							.ConvertInvariant<
+								decimal>(), // assuming that this is also the min price since it isn't provided explicitly by the exchange
+						MinTradeSize = marketSymbolToken["minSz"].ConvertInvariant<decimal>(),
+						QuantityStepSize = marketSymbolToken["lotSz"].ConvertInvariant<decimal>()
+					});
 			}
 		}
 
@@ -171,11 +177,13 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
-			var token = await MakeJsonRequestAsync<JToken>($"/market/books?instId={marketSymbol}&sz={maxCount}", BaseUrlV5);
+			var token = await MakeJsonRequestAsync<JToken>($"/market/books?instId={marketSymbol}&sz={maxCount}",
+				BaseUrlV5);
 			return token[0].ParseOrderBookFromJTokenArrays(maxCount: maxCount);
 		}
 
-		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol,
+			int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
 		{
 			/*
 			 {
@@ -207,7 +215,8 @@ namespace ExchangeSharp
 			url += $"&bar={periodString}";
 			var obj = await MakeJsonRequestAsync<JToken>(url, BaseUrlV5);
 			foreach (JArray token in obj)
-				candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5, 6));
+				candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0,
+					TimestampType.UnixMilliseconds, 5, 6));
 			return candles;
 		}
 
@@ -216,7 +225,8 @@ namespace ExchangeSharp
 			var token = await GetBalance();
 			return token[0]["details"]
 				.Select(x => new { Currency = x["ccy"].Value<string>(), TotalBalance = x["cashBal"].Value<decimal>() })
-				.ToDictionary(k => k.Currency, v => v.TotalBalance);;
+				.ToDictionary(k => k.Currency, v => v.TotalBalance);
+			;
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
@@ -226,6 +236,25 @@ namespace ExchangeSharp
 				.Select(x => new
 					{ Currency = x["ccy"].Value<string>(), AvailableBalance = x["availBal"].Value<decimal>() })
 				.ToDictionary(k => k.Currency, v => v.AvailableBalance);
+		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(
+			bool includeZeroBalances)
+		{
+			var token = await GetBalance();
+			var availableEquity = token[0]["details"]
+				.Select(x => new
+				{
+					Currency = x["ccy"].Value<string>(),
+					AvailableEquity = x["availEq"].Value<string>() == string.Empty ? 0 : x["availEq"].Value<decimal>()
+				})
+				.ToDictionary(k => k.Currency, v => v.AvailableEquity);
+
+			return includeZeroBalances
+				? availableEquity
+				: availableEquity
+					.Where(x => x.Value > 0)
+					.ToDictionary(k => k.Key, v => v.Value);
 		}
 
 		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
