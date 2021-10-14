@@ -213,11 +213,19 @@ namespace ExchangeSharp
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
-			var payload = await GetNoncePayloadAsync();
-			JToken token = await MakeJsonRequestAsync<JToken>("/account/balance", BaseUrlV5, payload);
+			var token = await GetBalance();
 			return token[0]["details"]
 				.Select(x => new { Currency = x["ccy"].Value<string>(), TotalBalance = x["cashBal"].Value<decimal>() })
 				.ToDictionary(k => k.Currency, v => v.TotalBalance);;
+		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		{
+			var token = await GetBalance();
+			return token[0]["details"]
+				.Select(x => new
+					{ Currency = x["ccy"].Value<string>(), AvailableBalance = x["availBal"].Value<decimal>() })
+				.ToDictionary(k => k.Currency, v => v.AvailableBalance);
 		}
 
 		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -252,6 +260,11 @@ namespace ExchangeSharp
 			}
 
 			return Task.CompletedTask;
+		}
+
+		private async Task<JToken> GetBalance()
+		{
+			return await MakeJsonRequestAsync<JToken>("/account/balance", BaseUrlV5, await GetNoncePayloadAsync());
 		}
 
 		private async Task<ExchangeTicker> ParseTickerV5Async(JToken t, string symbol)
