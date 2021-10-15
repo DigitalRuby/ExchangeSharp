@@ -29,7 +29,7 @@ namespace ExchangeSharp
 		public override string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
 		public override string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
 		public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:8443/ws/v3";
-		public string BaseUrlV5 { get; set; } = "https://okex.com/api/v5";
+		public string BaseUrlV5 { get; set; } = "https://www.okex.com/api/v5";
 		protected override bool IsFuturesAndSwapEnabled { get; } = true;
 
 		public override string PeriodSecondsToString(int seconds)
@@ -286,9 +286,27 @@ namespace ExchangeSharp
 			return ParseOrders(token).First();
 		}
 
-		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol)
 		{
-			if (!CanMakeAuthenticatedRequest(payload)) return Task.CompletedTask;
+			if (string.IsNullOrEmpty(orderId))
+			{
+				throw new ArgumentNullException(nameof(orderId), "Okex cancel order request requires order ID");
+			}
+
+			if (string.IsNullOrEmpty(marketSymbol))
+			{
+				throw new ArgumentNullException(nameof(marketSymbol), "Okex cancel order request requires symbol");
+			}
+
+			var payload = await GetNoncePayloadAsync();
+			payload["ordId"] = orderId;
+			payload["instId"] = marketSymbol;
+			var token = await MakeJsonRequestAsync<JToken>("/trade/cancel-order", BaseUrlV5, payload, "POST");
+		}
+
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (!CanMakeAuthenticatedRequest(payload)) return;
 			// We don't need nonce in the request. Using it only to not break CanMakeAuthenticatedRequest.
 			payload.Remove("nonce");
 
@@ -307,7 +325,14 @@ namespace ExchangeSharp
 			request.AddHeader("OK-ACCESS-TIMESTAMP", timeStamp.ToString());
 			request.AddHeader("OK-ACCESS-PASSPHRASE", Passphrase!.ToUnsecureString());
 			request.AddHeader("x-simulated-trading", "0");
+			request.AddHeader("content-type", "application/json");
 
+			if (request.Method == "POST")
+			{
+				await request.WritePayloadJsonToRequestAsync(payload);
+			}
+
+			// TODO Check why it doesn't return the same result as CryptoUtility.SHA256Sign()
 			string HmacSHA256(string infoStr, string secret)
 			{
 				var sha256Data = Encoding.UTF8.GetBytes(infoStr);
@@ -316,8 +341,6 @@ namespace ExchangeSharp
 				var buffer = hmacsha256.ComputeHash(sha256Data);
 				return Convert.ToBase64String(buffer);
 			}
-
-			return Task.CompletedTask;
 		}
 
 		private async Task<JToken> GetBalance()
