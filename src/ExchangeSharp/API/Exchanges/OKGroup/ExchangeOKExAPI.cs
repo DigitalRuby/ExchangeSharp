@@ -261,22 +261,29 @@ namespace ExchangeSharp
 		{
 			var token = await MakeJsonRequestAsync<JToken>("/trade/orders-pending", BaseUrlV5,
 				await GetNoncePayloadAsync());
-			return token
-				.Select(x => new ExchangeOrderResult()
-				{
-					OrderId = x["ordId"].Value<string>(),
-					OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(x["cTime"].Value<long>()).DateTime,
-					Result = x["state"].Value<string>() == "live" ? ExchangeAPIOrderResult.Open : ExchangeAPIOrderResult.FilledPartially,
-					IsBuy = x["side"].Value<string>() == "buy" ? true : false,
-					IsAmountFilledReversed = false,
-					Amount = x["sz"].Value<decimal>(),
-					AmountFilled = x["accFillSz"].Value<decimal>(),
-					AveragePrice = x["avgPx"].Value<string>() == string.Empty ? default : x["avgPx"].Value<decimal>(),
-					Price = x["px"].Value<decimal>(),
-					ClientOrderId = x["clOrdId"].Value<string>(),
-					FeesCurrency = x["feeCcy"].Value<string>(),
-					MarketSymbol = x["instId"].Value<string>()
-				});
+			return ParseOrders(token);
+		}
+
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId,
+			string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (string.IsNullOrEmpty(marketSymbol))
+			{
+				throw new ArgumentNullException(nameof(marketSymbol),
+					"Okex single order details request requires symbol");
+			}
+
+			if (string.IsNullOrEmpty(orderId))
+			{
+				throw new ArgumentNullException(nameof(orderId),
+					"Okex single order details request requires order ID or client-supplied order ID");
+			}
+
+			var param = isClientOrderId ? $"clOrdId={orderId}" : $"ordId={orderId}";
+			var token = await MakeJsonRequestAsync<JToken>($"/trade/order?{param}&instId={marketSymbol}", BaseUrlV5,
+				await GetNoncePayloadAsync());
+
+			return ParseOrders(token).First();
 		}
 
 		protected override Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -317,6 +324,26 @@ namespace ExchangeSharp
 		{
 			return await MakeJsonRequestAsync<JToken>("/account/balance", BaseUrlV5, await GetNoncePayloadAsync());
 		}
+
+		private IEnumerable<ExchangeOrderResult> ParseOrders(JToken token)
+			=> token.Select(x =>
+				new ExchangeOrderResult()
+				{
+					OrderId = x["ordId"].Value<string>(),
+					OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(x["cTime"].Value<long>()).DateTime,
+					Result = x["state"].Value<string>() == "live"
+						? ExchangeAPIOrderResult.Open
+						: ExchangeAPIOrderResult.FilledPartially,
+					IsBuy = x["side"].Value<string>() == "buy" ? true : false,
+					IsAmountFilledReversed = false,
+					Amount = x["sz"].Value<decimal>(),
+					AmountFilled = x["accFillSz"].Value<decimal>(),
+					AveragePrice = x["avgPx"].Value<string>() == string.Empty ? default : x["avgPx"].Value<decimal>(),
+					Price = x["px"].Value<decimal>(),
+					ClientOrderId = x["clOrdId"].Value<string>(),
+					FeesCurrency = x["feeCcy"].Value<string>(),
+					MarketSymbol = x["instId"].Value<string>()
+				});
 
 		private async Task<ExchangeTicker> ParseTickerV5Async(JToken t, string symbol)
 		{
