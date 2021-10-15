@@ -72,17 +72,17 @@ namespace ExchangeSharp
 			}
 			*/
 			var markets = new List<ExchangeMarket>();
-			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
+			ParseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 				"/public/instruments?instType=SPOT", BaseUrlV5));
 			if (!IsFuturesAndSwapEnabled)
 				return markets;
-			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
+			ParseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 				"/public/instruments?instType=FUTURES", BaseUrlV5));
-			parseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
+			ParseMarketSymbolTokens(await MakeJsonRequestAsync<JToken>(
 				"/public/instruments?instType=SWAP", BaseUrlV5));
 			return markets;
 
-			void parseMarketSymbolTokens(JToken allMarketSymbolTokens)
+			void ParseMarketSymbolTokens(JToken allMarketSymbolTokens)
 			{
 				markets.AddRange(from marketSymbolToken in allMarketSymbolTokens
 					let isSpot = marketSymbolToken["instType"].Value<string>() == "SPOT"
@@ -118,14 +118,14 @@ namespace ExchangeSharp
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
 			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-			await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SPOT", BaseUrlV5));
+			await ParseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SPOT", BaseUrlV5));
 			if (!IsFuturesAndSwapEnabled)
 				return tickers;
-			await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=FUTURES", BaseUrlV5));
-			await parseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SWAP", BaseUrlV5));
+			await ParseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=FUTURES", BaseUrlV5));
+			await ParseData(await MakeJsonRequestAsync<JToken>("/market/tickers?instType=SWAP", BaseUrlV5));
 			return tickers;
 
-			async Task parseData(JToken tickerResponse)
+			async Task ParseData(JToken tickerResponse)
 			{
 				/*{
 			"code":"0",
@@ -226,7 +226,6 @@ namespace ExchangeSharp
 			return token[0]["details"]
 				.Select(x => new { Currency = x["ccy"].Value<string>(), TotalBalance = x["cashBal"].Value<decimal>() })
 				.ToDictionary(k => k.Currency, v => v.TotalBalance);
-			;
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
@@ -265,7 +264,7 @@ namespace ExchangeSharp
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId,
-			string marketSymbol = null, bool isClientOrderId = false)
+			string marketSymbol, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrEmpty(marketSymbol))
 			{
@@ -301,7 +300,7 @@ namespace ExchangeSharp
 			var payload = await GetNoncePayloadAsync();
 			payload["ordId"] = orderId;
 			payload["instId"] = marketSymbol;
-			var token = await MakeJsonRequestAsync<JToken>("/trade/cancel-order", BaseUrlV5, payload, "POST");
+			await MakeJsonRequestAsync<JToken>("/trade/cancel-order", BaseUrlV5, payload, "POST");
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -322,7 +321,7 @@ namespace ExchangeSharp
 
 			request.AddHeader("OK-ACCESS-KEY", PublicApiKey!.ToUnsecureString());
 			request.AddHeader("OK-ACCESS-SIGN", sign);
-			request.AddHeader("OK-ACCESS-TIMESTAMP", timeStamp.ToString());
+			request.AddHeader("OK-ACCESS-TIMESTAMP", timeStamp);
 			request.AddHeader("OK-ACCESS-PASSPHRASE", Passphrase!.ToUnsecureString());
 			request.AddHeader("x-simulated-trading", "0");
 			request.AddHeader("content-type", "application/json");
@@ -357,7 +356,7 @@ namespace ExchangeSharp
 					Result = x["state"].Value<string>() == "live"
 						? ExchangeAPIOrderResult.Open
 						: ExchangeAPIOrderResult.FilledPartially,
-					IsBuy = x["side"].Value<string>() == "buy" ? true : false,
+					IsBuy = x["side"].Value<string>() == "buy",
 					IsAmountFilledReversed = false,
 					Amount = x["sz"].Value<decimal>(),
 					AmountFilled = x["accFillSz"].Value<decimal>(),
