@@ -303,6 +303,51 @@ namespace ExchangeSharp
 			await MakeJsonRequestAsync<JToken>("/trade/cancel-order", BaseUrlV5, payload, "POST");
 		}
 
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		{
+			if (string.IsNullOrEmpty(order.MarketSymbol))
+			{
+				throw new ArgumentNullException(nameof(order.MarketSymbol), "Okex place order request requires symbol");
+			}
+
+			var payload = await GetNoncePayloadAsync();
+			payload["instId"] = order.MarketSymbol;
+			payload["tdMode"] = order.IsMargin ? "isolated" : "cash";
+			if (!string.IsNullOrEmpty(order.ClientOrderId))
+			{
+				payload["clOrdId"] = order.ClientOrderId;
+			}
+			payload["side"] = order.IsBuy ? "buy" : "sell";
+			payload["posSide"] = "net";
+			payload["ordType"] = order.OrderType switch
+			{
+				OrderType.Limit => "limit",
+				OrderType.Market => "market",
+				OrderType.Stop => throw new ArgumentException("Okex does not support stop order",
+					nameof(order.OrderType)),
+				_ => throw new ArgumentOutOfRangeException(nameof(order.OrderType), "Invalid order type.")
+			};
+			payload["sz"] = order.Amount.ToStringInvariant();
+			if (order.OrderType != OrderType.Market)
+			{
+				if (!order.Price.HasValue) throw new ArgumentNullException(nameof(order.Price), "Okex place order request requires price");
+				payload["px"] = order.Price.ToStringInvariant();
+			}
+
+			var token = await MakeJsonRequestAsync<JToken>("/trade/order", BaseUrlV5, payload, "POST");
+			return new ExchangeOrderResult()
+			{
+				MarketSymbol = order.MarketSymbol,
+				Amount = order.Amount,
+				Price = order.Price,
+				OrderDate = DateTime.UtcNow,
+				OrderId = token[0]["ordId"].Value<string>(),
+				ClientOrderId = token[0]["clOrdId"].Value<string>(),
+				Result = ExchangeAPIOrderResult.Open,
+				IsBuy = order.IsBuy
+			};
+		}
+
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
 			if (!CanMakeAuthenticatedRequest(payload)) return;
@@ -316,8 +361,10 @@ namespace ExchangeSharp
 			var body = payload.Any() ? JsonConvert.SerializeObject(payload) : string.Empty;
 
 			var sign = string.IsNullOrEmpty(body)
-				? HmacSHA256($"{timeStamp}{method}{requestUrl}", PrivateApiKey!.ToUnsecureString())
-				: HmacSHA256($"{timeStamp}{method}{requestUrl}{body}", PrivateApiKey!.ToUnsecureString());
+				? CryptoUtility.SHA256SignBase64($"{timeStamp}{method}{requestUrl}",
+					PrivateApiKey!.ToUnsecureString().ToBytesUTF8())
+				: CryptoUtility.SHA256SignBase64($"{timeStamp}{method}{requestUrl}{body}",
+					PrivateApiKey!.ToUnsecureString().ToBytesUTF8());
 
 			request.AddHeader("OK-ACCESS-KEY", PublicApiKey!.ToUnsecureString());
 			request.AddHeader("OK-ACCESS-SIGN", sign);
@@ -329,16 +376,6 @@ namespace ExchangeSharp
 			if (request.Method == "POST")
 			{
 				await request.WritePayloadJsonToRequestAsync(payload);
-			}
-
-			// TODO Check why it doesn't return the same result as CryptoUtility.SHA256Sign()
-			string HmacSHA256(string infoStr, string secret)
-			{
-				var sha256Data = Encoding.UTF8.GetBytes(infoStr);
-				var secretData = Encoding.UTF8.GetBytes(secret);
-				using var hmacsha256 = new HMACSHA256(secretData);
-				var buffer = hmacsha256.ComputeHash(sha256Data);
-				return Convert.ToBase64String(buffer);
 			}
 		}
 
