@@ -91,6 +91,12 @@ namespace ExchangeSharp
 		/// <summary>datetime in UTC of the trade. Null if not a trade.</summary>
 		public DateTime? TradeDate { get; set; }
 
+		/// <summary>
+		/// sequence that the order update was sent from the server, usually used to keep updates in order or for debugging purposes.
+		/// Not all exchanges provide this value, so it may be null.
+		/// </summary>
+		public long? UpdateSequence { get; set; }
+
 		/// <summary>Append another order to this order - order id and type must match</summary>
 		/// <param name="other">Order to append</param>
 		public void AppendOrderWithOrder(ExchangeOrderResult other)

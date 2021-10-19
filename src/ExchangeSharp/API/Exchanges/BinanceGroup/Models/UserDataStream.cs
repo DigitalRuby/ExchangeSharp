@@ -94,6 +94,7 @@ namespace ExchangeSharp.BinanceGroup
 					OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(OrderCreationTime),
 					CompletedDate = status.IsCompleted() ? (DateTime?)CryptoUtility.UnixTimeStampToDateTimeMilliseconds(TransactionTime) : null,
 					TradeDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(TransactionTime),
+					UpdateSequence = EventTime, // in Binance, the sequence nymber is also the EventTime
 					MarketSymbol = Symbol,
 					// IsBuy is not provided here
 					Fees = CommissionAmount,
