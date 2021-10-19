@@ -22,8 +22,6 @@ namespace ExchangeSharp.Coinbase
 
 	internal class Activate : BaseMessage
 	{
-		private ExchangeOrderResult exchangeOrderResult;
-
 		public Guid OrderId { get; set; }
 		public StopType OrderType { get; set; }
 		public decimal Size { get; set; }
@@ -52,7 +50,8 @@ namespace ExchangeSharp.Coinbase
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = null, // only TakerFeeRate is specified - no fees have been charged yet
-			TradeId = null // no trades have been made
+			TradeId = null, // no trades have been made
+			UpdateSequence = null, // unfortunately, the Activate event doesn't provide a sequence number
 		};
 	}
 
@@ -84,7 +83,8 @@ namespace ExchangeSharp.Coinbase
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = null, // only TakerFeeRate is specified - no fees have been charged yet
-			TradeId = null // not a trade msg
+			TradeId = null, // not a trade msg
+			UpdateSequence = Sequence,
 		};
 	}
 
@@ -116,7 +116,8 @@ namespace ExchangeSharp.Coinbase
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = null, // not specified here
-			TradeId = null // not a trade msg
+			TradeId = null, // not a trade msg
+			UpdateSequence = Sequence,
 		};
 	}
 
@@ -189,6 +190,7 @@ namespace ExchangeSharp.Coinbase
 			IsBuy = Side == OrderSide.Buy,
 			Fees = (MakerFeeRate ?? TakerFeeRate) * Price * Size,
 			TradeId = TradeId.ToString(),
+			UpdateSequence = Sequence,
 		};
 	}
 
@@ -218,7 +220,8 @@ namespace ExchangeSharp.Coinbase
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = null, // not specified here
-			TradeId = null // not a trade msg
+			TradeId = null, // not a trade msg
+			UpdateSequence = Sequence,
 		};
 	}
 
@@ -250,7 +253,8 @@ namespace ExchangeSharp.Coinbase
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = null, // not specified here
-			TradeId = null // not a trade msg
+			TradeId = null, // not a trade msg
+			UpdateSequence = Sequence,
 		};
 	}
 
