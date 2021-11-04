@@ -87,7 +87,7 @@ namespace ExchangeSharp.BinanceGroup
 					ClientOrderId = ClientOrderId,
 					Result = status,
 					ResultCode = CurrentOrderStatus,
-					Message = null, // can use for something in the future if needed
+					Message = OrderRejectReason, // can use for multiple things in the future if needed
 					Amount = CumulativeFilledQuantity,
 					Price = OrderPrice,
 					AveragePrice = CumulativeQuoteAssetTransactedQuantity / CumulativeFilledQuantity, // Average price can be found by doing Z divided by z.
