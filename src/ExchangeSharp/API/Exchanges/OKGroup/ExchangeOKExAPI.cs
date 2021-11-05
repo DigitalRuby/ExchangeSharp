@@ -18,6 +18,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using ExchangeSharp.OKGroup;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -395,6 +396,18 @@ namespace ExchangeSharp
 						new KeyValuePair<string, ExchangeTicker>(symbol, await ParseTickerV5Async(token, symbol))
 					};
 					callback(tickers);
+				});
+		}
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
+			Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			return await ConnectWebSocketOkexAsync(
+				async (_socket) => { await AddMarketSymbolsToChannel(_socket, "trades", marketSymbols); },
+				async (_socket, symbol, sArray, token) =>
+				{
+					var trade = token.ParseTrade("sz", "px", "side", "ts", TimestampType.UnixMilliseconds, "tradeId");
+					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 				});
 		}
 
