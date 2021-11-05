@@ -65,7 +65,7 @@ namespace ExchangeSharp
 			}
 
 			const int retryCount = 3;
-			
+
 			// try up to 3 times to init
 			for (int i = 1; i <= retryCount; i++)
 			{
@@ -495,22 +495,28 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Get all cached versions of exchange APIs
 		/// </summary>
+		/// <param name="cachedOnly">Whether to only fetch exchanges that were cached</param>
 		/// <returns>All APIs</returns>
-		public static async Task<IExchangeAPI[]> GetExchangeAPIsAsync()
+		public static async Task<IExchangeAPI[]> GetExchangeAPIsAsync(bool cachedOnly = false)
 		{
-			var apiList = new List<IExchangeAPI>();
-			foreach (var kv in apis.ToArray())
+			if (cachedOnly)
 			{
-				if (kv.Value == null)
+				var apiList = new List<IExchangeAPI>();
+				foreach (var kv in apis.ToArray())
 				{
-					apiList.Add(await GetExchangeAPIAsync(kv.Key));
+					if (kv.Value == null)
+					{
+						apiList.Add(await GetExchangeAPIAsync(kv.Key));
+					}
+					else
+					{
+						apiList.Add(await kv.Value);
+					}
 				}
-				else
-				{
-					apiList.Add(await kv.Value);
-				}
+				return apiList.ToArray();
 			}
-			return apiList.ToArray();
+			var tasks = exchangeTypes.Where(type => type != null).Select(GetExchangeAPIAsync);
+			return await Task.WhenAll(tasks);
 		}
 
 		/// <summary>
