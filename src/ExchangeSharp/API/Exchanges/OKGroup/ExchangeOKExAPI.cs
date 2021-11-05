@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using ExchangeSharp.OKGroup;
 using Newtonsoft.Json;
@@ -28,7 +29,7 @@ namespace ExchangeSharp
 		public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
 		public override string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
 		public override string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
-		public override string BaseUrlWebSocket { get; set; } = "wss://real.okex.com:8443/ws/v3";
+		public override string BaseUrlWebSocket { get; set; } = "wss://ws.okex.com:8443/ws/v5";
 		public string BaseUrlV5 { get; set; } = "https://www.okex.com/api/v5";
 		protected override bool IsFuturesAndSwapEnabled { get; } = true;
 
@@ -317,6 +318,7 @@ namespace ExchangeSharp
 			{
 				payload["clOrdId"] = order.ClientOrderId;
 			}
+
 			payload["side"] = order.IsBuy ? "buy" : "sell";
 			payload["posSide"] = "net";
 			payload["ordType"] = order.OrderType switch
@@ -330,7 +332,8 @@ namespace ExchangeSharp
 			payload["sz"] = order.Amount.ToStringInvariant();
 			if (order.OrderType != OrderType.Market)
 			{
-				if (!order.Price.HasValue) throw new ArgumentNullException(nameof(order.Price), "Okex place order request requires price");
+				if (!order.Price.HasValue)
+					throw new ArgumentNullException(nameof(order.Price), "Okex place order request requires price");
 				payload["px"] = order.Price.ToStringInvariant();
 			}
 
@@ -377,6 +380,95 @@ namespace ExchangeSharp
 			{
 				await request.WritePayloadJsonToRequestAsync(payload);
 			}
+		}
+
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(
+			Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
+			params string[] symbols)
+		{
+			return await ConnectWebSocketOkexAsync(
+				async (socket) => { await AddMarketSymbolsToChannel(socket, "tickers", symbols); },
+				async (socket, symbol, sArray, token) =>
+				{
+					var tickers = new List<KeyValuePair<string, ExchangeTicker>>
+					{
+						new KeyValuePair<string, ExchangeTicker>(symbol, await ParseTickerV5Async(token, symbol))
+					};
+					callback(tickers);
+				});
+		}
+
+		protected override Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected,
+			Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+		{
+			Timer pingTimer = null;
+			return ConnectPublicWebSocketAsync(url: "/public", messageCallback: async (_socket, msg) =>
+				{
+					var msgString = msg.ToStringFromUTF8();
+					if (msgString == "pong")
+					{
+						// received reply to our ping
+						return;
+					}
+
+					JToken token = JToken.Parse(msgString);
+					var eventProperty = token["event"]?.ToStringInvariant();
+					if (eventProperty != null)
+					{
+						switch (eventProperty)
+						{
+							case "error":
+								Logger.Info("Websocket unable to connect: " + token["msg"]?.ToStringInvariant());
+								return;
+							case "subscribe" when token["arg"]["channel"] != null:
+							{
+								// subscription successful
+								pingTimer ??= new Timer(callback: async s => await _socket.SendMessageAsync("ping"),
+									null, 0, 15000);
+								return;
+							}
+							default:
+								return;
+						}
+					}
+
+					if (token["data"] != null)
+					{
+						var data = token["data"];
+						foreach (var t in data)
+						{
+							var marketSymbol = t["instId"].ToStringInvariant();
+							await callback(_socket, marketSymbol, null, t);
+						}
+					}
+				}, async (_socket) => await connected(_socket)
+				, s =>
+				{
+					pingTimer?.Dispose();
+					pingTimer = null;
+					return Task.CompletedTask;
+				});
+		}
+
+		protected override async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat,
+			string[] marketSymbols)
+		{
+			if (marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+
+			await SendMessageAsync(marketSymbols);
+
+			async Task SendMessageAsync(IEnumerable<string> symbolsToSend)
+			{
+				var args = symbolsToSend
+					.Select(s => new { channel = channelFormat, instId = s })
+					.ToArray();
+				await socket.SendMessageAsync(new { op = "subscribe", args });
+			}
+
+			return marketSymbols;
 		}
 
 		private async Task<JToken> GetBalance()

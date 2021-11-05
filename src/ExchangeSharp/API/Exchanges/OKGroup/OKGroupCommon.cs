@@ -505,6 +505,103 @@ namespace ExchangeSharp.OKGroup
         }
         #endregion
 
+         #region WebSocket Functions
+
+        protected virtual Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        {
+			Timer pingTimer = null;
+            return ConnectPublicWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
+            {
+				// https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
+				// All the messages returning from WebSocket API will be optimized by Deflate compression
+				var msgString = msg.ToStringFromUTF8Deflate();
+				if (msgString == "pong")
+				{ // received reply to our ping
+					return;
+				}
+                JToken token = JToken.Parse(msgString);
+                var eventProperty = token["event"]?.ToStringInvariant();
+                if (eventProperty != null)
+                {
+					if (eventProperty == "error")
+					{
+						Logger.Info("Websocket unable to connect: " + token["message"]?.ToStringInvariant());
+						return;
+					}
+					else if (eventProperty == "subscribe" && token["channel"] != null)
+					{ // subscription successful
+						if (pingTimer == null)
+						{
+							pingTimer = new Timer(callback: async s => await _socket.SendMessageAsync("ping"),
+								state: null, dueTime: 0, period: 15000); // send a ping every 15 seconds
+						}
+						return;
+					}
+					else return;
+				}
+				else if (token["table"] != null)
+                {
+	                var data = token["data"];
+	                foreach (var dataRow in data)
+	                {
+		                var marketSymbol = dataRow["instrument_id"].ToStringInvariant();
+		                await callback(_socket, marketSymbol, null, dataRow);
+					}
+                }
+            }, connectCallback: async (_socket) => await connected(_socket)
+			, disconnectCallback: s =>
+			{
+				pingTimer.Dispose();
+				pingTimer = null;
+				return Task.CompletedTask;
+			});
+        }
+
+        protected virtual Task<IWebSocket> ConnectPrivateWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+        {
+            return ConnectWebSocketOkexAsync(async (_socket) =>
+            {
+                await _socket.SendMessageAsync(GetAuthForWebSocket());
+            }, async (_socket, symbol, sArray, token) =>
+            {
+                if (symbol == "login")
+                {
+                    await connected(_socket);
+                }
+                else
+                {
+                    await callback(_socket, symbol, sArray, token);
+                }
+            }, 0);
+        }
+
+        protected virtual async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat, string[] marketSymbols)
+        {
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			var spotSymbols = marketSymbols.Where(ms => ms.Split('-').Length == 2);
+			var futureSymbols = marketSymbols.Where(
+				ms => ms.Split('-').Length == 3 && int.TryParse(ms.Split('-')[2], out int i));
+			var swapSymbols = marketSymbols.Where(
+				ms => ms.Split('-').Length == 3 && ms.Split('-')[2] == "SWAP");
+
+			await sendMessageAsync("spot", spotSymbols);
+			await sendMessageAsync("futures", futureSymbols);
+			await sendMessageAsync("swap", swapSymbols);
+
+			async Task sendMessageAsync(string category, IEnumerable<string> symbolsToSend)
+			{
+				var channels = symbolsToSend
+						.Select(marketSymbol => string.Format($"{category}{channelFormat}", NormalizeMarketSymbol(marketSymbol)))
+						.ToArray();
+				await socket.SendMessageAsync(new { op = "subscribe", args = channels });
+			}
+            return marketSymbols;
+        }
+        #endregion
+
         #region Private Functions
 
         private async Task<ExchangeTicker> ParseTickerAsync(string symbol, JToken data)
@@ -665,101 +762,7 @@ namespace ExchangeSharp.OKGroup
             return result;
         }
 
-        private Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
-        {
-			Timer pingTimer = null;
-            return ConnectPublicWebSocketAsync(url: string.Empty, messageCallback: async (_socket, msg) =>
-            {
-				// https://github.com/okcoin-okex/API-docs-OKEx.com/blob/master/README-en.md
-				// All the messages returning from WebSocket API will be optimized by Deflate compression
-				var msgString = msg.ToStringFromUTF8Deflate();
-				if (msgString == "pong")
-				{ // received reply to our ping
-					return;
-				}
-                JToken token = JToken.Parse(msgString);
-                var eventProperty = token["event"]?.ToStringInvariant();
-                if (eventProperty != null)
-                {
-					if (eventProperty == "error")
-					{
-						Logger.Info("Websocket unable to connect: " + token["message"]?.ToStringInvariant());
-						return;
-					}
-					else if (eventProperty == "subscribe" && token["channel"] != null)
-					{ // subscription successful
-						if (pingTimer == null)
-						{
-							pingTimer = new Timer(callback: async s => await _socket.SendMessageAsync("ping"),
-								state: null, dueTime: 0, period: 15000); // send a ping every 15 seconds
-						}
-						return;
-					}
-					else return;
-				}
-				else if (token["table"] != null)
-                {
-	                var data = token["data"];
-	                foreach (var dataRow in data)
-	                {
-		                var marketSymbol = dataRow["instrument_id"].ToStringInvariant();
-		                await callback(_socket, marketSymbol, null, dataRow);
-					}
-                }
-            }, connectCallback: async (_socket) => await connected(_socket)
-			, disconnectCallback: s =>
-			{
-				pingTimer.Dispose();
-				pingTimer = null;
-				return Task.CompletedTask;
-			});
-        }
-
-        private Task<IWebSocket> ConnectPrivateWebSocketOkexAsync(Func<IWebSocket, Task> connected, Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
-        {
-            return ConnectWebSocketOkexAsync(async (_socket) =>
-            {
-                await _socket.SendMessageAsync(GetAuthForWebSocket());
-            }, async (_socket, symbol, sArray, token) =>
-            {
-                if (symbol == "login")
-                {
-                    await connected(_socket);
-                }
-                else
-                {
-                    await callback(_socket, symbol, sArray, token);
-                }
-            }, 0);
-        }
-
-        private async Task<string[]> AddMarketSymbolsToChannel(IWebSocket socket, string channelFormat, string[] marketSymbols)
-        {
-			if (marketSymbols == null || marketSymbols.Length == 0)
-			{
-				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-			}
-			var spotSymbols = marketSymbols.Where(ms => ms.Split('-').Length == 2);
-			var futureSymbols = marketSymbols.Where(
-				ms => ms.Split('-').Length == 3 && int.TryParse(ms.Split('-')[2], out int i));
-			var swapSymbols = marketSymbols.Where(
-				ms => ms.Split('-').Length == 3 && ms.Split('-')[2] == "SWAP");
-
-			await sendMessageAsync("spot", spotSymbols);
-			await sendMessageAsync("futures", futureSymbols);
-			await sendMessageAsync("swap", swapSymbols);
-
-			async Task sendMessageAsync(string category, IEnumerable<string> symbolsToSend)
-			{
-				var channels = symbolsToSend
-						.Select(marketSymbol => string.Format($"{category}{channelFormat}", NormalizeMarketSymbol(marketSymbol)))
-						.ToArray();
-				await socket.SendMessageAsync(new { op = "subscribe", args = channels });
-			}
-            return marketSymbols;
-        }
-
-		private string GetInstrumentType(string marketSymbol)
+        private string GetInstrumentType(string marketSymbol)
 		{
 			string type;
 			if (marketSymbol.Split('-').Length == 3 && marketSymbol.Split('-')[2] == "SWAP")
