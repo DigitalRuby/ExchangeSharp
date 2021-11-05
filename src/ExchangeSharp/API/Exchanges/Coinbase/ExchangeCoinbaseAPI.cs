@@ -786,7 +786,9 @@ namespace ExchangeSharp
 
 		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
 		{
-			await MakeJsonRequestAsync<JArray>("orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
+			var jToken = await MakeJsonRequestAsync<JToken>("orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
+			if (jToken.ToStringInvariant() != orderId)
+				throw new APIException($"Cancelled {jToken.ToStringInvariant()} when trying to cancel {orderId}");
 		}
 	}
 

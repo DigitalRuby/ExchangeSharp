@@ -724,11 +724,14 @@ namespace ExchangeSharp.BinanceGroup
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 			{
-				throw new InvalidOperationException("Binance cancel order request requires symbol");
+				throw new ArgumentNullException("Binance cancel order request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
 			payload["orderId"] = orderId;
-            _ = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload, "DELETE");
+            var token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload, "DELETE");
+			var cancelledOrder = ParseOrder(token);
+			if (cancelledOrder.OrderId != orderId)
+				throw new APIException($"Cancelled {cancelledOrder.OrderId} when trying to cancel {orderId}");
 		}
 
 		/// <summary>A withdrawal request. Fee is automatically subtracted from the amount.</summary>
