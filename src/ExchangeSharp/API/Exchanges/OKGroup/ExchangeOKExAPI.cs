@@ -411,6 +411,21 @@ namespace ExchangeSharp
 				});
 		}
 
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback,
+			int maxCount = 20, params string[] marketSymbols)
+		{
+			return await ConnectWebSocketOkexAsync(async (_socket) =>
+			{
+				marketSymbols = await AddMarketSymbolsToChannel(_socket, "books-l2-tbt", marketSymbols);
+			}, (_socket, symbol, sArray, token) =>
+			{
+				ExchangeOrderBook book = token.ParseOrderBookFromJTokenArrays(maxCount: maxCount);
+				book.MarketSymbol = symbol;
+				callback(book);
+				return Task.CompletedTask;
+			});
+		}
+
 		protected override Task<IWebSocket> ConnectWebSocketOkexAsync(Func<IWebSocket, Task> connected,
 			Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
 		{
@@ -445,12 +460,16 @@ namespace ExchangeSharp
 						}
 					}
 
+					var marketSymbol = string.Empty;
+					if (token["arg"] != null)
+					{
+						marketSymbol = token["arg"]["instId"].ToStringInvariant();
+					}
 					if (token["data"] != null)
 					{
 						var data = token["data"];
 						foreach (var t in data)
 						{
-							var marketSymbol = t["instId"].ToStringInvariant();
 							await callback(_socket, marketSymbol, null, t);
 						}
 					}
