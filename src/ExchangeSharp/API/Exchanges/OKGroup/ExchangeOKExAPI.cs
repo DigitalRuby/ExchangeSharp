@@ -414,14 +414,28 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback,
 			int maxCount = 20, params string[] marketSymbols)
 		{
-			return await ConnectWebSocketOkexAsync(async (_socket) =>
+			return await ConnectWebSocketOkexAsync(
+				async (_socket) =>
+				{
+					marketSymbols = await AddMarketSymbolsToChannel(_socket, "books-l2-tbt", marketSymbols);
+				}, (_socket, symbol, sArray, token) =>
+				{
+					ExchangeOrderBook book = token.ParseOrderBookFromJTokenArrays(maxCount: maxCount);
+					book.MarketSymbol = symbol;
+					callback(book);
+					return Task.CompletedTask;
+				});
+		}
+
+		protected override async Task<IWebSocket> OnGetOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback)
+		{
+			return await ConnectPrivateWebSocketOkexAsync(async (_socket) =>
 			{
-				marketSymbols = await AddMarketSymbolsToChannel(_socket, "books-l2-tbt", marketSymbols);
+				await WebsocketLogin(_socket);
+				await SubscribeForOrderChannel(_socket, "orders");
 			}, (_socket, symbol, sArray, token) =>
 			{
-				ExchangeOrderBook book = token.ParseOrderBookFromJTokenArrays(maxCount: maxCount);
-				book.MarketSymbol = symbol;
-				callback(book);
+				callback(ParseOrder(token));
 				return Task.CompletedTask;
 			});
 		}
@@ -465,6 +479,65 @@ namespace ExchangeSharp
 					{
 						marketSymbol = token["arg"]["instId"].ToStringInvariant();
 					}
+
+					if (token["data"] != null)
+					{
+						var data = token["data"];
+						foreach (var t in data)
+						{
+							await callback(_socket, marketSymbol, null, t);
+						}
+					}
+				}, async (_socket) => await connected(_socket)
+				, s =>
+				{
+					pingTimer?.Dispose();
+					pingTimer = null;
+					return Task.CompletedTask;
+				});
+		}
+
+		protected override Task<IWebSocket> ConnectPrivateWebSocketOkexAsync(Func<IWebSocket, Task> connected,
+			Func<IWebSocket, string, string[], JToken, Task> callback, int symbolArrayIndex = 3)
+		{
+			Timer pingTimer = null;
+			return ConnectPublicWebSocketAsync(url: "/private", messageCallback: async (_socket, msg) =>
+				{
+					var msgString = msg.ToStringFromUTF8();
+					Logger.Debug(msgString);
+					if (msgString == "pong")
+					{
+						// received reply to our ping
+						return;
+					}
+
+					JToken token = JToken.Parse(msgString);
+					var eventProperty = token["event"]?.ToStringInvariant();
+					if (eventProperty != null)
+					{
+						switch (eventProperty)
+						{
+							case "error":
+								Logger.Info("Websocket unable to connect: " + token["msg"]?.ToStringInvariant());
+								return;
+							case "subscribe" when token["arg"]["channel"] != null:
+							{
+								// subscription successful
+								pingTimer ??= new Timer(callback: async s => await _socket.SendMessageAsync("ping"),
+									null, 0, 15000);
+								return;
+							}
+							default:
+								return;
+						}
+					}
+
+					var marketSymbol = string.Empty;
+					if (token["arg"] != null)
+					{
+						marketSymbol = token["arg"]["instId"].ToStringInvariant();
+					}
+
 					if (token["data"] != null)
 					{
 						var data = token["data"];
@@ -503,30 +576,76 @@ namespace ExchangeSharp
 			return marketSymbols;
 		}
 
+		private async Task WebsocketLogin(IWebSocket socket)
+		{
+			var timestamp = (DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+			var auth = new
+			{
+				apiKey = PublicApiKey?.ToUnsecureString(),
+				passphrase = Passphrase?.ToUnsecureString(),
+				timestamp,
+				sign = CryptoUtility.SHA256SignBase64($"{timestamp}GET/users/self/verify",
+					PrivateApiKey?.ToUnsecureBytesUTF8())
+			};
+			var args = new List<dynamic> { auth };
+			var request = new { op = "login", args };
+			await socket.SendMessageAsync(request);
+		}
+
+		private async Task SubscribeForOrderChannel(IWebSocket socket, string channelFormat)
+		{
+			var marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			await SendMessageAsync(marketSymbols);
+
+			async Task SendMessageAsync(IEnumerable<string> symbolsToSend)
+			{
+				var args = symbolsToSend
+					.Select(s => new
+					{
+						channel = channelFormat, instId = s, uly = GetUly(s),
+						instType = GetInstrumentType(s).ToUpperInvariant()
+					})
+					.ToArray();
+				await socket.SendMessageAsync(new { op = "subscribe", args });
+			}
+		}
+
+		private static string GetUly(string marketSymbol)
+		{
+			var symbolSplit = marketSymbol.Split('-');
+			return symbolSplit.Length == 3 ? $"{symbolSplit[0]}-{symbolSplit[1]}" : marketSymbol;
+		}
+
 		private async Task<JToken> GetBalance()
 		{
 			return await MakeJsonRequestAsync<JToken>("/account/balance", BaseUrlV5, await GetNoncePayloadAsync());
 		}
 
-		private IEnumerable<ExchangeOrderResult> ParseOrders(JToken token)
-			=> token.Select(x =>
-				new ExchangeOrderResult()
+		private static ExchangeOrderResult ParseOrder(JToken token) =>
+			new ExchangeOrderResult()
+			{
+				OrderId = token["ordId"].Value<string>(),
+				OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(token["cTime"].Value<long>()).DateTime,
+				Result = token["state"].Value<string>() switch
 				{
-					OrderId = x["ordId"].Value<string>(),
-					OrderDate = DateTimeOffset.FromUnixTimeMilliseconds(x["cTime"].Value<long>()).DateTime,
-					Result = x["state"].Value<string>() == "live"
-						? ExchangeAPIOrderResult.Open
-						: ExchangeAPIOrderResult.FilledPartially,
-					IsBuy = x["side"].Value<string>() == "buy",
-					IsAmountFilledReversed = false,
-					Amount = x["sz"].Value<decimal>(),
-					AmountFilled = x["accFillSz"].Value<decimal>(),
-					AveragePrice = x["avgPx"].Value<string>() == string.Empty ? default : x["avgPx"].Value<decimal>(),
-					Price = x["px"].Value<decimal>(),
-					ClientOrderId = x["clOrdId"].Value<string>(),
-					FeesCurrency = x["feeCcy"].Value<string>(),
-					MarketSymbol = x["instId"].Value<string>()
-				});
+					"canceled" => ExchangeAPIOrderResult.Canceled,
+					"live" => ExchangeAPIOrderResult.Open,
+					"partially_filled" => ExchangeAPIOrderResult.FilledPartially,
+					"filled" => ExchangeAPIOrderResult.Filled,
+					_ => ExchangeAPIOrderResult.Unknown
+				},
+				IsBuy = token["side"].Value<string>() == "buy",
+				IsAmountFilledReversed = false,
+				Amount = token["sz"].Value<decimal>(),
+				AmountFilled = token["accFillSz"].Value<decimal>(),
+				AveragePrice = token["avgPx"].Value<string>() == string.Empty ? default : token["avgPx"].Value<decimal>(),
+				Price = token["px"].Value<decimal>(),
+				ClientOrderId = token["clOrdId"].Value<string>(),
+				FeesCurrency = token["feeCcy"].Value<string>(),
+				MarketSymbol = token["instId"].Value<string>()
+			};
+
+		private static IEnumerable<ExchangeOrderResult> ParseOrders(JToken token) => token.Select(ParseOrder);
 
 		private async Task<ExchangeTicker> ParseTickerV5Async(JToken t, string symbol)
 		{

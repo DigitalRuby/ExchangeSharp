@@ -600,6 +600,24 @@ namespace ExchangeSharp.OKGroup
 			}
             return marketSymbols;
         }
+
+        protected string GetInstrumentType(string marketSymbol)
+        {
+	        string type;
+	        if (marketSymbol.Split('-').Length == 3 && marketSymbol.Split('-')[2] == "SWAP")
+	        {
+		        type = "swap";
+	        }
+	        else if (marketSymbol.Split('-').Length == 3 && int.TryParse(marketSymbol.Split('-')[2], out _))
+	        {
+		        type = "futures";
+	        }
+	        else
+	        {
+		        type = "spot";
+	        }
+	        return type;
+        }
         #endregion
 
         #region Private Functions
@@ -761,25 +779,6 @@ namespace ExchangeSharp.OKGroup
 
             return result;
         }
-
-        private string GetInstrumentType(string marketSymbol)
-		{
-			string type;
-			if (marketSymbol.Split('-').Length == 3 && marketSymbol.Split('-')[2] == "SWAP")
-			{
-				type = "swap";
-			}
-			else if (marketSymbol.Split('-').Length == 3 && int.TryParse(marketSymbol.Split('-')[2], out _))
-			{
-				type = "futures";
-			}
-			else
-			{
-				type = "spot";
-			}
-			return type;
-		}
-
-		#endregion
+        #endregion
 	}
 }

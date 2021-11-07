@@ -52,7 +52,7 @@ The following cryptocurrency exchanges are supported:
 | Livecoin       | x           | x            |            |
 | NDAX           | x           | x            | T R        |
 | OKCoin         | x           | x            | R B        |
-| OKEx           | x           | x            | R B        |
+| OKEx           | x           | x            | R B O      |
 | Poloniex       | x           | x            | T R B      |
 | YoBit          | x           | x            |            |
 | ZB.com         | wip         |              | R          |
