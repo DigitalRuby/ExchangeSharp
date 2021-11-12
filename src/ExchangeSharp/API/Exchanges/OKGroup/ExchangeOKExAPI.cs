@@ -337,7 +337,8 @@ namespace ExchangeSharp
 					throw new ArgumentNullException(nameof(order.Price), "Okex place order request requires price");
 				payload["px"] = order.Price.ToStringInvariant();
 			}
-
+			order.ExtraParameters.CopyTo(payload);
+			
 			var token = await MakeJsonRequestAsync<JToken>("/trade/order", BaseUrlV5, payload, "POST");
 			return new ExchangeOrderResult()
 			{
