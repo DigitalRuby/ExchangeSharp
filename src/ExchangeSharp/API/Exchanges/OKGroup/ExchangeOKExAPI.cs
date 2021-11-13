@@ -338,19 +338,10 @@ namespace ExchangeSharp
 				payload["px"] = order.Price.ToStringInvariant();
 			}
 			order.ExtraParameters.CopyTo(payload);
-			
+
 			var token = await MakeJsonRequestAsync<JToken>("/trade/order", BaseUrlV5, payload, "POST");
-			return new ExchangeOrderResult()
-			{
-				MarketSymbol = order.MarketSymbol,
-				Amount = order.Amount,
-				Price = order.Price,
-				OrderDate = DateTime.UtcNow,
-				OrderId = token[0]["ordId"].Value<string>(),
-				ClientOrderId = token[0]["clOrdId"].Value<string>(),
-				Result = ExchangeAPIOrderResult.Open,
-				IsBuy = order.IsBuy
-			};
+			var orderInfo = await GetOrderDetailsAsync(token[0]["ordId"].ToStringInvariant(), order.MarketSymbol);
+			return orderInfo;
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
