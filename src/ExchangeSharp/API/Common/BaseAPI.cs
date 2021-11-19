@@ -110,7 +110,7 @@ namespace ExchangeSharp
 	}
 
 	/// <summary>
-	/// Anything wit ha name
+	/// Anything with a name
 	/// </summary>
 	public interface INamed
 	{
