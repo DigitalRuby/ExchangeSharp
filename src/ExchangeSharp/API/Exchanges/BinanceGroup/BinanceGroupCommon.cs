@@ -1135,6 +1135,36 @@ namespace ExchangeSharp.BinanceGroup
 			});
 		}
 
+		protected override async Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols)
+		{
+			//Candlesticks are received each 2s. Miniticker method is faster (1s), but you can't aggregate by period.
+			//https://github.com/binance/binance-spot-api-docs/blob/master/web-socket-streams.md#klinecandlestick-streams
+
+			if (marketSymbols == null || marketSymbols.Length == 0)
+				throw new ArgumentNullException(nameof(marketSymbols));
+
+			//only one symbol per connection
+			var symbol = marketSymbols[0].ToStringLowerInvariant();
+
+			var period = PeriodSecondsToString(periodSeconds);
+
+			return await ConnectPublicWebSocketAsync($"/stream?streams={symbol}@kline_{period}", async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+
+				if (token != null && token["data"] != null && token["data"]["k"] != null)
+				{
+					var candle = this.ParseCandle(token["data"]["k"], symbol, periodSeconds, "o", "h", "l", "c", "t",
+						TimestampType.UnixMilliseconds, "v", "q");
+
+					if (candle != null)
+					{
+						callbackAsync(candle);
+					}
+				}
+			});
+		}
+
 		public async Task<string> GetListenKeyAsync()
 		{
 			JToken response = await MakeJsonRequestAsync<JToken>("/userDataStream", BaseUrlApi, null, "POST");
