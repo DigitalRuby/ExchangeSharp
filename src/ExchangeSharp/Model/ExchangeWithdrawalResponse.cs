@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -26,9 +26,12 @@ namespace ExchangeSharp
         /// <summary>Whether the withdrawal was successful</summary>
         public bool Success { get; set; } = true;
 
-        /// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
-        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
-        public override string ToString()
+		/// <summary>Fee for the withdrawal</summary>
+		public decimal? Fee { get; set; }
+
+		/// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
+		/// <returns>A <see cref="System.String" /> that represents this instance.</returns>
+		public override string ToString()
         {
             return $"Success: {Success} Id: {Id ?? "null"} Message: {Message ?? "null"}";
         }

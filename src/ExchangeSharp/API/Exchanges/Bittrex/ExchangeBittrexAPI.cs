@@ -546,7 +546,8 @@ namespace ExchangeSharp
 			ExchangeWithdrawalResponse withdrawalResponse = new ExchangeWithdrawalResponse
 			{
 				Id = result["id"].ToStringInvariant(),
-				Message = result["status"].ToStringInvariant()
+				Message = result["status"].ToStringInvariant(),
+				Fee = result.Value<decimal?>("txCost")
 			};
 
 			return withdrawalResponse;

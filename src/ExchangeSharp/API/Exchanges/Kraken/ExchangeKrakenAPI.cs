@@ -456,7 +456,8 @@ namespace ExchangeSharp
 
 			return new ExchangeWithdrawalResponse
 			{
-				Id = result["refid"].ToString()
+				Id = result["refid"].ToString(),
+				Fee = result.Value<decimal?>("fee")
 			};
 		}
 
