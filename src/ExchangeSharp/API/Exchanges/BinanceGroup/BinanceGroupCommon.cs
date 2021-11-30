@@ -1135,6 +1135,38 @@ namespace ExchangeSharp.BinanceGroup
 			});
 		}
 
+		protected override async Task<IWebSocket> OnGetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync,
+			int periodSeconds, params string[] marketSymbols)
+		{
+			if (!marketSymbols.Any())
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+
+			var period = PeriodSecondsToString(periodSeconds);
+			var payload = marketSymbols.Select(s => $"{s.ToLowerInvariant()}@kline_{period}");
+			var url = $"/stream?streams={string.Join("/", payload)}";
+			if (url.Length > 2048)
+			{
+				throw new InvalidOperationException(
+					$"URL length over the limit of 2048 characters. Consider splitting instruments in multiple connections.");
+			}
+
+			return await ConnectPublicWebSocketAsync(url, async (_socket, msg) =>
+			{
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+
+				if (token?["data"]?["k"] != null && token["data"]["s"] != null)
+				{
+					var candle = this.ParseCandle(token["data"]["k"], token["data"]["s"].ToStringInvariant(),
+						periodSeconds, "o", "h", "l", "c", "t",
+						TimestampType.UnixMilliseconds, "v", "q");
+
+					await callbackAsync(candle);
+				}
+			});
+		}
+
 		public async Task<string> GetListenKeyAsync()
 		{
 			JToken response = await MakeJsonRequestAsync<JToken>("/userDataStream", BaseUrlApi, null, "POST");
