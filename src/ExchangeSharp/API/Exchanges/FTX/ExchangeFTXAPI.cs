@@ -348,7 +348,8 @@ namespace ExchangeSharp
 
 			return new ExchangeWithdrawalResponse
 			{
-				Id = result["id"].ToString()
+				Id = result["id"].ToString(),
+				Fee = result.Value<decimal?>("fee")
 			};
 		}
 

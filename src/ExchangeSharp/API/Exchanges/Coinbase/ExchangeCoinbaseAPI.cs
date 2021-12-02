@@ -670,10 +670,12 @@ namespace ExchangeSharp
 			}
 
 			var result = await MakeJsonRequestAsync<WithdrawalResult>("/withdrawals/crypto", null, payload, "POST");
+			var feeParsed = decimal.TryParse(result.Fee, out var fee);
 
 			return new ExchangeWithdrawalResponse
 			{
-				Id = result.Id
+				Id = result.Id,
+				Fee = feeParsed ? fee : (decimal?)null
 			};
 		}
 

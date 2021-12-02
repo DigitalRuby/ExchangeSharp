@@ -777,6 +777,8 @@ namespace ExchangeSharp
 
 			resp.Id = result[0]["withdrawal_id"].ToStringInvariant();
 			resp.Message = result[0]["message"].ToStringInvariant();
+			resp.Fee = result[0].Value<decimal?>("WITHDRAWAL_FEE");
+
 			return resp;
 		}
 
