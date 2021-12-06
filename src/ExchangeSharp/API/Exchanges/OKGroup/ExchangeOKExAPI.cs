@@ -34,6 +34,11 @@ namespace ExchangeSharp
 		public string BaseUrlV5 { get; set; } = "https://www.okex.com/api/v5";
 		protected override bool IsFuturesAndSwapEnabled { get; } = true;
 
+		private ExchangeOKExAPI()
+		{
+			RateLimit = new RateGate(20, TimeSpan.FromSeconds(2));
+		}
+
 		public override string PeriodSecondsToString(int seconds)
 		{
 			return CryptoUtility.SecondsToPeriodString(seconds, true);
