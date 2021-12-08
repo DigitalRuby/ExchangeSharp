@@ -406,6 +406,18 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
+		/// Create an exchange api, by-passing any cache. Use this method for cases
+		/// where you need multiple instances of the same exchange, for example
+		/// multiple credentials.
+		/// </summary>
+		/// <returns>Created exchange api</returns>
+		public static async Task<IExchangeAPI> CreateExchangeAPIAsync(string name)
+		{
+			var type = ExchangeName.GetExchangeType(name);
+			return await InitializeAPIAsync(type);
+		}
+
+		/// <summary>
 		/// Get a cached exchange API given an exchange name (see ExchangeName class)
 		/// </summary>
 		/// <param name="exchangeName">Exchange name. Must match the casing of the ExchangeName class name exactly.</param>
