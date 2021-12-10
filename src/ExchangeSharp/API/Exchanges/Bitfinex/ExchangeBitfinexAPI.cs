@@ -471,23 +471,30 @@ namespace ExchangeSharp
 			payload["amount"] = (await ClampOrderQuantity(marketSymbol, order.Amount)).ToStringInvariant();
 			payload["side"] = (order.IsBuy ? "buy" : "sell");
 
-			if (order.IsMargin)
+			switch (order.OrderType)
 			{
-				payload["type"] = order.OrderType == OrderType.Market ? "market" : "limit";
-			}
-			else
-			{
-				payload["type"] = order.OrderType == OrderType.Market ? "exchange market" : "exchange limit";
+				case OrderType.Market:
+					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+					payload["type"] = "market";
+					payload["price"] = (await ClampOrderPrice(marketSymbol, order.Price.Value)).ToStringInvariant();
+					break;
+
+				case OrderType.Limit:
+					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+					payload["type"] = "limit";
+					payload["price"] = (await ClampOrderPrice(marketSymbol, order.Price.Value)).ToStringInvariant();
+					break;
+
+				case OrderType.Stop:
+					if (order.StopPrice < 0) throw new ArgumentOutOfRangeException(nameof(order.StopPrice));
+					payload["type"] = "stop";
+					payload["price"] = (await ClampOrderPrice(marketSymbol, order.StopPrice)).ToStringInvariant();
+					break;
 			}
 
-			if (order.OrderType != OrderType.Market)
+			if (!order.IsMargin)
 			{
-				if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
-				payload["price"] = (await ClampOrderPrice(marketSymbol, order.Price.Value)).ToStringInvariant();
-			}
-			else
-			{
-				payload["price"] = "1";
+				payload["type"] = $"exchange {payload["type"]}";
 			}
 			if (order.IsPostOnly == true) payload["flags"] = "4096"; // The post-only limit order option ensures the limit order will be added to the order book and not match with a pre-existing order unless the pre-existing order is a hidden order.
 			order.ExtraParameters.CopyTo(payload);
