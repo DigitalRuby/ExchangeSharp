@@ -178,14 +178,15 @@ namespace ExchangeSharp
 		public System.Security.SecureString? Passphrase { get; set; }
 
 		private static readonly ConcurrentDictionary<Type, RateGate> rateLimiters = new ConcurrentDictionary<Type, RateGate>();
+		private RateGate rateGate;
 		/// <summary>
 		/// Rate limiter - set this to a new limit if you are seeing your ip get blocked by the API
 		/// One rate limiter is created per type of api
 		/// </summary>
 		public RateGate RateLimit
 		{
-			get => rateLimiters.GetOrAdd(GetType(), v => new RateGate(5, TimeSpan.FromSeconds(15.0d)));
-			set => rateLimiters[GetType()] = value;
+			get => rateGate ??= rateLimiters.GetOrAdd(GetType(), v => new RateGate(5, TimeSpan.FromSeconds(15.0d)));
+			set => rateLimiters[GetType()] = rateGate = value;
 		}
 
 		/// <summary>
