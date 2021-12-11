@@ -47,7 +47,7 @@ namespace ExchangeSharp
 			try
 			{
 				// make sure we have a valid type for the name
-				Type type = Type.GetType($"ExchangeSharp.Exchange{exchangeName}API");
+				Type type = Type.GetType($"ExchangeSharp.Exchange{exchangeName}API", true, true);
 
 				// we had better have a type sub-classing from ExchangeAPI
 				if (type is null || !type.IsSubclassOf(exchangeApiType))
