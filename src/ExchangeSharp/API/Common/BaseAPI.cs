@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 #nullable enable
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -176,10 +177,17 @@ namespace ExchangeSharp
 		/// </summary>
 		public System.Security.SecureString? Passphrase { get; set; }
 
+		private static readonly ConcurrentDictionary<Type, RateGate> rateLimiters = new ConcurrentDictionary<Type, RateGate>();
+		private RateGate rateGate;
 		/// <summary>
 		/// Rate limiter - set this to a new limit if you are seeing your ip get blocked by the API
+		/// One rate limiter is created per type of api
 		/// </summary>
-		public RateGate RateLimit { get; set; } = new RateGate(5, TimeSpan.FromSeconds(15.0d));
+		public RateGate RateLimit
+		{
+			get => rateGate ??= rateLimiters.GetOrAdd(GetType(), v => new RateGate(5, TimeSpan.FromSeconds(15.0d)));
+			set => rateLimiters[GetType()] = rateGate = value;
+		}
 
 		/// <summary>
 		/// Default request method

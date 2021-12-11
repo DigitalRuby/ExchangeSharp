@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ProjectGuid>{571623F9-1652-4669-8E17-A6FAD1426181}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>ExchangeSharpWinForms</AssemblyTitle>
     <Product>ExchangeSharpWinForms</Product>
@@ -21,9 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="MainForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="MainForm.cs" />
     <Compile Update="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
