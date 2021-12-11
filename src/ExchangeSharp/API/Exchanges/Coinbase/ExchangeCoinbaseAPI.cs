@@ -652,6 +652,27 @@ namespace ExchangeSharp
 			return amounts;
 		}
 
+		protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
+		{
+			var symbols = await OnGetMarketSymbolsAsync();
+
+			Dictionary<string, decimal> fees = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+			JObject token = await MakeJsonRequestAsync<JObject>("/fees", null, await GetNoncePayloadAsync(), "GET");
+			/*
+			 * We can chose between maker and taker fee... 
+			 * currently ExchangeSharp only supports 1 fee rate per symbol.
+			 * Here, we choose Maker fee and not taker_fee_rate
+			*/
+			decimal makerRate = token["maker_fee_rate"].Value<decimal>();
+
+			fees = symbols
+				.Select(symbol => new KeyValuePair<string, decimal>(symbol, makerRate))
+				.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+			return fees;
+		}
+
 		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest request)
 		{
 			var nonce = await GenerateNonceAsync();
