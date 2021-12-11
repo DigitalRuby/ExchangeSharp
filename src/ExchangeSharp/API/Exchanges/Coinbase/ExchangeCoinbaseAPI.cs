@@ -660,11 +660,10 @@ namespace ExchangeSharp
 
 			JObject token = await MakeJsonRequestAsync<JObject>("/fees", null, await GetNoncePayloadAsync(), "GET");
 			/*
-			 * We can chose between maker and taker fee... 
-			 * currently ExchangeSharp only supports 1 fee rate per symbol.
-			 * Here, we choose Maker fee and not taker_fee_rate
+			 * We can chose between maker and taker fee, but currently ExchangeSharp only supports 1 fee rate per symbol.
+			 * Here, we choose taker fee, which are usually higher 
 			*/
-			decimal makerRate = token["maker_fee_rate"].Value<decimal>();
+			decimal makerRate = token["taker_fee_rate"].Value<decimal>(); //percentage between 0 and 1
 
 			fees = symbols
 				.Select(symbol => new KeyValuePair<string, decimal>(symbol, makerRate))
