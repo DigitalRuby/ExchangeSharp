@@ -232,6 +232,7 @@ namespace ExchangeSharp
 			var token = await GetBalance();
 			return token[0]["details"]
 				.Select(x => new { Currency = x["ccy"].Value<string>(), TotalBalance = x["cashBal"].Value<decimal>() })
+				.Where(x => !string.IsNullOrEmpty(x.Currency))
 				.ToDictionary(k => k.Currency, v => v.TotalBalance);
 		}
 
@@ -241,6 +242,7 @@ namespace ExchangeSharp
 			return token[0]["details"]
 				.Select(x => new
 					{ Currency = x["ccy"].Value<string>(), AvailableBalance = x["availBal"].Value<decimal>() })
+				.Where(x => !string.IsNullOrEmpty(x.Currency))
 				.ToDictionary(k => k.Currency, v => v.AvailableBalance);
 		}
 
@@ -254,6 +256,7 @@ namespace ExchangeSharp
 					Currency = x["ccy"].Value<string>(),
 					AvailableEquity = x["availEq"].Value<string>() == string.Empty ? 0 : x["availEq"].Value<decimal>()
 				})
+				.Where(x => !string.IsNullOrEmpty(x.Currency))
 				.ToDictionary(k => k.Currency, v => v.AvailableEquity);
 
 			return includeZeroBalances
