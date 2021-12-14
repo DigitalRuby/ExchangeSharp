@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net472</TargetFramework>
+        <TargetFramework>net6.0-windows</TargetFramework>
         <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
         <NeutralLanguage>en</NeutralLanguage>
         <LangVersion>8</LangVersion>
+		<UseWindowsForms>true</UseWindowsForms>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,6 +18,10 @@
     <ItemGroup>
         <None Include="../../icon.png" Pack="true" PackagePath="\" />
         <None Include="../../LICENSE.txt" Link="LICENSE.txt" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Maikebing.System.Windows.Forms.DataVisualization" Version="5.0.1" />
     </ItemGroup>
 
     <ItemGroup>

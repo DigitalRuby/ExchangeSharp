@@ -1,5 +1,7 @@
 <img src='logo.png' width='600' alt="Project's logo" />
 
+[![Github Sponsorship](.github/github_sponsor_btn.svg)](https://github.com/sponsors/jjxtra)
+
 [![Build Status](https://dev.azure.com/DigitalRuby/DigitalRuby/_apis/build/status/jjxtra_ExchangeSharp?branchName=master)](https://dev.azure.com/DigitalRuby/DigitalRuby/_build/latest?definitionId=5&branchName=master) [![NuGet](https://img.shields.io/nuget/dt/DigitalRuby.ExchangeSharp.svg)][nuget]
 
 ## Overview
