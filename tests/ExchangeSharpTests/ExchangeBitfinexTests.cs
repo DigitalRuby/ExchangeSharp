@@ -14,6 +14,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ExchangeSharp;
 using System.Net;
 using System.Security;
+using System;
+using FluentAssertions;
 
 namespace ExchangeSharpTests
 {
@@ -39,6 +41,17 @@ namespace ExchangeSharpTests
 			api.PrivateApiKey = _pvtKey;
 			api.PublicApiKey = _pubKey;
 			ExchangeOrderResult result = api.PlaceOrderAsync(order).Result;
+		}
+
+		[TestMethod]
+		public void GetDataFromMarketWithSpecialChar()
+		{
+			IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
+			string marketTicker = "DOGE:USD";
+			DateTime start = new DateTime(2021, 12, 1);
+			DateTime end = DateTime.Today;
+			System.Collections.Generic.IEnumerable<MarketCandle> result = api.GetCandlesAsync(marketTicker, 86400, start, end, 1000).Result;
+			result.Should().HaveCountGreaterThan(0, "Returned data");
 		}
 	}
 }
