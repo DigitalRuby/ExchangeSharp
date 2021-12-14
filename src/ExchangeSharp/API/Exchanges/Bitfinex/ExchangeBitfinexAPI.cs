@@ -62,7 +62,7 @@ namespace ExchangeSharp
 				["ZEC"] = "zcash",
 			};
 
-			MarketSymbolSeparator = string.Empty;
+			MarketSymbolSeparator = ":";
 		}
 
 		public override string PeriodSecondsToString(int seconds)
