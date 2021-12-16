@@ -13,7 +13,7 @@ Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat wi
 ### Features
 
 - Many exchanges supported with public, private and web socket API
-- Easy to use and well documented code and API
+- Easy to use code and API
 - Optional global market symbol normalization, since each exchange has their own way of doing market symbols
 - Runs anywhere .NET runs. (Windows, Mac, Linux, Containers, Serverless, iOS, Android, [etc.](https://docs.microsoft.com/en-us/dotnet/core/about))
 - Can be used from [many different C# platforms](https://github.com/dotnet/standard/blob/master/docs/versions/netstandard2.0.md#platform-support)
