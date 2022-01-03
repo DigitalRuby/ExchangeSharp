@@ -52,21 +52,6 @@ namespace ExchangeSharp
 			ConcurrentDictionary<string, ExchangeOrderBook> fullBooks = new ConcurrentDictionary<string, ExchangeOrderBook>();
 			Dictionary<string, Queue<ExchangeOrderBook>> partialOrderBookQueues = new Dictionary<string, Queue<ExchangeOrderBook>>();
 
-			static void applyDelta(SortedDictionary<decimal, ExchangeOrderPrice> deltaValues, SortedDictionary<decimal, ExchangeOrderPrice> bookToEdit)
-			{
-				foreach (ExchangeOrderPrice record in deltaValues.Values)
-				{
-					if (record.Amount <= 0 || record.Price <= 0)
-					{
-						bookToEdit.Remove(record.Price);
-					}
-					else
-					{
-						bookToEdit[record.Price] = record;
-					}
-				}
-			}
-
 			static void updateOrderBook(ExchangeOrderBook fullOrderBook, ExchangeOrderBook freshBook)
 			{
 				lock (fullOrderBook)
@@ -74,9 +59,7 @@ namespace ExchangeSharp
 					// update deltas as long as the full book is at or before the delta timestamp
 					if (fullOrderBook.SequenceId <= freshBook.SequenceId)
 					{
-						applyDelta(freshBook.Asks, fullOrderBook.Asks);
-						applyDelta(freshBook.Bids, fullOrderBook.Bids);
-						fullOrderBook.SequenceId = freshBook.SequenceId;
+						fullOrderBook.ApplyUpdates(freshBook);
 					}
 				}
 			}
