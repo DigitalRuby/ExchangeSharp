@@ -205,14 +205,15 @@ namespace ExchangeSharp
         {
             MergeOrderBookDelta(partialUpdate.Asks, this.Asks);
             MergeOrderBookDelta(partialUpdate.Bids, this.Bids);
+			SequenceId = partialUpdate.SequenceId;
 
-            static void MergeOrderBookDelta(
+			static void MergeOrderBookDelta(
                 SortedDictionary<decimal, ExchangeOrderPrice> newData,
                 SortedDictionary<decimal, ExchangeOrderPrice> bookData)
             {
                 newData.ToList().ForEach(x =>
                 {
-                    if (x.Value.Amount == 0m)
+                    if (x.Value.Amount <= 0m || x.Value.Price <= 0m)
                         bookData.Remove(x.Key);
                     else
                         bookData[x.Key] = x.Value;
