@@ -206,7 +206,7 @@ namespace ExchangeSharp
 				}
 			*/
 
-			var orderBook = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(json, sequence: "current", maxCount: maxCount);
+			var orderBook = json.ParseOrderBookFromJTokenArrays(sequence: "current");
 			orderBook.LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(json["current"].ConvertInvariant<long>());
 			return orderBook;
 		}

@@ -186,7 +186,7 @@ namespace ExchangeSharp
 		{
 			var token = await MakeJsonRequestAsync<JToken>($"/market/books?instId={marketSymbol}&sz={maxCount}",
 				BaseUrlV5);
-			return token[0].ParseOrderBookFromJTokenArrays(maxCount: maxCount);
+			return token[0].ParseOrderBookFromJTokenArrays();
 		}
 
 		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol,
@@ -420,7 +420,7 @@ namespace ExchangeSharp
 					marketSymbols = await AddMarketSymbolsToChannel(_socket, "books-l2-tbt", marketSymbols);
 				}, (_socket, symbol, sArray, token) =>
 				{
-					ExchangeOrderBook book = token.ParseOrderBookFromJTokenArrays(maxCount: maxCount);
+					ExchangeOrderBook book = token.ParseOrderBookFromJTokenArrays();
 					book.MarketSymbol = symbol;
 					callback(book);
 					return Task.CompletedTask;

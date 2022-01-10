@@ -186,7 +186,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             JToken token = await MakeJsonRequestAsync<JToken>("/public/orderbook/" + marketSymbol + "?limit=" + maxCount.ToStringInvariant());
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, asks: "ask", bids: "bid", amount: "size", maxCount: maxCount);
+            return token.ParseOrderBookFromJTokenDictionaries(asks: "ask", bids: "bid", amount: "size");
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
@@ -195,11 +195,11 @@ namespace ExchangeSharp
 			// TODO: Can't get Hitbtc to return other than the last 50 trades even though their API says it should (by orderid or timestamp). When passing either of these parms, it still returns the last 50
 			// So until there is an update, that's what we'll go with
 			// UPDATE: 2020/01/19 https://api.hitbtc.com/ GET /api/2/public/trades/{symbol} limit default: 100 max value:1000
-			// 
+			//
 			//var maxRequestLimit = 1000; //hard coded for now, should add limit as an argument
-			var maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;  
+			var maxRequestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
             //note that sort must come after limit, else returns default 100 trades, sort default is DESC
-			JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC"); 
+			JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
 			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol);
 			if (obj.HasValues)
             {

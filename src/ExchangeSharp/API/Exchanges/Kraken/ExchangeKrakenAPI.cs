@@ -408,7 +408,7 @@ namespace ExchangeSharp
 		}
 
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
-		{ 
+		{
 			var markets = new List<ExchangeMarket>();
 			JToken allPairs = await MakeJsonRequestAsync<JToken>("/0/public/AssetPairs");
 			var res = (from prop in allPairs.Children<JProperty>() select prop).ToArray();
@@ -546,7 +546,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
 			JToken obj = await MakeJsonRequestAsync<JToken>("/0/public/Depth?pair=" + marketSymbol + "&count=" + maxCount);
-			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj[marketSymbol], maxCount: maxCount);
+			return obj[marketSymbol].ParseOrderBookFromJTokenArrays();
 		}
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
