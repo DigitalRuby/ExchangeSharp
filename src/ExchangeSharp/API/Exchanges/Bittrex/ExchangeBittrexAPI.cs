@@ -271,7 +271,7 @@ namespace ExchangeSharp
 			}
 
 			JToken token = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/orderbook" + "?depth=" + maxCount);
-			return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, "ask", "bid", "rate", "quantity", maxCount: maxCount);
+			return token.ParseOrderBookFromJTokenDictionaries("ask", "bid", "rate", "quantity");
 		}
 
 		/// <summary>Gets the deposit history for a symbol</summary>

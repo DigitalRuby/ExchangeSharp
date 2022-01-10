@@ -586,7 +586,7 @@ namespace ExchangeSharp
 		{
 			string url = "/products/" + marketSymbol.ToUpperInvariant() + "/book?level=2";
 			JToken token = await MakeJsonRequestAsync<JToken>(url);
-			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
+			return token.ParseOrderBookFromJTokenArrays();
 		}
 
 		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
@@ -661,7 +661,7 @@ namespace ExchangeSharp
 			JObject token = await MakeJsonRequestAsync<JObject>("/fees", null, await GetNoncePayloadAsync(), "GET");
 			/*
 			 * We can chose between maker and taker fee, but currently ExchangeSharp only supports 1 fee rate per symbol.
-			 * Here, we choose taker fee, which are usually higher 
+			 * Here, we choose taker fee, which are usually higher
 			*/
 			decimal makerRate = token["taker_fee_rate"].Value<decimal>(); //percentage between 0 and 1
 

@@ -211,7 +211,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
 			JToken obj = await MakeJsonRequestAsync<JToken>($"/order_book?symbol={marketSymbol}&limit={maxCount}");
-			var result = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj, sequence: "date", maxCount: maxCount);
+			var result = obj.ParseOrderBookFromJTokenArrays(sequence: "date");
 			result.LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeSeconds(obj["date"].ConvertInvariant<long>());
 			result.MarketSymbol = marketSymbol;
 			return result;

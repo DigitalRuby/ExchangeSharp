@@ -100,7 +100,7 @@ namespace ExchangeSharp
 			maxCount = Math.Min(maxCount, ORDER_BOOK_MAX_SIZE);
 			JToken resp = await this.MakeJsonRequestAsync<JToken>($"/depth.do?symbol={symbol}&size={maxCount}&merge=0");
 			CheckResponseToken(resp);
-			ExchangeOrderBook book = ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(resp, maxCount: maxCount);
+			ExchangeOrderBook book = resp.ParseOrderBookFromJTokenArrays();
 			book.SequenceId = resp["timestamp"].ConvertInvariant<long>();
 			return book;
 		}

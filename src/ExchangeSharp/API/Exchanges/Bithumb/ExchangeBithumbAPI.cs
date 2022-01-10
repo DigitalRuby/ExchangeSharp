@@ -151,7 +151,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             var data = await MakeRequestBithumbAsync(marketSymbol, "/public/orderbook/$SYMBOL$");
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(data.Item1, amount: "quantity", sequence: "timestamp", maxCount: maxCount);
+            return data.Item1.ParseOrderBookFromJTokenDictionaries(amount: "quantity", sequence: "timestamp");
         }
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)

@@ -270,10 +270,10 @@ namespace ExchangeSharp
 				{
 					continue;
 				}
-				
+
 				markets.Add(ParseOrder(token));
 			}
-			
+
 			return markets;
 		}
 
@@ -282,7 +282,7 @@ namespace ExchangeSharp
 		{
 			JToken response = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}/orderbook?depth={maxCount}");
 
-			return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(response, maxCount: maxCount);
+			return response.ParseOrderBookFromJTokenArrays();
 		}
 
 		/// <inheritdoc />
@@ -519,8 +519,8 @@ namespace ExchangeSharp
 				AmountFilled = token["filledSize"].ConvertInvariant<decimal>(),
 				ClientOrderId = token["clientId"].ToStringInvariant(),
 				Result = token["status"].ToStringInvariant().ToExchangeAPIOrderResult(token["size"].ConvertInvariant<decimal>() - token["filledSize"].ConvertInvariant<decimal>()),
-				ResultCode = token["status"].ToStringInvariant()			
-			};				
+				ResultCode = token["status"].ToStringInvariant()
+			};
 		}
 
 		#endregion

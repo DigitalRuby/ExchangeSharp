@@ -133,7 +133,7 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
             JToken token = await MakeBitstampRequestAsync("/order_book/" + marketSymbol);
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token, maxCount: maxCount);
+            return token.ParseOrderBookFromJTokenArrays();
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
@@ -254,7 +254,7 @@ namespace ExchangeSharp
 			// status can be 'Canceled', 'Open' or 'Finished'
 			var statusCode = result.Value<string>("status");
 			var status = GetOrderResultFromStatus(statusCode, anyTransaction);
-			
+
             // empty transaction array means that order is InQueue or Open and AmountFilled == 0
             // return empty order in this case. no any additional info available at this point
             if (!anyTransaction)
