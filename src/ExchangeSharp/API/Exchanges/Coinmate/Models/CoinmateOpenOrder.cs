@@ -13,7 +13,6 @@ namespace ExchangeSharp.API.Exchanges.Coinmate.Models
 		public bool Hidden { get; set; }
 		public bool Trailing { get; set; }
 		public long? StopLossOrderId { get; set; }
-
 		public long? ClientOrderId { get; set; }
 	}
 }

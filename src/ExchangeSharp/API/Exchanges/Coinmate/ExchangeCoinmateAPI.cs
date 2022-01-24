@@ -191,7 +191,14 @@ namespace ExchangeSharp
 			var url = order.IsBuy ? "/buyLimit" : "/sellLimit";
 			var id = await MakeCoinmateRequest<long?>(url, payload, "POST");
 
-			return await GetOrderDetailsAsync(id?.ToString(), marketSymbol: order.MarketSymbol);
+			try
+			{
+				return await GetOrderDetailsAsync(id?.ToString(), marketSymbol: order.MarketSymbol);
+			}
+			catch
+			{
+				return new ExchangeOrderResult { OrderId = id?.ToString() };
+			}
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
@@ -212,6 +219,37 @@ namespace ExchangeSharp
 				Price = x.Price,
 
 			}).ToArray();
+		}
+
+		protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
+		{
+			var payload = await GetNoncePayloadAsync();
+			var currencyName = GetCurrencyName(currency);
+			var addresses = await MakeCoinmateRequest<string[]>($"/{currencyName}DepositAddresses", payload, "POST");
+
+			return new ExchangeDepositDetails
+			{
+				Address = addresses.FirstOrDefault(),
+				Currency = currency,
+			};
+		}
+
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+		{
+			var payload = await GetNoncePayloadAsync();
+			var currencyName = GetCurrencyName(withdrawalRequest.Currency);
+
+			payload["amount"] = withdrawalRequest.Amount;
+			payload["address"] = withdrawalRequest.Address;
+			payload["amountType"] = withdrawalRequest.TakeFeeFromAmount ? "NET" : "GROSS";
+
+			var id = await MakeCoinmateRequest<long?>($"/{currencyName}Withdrawal", payload, "POST");
+
+			return new ExchangeWithdrawalResponse
+			{
+				Id = id?.ToString(),
+				Success = id != null
+			};
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
@@ -243,6 +281,21 @@ namespace ExchangeSharp
 			}
 
 			return response.Data;
+		}
+
+		private string GetCurrencyName(string currency)
+		{
+			return currency.ToUpper() switch
+			{
+				"BTC" => "bitcoin",
+				"LTC" => "litecoin",
+				"BCH" => "bitcoinCash",
+				"ETH" => "ethereum",
+				"XRP" => "ripple",
+				"DASH" => "dash",
+				"DAI" => "dai",
+				_ => throw new NotImplementedException("Unsupported currency")
+			};
 		}
 	}
 }
