@@ -100,6 +100,100 @@ namespace ExchangeSharp
 			return balances.ToDictionary(x => x.Key, x => x.Value.Balance);
 		}
 
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		{
+			var payload = await GetNoncePayloadAsync();
+			var balances = await MakeCoinmateRequest<Dictionary<string, CoinmateBalance>>("/balances", payload, "POST");
+
+			return balances.ToDictionary(x => x.Key, x => x.Value.Available);
+		}
+
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			var payload = await GetNoncePayloadAsync();
+
+			CoinmateOrder o;
+
+			if (isClientOrderId)
+			{
+				payload["clientOrderId"] = orderId;
+				var orders = await MakeCoinmateRequest<CoinmateOrder[]>("/order", payload, "POST");
+				o = orders.OrderByDescending(x => x.Timestamp).FirstOrDefault();
+			}
+			else
+			{
+				payload["orderId"] = orderId;
+				o = await MakeCoinmateRequest<CoinmateOrder>("/orderById", payload, "POST");
+			}
+
+			if (o == null) return null;
+
+			return new ExchangeOrderResult
+			{
+				Amount = o.OriginalAmount,
+				AmountFilled = o.OriginalAmount - o.RemainingAmount,
+				AveragePrice = o.AvgPrice,
+				ClientOrderId = isClientOrderId ? orderId : null,
+				OrderId = o.Id.ToString(),
+				Price = o.Price,
+				IsBuy = o.Type == "BUY",
+				OrderDate = CryptoUtility.ParseTimestamp(o.Timestamp, TimestampType.UnixMilliseconds),
+				ResultCode = o.Status,
+				Result = o.Status switch
+				{
+					"CANCELLED" => ExchangeAPIOrderResult.Canceled,
+					"FILLED" => ExchangeAPIOrderResult.Filled,
+					"PARTIALLY_FILLED" => ExchangeAPIOrderResult.FilledPartially,
+					"OPEN" => ExchangeAPIOrderResult.Open,
+					_ => ExchangeAPIOrderResult.Unknown
+				},
+				MarketSymbol = marketSymbol
+			};
+		}
+
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		{
+			var payload = await GetNoncePayloadAsync();
+			payload["orderId"] = orderId;
+
+			await MakeCoinmateRequest<bool>("/cancelOrder", payload, "POST");
+		}
+
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		{
+			var payload = await GetNoncePayloadAsync();
+
+			if (order.OrderType != OrderType.Limit && order.OrderType != OrderType.Stop)
+			{
+				throw new NotImplementedException("This type of order is currently not supported.");
+			}
+
+			payload["amount"] = order.Amount;
+			payload["price"] = order.Price;
+			payload["currencyPair"] = order.MarketSymbol;
+			payload["postOnly"] = order.IsPostOnly.GetValueOrDefault() ? 1 : 0;
+
+			if (order.OrderType == OrderType.Stop)
+			{
+				payload["stopPrice"] = order.StopPrice;
+			}
+
+			if (order.ClientOrderId != null)
+			{
+				if (!long.TryParse(order.ClientOrderId, out var clientOrderId))
+				{
+					throw new InvalidOperationException("ClientId must be numerical for Coinmate");
+				}
+
+				payload["clientOrderId"] = clientOrderId;
+			}
+
+			var url = order.IsBuy ? "/buyLimit" : "/sellLimit";
+			var id = await MakeCoinmateRequest<long?>(url, payload, "POST");
+
+			return await GetOrderDetailsAsync(id?.ToString(), marketSymbol: order.MarketSymbol);
+		}
+
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
 			if (CanMakeAuthenticatedRequest(payload))
