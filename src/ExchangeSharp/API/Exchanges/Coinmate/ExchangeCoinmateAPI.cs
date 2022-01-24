@@ -13,10 +13,21 @@ namespace ExchangeSharp
 
 		public ExchangeCoinmateAPI()
 		{
+			RequestContentType = "application/x-www-form-urlencoded";
 			MarketSymbolSeparator = "_";
+			NonceStyle = NonceStyle.UnixMilliseconds;
 		}
 
 		public override string Name => "Coinmate";
+
+		/// <summary>
+		/// Coinmate private API requires a client id. Internally this is secured in the PassPhrase property.
+		/// </summary>
+		public string ClientId
+		{
+			get { return Passphrase.ToUnsecureString(); }
+			set { Passphrase = value.ToSecureString(); }
+		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
@@ -66,9 +77,51 @@ namespace ExchangeSharp
 			return result;
 		}
 
-		private async Task<T> MakeCoinmateRequest<T>(string url)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
 		{
-			var response = await MakeJsonRequestAsync<CoinmateResponse<T>>(url);
+			var txs = await MakeCoinmateRequest<CoinmateTransaction[]>("/transactions?minutesIntoHistory=1440&currencyPair=" + marketSymbol);
+			return txs.Select(x => new ExchangeTrade
+			{
+				Amount = x.Amount,
+				Id = x.TransactionId,
+				IsBuy = x.TradeType == "BUY",
+				Price = x.Price,
+				Timestamp = CryptoUtility.ParseTimestamp(x.Timestamp, TimestampType.UnixMilliseconds)
+			})
+			.Take(limit ?? int.MaxValue)
+			.ToArray();
+		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		{
+			var payload = await GetNoncePayloadAsync();
+			var balances = await MakeCoinmateRequest<Dictionary<string, CoinmateBalance>>("/balances", payload, "POST");
+
+			return balances.ToDictionary(x => x.Key, x => x.Value.Balance);
+		}
+
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				if (string.IsNullOrWhiteSpace(ClientId))
+				{
+					throw new APIException("Client ID is not set for Coinmate");
+				}
+
+				var apiKey = PublicApiKey.ToUnsecureString();
+				var messageToSign = payload["nonce"].ToStringInvariant() + ClientId + apiKey;
+				var signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
+				payload["signature"] = signature;
+				payload["clientId"] = ClientId;
+				payload["publicKey"] = apiKey;
+				await CryptoUtility.WritePayloadFormToRequestAsync(request, payload);
+			}
+		}
+
+		private async Task<T> MakeCoinmateRequest<T>(string url, Dictionary<string, object> payload = null, string method = null)
+		{
+			var response = await MakeJsonRequestAsync<CoinmateResponse<T>>(url, null, payload, method);
 
 			if (response.Error)
 			{
