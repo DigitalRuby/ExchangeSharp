@@ -7,8 +7,8 @@ namespace ExchangeSharp.API.Exchanges.Coinmate.Models
 	
 		public class AskBid
 		{
-			public decimal price { get; set; }
-			public decimal amount { get; set; }
+			public decimal Price { get; set; }
+			public decimal Amount { get; set; }
 		}
 	}
 }

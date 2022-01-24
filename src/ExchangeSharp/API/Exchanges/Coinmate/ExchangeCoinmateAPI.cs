@@ -65,14 +65,14 @@ namespace ExchangeSharp
 			};
 
 			book.Asks
-				.GroupBy(x => x.price)
+				.GroupBy(x => x.Price)
 				.ToList()
-				.ForEach(x => result.Asks.Add(x.Key, new ExchangeOrderPrice { Amount = x.Sum(x => x.amount), Price = x.Key }));
+				.ForEach(x => result.Asks.Add(x.Key, new ExchangeOrderPrice { Amount = x.Sum(x => x.Amount), Price = x.Key }));
 
 			book.Bids
-				.GroupBy(x => x.price)
+				.GroupBy(x => x.Price)
 				.ToList()
-				.ForEach(x => result.Bids.Add(x.Key, new ExchangeOrderPrice { Amount = x.Sum(x => x.amount), Price = x.Key }));
+				.ForEach(x => result.Bids.Add(x.Key, new ExchangeOrderPrice { Amount = x.Sum(x => x.Amount), Price = x.Key }));
 
 			return result;
 		}
@@ -192,6 +192,26 @@ namespace ExchangeSharp
 			var id = await MakeCoinmateRequest<long?>(url, payload, "POST");
 
 			return await GetOrderDetailsAsync(id?.ToString(), marketSymbol: order.MarketSymbol);
+		}
+
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+		{
+			var payload = await GetNoncePayloadAsync();
+			payload["currencyPair"] = marketSymbol;
+
+			var orders = await MakeCoinmateRequest<CoinmateOpenOrder[]>("/openOrders", payload, "POST");
+
+			return orders.Select(x => new ExchangeOrderResult
+			{
+				Amount = x.Amount,
+				ClientOrderId = x.ClientOrderId?.ToString(),
+				IsBuy = x.Type == "BUY",
+				MarketSymbol = x.CurrencyPair,
+				OrderDate = CryptoUtility.ParseTimestamp(x.Timestamp, TimestampType.UnixMilliseconds),
+				OrderId = x.Id.ToString(),
+				Price = x.Price,
+
+			}).ToArray();
 		}
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
