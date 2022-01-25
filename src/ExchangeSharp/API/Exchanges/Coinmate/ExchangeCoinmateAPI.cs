@@ -297,5 +297,7 @@ namespace ExchangeSharp
 				_ => throw new NotImplementedException("Unsupported currency")
 			};
 		}
+
+		public partial class ExchangeName { public const string Coinmate = "Coinmate"; }
 	}
 }
