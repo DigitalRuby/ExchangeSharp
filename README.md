@@ -42,6 +42,7 @@ The following cryptocurrency exchanges are supported:
 | BTSE           | x           | x            |            |
 | Bybit          | x           | x            | R          | Has public method for Websocket Positions
 | Coinbase       | x           | x            | T R U      |
+| Coinmate       | x           | x            |            |
 | Digifinex      | x           | x            | R B        |
 | FTX            | x           | x            | T          |
 | gate.io        | x           | x            |            |
