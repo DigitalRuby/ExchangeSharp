@@ -22,7 +22,7 @@ namespace ExchangeSharp
     public sealed partial class ExchangeZBcomAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "http://api.zb.com/data/v1";
-        public override string BaseUrlWebSocket { get; set; } = "wss://api.zb.com:9999/websocket";
+        public override string BaseUrlWebSocket { get; set; } = "wss://api.zb.bike/websocket";
 
 		private ExchangeZBcomAPI()
         {
