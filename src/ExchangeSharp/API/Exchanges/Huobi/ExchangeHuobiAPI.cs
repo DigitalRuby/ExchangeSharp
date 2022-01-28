@@ -251,6 +251,8 @@ namespace ExchangeSharp
 
                 if (token["status"] != null)
                 {
+					if (token["status"].ToStringLowerInvariant() == "error")
+						Logger.Error($"Error in {this.GetType()}.{nameof(OnGetTradesWebSocketAsync)}: {token.ToStringInvariant()}");
                     return;
                 }
                 else if (token["ping"] != null)
