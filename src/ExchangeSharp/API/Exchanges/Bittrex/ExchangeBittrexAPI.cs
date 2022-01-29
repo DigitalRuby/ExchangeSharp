@@ -230,7 +230,7 @@ namespace ExchangeSharp
 		{
 			JToken ticker = await MakeJsonRequestAsync<JToken>("/markets/" + marketSymbol + "/ticker");
 			//NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
-			return await this.ParseTickerAsync(ticker, marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601);
+			return await this.ParseTickerAsync(ticker, marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601UTC);
 		}
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -241,7 +241,7 @@ namespace ExchangeSharp
 			foreach (JToken ticker in tickers)
 			{
 				marketSymbol = ticker["symbol"].ToStringInvariant();
-				ExchangeTicker tickerObj = await this.ParseTickerAsync(ticker, marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601);
+				ExchangeTicker tickerObj = await this.ParseTickerAsync(ticker, marketSymbol, "askRate", "bidRate", "lastTradeRate", "volume", "quoteVolume", "updatedAt", TimestampType.Iso8601UTC);
 				tickerList.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, tickerObj));
 			}
 			return tickerList;
@@ -319,7 +319,7 @@ namespace ExchangeSharp
 			JToken array = await MakeJsonRequestAsync<JToken>(baseUrl);
 			foreach (JToken token in array)
 			{
-				trades.Add(token.ParseTrade("quantity", "rate", "takerSide", "executedAt", TimestampType.Iso8601, "id"));
+				trades.Add(token.ParseTrade("quantity", "rate", "takerSide", "executedAt", TimestampType.Iso8601UTC, "id"));
 			}
 			return trades;
 		}
@@ -488,7 +488,7 @@ namespace ExchangeSharp
 				{
 					//NOTE: Bittrex uses the term "BaseVolume" when referring to the QuoteCurrencyVolume
 					MarketCandle candle = this.ParseCandle(token: jsonCandle, marketSymbol: marketSymbol, periodSeconds: periodSeconds,
-						openKey: "open", highKey: "high", lowKey: "low", closeKey: "close", timestampKey: "startsAt", timestampType: TimestampType.Iso8601,
+						openKey: "open", highKey: "high", lowKey: "low", closeKey: "close", timestampKey: "startsAt", timestampType: TimestampType.Iso8601UTC,
 						baseVolumeKey: "volume", quoteVolumeKey: "quoteVolume");
 					if (startDate != null && endDate != null)
 					{

@@ -625,7 +625,7 @@ namespace ExchangeSharp
 			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
 			if(obj.HasValues) { //
 				foreach(JToken token in obj) {
-					var trade = token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "globalTradeID");
+					var trade = token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601UTC, "globalTradeID");
 					trades.Add(trade);
 				}
 			}
@@ -640,7 +640,7 @@ namespace ExchangeSharp
                 Callback = callback,
                 EndDate = endDate,
                 MillisecondGranularity = false,
-                ParseFunction = (JToken token) => token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601, "globalTradeID"),
+                ParseFunction = (JToken token) => token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601UTC, "globalTradeID"),
                 StartDate = startDate,
                 MarketSymbol = marketSymbol,
                 TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(dt)).ToStringInvariant(),

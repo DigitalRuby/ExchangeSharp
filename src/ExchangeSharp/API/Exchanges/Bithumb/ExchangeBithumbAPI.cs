@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
@@ -21,6 +22,8 @@ namespace ExchangeSharp
     public sealed partial class ExchangeBithumbAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.bithumb.com";
+		public override string BaseUrlWebSocket { get; set; } = "wss://pubwss.bithumb.com/pub/ws";
+
 
 		private ExchangeBithumbAPI()
         {
@@ -112,15 +115,16 @@ namespace ExchangeSharp
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
             List<string> marketSymbols = new List<string>();
-            string marketSymbol = "all";
+            string marketSymbol = "all_BTC";
             var data = await MakeRequestBithumbAsync(marketSymbol, "/public/ticker/$SYMBOL$");
             foreach (JProperty token in data.Item1)
             {
                 if (token.Name != "date")
                 {
-                    marketSymbols.Add(token.Name);
-                }
-            }
+                    marketSymbols.Add($"{token.Name}_KRW");
+					if (token.Name != "BTC") marketSymbols.Add($"{token.Name}_BTC");
+				}
+			}
             return marketSymbols;
         }
 
@@ -169,7 +173,60 @@ namespace ExchangeSharp
             }
             return books;
         }
-    }
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			/*
+				{
+					"type" : "transaction",
+					"content" : {
+						"list" : [
+							{
+								"symbol" : "BTC_KRW",					// currency code
+								"buySellGb" : "1",							// Execution type (1: sell execution, 2: buy execution)
+								"contPrice" : "10579000",					// Execution price
+								"contQty" : "0.01",							// contract quantity
+								"contAmt" : "105790.00",					// Execution amount
+								"contDtm" : "2020-01-29 12:24:18.830039",	// Execution time
+								"updn" : "dn"								// Compare with the previous price: up-up, dn-down
+							}
+						]
+					}
+				}
+			*/
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
+			}
+			return await ConnectPublicWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken parsedMsg = JToken.Parse(msg.ToStringFromUTF8());
+				if (parsedMsg["status"].ToStringInvariant().Equals("0000"))
+					return; // either "Connected Successfully" or "Filter Registered Successfully"
+				else if (parsedMsg["status"].ToStringInvariant().Equals("5100"))
+				{
+					Logger.Error("Error in exchange {0} OnGetTradesWebSocketAsync(): {1}", Name, parsedMsg["resmsg"].ToStringInvariant());
+					return;
+				}
+				else if (parsedMsg["type"].ToStringInvariant().Equals("transaction"))
+				{
+					foreach (var data in parsedMsg["content"]["list"])
+					{
+						var exchangeTrade = data.ParseTrade("contQty", "contPrice", "buySellGb", "contDtm", TimestampType.Iso8601UTC, null, typeKeyIsBuyValue: "2");
+
+						await callback(new KeyValuePair<string, ExchangeTrade>(parsedMsg["market"].ToStringInvariant(), exchangeTrade));
+					}
+				}
+			}, connectCallback: async (_socket) =>
+			{
+				await _socket.SendMessageAsync(new
+				{
+					type = "transaction",
+					symbols = marketSymbols,
+				});
+			});
+		}
+	}
 
     public partial class ExchangeName { public const string Bithumb = "Bithumb"; }
 }

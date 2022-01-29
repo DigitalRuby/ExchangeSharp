@@ -236,7 +236,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
 			JToken ticker = await MakeJsonRequestAsync<JToken>("/products/" + marketSymbol + "/ticker");
-			return await this.ParseTickerAsync(ticker, marketSymbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601);
+			return await this.ParseTickerAsync(ticker, marketSymbol, "ask", "bid", "price", "volume", null, "time", TimestampType.Iso8601UTC);
 		}
 
 		protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
@@ -375,7 +375,7 @@ namespace ExchangeSharp
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				if (token["type"].ToStringInvariant() == "ticker")
 				{
-					ExchangeTicker ticker = await this.ParseTickerAsync(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601);
+					ExchangeTicker ticker = await this.ParseTickerAsync(token, token["product_id"].ToStringInvariant(), "best_ask", "best_bid", "price", "volume_24h", null, "time", TimestampType.Iso8601UTC);
 					callback(new List<KeyValuePair<string, ExchangeTicker>>() { new KeyValuePair<string, ExchangeTicker>(token["product_id"].ToStringInvariant(), ticker) });
 				}
 			}, async (_socket) =>
@@ -438,7 +438,7 @@ namespace ExchangeSharp
 
 		private ExchangeTrade ParseTradeWebSocket(JToken token)
 		{
-			return token.ParseTradeCoinbase("size", "price", "side", "time", TimestampType.Iso8601, "trade_id");
+			return token.ParseTradeCoinbase("size", "price", "side", "time", TimestampType.Iso8601UTC, "trade_id");
 		}
 
 		protected override async Task<IWebSocket> OnUserDataWebSocketAsync(Action<object> callback)
@@ -556,7 +556,7 @@ namespace ExchangeSharp
 			{
 				Callback = callback,
 				EndDate = endDate,
-				ParseFunction = (JToken token) => token.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "trade_id"),
+				ParseFunction = (JToken token) => token.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601UTC, "trade_id"),
 				StartDate = startDate,
 				MarketSymbol = marketSymbol,
 				Url = "/products/[marketSymbol]/trades",
@@ -578,7 +578,7 @@ namespace ExchangeSharp
 			List<ExchangeTrade> tradeList = new List<ExchangeTrade>();
 			foreach (JToken trade in trades)
 			{
-				tradeList.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601, "trade_id"));
+				tradeList.Add(trade.ParseTrade("size", "price", "side", "time", TimestampType.Iso8601UTC, "trade_id"));
 			}
 			return tradeList;
 		}

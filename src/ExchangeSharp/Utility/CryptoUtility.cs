@@ -182,12 +182,12 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert a DateTime and set the kind to UTC using the DateTimeKind property.
+        /// Convert object to a UTC DateTime
         /// </summary>
         /// <param name="obj">Object to convert</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
-        /// <returns>DateTime with DateTimeKind kind or defaultValue if no conversion possible</returns>
-        public static DateTime ToDateTimeInvariant(this object obj, DateTime defaultValue = default)
+        /// <returns>DateTime in UTC or defaultValue if no conversion possible</returns>
+        public static DateTime ToDateTimeInvariant(this object obj, bool isSourceObjUTC = true, DateTime defaultValue = default)
         {
             if (obj == null)
             {
@@ -196,10 +196,12 @@ namespace ExchangeSharp
             JValue? jValue = obj as JValue;
             if (jValue != null && jValue.Value == null)
             {
+				Logger.Error("Failed parsing of datetime - setting to default value");
                 return defaultValue;
             }
             DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-            return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+			if (dt.Kind == DateTimeKind.Utc || isSourceObjUTC) return dt;
+			else return dt.ToUniversalTime(); // convert to UTC
         }
 
         /// <summary>
@@ -695,10 +697,13 @@ namespace ExchangeSharp
 
             switch (type)
             {
-                case TimestampType.Iso8601:
-                    return value.ToDateTimeInvariant();
+				case TimestampType.Iso8601Local:
+					return value.ToDateTimeInvariant(false);
 
-                case TimestampType.UnixNanoseconds:
+				case TimestampType.Iso8601UTC:
+					return value.ToDateTimeInvariant(true);
+
+				case TimestampType.UnixNanoseconds:
                     return UnixTimeStampToDateTimeNanoseconds(value.ConvertInvariant<long>());
 
 				case TimestampType.UnixMicroeconds:
@@ -1475,9 +1480,14 @@ namespace ExchangeSharp
         /// </summary>
         UnixSeconds,
 
-        /// <summary>
-        /// ISO 8601
-        /// </summary>
-        Iso8601
-    }
+		/// <summary>
+		/// ISO 8601 in UTC
+		/// </summary>
+		Iso8601UTC,
+
+		/// <summary>
+		/// ISO 8601 in local time
+		/// </summary>
+		Iso8601Local,
+	}
 }

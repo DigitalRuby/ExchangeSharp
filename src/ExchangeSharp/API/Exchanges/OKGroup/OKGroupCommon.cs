@@ -233,13 +233,13 @@ namespace ExchangeSharp.OKGroup
 				{
 					trade = token.ParseTrade(amountKey: "qty", priceKey: "price",
 					typeKey: "side", timestampKey: "timestamp",
-					timestampType: TimestampType.Iso8601, idKey: "trade_id");
+					timestampType: TimestampType.Iso8601UTC, idKey: "trade_id");
 				}
 				else
 				{
 					trade = token.ParseTrade(amountKey: "size", priceKey: "price",
 					typeKey: "side", timestampKey: "timestamp",
-					timestampType: TimestampType.Iso8601, idKey: "trade_id");
+					timestampType: TimestampType.Iso8601UTC, idKey: "trade_id");
 				}
 				await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 			});
@@ -673,7 +673,7 @@ namespace ExchangeSharp.OKGroup
 			*/
 			return await this.ParseTickerAsync(ticker, symbol, askKey: "best_ask", bidKey: "best_bid", lastKey: "last",
 				baseVolumeKey: "base_volume_24h", quoteVolumeKey: "quote_volume_24h",
-				timestampKey: "timestamp", timestampType: TimestampType.Iso8601);
+				timestampKey: "timestamp", timestampType: TimestampType.Iso8601UTC);
 		}
 
 		private Dictionary<string, decimal> ParseAmounts(JToken token, Dictionary<string, decimal> amounts)
