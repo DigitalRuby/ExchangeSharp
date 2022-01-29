@@ -23,6 +23,7 @@ using ExchangeSharp.Coinbase;
 using ExchangeSharp.KuCoin;
 using Newtonsoft.Json.Linq;
 using ExchangeSharp.NDAX;
+using ExchangeSharp.API.Exchanges.FTX.Models;
 
 namespace ExchangeSharp
 {
@@ -516,7 +517,7 @@ namespace ExchangeSharp
 		/// <param name="token">Token</param>
 		/// <param name="amountKey">Amount key</param>
 		/// <param name="priceKey">Price key</param>
-		/// <param name="typeKey">Type key</param>
+		/// <param name="typeKey">Type key (aka Side - Buy/Sell)</param>
 		/// <param name="timestampKey">Timestamp key</param>
 		/// <param name="timestampType">Timestamp type</param>
 		/// <param name="idKey">Id key</param>
@@ -569,6 +570,15 @@ namespace ExchangeSharp
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.MakerOrderId = (Guid)token["maker_order_id"];
 			trade.TakerOrderId = (Guid)token["taker_order_id"];
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeFTX(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<FTXTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.IsLiquidationOrder = ((bool)token["liquidation"]);
 			return trade;
 		}
 

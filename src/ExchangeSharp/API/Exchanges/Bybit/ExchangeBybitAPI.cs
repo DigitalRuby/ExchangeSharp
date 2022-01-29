@@ -279,7 +279,7 @@ namespace ExchangeSharp
 						priceKey: "price",
 						typeKey: "side", 
 						timestampKey: "timestamp",
-						timestampType: TimestampType.Iso8601, 
+						timestampType: TimestampType.Iso8601UTC, 
 						idKey: "trade_id");
 					await callback(new KeyValuePair<string, ExchangeTrade>(dataRow["symbol"].ToStringInvariant(), trade));
 				}
@@ -927,7 +927,7 @@ namespace ExchangeSharp
 				AveragePrice = token["entry_price"].ConvertInvariant<decimal>(),
 				LiquidationPrice = token["liq_price"].ConvertInvariant<decimal>(),
 				Leverage = token["effective_leverage"].ConvertInvariant<decimal>(),
-				TimeStamp = CryptoUtility.ParseTimestamp(token["updated_at"], TimestampType.Iso8601)
+				TimeStamp = CryptoUtility.ParseTimestamp(token["updated_at"], TimestampType.Iso8601UTC)
 			};
 			if (token["side"].ToStringInvariant() == "Sell")
 				result.Amount *= -1;

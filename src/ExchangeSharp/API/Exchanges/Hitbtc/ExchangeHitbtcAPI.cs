@@ -160,7 +160,7 @@ namespace ExchangeSharp
             JToken obj = await MakeJsonRequestAsync<JToken>("/public/candles/" + marketSymbol + "?period=" + periodString + "&limit=" + limit);
             foreach (JToken token in obj)
             {
-                candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, "open", "max", "min", "close", "timestamp", TimestampType.Iso8601, "volume", "volumeQuote"));
+                candles.Add(this.ParseCandle(token, marketSymbol, periodSeconds, "open", "max", "min", "close", "timestamp", TimestampType.Iso8601UTC, "volume", "volumeQuote"));
             }
             return candles;
         }
@@ -575,7 +575,7 @@ namespace ExchangeSharp
 			});
 			ExchangeTrade parseTrade(JToken token) => token.ParseTrade(amountKey: "quantity",
 				priceKey: "price", typeKey: "side", timestampKey: "timestamp",
-				timestampType: TimestampType.Iso8601, idKey: "id");
+				timestampType: TimestampType.Iso8601UTC, idKey: "id");
 		}
 
 		#endregion
@@ -617,13 +617,13 @@ namespace ExchangeSharp
 		private async Task<ExchangeTicker> ParseTickerAsync(JToken token, string symbol)
         {
             // [ {"ask": "0.050043","bid": "0.050042","last": "0.050042","open": "0.047800","low": "0.047052","high": "0.051679","volume": "36456.720","volumeQuote": "1782.625000","timestamp": "2017-05-12T14:57:19.999Z","symbol": "ETHBTC"} ]
-            return await this.ParseTickerAsync(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601);
+            return await this.ParseTickerAsync(token, symbol, "ask", "bid", "last", "volume", "volumeQuote", "timestamp", TimestampType.Iso8601UTC);
         }
 
         private ExchangeTrade ParseExchangeTrade(JToken token)
         {
             // [ { "id": 9533117, "price": "0.046001", "quantity": "0.220", "side": "sell", "timestamp": "2017-04-14T12:18:40.426Z" }, ... ]
-            return token.ParseTrade("quantity", "price", "side", "timestamp", TimestampType.Iso8601, "id");
+            return token.ParseTrade("quantity", "price", "side", "timestamp", TimestampType.Iso8601UTC, "id");
         }
 
         private ExchangeOrderResult ParseCompletedOrder(JToken token)

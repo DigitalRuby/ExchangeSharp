@@ -255,7 +255,7 @@ namespace ExchangeSharp
 				foreach (var t in data)
 				{
 					var marketSymbol = t["symbol"].ToStringInvariant();
-					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601, "trdMatchID")));
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601UTC, "trdMatchID")));
 				}
 			}, async (_socket) =>
 			{
@@ -426,7 +426,7 @@ namespace ExchangeSharp
 			var obj = await MakeJsonRequestAsync<JToken>(url);
 			foreach (var t in obj)
 			{
-				candles.Add(this.ParseCandle(t, marketSymbol, periodSeconds, "open", "high", "low", "close", "timestamp", TimestampType.Iso8601, "volume", "turnover", "vwap"));
+				candles.Add(this.ParseCandle(t, marketSymbol, periodSeconds, "open", "high", "low", "close", "timestamp", TimestampType.Iso8601UTC, "volume", "turnover", "vwap"));
 			}
 			candles.Reverse();
 
@@ -468,7 +468,7 @@ namespace ExchangeSharp
 			var obj = await MakeJsonRequestAsync<JToken>(url);
 			foreach (var t in obj)
 			{
-				trades.Add(t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601, "trdMatchID"));
+				trades.Add(t.ParseTrade("size", "price", "side", "timestamp", TimestampType.Iso8601UTC, "trdMatchID"));
 			}
 
 			return trades;
@@ -709,7 +709,7 @@ namespace ExchangeSharp
 				LiquidationPrice = token["liquidationPrice"].ConvertInvariant<decimal>(),
 				Leverage = token["leverage"].ConvertInvariant<decimal>(),
 				LastPrice = token["lastPrice"].ConvertInvariant<decimal>(),
-				TimeStamp = CryptoUtility.ParseTimestamp(token["currentTimestamp"], TimestampType.Iso8601)
+				TimeStamp = CryptoUtility.ParseTimestamp(token["currentTimestamp"], TimestampType.Iso8601UTC)
 			};
 			return result;
 		}
