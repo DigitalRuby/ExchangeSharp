@@ -212,7 +212,7 @@ namespace ExchangeSharp
 				{
 					foreach (var data in parsedMsg["content"]["list"])
 					{
-						var exchangeTrade = data.ParseTrade("contQty", "contPrice", "buySellGb", "contDtm", TimestampType.Iso8601UTC, null, typeKeyIsBuyValue: "2");
+						var exchangeTrade = data.ParseTrade("contQty", "contPrice", "buySellGb", "contDtm", TimestampType.Iso8601Korea, null, typeKeyIsBuyValue: "2");
 
 						await callback(new KeyValuePair<string, ExchangeTrade>(parsedMsg["market"].ToStringInvariant(), exchangeTrade));
 					}

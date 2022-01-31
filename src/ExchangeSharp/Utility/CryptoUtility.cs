@@ -37,10 +37,12 @@ namespace ExchangeSharp
         internal static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         internal static readonly DateTime UnixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
         internal static readonly Encoding Utf8EncodingNoPrefix = new UTF8Encoding(false, true);
+		static string koreanZoneId = "Korea Standard Time";
+		static TimeZoneInfo koreaZone = TimeZoneInfo.FindSystemTimeZoneById(koreanZoneId);
 
-        private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
+		private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
 
-        private static DateTime UtcNowFuncImpl()
+		private static DateTime UtcNowFuncImpl()
         {
             // this is the only place in the code that DateTime.UtcNow is allowed. DateTime.UtcNow and DateTime.Now should not exist anywhere else in the code.
             return DateTime.UtcNow;
@@ -181,13 +183,19 @@ namespace ExchangeSharp
             }
         }
 
+		public enum SourceTimeZone
+		{
+			/// <summary> time zone is specifically specified in string </summary>
+			AsSpecified,
+			Local, Korea, UTC
+		}
         /// <summary>
         /// Convert object to a UTC DateTime
         /// </summary>
         /// <param name="obj">Object to convert</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
         /// <returns>DateTime in UTC or defaultValue if no conversion possible</returns>
-        public static DateTime ToDateTimeInvariant(this object obj, bool isSourceObjUTC = true, DateTime defaultValue = default)
+        public static DateTime ToDateTimeInvariant(this object obj, SourceTimeZone sourceTimeZone = SourceTimeZone.UTC, DateTime defaultValue = default)
         {
             if (obj == null)
             {
@@ -200,9 +208,20 @@ namespace ExchangeSharp
                 return defaultValue;
             }
             DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-			if (dt.Kind == DateTimeKind.Utc || isSourceObjUTC) return dt;
-			else return dt.ToUniversalTime(); // convert to UTC
-        }
+			switch (sourceTimeZone)
+			{
+				case SourceTimeZone.AsSpecified:
+					throw new NotImplementedException(); // TODO: implement this when needed
+				case SourceTimeZone.Local:
+					return DateTime.SpecifyKind(dt, DateTimeKind.Local).ToUniversalTime(); // convert to UTC
+				case SourceTimeZone.Korea:
+					return TimeZoneInfo.ConvertTime(dt, koreaZone, TimeZoneInfo.Utc); // convert to UTC
+				case SourceTimeZone.UTC:
+					return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+				default:
+					throw new NotImplementedException($"Unexpected {nameof(sourceTimeZone)}: {sourceTimeZone}");
+			}
+		}
 
         /// <summary>
         /// Convert an object to another type using invariant culture. Consider using the string or DateTime conversions if you are dealing with those types.
@@ -698,10 +717,13 @@ namespace ExchangeSharp
             switch (type)
             {
 				case TimestampType.Iso8601Local:
-					return value.ToDateTimeInvariant(false);
+					return value.ToDateTimeInvariant(SourceTimeZone.Local);
+
+				case TimestampType.Iso8601Korea:
+					return value.ToDateTimeInvariant(SourceTimeZone.Korea);
 
 				case TimestampType.Iso8601UTC:
-					return value.ToDateTimeInvariant(true);
+					return value.ToDateTimeInvariant(SourceTimeZone.UTC);
 
 				case TimestampType.UnixNanoseconds:
                     return UnixTimeStampToDateTimeNanoseconds(value.ConvertInvariant<long>());
@@ -1481,13 +1503,18 @@ namespace ExchangeSharp
         UnixSeconds,
 
 		/// <summary>
-		/// ISO 8601 in UTC
-		/// </summary>
-		Iso8601UTC,
-
-		/// <summary>
 		/// ISO 8601 in local time
 		/// </summary>
 		Iso8601Local,
+
+		/// <summary>
+		/// ISO 8601 in Korea Standard Time
+		/// </summary>
+		Iso8601Korea,
+
+		/// <summary>
+		/// ISO 8601 in UTC
+		/// </summary>
+		Iso8601UTC,
 	}
 }

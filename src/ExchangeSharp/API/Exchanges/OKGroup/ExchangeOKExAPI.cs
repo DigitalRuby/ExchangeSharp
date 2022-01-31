@@ -359,8 +359,7 @@ namespace ExchangeSharp
 			payload.Remove("nonce");
 
 			var method = request.Method;
-			var now = DateTime.Now;
-			var timeStamp = TimeZoneInfo.ConvertTimeToUtc(now).ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+			var timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 			var requestUrl = request.RequestUri.PathAndQuery;
 			var body = payload.Any() ? JsonConvert.SerializeObject(payload) : string.Empty;
 
