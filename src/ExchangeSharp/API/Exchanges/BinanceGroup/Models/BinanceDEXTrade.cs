@@ -15,7 +15,7 @@ namespace ExchangeSharp.BinanceGroup
 	/// <summary>
 	/// Binance DEX doesn't suppport streaming aggregate trades like Binance/US
 	/// </summary>
-	public class BinanceDEXTrade : ExchangeTrade
+	public sealed class BinanceDEXTrade : ExchangeTrade
 	{
 		public string BuyerOrderId { get; set; }
 		public string SellerOrderId { get; set; }

@@ -162,12 +162,19 @@ namespace ExchangeSharp.BinanceGroup
 			JToken allSymbols = obj["symbols"];
 			foreach (JToken marketSymbolToken in allSymbols)
 			{
-				var market = new ExchangeMarket
+				var market = new ExchangeMarketBinance
 				{
+					// common ExchangeMarket properties
 					MarketSymbol = marketSymbolToken["symbol"].ToStringUpperInvariant(),
 					IsActive = ParseMarketStatus(marketSymbolToken["status"].ToStringUpperInvariant()),
 					QuoteCurrency = marketSymbolToken["quoteAsset"].ToStringUpperInvariant(),
-					BaseCurrency = marketSymbolToken["baseAsset"].ToStringUpperInvariant()
+					BaseCurrency = marketSymbolToken["baseAsset"].ToStringUpperInvariant(),
+
+					// Binance specific properties
+					Status = (BinanceSymbolStatus)Enum.Parse(typeof(BinanceSymbolStatus), marketSymbolToken["status"].ToStringInvariant(), true),
+					BaseAssetPrecision = marketSymbolToken["baseAssetPrecision"].ConvertInvariant<int>(),
+					QuotePrecision = marketSymbolToken["quotePrecision"].ConvertInvariant<int>(),
+					IsIceBergAllowed = marketSymbolToken["icebergAllowed"].ConvertInvariant<bool>(),
 				};
 
 				// "LOT_SIZE"
@@ -194,6 +201,13 @@ namespace ExchangeSharp.BinanceGroup
 				if (minNotionalFilter != null)
 				{
 					market.MinTradeSizeInQuoteCurrency = minNotionalFilter["minNotional"].ConvertInvariant<decimal>();
+				}
+
+				// MAX_NUM_ORDERS
+				JToken? maxOrdersFilter = filters?.FirstOrDefault(x => string.Equals(x["filterType"].ToStringUpperInvariant(), "MAX_NUM_ORDERS"));
+				if (maxOrdersFilter != null)
+				{
+					market.MaxNumOrders = maxOrdersFilter["maxNumberOrders"].ConvertInvariant<int>();
 				}
 				markets.Add(market);
 			}
