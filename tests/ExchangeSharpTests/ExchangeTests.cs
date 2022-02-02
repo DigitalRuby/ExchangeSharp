@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using ExchangeSharp;
@@ -100,7 +101,9 @@ namespace ExchangeSharpTests
                     if (api is ExchangeUfoDexAPI || api is ExchangeOKExAPI || api is ExchangeHitBTCAPI || api is ExchangeKuCoinAPI ||
                         api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI || api is ExchangeNDAXAPI || api is ExchangeBL3PAPI ||
 						api is ExchangeBinanceUSAPI || api is ExchangeBinanceJerseyAPI || api is ExchangeBinanceDEXAPI ||
-						api is ExchangeBitMEXAPI || api is ExchangeBTSEAPI || api is ExchangeBybitAPI)
+						api is ExchangeBitMEXAPI || api is ExchangeBTSEAPI || api is ExchangeBybitAPI ||
+						api is ExchangeAquanowAPI || api is ExchangeBitfinexAPI || api is ExchangeBittrexAPI ||
+						api is ExchangeFTXAPI || api is ExchangeFTXUSAPI || api is ExchangeGateIoAPI || api is ExchangeCoinmateAPI)
                     {
                         // WIP
                         continue;
@@ -146,5 +149,52 @@ namespace ExchangeSharpTests
                 }
             }
         }
-    }
+
+		[TestMethod]
+		public async Task TradesWebsocketTest()
+		{
+			foreach (IExchangeAPI api in await ExchangeAPI.GetExchangeAPIsAsync())
+			{
+
+				if (api is ExchangeBinanceDEXAPI // volume too low
+					|| api is ExchangeBinanceJerseyAPI // ceased operations
+					|| api is ExchangeBittrexAPI // uses SignalR
+					|| api is ExchangeBL3PAPI // volume too low
+					|| api is ExchangeLivecoinAPI // defunct
+					|| api is ExchangeOKCoinAPI // volume appears to be too low
+					) { continue; }
+				//if (api is ExchangeKrakenAPI)
+				try
+				{
+					var delayCTS = new CancellationTokenSource();
+					var marketSymbols = await api.GetMarketSymbolsAsync();
+					string testSymbol = null;
+					if (api is ExchangeKrakenAPI) testSymbol = "XBTUSD";
+					if (testSymbol == null) testSymbol = marketSymbols.Where(s => // usually highest volume so we're not waiting around here
+					(s.ToUpper().Contains("BTC") || s.ToUpper().Contains("XBT"))
+					&& s.ToUpper().Contains("USD")
+					&& !(s.ToUpper().Contains("TBTC") || s.ToUpper().Contains("WBTC")
+						|| s.ToUpper().Contains("NHBTC") || s.ToUpper().Contains("BTC3L")
+						|| s.ToUpper().Contains("USDC") || s.ToUpper().Contains("SUSD")
+						|| s.ToUpper().Contains("BTC-TUSD")))
+					.FirstOrDefault();
+					if (testSymbol == null) testSymbol = marketSymbols.First();
+					bool thisExchangePassed = false;
+					using (var socket = await api.GetTradesWebSocketAsync(async kvp =>
+					{
+						thisExchangePassed = true;
+						delayCTS.Cancel(); // msg received. this exchange passes
+					}, testSymbol))
+					{
+						socket.Disconnected += async s => Assert.Fail($"disconnected by exchange {api.GetType().Name}");
+						await Task.Delay(100000, delayCTS.Token);
+						if (!thisExchangePassed) Assert.Fail($"No msgs recieved after 100 seconds for exchange {api.GetType().Name}");
+					}
+				}
+				catch (NotImplementedException)	{ } // no need to test exchanges where trades websocket is not implemented
+				catch (TaskCanceledException) { } // if the delay task is cancelled
+				catch (Exception ex) { Assert.Fail($"For exchange {api.GetType().Name}, encountered exception {ex}"); }
+			}
+		}
+	}
 }
