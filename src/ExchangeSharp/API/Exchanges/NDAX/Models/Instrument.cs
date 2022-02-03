@@ -63,6 +63,7 @@ namespace ExchangeSharp
 				return new ExchangeMarket()
 				{
 					BaseCurrency = Product1Symbol,
+					QuoteCurrency = Product2Symbol,
 					IsActive = SessionStatus.Equals("running", StringComparison.InvariantCultureIgnoreCase),
 					MarginEnabled = false,
 					MarketId = InstrumentId.ToStringInvariant(),
