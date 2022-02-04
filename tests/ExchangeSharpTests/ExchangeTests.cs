@@ -162,6 +162,7 @@ namespace ExchangeSharpTests
 					|| api is ExchangeBL3PAPI // volume too low
 					|| api is ExchangeLivecoinAPI // defunct
 					|| api is ExchangeOKCoinAPI // volume appears to be too low
+					|| api is ExchangeNDAXAPI // volume too low for automated testing
 					) { continue; }
 				//if (api is ExchangeKrakenAPI)
 				try
@@ -182,18 +183,25 @@ namespace ExchangeSharpTests
 					bool thisExchangePassed = false;
 					using (var socket = await api.GetTradesWebSocketAsync(async kvp =>
 					{
-						thisExchangePassed = true;
-						delayCTS.Cancel(); // msg received. this exchange passes
+						if (!kvp.Value.Flags.HasFlag(ExchangeTradeFlags.IsFromSnapshot))
+						{ // skip over any snapshot ones bc we cannot test time zone on those
+							if (kvp.Value.Timestamp.Hour == DateTime.UtcNow.Hour)
+							{
+								thisExchangePassed = true;
+								delayCTS.Cancel(); // msg received. this exchange passes
+							}
+							else Assert.Fail($"Trades are not in the UTC time zone for exchange {api.GetType().Name}.");
+						}
 					}, testSymbol))
 					{
 						socket.Disconnected += async s => Assert.Fail($"disconnected by exchange {api.GetType().Name}");
 						await Task.Delay(100000, delayCTS.Token);
-						if (!thisExchangePassed) Assert.Fail($"No msgs recieved after 100 seconds for exchange {api.GetType().Name}");
+						if (!thisExchangePassed) Assert.Fail($"No msgs recieved after 100 seconds for exchange {api.GetType().Name}.");
 					}
 				}
 				catch (NotImplementedException)	{ } // no need to test exchanges where trades websocket is not implemented
 				catch (TaskCanceledException) { } // if the delay task is cancelled
-				catch (Exception ex) { Assert.Fail($"For exchange {api.GetType().Name}, encountered exception {ex}"); }
+				catch (Exception ex) { Assert.Fail($"For exchange {api.GetType().Name}, encountered exception {ex}."); }
 			}
 		}
 	}
