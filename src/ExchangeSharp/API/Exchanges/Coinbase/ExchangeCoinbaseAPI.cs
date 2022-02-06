@@ -210,7 +210,7 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			return (await GetMarketSymbolsMetadataAsync()).Where(market => market.IsActive).Select(market => market.MarketSymbol);
+			return (await GetMarketSymbolsMetadataAsync()).Where(market => market.IsActive ?? true).Select(market => market.MarketSymbol);
 		}
 
 		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
