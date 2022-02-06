@@ -245,7 +245,9 @@ namespace ExchangeSharp
 		protected async Task<decimal> ClampOrderPrice(string marketSymbol, decimal outputPrice)
 		{
 			ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
-			return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
+			if (market.MinPrice == null || market.MaxPrice == null || market.PriceStepSize == null)
+				throw new NotImplementedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderPrice)}() to work");
+			else return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice.Value, market.MaxPrice.Value, market.PriceStepSize, outputPrice);
 		}
 
 		/// <summary>
@@ -257,7 +259,9 @@ namespace ExchangeSharp
 		protected async Task<decimal> ClampOrderQuantity(string marketSymbol, decimal outputQuantity)
 		{
 			ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
-			return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
+			if (market.MinPrice == null || market.MaxPrice == null || market.PriceStepSize == null)
+				throw new NotImplementedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderQuantity)}() to work");
+			else return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize.Value, market.MaxTradeSize.Value, market.QuantityStepSize, outputQuantity);
 		}
 
 		/// <summary>
