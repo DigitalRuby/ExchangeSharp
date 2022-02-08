@@ -37,7 +37,8 @@ namespace ExchangeSharp
         internal static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
         internal static readonly DateTime UnixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
         internal static readonly Encoding Utf8EncodingNoPrefix = new UTF8Encoding(false, true);
-		static string koreanZoneId = "Korea Standard Time";
+		static bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+		static string koreanZoneId = isWindows ? "Korea Standard Time" : "Asia/Seoul";
 		static TimeZoneInfo koreaZone = TimeZoneInfo.FindSystemTimeZoneById(koreanZoneId);
 
 		private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
