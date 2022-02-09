@@ -288,7 +288,7 @@ namespace ExchangeSharp
 		{
 			if (string.IsNullOrEmpty(marketSymbol))
 			{
-				throw new ArgumentException("Symbol must be non null and non empty");
+				throw new ArgumentException("Market symbol must be non null and non empty");
 			}
 			string[] pieces = marketSymbol.Split(separator);
 			if (MarketSymbolIsReversed == false) //if reversed then put quote currency first
@@ -582,7 +582,7 @@ namespace ExchangeSharp
 		/// Normalize an exchange specific symbol. The symbol should already be in the correct order,
 		/// this method just deals with casing and putting in the right separator.
 		/// </summary>
-		/// <param name="marketSymbol">Symbol</param>
+		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Normalized symbol</returns>
 		public virtual string NormalizeMarketSymbol(string? marketSymbol)
 		{
@@ -649,8 +649,8 @@ namespace ExchangeSharp
 		/// <returns>Exchange market symbol</returns>
 		public virtual Task<string> CurrenciesToExchangeMarketSymbol(string baseCurrency, string quoteCurrency)
 		{
-			string symbol = (MarketSymbolIsReversed ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}");
-			return Task.FromResult(MarketSymbolIsUppercase ? symbol.ToUpperInvariant() : symbol);
+			string marketSymbol = (MarketSymbolIsReversed ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}");
+			return Task.FromResult(MarketSymbolIsUppercase ? marketSymbol.ToUpperInvariant() : marketSymbol);
 		}
 
 		/// <summary>
@@ -1070,7 +1070,7 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Get open margin position
 		/// </summary>
-		/// <param name="marketSymbol">Symbol</param>
+		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Open margin position result</returns>
 		public virtual async Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string marketSymbol)
 		{
@@ -1081,7 +1081,7 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Close a margin position
 		/// </summary>
-		/// <param name="marketSymbol">Symbol</param>
+		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Close margin position result</returns>
 		public virtual async Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string marketSymbol)
 		{

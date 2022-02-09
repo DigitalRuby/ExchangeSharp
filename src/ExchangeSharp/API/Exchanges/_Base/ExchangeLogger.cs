@@ -316,7 +316,7 @@ namespace ExchangeSharp
         public IExchangeAPI API { get; private set; }
 
         /// <summary>
-        /// The symbol being logged
+        /// The market symbol being logged
         /// </summary>
         public string MarketSymbol { get; private set; }
 
