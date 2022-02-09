@@ -37,13 +37,13 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			List<string> symbols = new List<string>();
+			List<string> marketSymbols = new List<string>();
 			JToken token = await MakeJsonRequestAsync<JToken>("/availablesymbols", MarketUrl);
-			foreach (string symbol in token)
+			foreach (string marketSymbol in token)
 			{
-				symbols.Add(symbol);
+				marketSymbols.Add(marketSymbol);
 			}
-			return symbols;
+			return marketSymbols;
 		}
 
 		// NOT SUPPORTED

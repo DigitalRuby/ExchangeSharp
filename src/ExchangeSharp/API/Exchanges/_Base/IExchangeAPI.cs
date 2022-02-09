@@ -25,7 +25,7 @@ namespace ExchangeSharp
 		#region Utility Methods
 
 		/// <summary>
-		/// Normalize a symbol for use on this exchange.
+		/// Normalize a market symbol for use on this exchange.
 		/// </summary>
 		/// <param name="marketSymbol">Symbol</param>
 		/// <returns>Normalized symbol</returns>

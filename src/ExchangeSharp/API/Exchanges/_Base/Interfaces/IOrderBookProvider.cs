@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -25,7 +25,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Get pending orders. Depending on the exchange, the number of bids and asks will have different counts, typically 50-100.
         /// </summary>
-        /// <param name="marketSymbol">Symbol</param>
+        /// <param name="marketSymbol">Market symbol</param>
         /// <param name="maxCount">Max count of bids and asks - not all exchanges will honor this parameter</param>
         /// <returns>Orders</returns>
         Task<ExchangeOrderBook> GetOrderBookAsync(string marketSymbol, int maxCount = 100);

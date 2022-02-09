@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -27,7 +27,7 @@ namespace ExchangeSharp
         /// Constructor
         /// </summary>
         /// <param name="info">Exchange info</param>
-        /// <param name="marketSymbol">The symbol to trade</param>
+        /// <param name="marketSymbol">Market symbol to trade</param>
         public ExchangeTradeInfo(ExchangeInfo info, string marketSymbol)
         {
             ExchangeInfo = info;
