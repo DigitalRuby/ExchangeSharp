@@ -286,10 +286,11 @@ namespace ExchangeSharp
             return new ExchangeOrderResult() { OrderId = token["orderId"].ToStringInvariant(), Result = ExchangeAPIOrderResult.Open };
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
-        {
-            // can only cancel limit orders, which kinda makes sense, but we also need the currency pair, which requires a lookup
-            var order = await OnGetOrderDetailsAsync(orderId);
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			// can only cancel limit orders, which kinda makes sense, but we also need the currency pair, which requires a lookup
+			var order = await OnGetOrderDetailsAsync(orderId);
             if (order != null)
             {
                 // { "success": true,"cancelled": true,"message": null,"quantity": 0.0005,"tradeQuantity": 0}

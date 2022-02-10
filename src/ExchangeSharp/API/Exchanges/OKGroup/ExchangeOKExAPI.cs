@@ -295,7 +295,7 @@ namespace ExchangeSharp
 			return ParseOrders(token).First();
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrEmpty(orderId))
 			{
@@ -308,7 +308,10 @@ namespace ExchangeSharp
 			}
 
 			var payload = await GetNoncePayloadAsync();
-			payload["ordId"] = orderId;
+			if (isClientOrderId)
+				payload["client_oid "] = orderId;
+			else
+				payload["ordId"] = orderId;
 			payload["instId"] = marketSymbol;
 			await MakeJsonRequestAsync<JToken>("/trade/cancel-order", BaseUrlV5, payload, "POST");
 		}

@@ -421,12 +421,13 @@ namespace ExchangeSharp
 			return responseToken.Select(x => ParseOrder(x)).ToArray();
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrEmpty(symbol))
 			{
 				throw new InvalidOperationException("MarketSymbol is required for cancelling order with Gate.io API");
 			}
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			await MakeJsonRequestAsync<JToken>($"/spot/orders/{orderId}?currency_pair={symbol}", BaseUrl, payload, "DELETE");

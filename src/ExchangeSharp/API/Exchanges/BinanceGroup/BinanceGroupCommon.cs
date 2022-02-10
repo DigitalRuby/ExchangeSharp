@@ -733,7 +733,7 @@ namespace ExchangeSharp.BinanceGroup
 			return trades;
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (string.IsNullOrWhiteSpace(marketSymbol))
@@ -741,7 +741,10 @@ namespace ExchangeSharp.BinanceGroup
 				throw new ArgumentNullException("Binance cancel order request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
-			payload["orderId"] = orderId;
+			if (isClientOrderId) // Either orderId or origClientOrderId must be sent.
+				payload["origClientOrderId"] = orderId;
+			else
+				payload["orderId"] = orderId;
             var token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload, "DELETE");
 			var cancelledOrder = ParseOrder(token);
 			if (cancelledOrder.OrderId != orderId)

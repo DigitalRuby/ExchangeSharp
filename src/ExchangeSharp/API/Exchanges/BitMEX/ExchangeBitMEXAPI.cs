@@ -614,10 +614,10 @@ namespace ExchangeSharp
 			return orders[0];
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			payload["orderID"] = orderId;
+			payload[isClientOrderId ? "clOrdID" : "orderID"] = orderId;
 			JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "DELETE");
 		}
 	

@@ -233,8 +233,9 @@ namespace ExchangeSharp
 			return orderDetails;
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			payload["orderId"] = orderId;
 			JToken token = await MakeJsonRequestAsync<JToken>("/trades/v1/order", null, payload, "DELETE");
