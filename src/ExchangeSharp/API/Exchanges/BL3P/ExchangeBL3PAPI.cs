@@ -292,10 +292,11 @@ namespace ExchangeSharp
 			return ConvertToExchangeOrderBook(maxCount, bl3pOrderBook);
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var resultBody = await MakeRequestAsync(
 					$"/{marketSymbol}/money/order/cancel",

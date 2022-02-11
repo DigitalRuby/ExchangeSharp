@@ -226,9 +226,10 @@ namespace ExchangeSharp
         }
 
 
-        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
-        {
-            var result = await MakeJsonRequestAsync<GenericResponse>("CancelOrder", null,
+        protected override async Task OnCancelOrderAsync(string orderId, string symbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			var result = await MakeJsonRequestAsync<GenericResponse>("CancelOrder", null,
                 new Dictionary<string, object>()
                 {
                     {"OrderId", orderId},

@@ -203,7 +203,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null) =>
 			throw new NotImplementedException();
-		protected virtual Task OnCancelOrderAsync(string orderId, string? marketSymbol = null) =>
+		protected virtual Task OnCancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false) =>
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) =>
 			throw new NotImplementedException();
@@ -1039,11 +1039,12 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="orderId">Order id of the order to cancel</param>
 		/// <param name="marketSymbol">Symbol of order (most exchanges do not require this)</param>
-		public virtual async Task CancelOrderAsync(string orderId, string? marketSymbol = null)
+		/// <param name="isClientOrderId">Whether the order id parameter is the server assigned id or client provided id</param>
+		public virtual async Task CancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			// *NOTE* do not wrap in CacheMethodCall
 			await new SynchronizationContextRemover();
-			await OnCancelOrderAsync(orderId, NormalizeMarketSymbol(marketSymbol));
+			await OnCancelOrderAsync(orderId, NormalizeMarketSymbol(marketSymbol), isClientOrderId);
 		}
 
 		/// <summary>

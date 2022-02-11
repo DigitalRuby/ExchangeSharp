@@ -23,9 +23,15 @@ namespace ExchangeSharp
 		#region [ Implementation ]
 
 		/// <inheritdoc />
-		protected async override Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected async override Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			await MakeJsonRequestAsync<JToken>($"/orders/{orderId}", null, await GetNoncePayloadAsync(), "DELETE");
+			var url = "/orders/";
+			if (isClientOrderId)
+			{
+				url += "by_client_id/";
+			}
+
+			await MakeJsonRequestAsync<JToken>($"{url}{orderId}", null, await GetNoncePayloadAsync(), "DELETE");
 		}
 
 		/// <inheritdoc />

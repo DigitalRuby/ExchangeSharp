@@ -151,7 +151,7 @@ namespace ExchangeSharp
 			};
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			var payload = await GetNoncePayloadAsync();
 			payload["orderId"] = orderId;

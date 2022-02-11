@@ -450,16 +450,16 @@ namespace ExchangeSharp.OKGroup
             return ParsePlaceOrder(obj, order);
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
             if (marketSymbol.Length == 0)
             {
-                throw new InvalidOperationException("Okex cancel order request requires symbol");
+                throw new ArgumentNullException("Okex cancel order request requires symbol");
             }
             payload["symbol"] = marketSymbol;
-            payload["order_id"] = orderId;
-            await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
+            payload["order_id"] = orderId; // OKCoin can use either OID or ClientOID: POST /api/spot/v3/cancel_orders/<order_id> or <client_oid>
+			await MakeJsonRequestAsync<JToken>("/cancel_order.do", BaseUrl, payload, "POST");
         }
 
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)

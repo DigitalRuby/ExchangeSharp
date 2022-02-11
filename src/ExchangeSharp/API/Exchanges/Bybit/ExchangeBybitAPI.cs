@@ -778,10 +778,13 @@ namespace ExchangeSharp
 			}
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			var extraParams = new Dictionary<string, object>();
-			extraParams["order_id"] = orderId;
+			if (isClientOrderId)
+				extraParams["order_link_id"] = orderId;
+			else
+				extraParams["order_id"] = orderId;
 			if (!string.IsNullOrWhiteSpace(marketSymbol))
 			{
 				extraParams["symbol"] = marketSymbol;
