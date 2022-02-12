@@ -105,7 +105,7 @@ namespace ExchangeSharp
 		// DONE
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			// In Aquanow market order, when buying crypto the amount of crypto that is bought is the receiveQuantity
 			// and when selling the amount of crypto that is sold is the deliverQuantity
 			string amountParameter = order.IsBuy ? "receiveQuantity" : "deliverQuantity";
@@ -201,7 +201,7 @@ namespace ExchangeSharp
 			{
 				return null;
 			}
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			JToken result = await MakeJsonRequestAsync<JToken>($"/trades/v1/order?orderId={orderId}", null, payload, "GET");
 			bool isBuy = result["tradeSide"].ToStringInvariant() == "buy" ? true : false;

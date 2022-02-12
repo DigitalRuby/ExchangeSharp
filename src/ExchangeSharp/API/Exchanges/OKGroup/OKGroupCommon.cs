@@ -466,9 +466,9 @@ namespace ExchangeSharp.OKGroup
 		{
             List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
             Dictionary<string, object> payload = await GetNoncePayloadAsync();
-            if (marketSymbol.Length == 0)
+            if (string.IsNullOrWhiteSpace(marketSymbol))
             {
-                throw new InvalidOperationException("Okex single order details request requires symbol");
+                throw new ArgumentNullException("OKgroup single order details request requires symbol");
             }
             payload["symbol"] = marketSymbol;
 

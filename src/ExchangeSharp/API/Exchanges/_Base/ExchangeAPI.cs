@@ -246,7 +246,7 @@ namespace ExchangeSharp
 		{
 			ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
 			if (market.MinPrice == null || market.MaxPrice == null || market.PriceStepSize == null)
-				throw new NotImplementedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderPrice)}() to work");
+				throw new NotSupportedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderPrice)}() to work");
 			else return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice.Value, market.MaxPrice.Value, market.PriceStepSize, outputPrice);
 		}
 
@@ -260,7 +260,7 @@ namespace ExchangeSharp
 		{
 			ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
 			if (market.MinPrice == null || market.MaxPrice == null || market.PriceStepSize == null)
-				throw new NotImplementedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderQuantity)}() to work");
+				throw new NotSupportedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderQuantity)}() to work");
 			else return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize.Value, market.MaxTradeSize.Value, market.QuantityStepSize, outputQuantity);
 		}
 
@@ -303,12 +303,12 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Base and quote currency</returns>
-		protected virtual(string baseCurrency, string quoteCurrency)OnSplitMarketSymbolToCurrencies(string marketSymbol)
+		protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
 		{
 			var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
 			if (pieces.Length < 2)
 			{
-				throw new InvalidOperationException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in at least 2 pieces.");
+				throw new ArgumentException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in at least 2 pieces.");
 			}
 			string baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
 			string quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];

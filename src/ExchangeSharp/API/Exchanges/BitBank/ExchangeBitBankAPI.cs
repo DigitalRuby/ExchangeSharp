@@ -128,7 +128,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			if (order.OrderType == OrderType.Stop)
-				throw new InvalidOperationException("Bitbank does not support stop order");
+				throw new NotSupportedException("Bitbank does not support stop order");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (order.IsPostOnly != null)
 				payload["post_only"] = order.IsPostOnly;
@@ -154,11 +154,11 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			payload.Add("order_id", orderId);
-			if (marketSymbol == null)
-				throw new InvalidOperationException($"BitBank API requires marketSymbol for {nameof(GetOrderDetailsAsync)}");
+			if (string.IsNullOrWhiteSpace(marketSymbol))
+				throw new ArgumentNullException($"BitBank API requires marketSymbol for {nameof(GetOrderDetailsAsync)}");
 			payload.Add("pair", marketSymbol);
 			JToken token = await MakeJsonRequestAsync<JToken>("/user/spot/order", baseUrl: BaseUrlPrivate, payload: payload);
 			return ParseOrder(token);

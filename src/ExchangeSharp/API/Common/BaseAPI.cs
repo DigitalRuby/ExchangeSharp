@@ -418,7 +418,7 @@ namespace ExchangeSharp
 							break;
 
 						default:
-							throw new InvalidOperationException("Invalid nonce style: " + NonceStyle);
+							throw new NotImplementedException("Invalid nonce style: " + NonceStyle);
 					}
 
 					// check for duplicate nonce

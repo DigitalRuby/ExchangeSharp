@@ -381,13 +381,10 @@ namespace ExchangeSharp
         protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			var payload = await GetNoncePayloadAsync();
-			if (isClientOrderId)
-				payload["clientOid"] = Guid.NewGuid();
-			else
-				payload["clientOid"] = Guid.NewGuid();
-
-			JToken token = await MakeJsonRequestAsync<JToken>("/orders?&" + CryptoUtility.GetFormForPayload(payload, false), null, payload);
-			var isActive = token["id"].ToObject<bool>();
+			JToken token = await MakeJsonRequestAsync<JToken>(
+				   $"/orders{(isClientOrderId ? "/client-order" : null)}/{orderId}"
+				   + CryptoUtility.GetFormForPayload(payload, false), null, payload);
+			var isActive = token["isActive"].ToObject<bool>();
 			if (isActive)
 				return ParseOpenOrder(token);
 			else return ParseCompletedOrder(token);

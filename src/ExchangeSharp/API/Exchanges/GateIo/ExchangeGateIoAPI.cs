@@ -293,7 +293,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			if (order.OrderType != OrderType.Limit)
-				throw new InvalidOperationException("Gate.io API supports only limit orders");
+				throw new NotSupportedException("Gate.io API supports only limit orders");
 
 			var payload = await GetNoncePayloadAsync();
 			AddOrderToPayload(order, payload);
@@ -380,11 +380,11 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
-			if (string.IsNullOrEmpty(symbol))
+			if (string.IsNullOrWhiteSpace(symbol))
 			{
-				throw new InvalidOperationException("MarketSymbol is required for querying order details with Gate.io API");
+				throw new ArgumentNullException("MarketSymbol is required for querying order details with Gate.io API");
 			}
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var payload = await GetNoncePayloadAsync();
 			var responseToken = await MakeJsonRequestAsync<JToken>($"/spot/orders/{orderId}?currency_pair={symbol}", payload: payload);
@@ -394,9 +394,9 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
 		{
-			if (string.IsNullOrEmpty(symbol))
+			if (string.IsNullOrWhiteSpace(symbol))
 			{
-				throw new InvalidOperationException("MarketSymbol is required for querying open orders with Gate.io API");
+				throw new ArgumentNullException("MarketSymbol is required for querying open orders with Gate.io API");
 			}
 
 			var payload = await GetNoncePayloadAsync();
@@ -423,9 +423,9 @@ namespace ExchangeSharp
 
 		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
-			if (string.IsNullOrEmpty(symbol))
+			if (string.IsNullOrWhiteSpace(symbol))
 			{
-				throw new InvalidOperationException("MarketSymbol is required for cancelling order with Gate.io API");
+				throw new ArgumentNullException("MarketSymbol is required for cancelling order with Gate.io API");
 			}
 			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 

@@ -291,7 +291,7 @@ namespace ExchangeSharp
 		/// <inheritdoc />
 		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{ // https://docs.ftx.com/#get-order-status and https://docs.ftx.com/#get-order-status-by-client-id
-			if (!string.IsNullOrEmpty(marketSymbol)) throw new NotImplementedException("Searching by marketSymbol is either not implemented by or supported by this exchange. Please submit a PR if you are interested in this feature");
+			if (!string.IsNullOrEmpty(marketSymbol)) throw new NotSupportedException("Searching by marketSymbol is either not implemented by or supported by this exchange. Please submit a PR if you are interested in this feature");
 
 			var url = "/orders/";
 			if (isClientOrderId)
