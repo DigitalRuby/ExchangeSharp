@@ -165,7 +165,7 @@ namespace ExchangeSharp
 
 			if (order.OrderType != OrderType.Limit && order.OrderType != OrderType.Stop)
 			{
-				throw new NotImplementedException("This type of order is currently not supported.");
+				throw new NotSupportedException("This type of order is currently not supported.");
 			}
 
 			payload["amount"] = order.Amount;
@@ -182,7 +182,7 @@ namespace ExchangeSharp
 			{
 				if (!long.TryParse(order.ClientOrderId, out var clientOrderId))
 				{
-					throw new InvalidOperationException("ClientId must be numerical for Coinmate");
+					throw new ArgumentException("ClientId must be numerical for Coinmate");
 				}
 
 				payload["clientOrderId"] = clientOrderId;

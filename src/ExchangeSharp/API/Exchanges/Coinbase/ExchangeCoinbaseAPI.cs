@@ -741,7 +741,10 @@ namespace ExchangeSharp
 		{ // Orders may be queried using either the exchange assigned id or the client assigned client_oid. When using client_oid it must be preceded by the client: namespace.
 			JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + (isClientOrderId ? "client:" : "") + orderId,
 				null, await GetNoncePayloadAsync(), "GET");
-			return ParseOrder(obj);
+			var order = ParseOrder(obj);
+			if (!order.MarketSymbol.Equals(marketSymbol, StringComparison.InvariantCultureIgnoreCase))
+				throw new DataMisalignedException($"Order {orderId} found, but symbols {order.MarketSymbol} and {marketSymbol} don't match");
+			else return order;
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)

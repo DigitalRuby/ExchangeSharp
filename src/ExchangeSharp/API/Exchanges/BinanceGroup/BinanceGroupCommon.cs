@@ -554,7 +554,7 @@ namespace ExchangeSharp.BinanceGroup
 			else if (order.IsPostOnly == true)
 			{
 				if (order.OrderType == OrderType.Limit)	payload["type"] = "LIMIT_MAKER"; // LIMIT_MAKER are LIMIT orders that will be rejected if they would immediately match and trade as a taker.
-				else throw new NotImplementedException("PostOnly with non limit orders are not currently supported on Binance. Please submit a PR if you are interested in this feature");
+				else throw new NotSupportedException("PostOnly with non limit orders are not currently supported on Binance. Please submit a PR if you are interested in this feature");
 			}
 			else
 				payload["type"] = order.OrderType.ToStringUpperInvariant();
@@ -587,7 +587,7 @@ namespace ExchangeSharp.BinanceGroup
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 			{
-				throw new InvalidOperationException("Binance single order details request requires symbol");
+				throw new ArgumentNullException("Binance single order details request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
 

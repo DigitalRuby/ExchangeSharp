@@ -233,7 +233,7 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			var roundedAmount = order.RoundAmount();
 			var amountInt = converterToEight.FromDecimal(roundedAmount);
 
@@ -314,7 +314,7 @@ namespace ExchangeSharp
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var data = new Dictionary<string, object>
 			{
