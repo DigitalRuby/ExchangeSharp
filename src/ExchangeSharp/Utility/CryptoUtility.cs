@@ -271,33 +271,6 @@ namespace ExchangeSharp
         }
 
 		/// <summary>
-		/// Converts a hex string to a byte array
-		/// </summary>
-		/// <param name="hex">hex string</param>
-		/// <returns>byte array representation of the same string</returns>
-		public static byte[] StringToByteArray(this string hex)
-		{ // https://stackoverflow.com/questions/321370/how-can-i-convert-a-hex-string-to-a-byte-array
-			return Enumerable.Range(0, hex.Length / 2)
-				.Select(x => Convert
-				.ToByte(hex.Substring(x * 2, 2), 16))
-				.ToArray();
-		}
-
-		public static string ToHexString(this byte[] bytes)
-		{
-			var sb = new StringBuilder();
-
-			// Loop through each byte of the hashed data
-			// and format each one as a hexadecimal string.
-			for (int i = 0; i < bytes.Length; i++)
-			{
-				sb.Append(bytes[i].ToString("x2"));
-			}
-
-			return sb.ToString();
-		}
-
-		/// <summary>
 		/// Covnert a secure string to a non-secure string
 		/// </summary>
 		/// <param name="s">SecureString</param>
