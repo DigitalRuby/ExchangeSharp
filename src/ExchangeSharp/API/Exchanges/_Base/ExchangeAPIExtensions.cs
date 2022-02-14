@@ -604,8 +604,8 @@ namespace ExchangeSharp
 		{
 			var trade = ParseTradeComponents<KuCoinTrade>(token, amountKey, priceKey, typeKey,
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
-			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant().StringToByteArray();
-			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant().StringToByteArray();
+			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant();
+			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant();
 			return trade;
 		}
 
