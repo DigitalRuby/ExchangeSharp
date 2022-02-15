@@ -274,12 +274,12 @@ namespace ExchangeSharp
 			{
 				foreach (var dataRow in token)
 				{
-					ExchangeTrade trade = dataRow.ParseTrade(
+					var trade = dataRow.ParseTradeBybit(
 						amountKey: "size", 
 						priceKey: "price",
 						typeKey: "side", 
-						timestampKey: "timestamp",
-						timestampType: TimestampType.Iso8601UTC, 
+						timestampKey: "trade_time_ms",
+						timestampType: TimestampType.UnixMilliseconds, 
 						idKey: "trade_id");
 					await callback(new KeyValuePair<string, ExchangeTrade>(dataRow["symbol"].ToStringInvariant(), trade));
 				}
