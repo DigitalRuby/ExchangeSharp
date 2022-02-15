@@ -24,6 +24,7 @@ using ExchangeSharp.KuCoin;
 using Newtonsoft.Json.Linq;
 using ExchangeSharp.NDAX;
 using ExchangeSharp.API.Exchanges.FTX.Models;
+using ExchangeSharp.Bybit;
 
 namespace ExchangeSharp
 {
@@ -537,6 +538,15 @@ namespace ExchangeSharp
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
 			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBybit(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BybitTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.CrossSequence = token["cross_seq"].ConvertInvariant<long>();
 			return trade;
 		}
 
