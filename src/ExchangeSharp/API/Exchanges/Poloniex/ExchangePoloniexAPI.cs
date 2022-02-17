@@ -326,29 +326,31 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
         {
-            List<string> symbols = new List<string>();
-            var tickers = await GetTickersAsync();
-            foreach (var kv in tickers)
-            {
-                symbols.Add(kv.Key);
-            }
-            return symbols;
+            return (await GetMarketSymbolsMetadataAsync()).Where(x => x.IsActive.Value).Select(x => x.MarketSymbol);
         }
 
         protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
-            //https://poloniex.com/public?command=returnOrderBook&currencyPair=all&depth=0
-            /*
-             *       "BTC_CLAM": {
-        "asks": [],
-        "bids": [],
-        "isFrozen": "0",
-        "seq": 37268918
-        }, ...
+			//https://docs.poloniex.com/#returnticker
+			/*
+			  {
+			  "BTC_BTS": {
+				"id": 14,
+				"last": "0.00000090",
+				"lowestAsk": "0.00000091",
+				"highestBid": "0.00000089",
+				"percentChange": "-0.02173913",
+				"baseVolume": "0.28698296",
+				"quoteVolume": "328356.84081156",
+				"isFrozen": "0",
+				"postOnly": "0",
+				"high24hr": "0.00000093",
+				"low24hr": "0.00000087"
+			  },...
              */
 
-            var markets = new List<ExchangeMarket>();
-            Dictionary<string, JToken> lookup = await MakeJsonRequestAsync<Dictionary<string, JToken>>("/public?command=returnOrderBook&currencyPair=all&depth=0");
+			var markets = new List<ExchangeMarket>();
+            Dictionary<string, JToken> lookup = await MakeJsonRequestAsync<Dictionary<string, JToken>>("/public?command=returnTicker");
             // StepSize is 8 decimal places for both price and amount on everything at Polo
             const decimal StepSize = 0.00000001m;
             const decimal minTradeSize = 0.0001m;
@@ -357,8 +359,9 @@ namespace ExchangeSharp
             {
                 var market = new ExchangeMarket { MarketSymbol = kvp.Key, IsActive = false };
 
-                string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
-                if (string.Equals(isFrozen, "0"))
+				string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
+				string postOnly = kvp.Value["postOnly"].ToStringInvariant();
+				if (string.Equals(isFrozen, "0") && string.Equals(postOnly, "0"))
                 {
                     market.IsActive = true;
                 }
@@ -366,7 +369,8 @@ namespace ExchangeSharp
                 string[] pairs = kvp.Key.Split('_');
                 if (pairs.Length == 2)
                 {
-                    market.QuoteCurrency = pairs[0];
+					market.MarketId = kvp.Value["id"].ToStringLowerInvariant();
+					market.QuoteCurrency = pairs[0];
                     market.BaseCurrency = pairs[1];
                     market.PriceStepSize = StepSize;
                     market.QuantityStepSize = StepSize;
@@ -440,10 +444,19 @@ namespace ExchangeSharp
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
-			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
+			Dictionary<int, string> messageIdToSymbol = new Dictionary<int, string>();
+			Dictionary<string, int> symbolToMessageId = new Dictionary<string, int>();
+			var symMeta = await GetMarketSymbolsMetadataAsync();
+			foreach (var symbol in symMeta)
+			{
+				messageIdToSymbol.Add(int.Parse(symbol.MarketId), symbol.MarketSymbol);
+				symbolToMessageId.Add(symbol.MarketSymbol, int.Parse(symbol.MarketId));
+			}
 			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token.Type == JTokenType.Object && token["error"] != null)
+					throw new APIException($"Exchange returned error: {token["error"].ToStringInvariant()}");
 				int msgId = token[0].ConvertInvariant<int>();
 
 				if (msgId == 1010 || token.Count() == 2) // "[7,2]"
@@ -459,18 +472,17 @@ namespace ExchangeSharp
 					var dataType = data[0].ToStringInvariant();
 					if (dataType == "i")
 					{
-						var marketInfo = data[1];
-						var market = marketInfo["currencyPair"].ToStringInvariant();
-						messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
+						// can also populate messageIdToSymbol from here
+						continue;
 					}
 					else if (dataType == "t")
 					{
-						if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
-						{   //   0        1                 2                  3         4          5
-							// ["t", "<trade id>", <1 for buy 0 for sell>, "<price>", "<size>", <timestamp>]
-							ExchangeTrade trade = data.ParseTrade(amountKey: 4, priceKey: 3, typeKey: 2, timestampKey: 5,
-								timestampType: TimestampType.UnixSeconds, idKey: 1, typeKeyIsBuyValue: "1");
-							await callback(new KeyValuePair<string, ExchangeTrade>(symbol.Item1, trade));
+						if (messageIdToSymbol.TryGetValue(msgId, out string symbol))
+						{   //   0        1                 2                  3         4          5            6
+							// ["t", "<trade id>", <1 for buy 0 for sell>, "<price>", "<size>", <timestamp>, "<epoch_ms>"]
+							ExchangeTrade trade = data.ParseTrade(amountKey: 4, priceKey: 3, typeKey: 2, timestampKey: 6,
+								timestampType: TimestampType.UnixMilliseconds, idKey: 1, typeKeyIsBuyValue: "1");
+							await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 						}
 					}
 					else if (dataType == "o")
@@ -484,14 +496,19 @@ namespace ExchangeSharp
 				}
 			}, async (_socket) =>
 			{
+				IEnumerable<int> marketIDs = null;
 				if (marketSymbols == null || marketSymbols.Length == 0)
 				{
-					marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+					marketIDs = messageIdToSymbol.Keys;
+				}
+				else
+				{
+					marketIDs = marketSymbols.Select(s => symbolToMessageId[s]);
 				}
 				// subscribe to order book and trades channel for each symbol
-				foreach (var sym in marketSymbols)
+				foreach (var id in marketIDs)
 				{
-					await _socket.SendMessageAsync(new { command = "subscribe", channel = NormalizeMarketSymbol(sym) });
+					await _socket.SendMessageAsync(new { command = "subscribe", channel = id });
 				}
 			});
 		}
