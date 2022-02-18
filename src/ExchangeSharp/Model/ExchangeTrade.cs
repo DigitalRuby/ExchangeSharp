@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -120,6 +120,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Whether the trade is the last trade from a snapshot
         /// </summary>
-        IsLastFromSnapshot = 4
+        IsLastFromSnapshot = 4,
+
+		/// <summary>
+		/// Is neither buy nor sell
+		/// </summary>
+		HasNoSide = 8,
     }
 }

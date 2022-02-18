@@ -25,6 +25,7 @@ using Newtonsoft.Json.Linq;
 using ExchangeSharp.NDAX;
 using ExchangeSharp.API.Exchanges.FTX.Models;
 using ExchangeSharp.Bybit;
+using ExchangeSharp.Bitflyer;
 
 namespace ExchangeSharp
 {
@@ -538,6 +539,16 @@ namespace ExchangeSharp
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
 			trade.FirstTradeId = token["f"].ConvertInvariant<long>();
 			trade.LastTradeId = token["l"].ConvertInvariant<long>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBitflyer(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BitflyerTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.BuyChildOrderAcceptanceId = token["buy_child_order_acceptance_id"].ConvertInvariant<string>();
+			trade.SellChildOrderAcceptanceId = token["sell_child_order_acceptance_id"].ConvertInvariant<string>();
 			return trade;
 		}
 
