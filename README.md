@@ -139,7 +139,7 @@ public static async Task Main(string[] args)
 
 ### Authentication
 
-Private api calls like placing orers require you to call `LoadApiKeys` first. You can generate an api keys file by running the bundled console application and choosing the generate key file option.
+Private api calls like placing orders require you to call `LoadApiKeys` first. You can generate an api keys file by running the bundled console application and choosing the generate key file option.
 
 ### Logging
 
