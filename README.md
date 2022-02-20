@@ -8,7 +8,7 @@
 
 ExchangeSharp is a C# **framework/lib** and [console app](#Installing-the-CLI) for trading and communicating with [various](#Exchanges) exchange API end points for cryptocurrency assets. Many exchanges are supported, along with [web sockets](#Websockets), withdraws and more!
 
-Feel free to visit the discord channel at https://discord.gg/sHCUHH3 and chat with other developers.
+Feel free to visit the discord channel at https://discord.gg/58ktxXuTVK and chat with other developers.
 
 ### Features
 
