@@ -39,6 +39,8 @@ namespace ExchangeSharp
 		/// </summary>
 		public override string BaseUrl { get; set; } = "https://api.lbank.info/v1";
 
+		public override string BaseUrlWebSocket { get; set; } = "wss://www.lbkex.net/ws/V2/";
+
 		/// <summary>
 		/// Gets the name of the API.
 		/// </summary>
@@ -538,6 +540,63 @@ namespace ExchangeSharp
 		}
 
 		#endregion PARSERS PrivateAPI
+
+		#region Websockets
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			return await ConnectPublicWebSocketAsync("", async (_socket, msg) =>
+			{
+				/* {
+					 "trade":{
+						 "volume":6.3607,
+						 "amount":77148.9303,
+						 "price":12129,
+						 "direction":"sell",
+						 "TS":"2019-06-28T19:55:49.460"
+					 },
+					 "type":"trade",
+					 "pair":"btc_usdt",
+					 "SERVER":"V2",
+					 "TS":"2019-06-28T19:55:49.466"
+					}*/
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["status"].ToStringInvariant() == "error")
+				{
+					if (token["message"].ToStringInvariant().Contains("Invalid order pairs"))
+					{
+						// ignore, bc invalid order pairs are normal in LBank
+					}
+					else throw new APIException(token["message"].ToStringInvariant());
+				}
+				else if (token["type"].ToStringInvariant() == "trade")
+				{
+					var trade = token["trade"].ParseTrade("amount", "price", "direction", "TS", TimestampType.Iso8601China, null);
+					string marketSymbol = token["pair"].ToStringInvariant();
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+				}
+			}, async (_socket) =>
+			{ /* {
+					"action":"subscribe",
+					"subscribe":"trade",
+					"pair":"eth_btc"
+				  }*/
+				foreach (var marketSymbol in marketSymbols)
+				{
+					var subscribeRequest = new
+					{
+						action = "subscribe",
+						subscribe = "trade",
+						pair = marketSymbol,
+					};
+					await _socket.SendMessageAsync(subscribeRequest);
+				}
+			});
+		}
+		#endregion
 
 		#region HELPERS
 
