@@ -38,6 +38,8 @@ namespace ExchangeSharp
         internal static readonly DateTime UnixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
         internal static readonly Encoding Utf8EncodingNoPrefix = new UTF8Encoding(false, true);
 		static bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+		static string chinaZoneId = isWindows ? "China Standard Time" : "Asia/Shanghai";
+		static TimeZoneInfo chinaZone = TimeZoneInfo.FindSystemTimeZoneById(chinaZoneId);
 		static string koreanZoneId = isWindows ? "Korea Standard Time" : "Asia/Seoul";
 		static TimeZoneInfo koreaZone = TimeZoneInfo.FindSystemTimeZoneById(koreanZoneId);
 
@@ -188,7 +190,7 @@ namespace ExchangeSharp
 		{
 			/// <summary> time zone is specifically specified in string </summary>
 			AsSpecified,
-			Local, Korea, UTC
+			Local, China, Korea, UTC,
 		}
         /// <summary>
         /// Convert object to a UTC DateTime
@@ -215,6 +217,8 @@ namespace ExchangeSharp
 					throw new NotImplementedException(); // TODO: implement this when needed
 				case SourceTimeZone.Local:
 					return DateTime.SpecifyKind(dt, DateTimeKind.Local).ToUniversalTime(); // convert to UTC
+				case SourceTimeZone.China:
+					return TimeZoneInfo.ConvertTime(dt, chinaZone, TimeZoneInfo.Utc); // convert to UTC
 				case SourceTimeZone.Korea:
 					return TimeZoneInfo.ConvertTime(dt, koreaZone, TimeZoneInfo.Utc); // convert to UTC
 				case SourceTimeZone.UTC:
@@ -692,6 +696,9 @@ namespace ExchangeSharp
             {
 				case TimestampType.Iso8601Local:
 					return value.ToDateTimeInvariant(SourceTimeZone.Local);
+
+				case TimestampType.Iso8601China:
+					return value.ToDateTimeInvariant(SourceTimeZone.China);
 
 				case TimestampType.Iso8601Korea:
 					return value.ToDateTimeInvariant(SourceTimeZone.Korea);
@@ -1480,6 +1487,11 @@ namespace ExchangeSharp
 		/// ISO 8601 in local time
 		/// </summary>
 		Iso8601Local,
+
+		/// <summary>
+		/// ISO 8601 in china Standard Time
+		/// </summary>
+		Iso8601China,
 
 		/// <summary>
 		/// ISO 8601 in Korea Standard Time
