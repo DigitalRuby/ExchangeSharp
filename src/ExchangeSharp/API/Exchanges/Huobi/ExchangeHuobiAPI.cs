@@ -224,29 +224,30 @@ namespace ExchangeSharp
         {
             return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
-                /*
+				/*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
 
 
-{{
-  "ch": "market.btcusdt.trade.detail",
-  "ts": 1527574905759,
-  "tick": {
-    "id": 8232977476,
-    "ts": 1527574905623,
-    "data": [
-      {
-        "amount": 0.3066,
-        "ts": 1527574905623,
-        "id": 82329774765058180723,
-        "price": 7101.81,
-        "direction": "buy"
-      }
-    ]
-  }
-}}
+{
+    "ch":"market.btcusdt.trade.detail",
+    "ts":1630994963175,
+    "tick":{
+        "id":137005445109,
+        "ts":1630994963173,
+        "data":[
+            {
+                "id":137005445109359286410323766,
+                "ts":1630994963173,
+                "tradeId":102523573486,
+                "amount":0.006754,
+                "price":52648.62,
+                "direction":"buy"
+            }
+        ]
+    }
+}
                  */
-                var str = msg.ToStringFromUTF8Gzip();
+				var str = msg.ToStringFromUTF8Gzip();
                 JToken token = JToken.Parse(str);
 
                 if (token["status"] != null)
@@ -266,7 +267,6 @@ namespace ExchangeSharp
                 var marketSymbol = sArray[1];
 
                 var tick = token["tick"];
-                var id = tick["id"].ConvertInvariant<long>();
 
                 var data = tick["data"];
                 var trades = ParseTradesWebSocket(data);
@@ -919,7 +919,7 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                trades.Add(t.ParseTrade("amount", "price", "direction", "ts", TimestampType.UnixMilliseconds, "id"));
+                trades.Add(t.ParseTrade("amount", "price", "direction", "ts", TimestampType.UnixMilliseconds, "tradeId"));
             }
 
             return trades;
