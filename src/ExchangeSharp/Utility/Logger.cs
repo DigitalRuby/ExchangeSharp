@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -94,6 +94,13 @@ namespace ExchangeSharp
         None = Off
     }
 
+	public class LoggerEvent
+	{
+		public LogLevel level;
+		public string text;
+		public object[] args;
+	}
+
     /// <summary>
     /// ExchangeSharp logger. Will never throw exceptions.
     /// Currently the ExchangeSharp logger uses NLog internally, so make sure it is setup in your app.config file or nlog.config file.
@@ -101,6 +108,7 @@ namespace ExchangeSharp
     public static class Logger
     {
         private static readonly NLog.Logger logger;
+		public static event Action<LoggerEvent> LogWrite;
 
         static Logger()
         {
@@ -253,6 +261,7 @@ namespace ExchangeSharp
                     text = string.Format(text, args);
                 }
                 logger?.Log(GetNLogLevel(level), text);
+				LogWrite?.Invoke(new LoggerEvent() { level = level, text = text, args = args });
             }
             catch
             {
