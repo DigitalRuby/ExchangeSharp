@@ -22,7 +22,7 @@ namespace ExchangeSharp.BinanceGroup
 {
 	public abstract class BinanceGroupCommon : ExchangeAPI
 	{
-		public string BaseUrlApi => $"{BaseUrl}/api/v3";
+		public virtual string BaseUrlApi => $"{BaseUrl}/api/v3";
 
 		public string BaseUrlSApi => $"{BaseUrl}/sapi/v1";
 
@@ -53,6 +53,7 @@ namespace ExchangeSharp.BinanceGroup
 			NonceStyle = NonceStyle.UnixMilliseconds;
 			NonceOffset = TimeSpan.FromSeconds(15); // 15 seconds are deducted from current UTCTime as base of the request time window
 			MarketSymbolSeparator = string.Empty;
+			MarketSymbolIsUppercase = false;
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
 			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
 		}
