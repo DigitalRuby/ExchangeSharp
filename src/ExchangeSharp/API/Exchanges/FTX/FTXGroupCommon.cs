@@ -404,7 +404,11 @@ namespace ExchangeSharp
 			{
 				JToken parsedMsg = JToken.Parse(msg.ToStringFromUTF8());
 
-				if (parsedMsg["channel"].ToStringInvariant().Equals("trades")
+				if (parsedMsg["type"].ToStringInvariant() == "error")
+				{
+					throw new APIException(parsedMsg["msg"].ToStringInvariant());
+				}
+				else if (parsedMsg["channel"].ToStringInvariant().Equals("trades")
 				&& !parsedMsg["type"].ToStringInvariant().Equals("subscribed"))
 				{
 					foreach (var data in parsedMsg["data"])
@@ -424,7 +428,7 @@ namespace ExchangeSharp
 					{
 						op = "subscribe",
 						market = marketSymbols[i],
-						channel = "trades"
+						channel = "trades",
 					});
 				}
 			});
