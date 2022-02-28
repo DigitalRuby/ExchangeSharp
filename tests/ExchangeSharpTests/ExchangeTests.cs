@@ -98,12 +98,15 @@ namespace ExchangeSharpTests
             {
                 try
                 {
-                    if (api is ExchangeUfoDexAPI || api is ExchangeOKExAPI || api is ExchangeHitBTCAPI || api is ExchangeKuCoinAPI ||
-                        api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI || api is ExchangeNDAXAPI || api is ExchangeBL3PAPI ||
-						api is ExchangeBinanceUSAPI || api is ExchangeBinanceJerseyAPI || api is ExchangeBinanceDEXAPI ||
+                    if (api is ExchangeUfoDexAPI || api is ExchangeOKExAPI || api is ExchangeHitBTCAPI ||
+						api is ExchangeKuCoinAPI || api is ExchangeOKCoinAPI || api is ExchangeDigifinexAPI ||
+						api is ExchangeNDAXAPI || api is ExchangeBL3PAPI ||	api is ExchangeBinanceUSAPI ||
+						api is ExchangeBinanceJerseyAPI || api is ExchangeBinanceDEXAPI || api is ExchangeBinanceAPI ||
 						api is ExchangeBitMEXAPI || api is ExchangeBTSEAPI || api is ExchangeBybitAPI ||
 						api is ExchangeAquanowAPI || api is ExchangeBitfinexAPI || api is ExchangeBittrexAPI ||
-						api is ExchangeFTXAPI || api is ExchangeFTXUSAPI || api is ExchangeGateIoAPI || api is ExchangeCoinmateAPI)
+						api is ExchangeFTXAPI || api is ExchangeFTXUSAPI || api is ExchangeGateIoAPI ||
+						api is ExchangeCoinmateAPI || api is ExchangeBitflyerApi || api is ExchangeDydxApi ||
+						api is ExchangeCryptoComApi || api is ExchangeApolloXApi)
                     {
                         // WIP
                         continue;
@@ -160,6 +163,7 @@ namespace ExchangeSharpTests
 					|| api is ExchangeBinanceJerseyAPI // ceased operations
 					|| api is ExchangeBittrexAPI // uses SignalR
 					|| api is ExchangeBL3PAPI // volume too low
+					|| api is ExchangeFTXUSAPI // volume too low. rely on FTX test
 					|| api is ExchangeLivecoinAPI // defunct
 					|| api is ExchangeOKCoinAPI // volume appears to be too low
 					|| api is ExchangeNDAXAPI // volume too low for automated testing
@@ -177,7 +181,7 @@ namespace ExchangeSharpTests
 					&& !(s.ToUpper().Contains("TBTC") || s.ToUpper().Contains("WBTC")
 						|| s.ToUpper().Contains("NHBTC") || s.ToUpper().Contains("BTC3L")
 						|| s.ToUpper().Contains("USDC") || s.ToUpper().Contains("SUSD")
-						|| s.ToUpper().Contains("BTC-TUSD")))
+						|| s.ToUpper().Contains("BTC-TUSD") || s.ToUpper().Contains("RENBTC_USDT")))
 					.FirstOrDefault();
 					if (testSymbol == null) testSymbol = marketSymbols.First();
 					bool thisExchangePassed = false;
