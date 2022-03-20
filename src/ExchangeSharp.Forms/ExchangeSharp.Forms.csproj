@@ -4,7 +4,6 @@
         <TargetFramework>net6.0-windows</TargetFramework>
         <DefineConstants>HAS_WINDOWS_FORMS</DefineConstants>
         <NeutralLanguage>en</NeutralLanguage>
-        <LangVersion>8</LangVersion>
 		<UseWindowsForms>true</UseWindowsForms>
     </PropertyGroup>
 
