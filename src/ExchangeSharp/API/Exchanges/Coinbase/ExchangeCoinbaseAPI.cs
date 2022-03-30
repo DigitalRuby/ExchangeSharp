@@ -45,6 +45,11 @@ namespace ExchangeSharp
 			NonceEndPointField = "iso";
 			NonceEndPointStyle = NonceStyle.Iso8601;
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
+			/* Rate limits from Coinbase Pro webpage
+			 * Public endpoints - We throttle public endpoints by IP: 10 requests per second, up to 15 requests per second in bursts. Some endpoints may have custom rate limits.
+			 * Private endpoints - We throttle private endpoints by profile ID: 15 requests per second, up to 30 requests per second in bursts. Some endpoints may have custom rate limits.
+			 * fills endpoint has a custom rate limit of 10 requests per second, up to 20 requests per second in bursts. */
+			RateLimit = new RateGate(9, TimeSpan.FromSeconds(1)); // set to 9 to be safe
 		}
 
 
