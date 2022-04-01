@@ -18,11 +18,6 @@ namespace ExchangeSharp
 	{
 		public override string BaseUrl { get; set; } = "https://api.binance.com";
 		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.com:9443";
-
-		private ExchangeBinanceAPI()
-		{
-			MarketSymbolIsUppercase = true;
-		}
 	}
 
 	public partial class ExchangeName { public const string Binance = "Binance"; }
