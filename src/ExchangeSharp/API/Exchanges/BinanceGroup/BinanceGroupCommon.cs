@@ -53,7 +53,7 @@ namespace ExchangeSharp.BinanceGroup
 			NonceStyle = NonceStyle.UnixMilliseconds;
 			NonceOffset = TimeSpan.FromSeconds(15); // 15 seconds are deducted from current UTCTime as base of the request time window
 			MarketSymbolSeparator = string.Empty;
-			MarketSymbolIsUppercase = false;
+			MarketSymbolIsUppercase = true;
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
 			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
 		}
@@ -275,6 +275,11 @@ namespace ExchangeSharp.BinanceGroup
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
+			if (marketSymbols.Length > 400)
+			{
+				marketSymbols = marketSymbols.Take(400).ToArray();
+				Logger.Warn("subscribing to the first 400 symbols"); // binance does not allow subscribing to more than 400 symbols at a time
+			}
 			string url = await GetWebSocketStreamUrlForSymbolsAsync("@aggTrade", marketSymbols);
 			return await ConnectPublicWebSocketAsync(url, messageCallback: async (_socket, msg) =>
 			{
@@ -302,7 +307,7 @@ namespace ExchangeSharp.BinanceGroup
 			return await ConnectPublicWebSocketAsync($"/stream?streams={combined}", (_socket, msg) =>
 			{
 				string json = msg.ToStringFromUTF8();
-				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
+				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json, SerializerSettings);
 				string marketSymbol = update.Data.MarketSymbol;
 				ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, MarketSymbol = marketSymbol, LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.Data.EventTime) };
 				foreach (List<object> ask in update.Data.Asks)
@@ -1091,7 +1096,7 @@ namespace ExchangeSharp.BinanceGroup
 				{
 					case "executionReport": // systematically check to make sure we are dealing with expected cases here
 						{
-							var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant());
+							var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant(), SerializerSettings);
 							switch (update.CurrentExecutionType)
 							{
 								case "NEW ": // The order has been accepted into the engine.
@@ -1115,7 +1120,7 @@ namespace ExchangeSharp.BinanceGroup
 						throw new NotImplementedException("has been removed (per binance 2021-01-01)");
 					case "outboundAccountPosition":
 						{
-							var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant());
+							var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant(), SerializerSettings);
 							callback(new ExchangeBalances()
 							{
 								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),
@@ -1138,7 +1143,7 @@ namespace ExchangeSharp.BinanceGroup
 						}
 					case "balanceUpdate":
 						{
-							var update = JsonConvert.DeserializeObject<BalanceUpdate>(token.ToStringInvariant());
+							var update = JsonConvert.DeserializeObject<BalanceUpdate>(token.ToStringInvariant(), SerializerSettings);
 							callback(new ExchangeBalances()
 							{
 								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),
