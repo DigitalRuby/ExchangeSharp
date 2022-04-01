@@ -316,7 +316,7 @@ namespace ExchangeSharp
 				if (message.Contains(@"""l2update"""))
 				{
 					// parse delta update
-					var delta = JsonConvert.DeserializeObject<Level2>(message);
+					var delta = JsonConvert.DeserializeObject<Level2>(message, SerializerSettings);
 					book.MarketSymbol = delta.ProductId;
 					book.SequenceId = delta.Time.Ticks;
 					foreach (string[] change in delta.Changes)
@@ -336,7 +336,7 @@ namespace ExchangeSharp
 				else if (message.Contains(@"""snapshot"""))
 				{
 					// parse snapshot
-					var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
+					var snapshot = JsonConvert.DeserializeObject<Snapshot>(message, SerializerSettings);
 					book.MarketSymbol = snapshot.ProductId;
 					foreach (decimal[] ask in snapshot.Asks)
 					{
@@ -451,11 +451,11 @@ namespace ExchangeSharp
 			return await ConnectPublicWebSocketAsync("/", async (_socket, msg) =>
 			{
 				var token = msg.ToStringFromUTF8();
-				var response = JsonConvert.DeserializeObject<BaseMessage>(token);
+				var response = JsonConvert.DeserializeObject<BaseMessage>(token, SerializerSettings);
 				switch (response.Type)
 				{
 					case ResponseType.Subscriptions:
-						var subscription = JsonConvert.DeserializeObject<Subscription>(token);
+						var subscription = JsonConvert.DeserializeObject<Subscription>(token, SerializerSettings);
 						if (subscription.Channels == null || !subscription.Channels.Any())
 						{
 							Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() no channels subscribed");
@@ -473,37 +473,37 @@ namespace ExchangeSharp
 					case ResponseType.L2Update:
 						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
 					case ResponseType.Heartbeat:
-						var heartbeat = JsonConvert.DeserializeObject<Heartbeat>(token);
+						var heartbeat = JsonConvert.DeserializeObject<Heartbeat>(token, SerializerSettings);
 						Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() heartbeat received {heartbeat}");
 						break;
 					case ResponseType.Received:
-						var received = JsonConvert.DeserializeObject<Received>(token);
+						var received = JsonConvert.DeserializeObject<Received>(token, SerializerSettings);
 						callback(received.ExchangeOrderResult);
 						break;
 					case ResponseType.Open:
-						var open = JsonConvert.DeserializeObject<Open>(token);
+						var open = JsonConvert.DeserializeObject<Open>(token, SerializerSettings);
 						callback(open.ExchangeOrderResult);
 						break;
 					case ResponseType.Done:
-						var done = JsonConvert.DeserializeObject<Done>(token);
+						var done = JsonConvert.DeserializeObject<Done>(token, SerializerSettings);
 						callback(done.ExchangeOrderResult);
 						break;
 					case ResponseType.Match:
-						var match = JsonConvert.DeserializeObject<Match>(token);
+						var match = JsonConvert.DeserializeObject<Match>(token, SerializerSettings);
 						callback(match.ExchangeOrderResult);
 						break;
 					case ResponseType.LastMatch:
 						//var lastMatch = JsonConvert.DeserializeObject<LastMatch>(token);
 						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
 					case ResponseType.Error:
-						var error = JsonConvert.DeserializeObject<Error>(token);
+						var error = JsonConvert.DeserializeObject<Error>(token, SerializerSettings);
 						throw new APIException($"{error.Reason}: {error.Message}");
 					case ResponseType.Change:
-						var change = JsonConvert.DeserializeObject<Change>(token);
+						var change = JsonConvert.DeserializeObject<Change>(token, SerializerSettings);
 						callback(change.ExchangeOrderResult);
 						break;
 					case ResponseType.Activate:
-						var activate = JsonConvert.DeserializeObject<Activate>(token);
+						var activate = JsonConvert.DeserializeObject<Activate>(token, SerializerSettings);
 						callback(activate.ExchangeOrderResult);
 						break;
 					case ResponseType.Status:
