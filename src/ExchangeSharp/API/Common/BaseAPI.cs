@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace ExchangeSharp
 {
@@ -245,6 +246,16 @@ namespace ExchangeSharp
 		/// Can be cleared for no caching, or you can put in custom cache times using nameof(method) and timespan.
 		/// </summary>
 		public Dictionary<string, TimeSpan> MethodCachePolicy { get; } = new Dictionary<string, TimeSpan>();
+
+		public static JsonSerializerSettings SerializerSettings { get; } = new JsonSerializerSettings
+		{
+			FloatParseHandling = FloatParseHandling.Decimal,
+			NullValueHandling = NullValueHandling.Ignore,
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new SnakeCaseNamingStrategy()
+			},
+		};
 
 		private ICache cache = new MemoryCache();
 		/// <summary>
@@ -503,7 +514,7 @@ namespace ExchangeSharp
 			await new SynchronizationContextRemover();
 
 			string stringResult = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
-			T jsonResult = JsonConvert.DeserializeObject<T>(stringResult);
+			T jsonResult = JsonConvert.DeserializeObject<T>(stringResult, SerializerSettings);
 			if (jsonResult is JToken token)
 			{
 				return (T)(object)CheckJsonResponse(token);

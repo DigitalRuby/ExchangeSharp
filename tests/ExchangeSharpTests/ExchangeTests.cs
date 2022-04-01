@@ -91,7 +91,7 @@ namespace ExchangeSharpTests
 
             string globalMarketSymbol = "ETH-BTC"; //1 ETH is worth 0.0192 BTC...
             string globalMarketSymbolAlt = "BTC-KRW"; // WTF Bitthumb... //1 BTC worth 9,783,000 won
-            Dictionary<string, string[]> allSymbols = JsonConvert.DeserializeObject<Dictionary<string, string[]>>(System.IO.File.ReadAllText("TestData/AllSymbols.json"));
+            Dictionary<string, string[]> allSymbols = JsonConvert.DeserializeObject<Dictionary<string, string[]>>(System.IO.File.ReadAllText("TestData/AllSymbols.json"), ExchangeAPI.SerializerSettings);
 
             // sanity test that all exchanges return the same global symbol when converted back and forth
             foreach (IExchangeAPI api in await ExchangeAPI.GetExchangeAPIsAsync())
