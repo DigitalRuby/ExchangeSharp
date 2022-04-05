@@ -44,7 +44,7 @@ namespace ExchangeSharp
 			{
 				marketSymbols = new string[] { "" };
 			}
-			return await ConnectPublicWebSocketAsync("/market", async (_socket, msg) =>
+			var ws = await ConnectPublicWebSocketAsync("/market", async (_socket, msg) =>
 			{
 				/*{
 				{{
@@ -74,9 +74,17 @@ namespace ExchangeSharp
 					throw new APIException(token["code"].ToStringInvariant() + ": " + token["message"].ToStringInvariant());
 				}
 				else if (token["method"].ToStringInvariant() == "public/heartbeat")
-				{
+				{ /* For websocket connections, the system will send a heartbeat message to the client every 30 seconds.
+				   * The client must respond back with the public/respond-heartbeat method, using the same matching id, within 5 seconds, or the connection will break. */
+					var hrResponse = new
+					{
+						id = token["id"].ConvertInvariant<long>(),
+						method = "public/respond-heartbeat",
+					};
+					await _socket.SendMessageAsync(hrResponse);
+
 					if (token["message"].ToStringInvariant() == "server did not receive any client heartbeat, going to disconnect soon")
-						throw new APIException(token["code"].ToStringInvariant() + ": " + token["message"].ToStringInvariant());
+						Logger.Warn(token["code"].ToStringInvariant() + ": " + token["message"].ToStringInvariant());
 				}
 				else if (token["method"].ToStringInvariant() == "subscribe" && token["result"] != null)
 				{
@@ -115,6 +123,7 @@ namespace ExchangeSharp
 				var subscribeRequest = new
 				{
 					// + consider using id field in the future to differentiate between requests
+					//id = new Random().Next(),
 					method = "subscribe",
 					@params = new
 					{
@@ -124,6 +133,8 @@ namespace ExchangeSharp
 				};
 				await _socket.SendMessageAsync(subscribeRequest);
 			});
+			ws.KeepAlive = new TimeSpan(0); // cryptocom throws bad request empty content msgs w/ keepalives
+			return ws;
 		}
 	}
 	public partial class ExchangeName { public const string CryptoCom = "CryptoCom"; }
