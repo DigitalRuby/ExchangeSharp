@@ -214,7 +214,7 @@ namespace ExchangeSharp
 					{
 						var exchangeTrade = data.ParseTrade("contQty", "contPrice", "buySellGb", "contDtm", TimestampType.Iso8601Korea, null, typeKeyIsBuyValue: "2");
 
-						await callback(new KeyValuePair<string, ExchangeTrade>(parsedMsg["market"].ToStringInvariant(), exchangeTrade));
+						await callback(new KeyValuePair<string, ExchangeTrade>(data["symbol"].ToStringInvariant(), exchangeTrade));
 					}
 				}
 			}, connectCallback: async (_socket) =>
