@@ -150,7 +150,8 @@ namespace ExchangeSharp
 		}
 
 		public TimeSpan ConnectInterval
-		{ get => socketIO.Options.ConnectionTimeout; set => socketIO.Options.ConnectionTimeout = value; }
+		{ get => throw new NotSupportedException();
+			set => socketIO.Options.Reconnection = value > TimeSpan.Zero; }
 
 		public TimeSpan KeepAlive
 		{ get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
