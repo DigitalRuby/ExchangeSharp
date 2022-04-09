@@ -572,6 +572,24 @@ namespace ExchangeSharp
 					}
 					else throw new APIException(token["message"].ToStringInvariant());
 				}
+				if (token["action"].ToStringInvariant() == "ping")
+				{/* # ping
+					{
+						"action":"ping",
+						"ping":"0ca8f854-7ba7-4341-9d86-d3327e52804e"
+					}
+					# pong
+					{
+						"action":"pong",
+						"pong":"0ca8f854-7ba7-4341-9d86-d3327e52804e"
+					} */
+					var pong = new
+					{
+						action = "pong",
+						pong = token["ping"].ToStringInvariant(),
+					};
+					await _socket.SendMessageAsync(pong);
+				}
 				else if (token["type"].ToStringInvariant() == "trade")
 				{
 					var trade = token["trade"].ParseTrade("amount", "price", "direction", "TS", TimestampType.Iso8601China, null);
