@@ -44,6 +44,7 @@ The following cryptocurrency exchanges are supported:
 | BTSE           | x           | x            |            |
 | Bybit          | x           | x            |   R        | Has public method for Websocket Positions
 | Coinbase       | x           | x            | T R   O U  |
+| Coincheck      |             |              |   R        |
 | Coinmate       | x           | x            |            |
 | Crypto.com     |             |              |   R        |
 | Digifinex      | x           | x            |   R B      |
@@ -62,6 +63,7 @@ The following cryptocurrency exchanges are supported:
 | OKCoin         | x           | x            |   R B      |
 | OKEx           | x           | x            | T R B O    |
 | Poloniex       | x           | x            | T R B      |
+| UPbit          |             |              |   R        |
 | YoBit          | x           | x            |            |
 | ZB.com         | wip         |              |   R        |
 
@@ -110,11 +112,11 @@ See [`WebSocket4NetClientWebSocket.cs`][websocket4net] for implementation detail
 
 #### dotnet CLI
 
-[`dotnet add package DigitalRuby.ExchangeSharp --version 1.0.0`][nuget]
+[`dotnet add package DigitalRuby.ExchangeSharp --version 1.0.1`][nuget]
 
 #### Package Manager on VS
 
-[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 1.0.0`][nuget]
+[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 1.0.1`][nuget]
 
 ### Examples
 
