@@ -547,7 +547,7 @@ namespace ExchangeSharp.BinanceGroup
 			return balances;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult?> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			if (order.Price == null && order.OrderType != OrderType.Market) throw new ArgumentNullException(nameof(order.Price));
 
@@ -575,8 +575,9 @@ namespace ExchangeSharp.BinanceGroup
 			if (order.OrderType != OrderType.Market)
 			{
 				decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
-				payload["timeInForce"] = "GTC";
 				payload["price"] = outputPrice;
+				if (order.IsPostOnly != true)
+					payload["timeInForce"] = "GTC";
 			}
 			order.ExtraParameters.CopyTo(payload);
 

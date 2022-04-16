@@ -192,7 +192,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() =>
 			throw new NotImplementedException();
-		protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) =>
+		protected virtual Task<ExchangeOrderResult?> OnPlaceOrderAsync(ExchangeOrderRequest order) =>
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) =>
 			throw new NotImplementedException();
