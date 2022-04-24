@@ -32,6 +32,11 @@ namespace ExchangeSharp.BinanceGroup
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
+			if (marketSymbols.Length > 400)
+			{
+				marketSymbols = marketSymbols.Take(400).ToArray();
+				Logger.Warn("subscribing to the first 400 symbols"); // binance does not allow subscribing to more than 400 symbols at a time
+			}
 
 			StringBuilder streams = new StringBuilder("/stream?streams=");
 			for (int i = 0; i < marketSymbols.Length; i++)
@@ -234,9 +239,15 @@ namespace ExchangeSharp.BinanceGroup
 			return tickers;
 		}
 
-		protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
 		{
-			return ConnectPublicWebSocketAsync("/stream?streams=!ticker@arr", async (_socket, msg) =>
+			string url = null;
+			if (symbols == null || symbols.Length == 0)
+			{
+				url = "/stream?streams=!ticker@arr";
+			}
+			else url = await GetWebSocketStreamUrlForSymbolsAsync("@ticker", symbols);
+			return await ConnectPublicWebSocketAsync(url, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -274,11 +285,6 @@ namespace ExchangeSharp.BinanceGroup
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-			}
-			if (marketSymbols.Length > 400)
-			{
-				marketSymbols = marketSymbols.Take(400).ToArray();
-				Logger.Warn("subscribing to the first 400 symbols"); // binance does not allow subscribing to more than 400 symbols at a time
 			}
 			string url = await GetWebSocketStreamUrlForSymbolsAsync("@aggTrade", marketSymbols);
 			return await ConnectPublicWebSocketAsync(url, messageCallback: async (_socket, msg) =>
