@@ -102,7 +102,7 @@ namespace ExchangeSharp
 
 			try
 			{
-				string html = await RequestMaker.MakeRequestAsync("/rest-api", "https://docs.gemini.com");
+				string html = (await RequestMaker.MakeRequestAsync("/rest-api", "https://docs.gemini.com")).Response;
 				int startPos = html.IndexOf("<h1 id=\"symbols-and-minimums\">Symbols and minimums</h1>");
 				if (startPos < 0)
 				{

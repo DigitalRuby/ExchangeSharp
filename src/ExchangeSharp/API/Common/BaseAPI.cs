@@ -498,7 +498,7 @@ namespace ExchangeSharp
 		/// The encoding of payload is API dependant but is typically json.
 		/// <param name="method">Request method or null for default</param>
 		/// <returns>Raw response</returns>
-		public Task<string> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null) => requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
+		public async Task<IAPIRequestMaker.RequestResult<string>> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null) => await requestMaker.MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: method);
 
 		/// <summary>
 		/// Make a JSON request to an API end point
@@ -509,17 +509,28 @@ namespace ExchangeSharp
 		/// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
 		/// <param name="requestMethod">Request method or null for default</param>
 		/// <returns>Result decoded from JSON response</returns>
-		public async Task<T> MakeJsonRequestAsync<T>(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? requestMethod = null)
+		public async Task<T> MakeJsonRequestAsync<T>(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? requestMethod = null) => (await MakeJsonRequestFullAsync<T>(url, baseUrl: baseUrl, payload: payload, requestMethod: requestMethod)).Response;
+
+		/// <summary>
+		/// Make a JSON request to an API end point, with full retun result
+		/// </summary>
+		/// <typeparam name="T">Type of object to parse JSON as</typeparam>
+		/// <param name="url">Path and query</param>
+		/// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
+		/// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
+		/// <param name="requestMethod">Request method or null for default</param>
+		/// <returns>full return result, including result decoded from JSON response</returns>
+		public async Task<IAPIRequestMaker.RequestResult<T>> MakeJsonRequestFullAsync<T>(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? requestMethod = null)
 		{
 			await new SynchronizationContextRemover();
 
-			string stringResult = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
+			string stringResult = (await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod)).Response;
 			T jsonResult = JsonConvert.DeserializeObject<T>(stringResult, SerializerSettings);
 			if (jsonResult is JToken token)
 			{
-				return (T)(object)CheckJsonResponse(token);
+				return new IAPIRequestMaker.RequestResult<T>() { Response = (T)(object)CheckJsonResponse(token) };
 			}
-			return jsonResult;
+			return new IAPIRequestMaker.RequestResult<T>() { Response = jsonResult };
 		}
 
 		/// <summary>

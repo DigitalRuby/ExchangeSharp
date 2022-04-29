@@ -738,8 +738,10 @@ namespace ExchangeSharp
 			}
 
 			order.ExtraParameters.CopyTo(payload);
-			JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
-			return ParseOrder(result);
+			var result = await MakeJsonRequestFullAsync<JToken>("/orders", null, payload, "POST");
+			var resultOrder = ParseOrder(result.Response);
+			resultOrder.HTTPHeaderDate = result.HTTPHeaderDate.Value.UtcDateTime;
+			return resultOrder;
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)

@@ -46,7 +46,10 @@ namespace ExchangeSharp
 		/// </summary>
         public decimal Amount { get; set; }
 
-        /// <summary>Amount filled in the market currency. May be null if not provided by exchange</summary>
+        /// <summary>
+		/// In the market currency. May be null if not provided by exchange
+		/// If this is a Trade, then this is the amount filled in the trade. If it is an order, this is the cumulative amount filled in the order so far. 
+		/// </summary>
         public decimal? AmountFilled { get; set; }
 
 		/// <summary>
@@ -66,6 +69,9 @@ namespace ExchangeSharp
 
         /// <summary>Order datetime in UTC</summary>
         public DateTime OrderDate { get; set; }
+
+		/// <summary> raw HTTP header date </summary>
+		public DateTime? HTTPHeaderDate { get; set; }
 
         /// <summary>datetime in UTC order was completed (could be filled, cancelled, expired, rejected, etc...). Null if still open.</summary>
         public DateTime? CompletedDate { get; set; }

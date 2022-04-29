@@ -162,7 +162,7 @@ namespace ExchangeSharp
 		/// The encoding of payload is API dependant but is typically json.</param>
 		/// <param name="method">Request method or null for default. Example: 'GET' or 'POST'.</param>
 		/// <returns>Raw response</returns>
-		public async Task<string> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null)
+		public async Task<IAPIRequestMaker.RequestResult<string>> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null)
 		{
 			await new SynchronizationContextRemover();
 			await api.RateLimit.WaitToProceedAsync();
@@ -225,7 +225,7 @@ namespace ExchangeSharp
 			{
 				response?.Dispose();
 			}
-			return responseString;
+			return new IAPIRequestMaker.RequestResult<string>() { Response = responseString, HTTPHeaderDate = response.Headers.Date };
 		}
 
 		/// <summary>

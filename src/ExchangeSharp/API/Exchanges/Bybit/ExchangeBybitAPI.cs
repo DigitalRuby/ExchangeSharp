@@ -81,7 +81,7 @@ namespace ExchangeSharp
 		{
 			await new SynchronizationContextRemover();
 
-			string stringResult = await MakeRequestAsync(url, baseUrl, payload, requestMethod);
+			string stringResult = (await MakeRequestAsync(url, baseUrl, payload, requestMethod)).Response;
 			return JsonConvert.DeserializeObject<T>(stringResult);
 		}
 #nullable disable
