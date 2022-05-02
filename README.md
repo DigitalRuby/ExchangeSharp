@@ -41,6 +41,7 @@ The following cryptocurrency exchanges are supported:
 | Bittrex        | x           | x            | T R        |
 | BL3P           | x           | x            |   R B      | Trades stream does not send trade's ids. |
 | Bleutrade      | x           | x            |            |
+| BtcTurk        |             |              |   R        |
 | BTSE           | x           | x            |            |
 | Bybit          | x           | x            |   R        | Has public method for Websocket Positions
 | Coinbase       | x           | x            | T R   O U  |
@@ -112,11 +113,11 @@ See [`WebSocket4NetClientWebSocket.cs`][websocket4net] for implementation detail
 
 #### dotnet CLI
 
-[`dotnet add package DigitalRuby.ExchangeSharp --version 1.0.1`][nuget]
+[`dotnet add package DigitalRuby.ExchangeSharp --version 1.0.2`][nuget]
 
 #### Package Manager on VS
 
-[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 1.0.1`][nuget]
+[`PM> Install-Package DigitalRuby.ExchangeSharp -Version 1.0.2`][nuget]
 
 ### Examples
 
