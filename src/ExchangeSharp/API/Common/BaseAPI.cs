@@ -524,13 +524,13 @@ namespace ExchangeSharp
 		{
 			await new SynchronizationContextRemover();
 
-			string stringResult = (await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod)).Response;
-			T jsonResult = JsonConvert.DeserializeObject<T>(stringResult, SerializerSettings);
+			var result = await MakeRequestAsync(url, baseUrl: baseUrl, payload: payload, method: requestMethod);
+			T jsonResult = JsonConvert.DeserializeObject<T>(result.Response, SerializerSettings);
 			if (jsonResult is JToken token)
 			{
 				return new IAPIRequestMaker.RequestResult<T>() { Response = (T)(object)CheckJsonResponse(token) };
 			}
-			return new IAPIRequestMaker.RequestResult<T>() { Response = jsonResult };
+			return new IAPIRequestMaker.RequestResult<T>() { Response = jsonResult, HTTPHeaderDate = result.HTTPHeaderDate };
 		}
 
 		/// <summary>
