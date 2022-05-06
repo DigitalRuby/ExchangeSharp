@@ -53,12 +53,13 @@ jobs:
         displayName: 'Restore'
         inputs:
           command: 'restore'
-      - task: DotNetCoreCLI@2
+           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
+     - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
         inputs:
           command: 'build'
           configuration: $(BuildConfiguration)
-          projects: 'src/ExchangeSharpConsole/ExchangeSharpConsole.csproj'
+          projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
@@ -71,7 +72,7 @@ jobs:
         displayName: 'NuGet Pack'
         inputs:
           command: pack
-          packagesToPack: '**/*.csproj'
+          packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
           packDestination: '$(Build.ArtifactStagingDirectory)'
           versioningScheme: byPrereleaseNumber
           majorVersion: '$(Major)'
