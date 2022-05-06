@@ -68,14 +68,14 @@ jobs:
           majorVersion: '$(Major)'
           minorVersion: '$(Minor)'
           patchVersion: '$(Patch)'
-       - task: NuGetAuthenticate@0
-         displayName: 'NuGet Authenticate'
-       - task: NuGetCommand@2
-         displayName: 'NuGet push'
-         inputs:
-         command: push
-         publishVstsFeed: 'PublicProject/DigitalRuby'
-         allowPackageConflicts: true
+      - task: NuGetAuthenticate@0
+        displayName: 'NuGet Authenticate'
+      - task: NuGetCommand@2
+        displayName: 'NuGet push'
+        inputs:
+          command: push
+          publishVstsFeed: 'PublicProject/DigitalRuby'
+          allowPackageConflicts: true
   - job: build_tag
     displayName: Build console app
     timeoutInMinutes: 5
