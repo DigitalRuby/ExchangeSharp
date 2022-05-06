@@ -24,8 +24,9 @@ namespace ExchangeSharp
     public sealed partial class ExchangeHuobiAPI : ExchangeAPI
     {
         public override string BaseUrl { get; set; } = "https://api.huobipro.com";
-        public string BaseUrlV1 { get; set; } = "https://api.huobipro.com/v1";
-        public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
+		public string BaseUrlV1 { get; set; } = "https://api.huobipro.com/v1";
+		public string BaseUrlV2 { get; set; } = "https://api.huobipro.com/v2";
+		public override string BaseUrlWebSocket { get; set; } = "wss://api.huobipro.com/ws";
         public string PrivateUrlV1 { get; set; } = "https://api.huobipro.com/v1";
 
         public bool IsMargin { get; set; }
@@ -123,43 +124,64 @@ namespace ExchangeSharp
 
         protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
-            /*
-             {
-                "status"
-            :
-                "ok", "data"
-            :
-                [{
-                    "base-currency": "btc",
-                    "quote-currency": "usdt",
-                    "price-precision": 2,
-                    "amount-precision": 4,
-                    "symbol-partition": "main"
-                }, {
-                    "base-currency": "bch",
-                    "quote-currency": "usdt",
-                    "price-precision": 2,
-                    "amount-precision": 4,
-                    "symbol-partition": "main"
-                },
-
-             */
-            List<ExchangeMarket> markets = new List<ExchangeMarket>();
-            JToken allMarketSymbols = await MakeJsonRequestAsync<JToken>("/common/symbols", BaseUrlV1, null);
+			/*{
+				"status":"ok",
+				"data":[
+					{
+						"tags": "",
+						"state": "online",
+						"wr": "1.5",
+						"sc": "ethusdt",
+						"p": [
+							{
+								"id": 9,
+								"name": "Grayscale",
+								"weight": 91
+							}
+						],
+						"bcdn": "ETH",
+						"qcdn": "USDT",
+						"elr": null,
+						"tpp": 2,
+						"tap": 4,
+						"fp": 8,
+						"smlr": null,
+						"flr": null,
+						"whe": false,
+						"cd": false,
+						"te": true,
+						"sp": "main",
+						"d": null,
+						"bc": "eth",
+						"qc": "usdt",
+						"toa": 1514779200000,
+						"ttp": 8,
+						"w": 999400000,
+						"lr": 5,
+						"dn": "ETH/USDT"
+					}
+				],
+				"ts":"1641870869718",
+				"full":1
+			}*/
+			List<ExchangeMarket> markets = new List<ExchangeMarket>();
+            JToken allMarketSymbols = await MakeJsonRequestAsync<JToken>("/settings/common/symbols", BaseUrlV2, null);
             foreach (var marketSymbol in allMarketSymbols)
             {
-                var baseCurrency = marketSymbol["base-currency"].ToStringLowerInvariant();
-                var quoteCurrency = marketSymbol["quote-currency"].ToStringLowerInvariant();
-                var pricePrecision = marketSymbol["price-precision"].ConvertInvariant<double>();
+                var baseCurrency = marketSymbol["bc"].ToStringLowerInvariant();
+				var quoteCurrency = marketSymbol["qc"].ToStringLowerInvariant();
+				var symbolCode = marketSymbol["sc"].ToStringLowerInvariant();
+				var pricePrecision = marketSymbol["tpp"].ConvertInvariant<double>();
                 var priceStepSize = Math.Pow(10, -pricePrecision).ConvertInvariant<decimal>();
-                var amountPrecision = marketSymbol["amount-precision"].ConvertInvariant<double>();
+                var amountPrecision = marketSymbol["tap"].ConvertInvariant<double>();
                 var quantityStepSize = Math.Pow(10, -amountPrecision).ConvertInvariant<decimal>();
+				var state = marketSymbol["state"].ToStringLowerInvariant();
                 var market = new ExchangeMarket
                 {
                     BaseCurrency = baseCurrency,
                     QuoteCurrency = quoteCurrency,
-                    MarketSymbol = baseCurrency + quoteCurrency,
-                    IsActive = true,
+                    MarketSymbol = symbolCode,
+                    IsActive = state == "online",
                     PriceStepSize = priceStepSize,
                     QuantityStepSize = quantityStepSize,
                     MinPrice = priceStepSize,
@@ -224,29 +246,30 @@ namespace ExchangeSharp
         {
             return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
             {
-                /*
+				/*
 {"id":"id1","status":"ok","subbed":"market.btcusdt.trade.detail","ts":1527574853489}
 
 
-{{
-  "ch": "market.btcusdt.trade.detail",
-  "ts": 1527574905759,
-  "tick": {
-    "id": 8232977476,
-    "ts": 1527574905623,
-    "data": [
-      {
-        "amount": 0.3066,
-        "ts": 1527574905623,
-        "id": 82329774765058180723,
-        "price": 7101.81,
-        "direction": "buy"
-      }
-    ]
-  }
-}}
+{
+    "ch":"market.btcusdt.trade.detail",
+    "ts":1630994963175,
+    "tick":{
+        "id":137005445109,
+        "ts":1630994963173,
+        "data":[
+            {
+                "id":137005445109359286410323766,
+                "ts":1630994963173,
+                "tradeId":102523573486,
+                "amount":0.006754,
+                "price":52648.62,
+                "direction":"buy"
+            }
+        ]
+    }
+}
                  */
-                var str = msg.ToStringFromUTF8Gzip();
+				var str = msg.ToStringFromUTF8Gzip();
                 JToken token = JToken.Parse(str);
 
                 if (token["status"] != null)
@@ -266,7 +289,6 @@ namespace ExchangeSharp
                 var marketSymbol = sArray[1];
 
                 var tick = token["tick"];
-                var id = tick["id"].ConvertInvariant<long>();
 
                 var data = tick["data"];
                 var trades = ParseTradesWebSocket(data);
@@ -278,7 +300,7 @@ namespace ExchangeSharp
             {
                 if (marketSymbols == null || marketSymbols.Length == 0)
                 {
-                    marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+                    marketSymbols = (await GetMarketSymbolsMetadataAsync()).Where(s => s.IsActive.Value).Select(s => s.MarketSymbol).ToArray();
                 }
                 foreach (string marketSymbol in marketSymbols)
                 {
@@ -717,10 +739,16 @@ namespace ExchangeSharp
             return ParsePlaceOrder(obj, order);
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
-        {
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
             var payload = await GetNoncePayloadAsync();
-            await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
+			JToken data;
+			if (isClientOrderId)
+			{
+				payload.Add("clientOrderId", orderId);
+				data = await MakeJsonRequestAsync<JToken>($"/order/orders/submitCancelClientOrder", PrivateUrlV1, payload, "POST");
+			}
+			else data = await MakeJsonRequestAsync<JToken>($"/order/orders/{orderId}/submitcancel", PrivateUrlV1, payload, "POST");
         }
 
         protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
@@ -913,7 +941,7 @@ namespace ExchangeSharp
             var trades = new List<ExchangeTrade>();
             foreach (var t in token)
             {
-                trades.Add(t.ParseTrade("amount", "price", "direction", "ts", TimestampType.UnixMilliseconds, "id"));
+                trades.Add(t.ParseTrade("amount", "price", "direction", "ts", TimestampType.UnixMilliseconds, "tradeId"));
             }
 
             return trades;

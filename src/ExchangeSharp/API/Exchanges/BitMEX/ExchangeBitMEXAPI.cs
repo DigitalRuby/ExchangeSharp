@@ -88,109 +88,114 @@ namespace ExchangeSharp
 		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
 			/*
-			 {{
-  "symbol": ".XRPXBT",
-  "rootSymbol": "XRP",
-  "state": "Unlisted",
-  "typ": "MRCXXX",
-  "listing": null,
-  "front": null,
-  "expiry": null,
-  "settle": null,
-  "relistInterval": null,
-  "inverseLeg": "",
-  "sellLeg": "",
-  "buyLeg": "",
-  "optionStrikePcnt": null,
-  "optionStrikeRound": null,
-  "optionStrikePrice": null,
-  "optionMultiplier": null,
-  "positionCurrency": "",
-  "underlying": "XRP",
-  "quoteCurrency": "XBT",
-  "underlyingSymbol": "XRPXBT=",
-  "reference": "PLNX",
-  "referenceSymbol": "BTC_XRP",
-  "calcInterval": null,
-  "publishInterval": "2000-01-01T00:01:00Z",
-  "publishTime": null,
-  "maxOrderQty": null,
-  "maxPrice": null,
-  "lotSize": null,
-  "tickSize": 1E-08,
-  "multiplier": null,
-  "settlCurrency": "",
-  "underlyingToPositionMultiplier": null,
-  "underlyingToSettleMultiplier": null,
-  "quoteToSettleMultiplier": null,
-  "isQuanto": false,
-  "isInverse": false,
-  "initMargin": null,
-  "maintMargin": null,
-  "riskLimit": null,
-  "riskStep": null,
-  "limit": null,
-  "capped": false,
-  "taxed": false,
-  "deleverage": false,
-  "makerFee": null,
-  "takerFee": null,
-  "settlementFee": null,
-  "insuranceFee": null,
-  "fundingBaseSymbol": "",
-  "fundingQuoteSymbol": "",
-  "fundingPremiumSymbol": "",
-  "fundingTimestamp": null,
-  "fundingInterval": null,
-  "fundingRate": null,
-  "indicativeFundingRate": null,
-  "rebalanceTimestamp": null,
-  "rebalanceInterval": null,
-  "openingTimestamp": null,
-  "closingTimestamp": null,
-  "sessionInterval": null,
-  "prevClosePrice": null,
-  "limitDownPrice": null,
-  "limitUpPrice": null,
-  "bankruptLimitDownPrice": null,
-  "bankruptLimitUpPrice": null,
-  "prevTotalVolume": null,
-  "totalVolume": null,
-  "volume": null,
-  "volume24h": null,
-  "prevTotalTurnover": null,
-  "totalTurnover": null,
-  "turnover": null,
-  "turnover24h": null,
-  "prevPrice24h": 7.425E-05,
-  "vwap": null,
-  "highPrice": null,
-  "lowPrice": null,
-  "lastPrice": 7.364E-05,
-  "lastPriceProtected": null,
-  "lastTickDirection": "MinusTick",
-  "lastChangePcnt": -0.0082,
-  "bidPrice": null,
-  "midPrice": null,
-  "askPrice": null,
-  "impactBidPrice": null,
-  "impactMidPrice": null,
-  "impactAskPrice": null,
-  "hasLiquidity": false,
-  "openInterest": 0,
-  "openValue": 0,
-  "fairMethod": "",
-  "fairBasisRate": null,
-  "fairBasis": null,
-  "fairPrice": null,
-  "markMethod": "LastPrice",
-  "markPrice": 7.364E-05,
-  "indicativeTaxRate": null,
-  "indicativeSettlePrice": null,
-  "optionUnderlyingPrice": null,
-  "settledPrice": null,
-  "timestamp": "2018-07-05T13:27:15Z"
-}}
+[
+  {
+    "symbol": "XBTZ14",
+    "rootSymbol": "XBT",
+    "state": "Settled",
+    "typ": "FXXXS",
+    "listing": "2014-11-21T20:00:00.000Z",
+    "front": "2014-11-28T12:00:00.000Z",
+    "expiry": "2014-12-26T12:00:00.000Z",
+    "settle": "2014-12-26T12:00:00.000Z",
+    "listedSettle": "2014-12-26T12:00:00.000Z",
+    "relistInterval": null,
+    "inverseLeg": "",
+    "sellLeg": "",
+    "buyLeg": "",
+    "optionStrikePcnt": null,
+    "optionStrikeRound": null,
+    "optionStrikePrice": null,
+    "optionMultiplier": null,
+    "positionCurrency": "",
+    "underlying": "XBT",
+    "quoteCurrency": "USD",
+    "underlyingSymbol": "XBT=",
+    "reference": "BMEX",
+    "referenceSymbol": ".XBT2H",
+    "calcInterval": null,
+    "publishInterval": null,
+    "publishTime": null,
+    "maxOrderQty": 10000000,
+    "maxPrice": 1000000,
+    "lotSize": 1,
+    "tickSize": 0.01,
+    "multiplier": 1000,
+    "settlCurrency": "XBt",
+    "underlyingToPositionMultiplier": null,
+    "underlyingToSettleMultiplier": 100000000,
+    "quoteToSettleMultiplier": null,
+    "isQuanto": true,
+    "isInverse": false,
+    "initMargin": 0.3,
+    "maintMargin": 0.2,
+    "riskLimit": 25000000000,
+    "riskStep": 5000000000,
+    "limit": 0.2,
+    "capped": false,
+    "taxed": false,
+    "deleverage": false,
+    "makerFee": 0.00005,
+    "takerFee": 0.00005,
+    "settlementFee": 0.00005,
+    "insuranceFee": 0.00015,
+    "fundingBaseSymbol": "",
+    "fundingQuoteSymbol": "",
+    "fundingPremiumSymbol": "",
+    "fundingTimestamp": null,
+    "fundingInterval": null,
+    "fundingRate": null,
+    "indicativeFundingRate": null,
+    "rebalanceTimestamp": null,
+    "rebalanceInterval": null,
+    "openingTimestamp": "2014-12-26T12:00:00.000Z",
+    "closingTimestamp": "2014-12-26T12:00:00.000Z",
+    "sessionInterval": "2000-01-01T08:00:00.000Z",
+    "prevClosePrice": 319,
+    "limitDownPrice": 255.2,
+    "limitUpPrice": 382.8,
+    "bankruptLimitDownPrice": null,
+    "bankruptLimitUpPrice": null,
+    "prevTotalVolume": 323564,
+    "totalVolume": 348271,
+    "volume": 0,
+    "volume24h": 0,
+    "prevTotalTurnover": 0,
+    "totalTurnover": 0,
+    "turnover": 0,
+    "turnover24h": 0,
+    "homeNotional24h": 0,
+    "foreignNotional24h": 0,
+    "prevPrice24h": 323.33,
+    "vwap": null,
+    "highPrice": null,
+    "lowPrice": null,
+    "lastPrice": 323.33,
+    "lastPriceProtected": 323.33,
+    "lastTickDirection": "PlusTick",
+    "lastChangePcnt": 0,
+    "bidPrice": null,
+    "midPrice": null,
+    "askPrice": null,
+    "impactBidPrice": null,
+    "impactMidPrice": null,
+    "impactAskPrice": null,
+    "hasLiquidity": false,
+    "openInterest": 0,
+    "openValue": 0,
+    "fairMethod": "",
+    "fairBasisRate": null,
+    "fairBasis": 0,
+    "fairPrice": 323.33,
+    "markMethod": "LastPrice",
+    "markPrice": 323.33,
+    "indicativeTaxRate": null,
+    "indicativeSettlePrice": 323.33,
+    "optionUnderlyingPrice": null,
+    "settledPriceAdjustmentRate": null,
+    "settledPrice": 323.33,
+    "timestamp": "2014-11-21T21:00:02.409Z"
+  },
 			 */
 
 			List<ExchangeMarket> markets = new List<ExchangeMarket>();
@@ -209,11 +214,23 @@ namespace ExchangeSharp
 				{
 					market.PriceStepSize = marketSymbolToken["tickSize"].ConvertInvariant<decimal>();
 					market.MaxPrice = marketSymbolToken["maxPrice"].ConvertInvariant<decimal>();
-					//market.MinPrice = symbol["minPrice"].ConvertInvariant<decimal>();
+					//market.MinPrice = symbol["minPrice"].ConvertInvariant<decimal>(); - BitMex does not provide min price
 
 					market.MaxTradeSize = marketSymbolToken["maxOrderQty"].ConvertInvariant<decimal>();
-					//market.MinTradeSize = symbol["minQty"].ConvertInvariant<decimal>();
-					//market.QuantityStepSize = symbol["stepSize"].ConvertInvariant<decimal>();
+					var underlyingToPositionMultiplier = marketSymbolToken["underlyingToPositionMultiplier"].Type == JTokenType.Null ? 1 : marketSymbolToken["underlyingToPositionMultiplier"].ConvertInvariant<decimal>();
+					var contractSize = 1 / underlyingToPositionMultiplier;
+					var lotSize = marketSymbolToken["lotSize"].ConvertInvariant<decimal>();
+					var minTradeAmt = contractSize * lotSize;
+					var positionCurrency = marketSymbolToken["positionCurrency"]?.ToStringUpperInvariant();
+					if (positionCurrency == market.BaseCurrency)
+					{
+						market.MinTradeSize = market.QuantityStepSize = minTradeAmt;
+					}
+					else if (positionCurrency == market.QuoteCurrency)
+					{
+						market.MinTradeSizeInQuoteCurrency = minTradeAmt;
+					}
+					// else positionCurrency is probably null and the intrument is not active
 				}
 				catch
 				{
@@ -614,10 +631,10 @@ namespace ExchangeSharp
 			return orders[0];
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
-			payload["orderID"] = orderId;
+			payload[isClientOrderId ? "clOrdID" : "orderID"] = orderId;
 			JToken token = await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "DELETE");
 		}
 	

@@ -22,7 +22,7 @@ namespace ExchangeSharp.BinanceGroup
 {
 	public abstract class BinanceGroupCommon : ExchangeAPI
 	{
-		public string BaseUrlApi => $"{BaseUrl}/api/v3";
+		public virtual string BaseUrlApi => $"{BaseUrl}/api/v3";
 
 		public string BaseUrlSApi => $"{BaseUrl}/sapi/v1";
 
@@ -31,6 +31,11 @@ namespace ExchangeSharp.BinanceGroup
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			if (marketSymbols.Length > 400)
+			{
+				marketSymbols = marketSymbols.Take(400).ToArray();
+				Logger.Warn("subscribing to the first 400 symbols"); // binance does not allow subscribing to more than 400 symbols at a time
 			}
 
 			StringBuilder streams = new StringBuilder("/stream?streams=");
@@ -53,6 +58,7 @@ namespace ExchangeSharp.BinanceGroup
 			NonceStyle = NonceStyle.UnixMilliseconds;
 			NonceOffset = TimeSpan.FromSeconds(15); // 15 seconds are deducted from current UTCTime as base of the request time window
 			MarketSymbolSeparator = string.Empty;
+			MarketSymbolIsUppercase = true;
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
 			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
 		}
@@ -233,9 +239,15 @@ namespace ExchangeSharp.BinanceGroup
 			return tickers;
 		}
 
-		protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols)
 		{
-			return ConnectPublicWebSocketAsync("/stream?streams=!ticker@arr", async (_socket, msg) =>
+			string url = null;
+			if (symbols == null || symbols.Length == 0)
+			{
+				url = "/stream?streams=!ticker@arr";
+			}
+			else url = await GetWebSocketStreamUrlForSymbolsAsync("@ticker", symbols);
+			return await ConnectPublicWebSocketAsync(url, async (_socket, msg) =>
 			{
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
@@ -301,7 +313,7 @@ namespace ExchangeSharp.BinanceGroup
 			return await ConnectPublicWebSocketAsync($"/stream?streams={combined}", (_socket, msg) =>
 			{
 				string json = msg.ToStringFromUTF8();
-				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json);
+				var update = JsonConvert.DeserializeObject<MultiDepthStream>(json, SerializerSettings);
 				string marketSymbol = update.Data.MarketSymbol;
 				ExchangeOrderBook book = new ExchangeOrderBook { SequenceId = update.Data.FinalUpdate, MarketSymbol = marketSymbol, LastUpdatedUtc = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.Data.EventTime) };
 				foreach (List<object> ask in update.Data.Asks)
@@ -541,7 +553,7 @@ namespace ExchangeSharp.BinanceGroup
 			return balances;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult?> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			if (order.Price == null && order.OrderType != OrderType.Market) throw new ArgumentNullException(nameof(order.Price));
 
@@ -554,7 +566,7 @@ namespace ExchangeSharp.BinanceGroup
 			else if (order.IsPostOnly == true)
 			{
 				if (order.OrderType == OrderType.Limit)	payload["type"] = "LIMIT_MAKER"; // LIMIT_MAKER are LIMIT orders that will be rejected if they would immediately match and trade as a taker.
-				else throw new NotImplementedException("PostOnly with non limit orders are not currently supported on Binance. Please submit a PR if you are interested in this feature");
+				else throw new NotSupportedException("PostOnly with non limit orders are not currently supported on Binance. Please submit a PR if you are interested in this feature");
 			}
 			else
 				payload["type"] = order.OrderType.ToStringUpperInvariant();
@@ -569,8 +581,9 @@ namespace ExchangeSharp.BinanceGroup
 			if (order.OrderType != OrderType.Market)
 			{
 				decimal outputPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
-				payload["timeInForce"] = "GTC";
 				payload["price"] = outputPrice;
+				if (order.IsPostOnly != true)
+					payload["timeInForce"] = "GTC";
 			}
 			order.ExtraParameters.CopyTo(payload);
 
@@ -587,7 +600,7 @@ namespace ExchangeSharp.BinanceGroup
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 			{
-				throw new InvalidOperationException("Binance single order details request requires symbol");
+				throw new ArgumentNullException("Binance single order details request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
 
@@ -733,7 +746,7 @@ namespace ExchangeSharp.BinanceGroup
 			return trades;
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			if (string.IsNullOrWhiteSpace(marketSymbol))
@@ -741,7 +754,10 @@ namespace ExchangeSharp.BinanceGroup
 				throw new ArgumentNullException("Binance cancel order request requires symbol");
 			}
 			payload["symbol"] = marketSymbol!;
-			payload["orderId"] = orderId;
+			if (isClientOrderId) // Either orderId or origClientOrderId must be sent.
+				payload["origClientOrderId"] = orderId;
+			else
+				payload["orderId"] = orderId;
             var token = await MakeJsonRequestAsync<JToken>("/order", BaseUrlApi, payload, "DELETE");
 			var cancelledOrder = ParseOrder(token);
 			if (cancelledOrder.OrderId != orderId)
@@ -1087,7 +1103,7 @@ namespace ExchangeSharp.BinanceGroup
 				{
 					case "executionReport": // systematically check to make sure we are dealing with expected cases here
 						{
-							var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant());
+							var update = JsonConvert.DeserializeObject<ExecutionReport>(token.ToStringInvariant(), SerializerSettings);
 							switch (update.CurrentExecutionType)
 							{
 								case "NEW ": // The order has been accepted into the engine.
@@ -1111,7 +1127,7 @@ namespace ExchangeSharp.BinanceGroup
 						throw new NotImplementedException("has been removed (per binance 2021-01-01)");
 					case "outboundAccountPosition":
 						{
-							var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant());
+							var update = JsonConvert.DeserializeObject<OutboundAccount>(token.ToStringInvariant(), SerializerSettings);
 							callback(new ExchangeBalances()
 							{
 								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),
@@ -1134,7 +1150,7 @@ namespace ExchangeSharp.BinanceGroup
 						}
 					case "balanceUpdate":
 						{
-							var update = JsonConvert.DeserializeObject<BalanceUpdate>(token.ToStringInvariant());
+							var update = JsonConvert.DeserializeObject<BalanceUpdate>(token.ToStringInvariant(), SerializerSettings);
 							callback(new ExchangeBalances()
 							{
 								EventTime = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(update.EventTime),

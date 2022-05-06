@@ -233,7 +233,7 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			var roundedAmount = order.RoundAmount();
 			var amountInt = converterToEight.FromDecimal(roundedAmount);
 
@@ -264,13 +264,10 @@ namespace ExchangeSharp
 					throw new NotSupportedException($"{order.OrderType} is not supported");
 			}
 
-			var resultBody = await MakeRequestAsync(
+			var result = (await MakeJsonRequestAsync<BL3POrderAddResponse>(
 					$"/{order.MarketSymbol}/money/order/add",
 					payload: data
-				);
-
-			var result = JsonConvert.DeserializeObject<BL3POrderAddResponse>(resultBody)
-				.Except();
+				)).Except();
 
 			var orderDetails = await GetOrderDetailsAsync(result.OrderId, marketSymbol: order.MarketSymbol);
 
@@ -282,9 +279,7 @@ namespace ExchangeSharp
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
 
-			var resultBody = await MakeRequestAsync($"/{marketSymbol}/money/depth/full");
-
-			var bl3pOrderBook = JsonConvert.DeserializeObject<BL3PReponseFullOrderBook>(resultBody)
+			var bl3pOrderBook = (await MakeJsonRequestAsync<BL3PReponseFullOrderBook>($"/{marketSymbol}/money/depth/full"))
 				.Except();
 
 			bl3pOrderBook.MarketSymbol??= marketSymbol;
@@ -292,42 +287,36 @@ namespace ExchangeSharp
 			return ConvertToExchangeOrderBook(maxCount, bl3pOrderBook);
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
-			var resultBody = await MakeRequestAsync(
+			(await MakeJsonRequestAsync<BL3PEmptyResponse>(
 					$"/{marketSymbol}/money/order/cancel",
 					payload: new Dictionary<string, object>
 					{
 						{"order_id", orderId}
 					}
-				);
-
-			JsonConvert.DeserializeObject<BL3PEmptyResponse>(resultBody)
-				.Except();
+				)).Except();
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
 				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var data = new Dictionary<string, object>
 			{
 				{"order_id", orderId}
 			};
 
-			var resultBody = await MakeRequestAsync(
+			var result = (await MakeJsonRequestAsync<BL3POrderResultResponse>(
 					$"/{marketSymbol}/money/order/result",
 					payload: data
-				);
-
-
-			var result = JsonConvert.DeserializeObject<BL3POrderResultResponse>(resultBody)
-				.Except();
+				)).Except();
 
 			return new ExchangeOrderResult
 			{

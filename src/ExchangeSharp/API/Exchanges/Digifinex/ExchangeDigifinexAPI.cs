@@ -14,7 +14,7 @@ namespace ExchangeSharp
 		private string[] Urls =
 		{
 			"openapi.digifinex.com",
-			"openapi.digifinex.vip",
+			"openapi.digifinex.vip", // these other URLs don't work anymore
 			"openapi.digifinex.xyz",
 		};
 
@@ -22,8 +22,8 @@ namespace ExchangeSharp
 		private int failedUrlCount;
 		private int successUrlCount;
 
-		public override string BaseUrl { get; set; } = "https://openapi.digifinex.vip/v3";
-		public override string BaseUrlWebSocket { get; set; } = "wss://openapi.digifinex.vip/ws/v1/";
+		public override string BaseUrl { get; set; } = "https://openapi.digifinex.com/v3";
+		public override string BaseUrlWebSocket { get; set; } = "wss://openapi.digifinex.com/ws/v1/";
 		private int websocketMessageId = 0;
 		private string timeWindow;
 		private TaskCompletionSource<int> inited = new TaskCompletionSource<int>();
@@ -40,30 +40,31 @@ namespace ExchangeSharp
 		}
 
 		private void GetFastestUrl()
-		{
-			var client = new HttpClient();
-			foreach (var url in Urls)
-			{
-				var u = url;
-				client.GetAsync($"https://{u}").ContinueWith((t) =>
-				{
-					if (t.Exception != null)
-					{
-						var count = Interlocked.Increment(ref failedUrlCount);
-						if (count == Urls.Length)
-							inited.SetException(new APIException("All digifinex URLs failed."));
-						return;
-					}
-					if (Interlocked.Increment(ref successUrlCount) == 1)
-					{
-						fastestUrl = u;
-						//Console.WriteLine($"Fastest url {GetHashCode()}: {u}");
-						BaseUrl = $"https://{u}/v3";
-						BaseUrlWebSocket = $"wss://{u}/ws/v1/";
-						inited.SetResult(1);
-					}
-				});
-			}
+		{ 
+			//var client = new HttpClient();
+			//foreach (var url in Urls)
+			//{
+			//	var u = url;
+			//	client.GetAsync($"https://{u}").ContinueWith((t) =>
+			//	{
+			//		if (t.Exception != null)
+			//		{
+			//			var count = Interlocked.Increment(ref failedUrlCount);
+			//			if (count == Urls.Length)
+			//				inited.SetException(new APIException("All digifinex URLs failed."));
+			//			return;
+			//		}
+			//		if (Interlocked.Increment(ref successUrlCount) == 1)
+			//		{
+			//			fastestUrl = u;
+			//			//Console.WriteLine($"Fastest url {GetHashCode()}: {u}");
+			//			BaseUrl = $"https://{u}/v3";
+			//			BaseUrlWebSocket = $"wss://{u}/ws/v1/";
+			//			inited.SetResult(1);
+			//		}
+			//	});
+			//}
+			inited.SetResult(1);
 		}
 
 		#region ProcessRequest
@@ -366,7 +367,7 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			JToken token = await MakeJsonRequestAsync<JToken>($"/spot/order?order_id={orderId}", payload: payload);
 			var x = token["data"];
@@ -432,8 +433,9 @@ namespace ExchangeSharp
 			return new ExchangeOrderResult { OrderId = token["order_id"].ToStringInvariant() };
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload["order_id"] = orderId;
 			JToken token = await MakeJsonRequestAsync<JToken>("/spot/order/cancel", payload: payload, requestMethod: "POST");
@@ -462,7 +464,8 @@ namespace ExchangeSharp
 			}
 			else if (marketSymbols == null || marketSymbols.Length == 0)
 			{
-				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+				marketSymbols = (await GetMarketSymbolsAsync()).Take(30).ToArray();
+				Logger.Warn("subscribing to the first 30 symbols");
 			}
 			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
 			{
@@ -485,6 +488,7 @@ namespace ExchangeSharp
 				//     "id": null
 				// }
 				JToken token = JToken.Parse(CryptoUtility.DecompressDeflate((new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()).ToStringFromUTF8());
+				// doesn't send error msgs - just disconnects
 				if (token["method"].ToStringLowerInvariant() == "trades.update")
 				{
 					var args = token["params"];

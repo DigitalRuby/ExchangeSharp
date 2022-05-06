@@ -195,7 +195,7 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			string action = order.IsBuy ? "buy" : "sell";
             string market = order.OrderType == OrderType.Market ? "/market" : "";
             string url = $"/{action}{market}/{order.MarketSymbol}/";
@@ -487,9 +487,10 @@ namespace ExchangeSharp
             return orders2;
         }
 
-        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
-        {
-            if (string.IsNullOrWhiteSpace(orderId))
+        protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (string.IsNullOrWhiteSpace(orderId))
             {
                 throw new APIException("OrderId is needed for canceling order");
             }

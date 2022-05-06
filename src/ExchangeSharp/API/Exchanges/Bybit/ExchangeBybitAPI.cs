@@ -81,7 +81,7 @@ namespace ExchangeSharp
 		{
 			await new SynchronizationContextRemover();
 
-			string stringResult = await MakeRequestAsync(url, baseUrl, payload, requestMethod);
+			string stringResult = (await MakeRequestAsync(url, baseUrl, payload, requestMethod)).Response;
 			return JsonConvert.DeserializeObject<T>(stringResult);
 		}
 #nullable disable
@@ -274,12 +274,12 @@ namespace ExchangeSharp
 			{
 				foreach (var dataRow in token)
 				{
-					ExchangeTrade trade = dataRow.ParseTrade(
+					var trade = dataRow.ParseTradeBybit(
 						amountKey: "size", 
 						priceKey: "price",
 						typeKey: "side", 
-						timestampKey: "timestamp",
-						timestampType: TimestampType.Iso8601UTC, 
+						timestampKey: "trade_time_ms",
+						timestampType: TimestampType.UnixMilliseconds, 
 						idKey: "trade_id");
 					await callback(new KeyValuePair<string, ExchangeTrade>(dataRow["symbol"].ToStringInvariant(), trade));
 				}
@@ -778,10 +778,13 @@ namespace ExchangeSharp
 			}
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
 			var extraParams = new Dictionary<string, object>();
-			extraParams["order_id"] = orderId;
+			if (isClientOrderId)
+				extraParams["order_link_id"] = orderId;
+			else
+				extraParams["order_id"] = orderId;
 			if (!string.IsNullOrWhiteSpace(marketSymbol))
 			{
 				extraParams["symbol"] = marketSymbol;
@@ -816,7 +819,7 @@ namespace ExchangeSharp
 
 		public async Task<ExchangeOrderResult> OnAmendOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			var payload = new Dictionary<string, object>();
 			payload["symbol"] = order.MarketSymbol;
 			if(order.OrderId != null)

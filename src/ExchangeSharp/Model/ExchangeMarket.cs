@@ -28,7 +28,7 @@ namespace ExchangeSharp
 		public string AltMarketSymbol2 { get; set; }
 
 		/// <summary>A value indicating whether the market is active.</summary>
-		public bool IsActive { get; set; }
+		public bool? IsActive { get; set; }
 
         /// <summary>In a pair like ZRX/BTC, BTC is the quote currency.</summary>
         public string QuoteCurrency { get; set; }
@@ -38,10 +38,10 @@ namespace ExchangeSharp
 
         /// <summary>The minimum size of the trade in the unit of "BaseCurrency". For example, in
         /// DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE</summary>
-        public decimal MinTradeSize { get; set; }
+        public decimal? MinTradeSize { get; set; }
 
         /// <summary>The maximum size of the trade in the unit of "BaseCurrency".</summary>
-        public decimal MaxTradeSize { get; set; } = decimal.MaxValue;
+        public decimal? MaxTradeSize { get; set; }
 
         /// <summary>The minimum size of the trade in the unit of "QuoteCurrency". To determine an order's
         /// trade size in terms of the Quote Currency, you need to calculate: price * quantity
@@ -54,10 +54,10 @@ namespace ExchangeSharp
         public decimal? MaxTradeSizeInQuoteCurrency { get; set; }
 
         /// <summary>The minimum price of the pair.</summary>
-        public decimal MinPrice { get; set; }
+        public decimal? MinPrice { get; set; }
 
         /// <summary>The maximum price of the pair.</summary>
-        public decimal MaxPrice { get; set; } = decimal.MaxValue;
+        public decimal? MaxPrice { get; set; }
 
         /// <summary>Defines the intervals that a price can be increased/decreased by. The following
         /// must be true for price: Price % PriceStepSize == 0 Null if unknown or not applicable.</summary>
@@ -71,7 +71,7 @@ namespace ExchangeSharp
         /// <summary>
         /// Margin trading enabled for this market
         /// </summary>
-        public bool MarginEnabled { get; set; }
+        public bool? MarginEnabled { get; set; }
 
         public override string ToString()
         {

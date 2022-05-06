@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -20,12 +20,12 @@ namespace ExchangeSharp.KuCoin
 {
 	public class KuCoinTrade : ExchangeTrade
 	{
-		public byte[] MakerOrderId { get; set; } // nullable
-		public byte[] TakerOrderId { get; set; } // nullable
+		public string MakerOrderId { get; set; } // nullable
+		public string TakerOrderId { get; set; } // nullable
 		public override string ToString()
 		{
 			return string.Format("{0},{1},{2}", base.ToString(),
-				BitConverter.ToString(MakerOrderId), BitConverter.ToString(TakerOrderId));
+				MakerOrderId, TakerOrderId);
 		}
 	}
 }

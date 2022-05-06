@@ -67,7 +67,7 @@ namespace ExchangeSharp
 				this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5));
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			var payload = await GetNoncePayloadAsync();
 

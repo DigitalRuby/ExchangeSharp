@@ -24,6 +24,8 @@ using ExchangeSharp.KuCoin;
 using Newtonsoft.Json.Linq;
 using ExchangeSharp.NDAX;
 using ExchangeSharp.API.Exchanges.FTX.Models;
+using ExchangeSharp.Bybit;
+using ExchangeSharp.Bitflyer;
 
 namespace ExchangeSharp
 {
@@ -244,7 +246,7 @@ namespace ExchangeSharp
 		/// The order book is scanned until an amount of bids or asks that will fulfill the order is found and then the order is placed at the lowest bid or highest ask price multiplied
 		/// by priceThreshold.
 		/// </summary>
-		/// <param name="symbol">Symbol to sell</param>
+		/// <param name="marketSymbol">Symbol to sell</param>
 		/// <param name="amount">Amount to sell</param>
 		/// <param name="isBuy">True for buy, false for sell</param>
 		/// <param name="orderBookCount">Amount of bids/asks to request in the order book</param>
@@ -254,7 +256,7 @@ namespace ExchangeSharp
 		/// This ensures that your order does not buy or sell at an extreme margin.</param>
 		/// <param name="abortIfOrderBookTooSmall">Whether to abort if the order book does not have enough bids or ask amounts to fulfill the order.</param>
 		/// <returns>Order result</returns>
-		public static async Task<ExchangeOrderResult> PlaceSafeMarketOrderAsync(this ExchangeAPI api, string symbol, decimal amount, bool isBuy, int orderBookCount = 100, decimal priceThreshold = 0.9m,
+		public static async Task<ExchangeOrderResult> PlaceSafeMarketOrderAsync(this ExchangeAPI api, string marketSymbol, decimal amount, bool isBuy, int orderBookCount = 100, decimal priceThreshold = 0.9m,
 			decimal thresholdToAbort = 0.75m, bool abortIfOrderBookTooSmall = false)
 		{
 			if (priceThreshold > 0.9m)
@@ -270,10 +272,10 @@ namespace ExchangeSharp
 			{
 				priceThreshold = 1.0m / priceThreshold;
 			}
-			ExchangeOrderBook book = await api.GetOrderBookAsync(symbol, orderBookCount);
+			ExchangeOrderBook book = await api.GetOrderBookAsync(marketSymbol, orderBookCount);
 			if (book == null || (isBuy && book.Asks.Count == 0) || (!isBuy && book.Bids.Count == 0))
 			{
-				throw new APIException($"Error getting order book for {symbol}");
+				throw new APIException($"Error getting order book for {marketSymbol}");
 			}
 			decimal counter = 0m;
 			decimal highPrice = decimal.MinValue;
@@ -306,11 +308,11 @@ namespace ExchangeSharp
 			}
 			if (abortIfOrderBookTooSmall && counter < amount)
 			{
-				throw new APIException($"{(isBuy ? "Buy" : "Sell") } order for {symbol} and amount {amount} cannot be fulfilled because the order book is too thin.");
+				throw new APIException($"{(isBuy ? "Buy" : "Sell") } order for {marketSymbol} and amount {amount} cannot be fulfilled because the order book is too thin.");
 			}
 			else if (lowPrice / highPrice < thresholdToAbort)
 			{
-				throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {symbol} and amount {amount} would place for a price below threshold of {thresholdToAbort}, aborting.");
+				throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {marketSymbol} and amount {amount} would place for a price below threshold of {thresholdToAbort}, aborting.");
 			}
 			ExchangeOrderRequest request = new ExchangeOrderRequest
 			{
@@ -319,7 +321,7 @@ namespace ExchangeSharp
 				OrderType = OrderType.Limit,
 				Price = CryptoUtility.RoundAmount((isBuy ? highPrice : lowPrice) * priceThreshold),
 				ShouldRoundAmount = true,
-				MarketSymbol = symbol
+				MarketSymbol = marketSymbol
 			};
 			ExchangeOrderResult result = await api.PlaceOrderAsync(request);
 
@@ -329,7 +331,7 @@ namespace ExchangeSharp
 			for (; i < maxTries; i++)
 			{
 				await System.Threading.Tasks.Task.Delay(500);
-				result = await api.GetOrderDetailsAsync(result.OrderId, marketSymbol: symbol);
+				result = await api.GetOrderDetailsAsync(result.OrderId, marketSymbol: marketSymbol);
 				switch (result.Result)
 				{
 					case ExchangeAPIOrderResult.Filled:
@@ -343,7 +345,7 @@ namespace ExchangeSharp
 
 			if (i == maxTries)
 			{
-				throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {symbol} and amount {amount} timed out and may not have been fulfilled");
+				throw new APIException($"{(isBuy ? "Buy" : "Sell")} order for {marketSymbol} and amount {amount} timed out and may not have been fulfilled");
 			}
 
 			return result;
@@ -540,6 +542,25 @@ namespace ExchangeSharp
 			return trade;
 		}
 
+		internal static ExchangeTrade ParseTradeBitflyer(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BitflyerTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.BuyChildOrderAcceptanceId = token["buy_child_order_acceptance_id"].ConvertInvariant<string>();
+			trade.SellChildOrderAcceptanceId = token["sell_child_order_acceptance_id"].ConvertInvariant<string>();
+			return trade;
+		}
+
+		internal static ExchangeTrade ParseTradeBybit(this JToken token, object amountKey, object priceKey, object typeKey,
+			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
+		{
+			var trade = ParseTradeComponents<BybitTrade>(token, amountKey, priceKey, typeKey,
+				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
+			trade.CrossSequence = token["cross_seq"].ConvertInvariant<long>();
+			return trade;
+		}
+
 		internal static ExchangeTrade ParseTradeBinanceDEX(this JToken token, object amountKey, object priceKey, object typeKey,
 			object timestampKey, TimestampType timestampType, object idKey, string typeKeyIsBuyValue = "buy")
 		{
@@ -604,8 +625,8 @@ namespace ExchangeSharp
 		{
 			var trade = ParseTradeComponents<KuCoinTrade>(token, amountKey, priceKey, typeKey,
 				timestampKey, timestampType, idKey, typeKeyIsBuyValue);
-			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant().StringToByteArray();
-			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant().StringToByteArray();
+			trade.MakerOrderId = token["makerOrderId"].ToStringInvariant();
+			trade.TakerOrderId = token["takerOrderId"].ToStringInvariant();
 			return trade;
 		}
 

@@ -102,7 +102,7 @@ namespace ExchangeSharp
 
 			try
 			{
-				string html = await RequestMaker.MakeRequestAsync("/rest-api", "https://docs.gemini.com");
+				string html = (await RequestMaker.MakeRequestAsync("/rest-api", "https://docs.gemini.com")).Response;
 				int startPos = html.IndexOf("<h1 id=\"symbols-and-minimums\">Symbols and minimums</h1>");
 				if (startPos < 0)
 				{
@@ -355,8 +355,9 @@ namespace ExchangeSharp
 			return orders;
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			object nonce = await GenerateNonceAsync();
 			await MakeJsonRequestAsync<JToken>("/order/cancel", null, new Dictionary<string, object> { { "nonce", nonce }, { "order_id", orderId } });
 		}

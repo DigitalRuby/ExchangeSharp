@@ -40,7 +40,7 @@ namespace ExchangeSharp.Coinbase
 			OrderId = OrderId.ToString(),
 			ClientOrderId = null, // not provided here
 			Result = ExchangeAPIOrderResult.PendingOpen, // order has just been activated (so it starts in PendingOpen)
-			Message = null, // can use for something in the future if needed
+			Message = null, // + can use for something in the future if needed
 			Amount = Size,
 			AmountFilled = 0, // just activated, so none filled
 			Price = null, // not specified here (only StopPrice is)
@@ -78,7 +78,7 @@ namespace ExchangeSharp.Coinbase
 			AmountFilled = null, // not specified here
 			Price = Price,
 			AveragePrice = null, // not specified here
-			// OrderDate - unclear if the Time in the Change msg is the new OrderDate or whether that is unchanged
+			OrderDate = Time, // + unclear if the Time in the Change msg is the new OrderDate or whether that is unchanged
 			CompletedDate = null, // order is active
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
@@ -132,7 +132,7 @@ namespace ExchangeSharp.Coinbase
 		public long LastTradeId { get; set; }
 		public string ProductId { get; set; }
 		public long Sequence { get; set; }
-		public System.DateTimeOffset Time { get; set; }
+		public DateTimeOffset Time { get; set; }
 		public override string ToString()
 		{
 			return $"Heartbeat: Last TID {LastTradeId}, Product Id {ProductId}, Sequence {Sequence}, Time {Time}";
@@ -185,7 +185,7 @@ namespace ExchangeSharp.Coinbase
 			AveragePrice = Price, // not specified here
 			// OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
 			CompletedDate = null, // order not necessarily fullly filled at this point
-			TradeDate = Time.ToDateTimeInvariant(),
+			TradeDate = Time.UtcDateTime,
 			MarketSymbol = ProductId,
 			IsBuy = Side == OrderSide.Buy,
 			Fees = (MakerFeeRate ?? TakerFeeRate) * Price * Size,

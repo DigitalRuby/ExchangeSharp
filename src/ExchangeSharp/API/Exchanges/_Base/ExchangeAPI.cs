@@ -15,7 +15,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -193,7 +192,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync() =>
 			throw new NotImplementedException();
-		protected virtual Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order) =>
+		protected virtual Task<ExchangeOrderResult?> OnPlaceOrderAsync(ExchangeOrderRequest order) =>
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order) =>
 			throw new NotImplementedException();
@@ -203,7 +202,7 @@ namespace ExchangeSharp
 			throw new NotImplementedException();
 		protected virtual Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null) =>
 			throw new NotImplementedException();
-		protected virtual Task OnCancelOrderAsync(string orderId, string? marketSymbol = null) =>
+		protected virtual Task OnCancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false) =>
 			throw new NotImplementedException();
 		protected virtual Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest) =>
 			throw new NotImplementedException();
@@ -245,7 +244,9 @@ namespace ExchangeSharp
 		protected async Task<decimal> ClampOrderPrice(string marketSymbol, decimal outputPrice)
 		{
 			ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
-			return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice, market.MaxPrice, market.PriceStepSize, outputPrice);
+			if (market.MinPrice == null || market.MaxPrice == null || market.PriceStepSize == null)
+				throw new NotSupportedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderPrice)}() to work");
+			else return market == null ? outputPrice : CryptoUtility.ClampDecimal(market.MinPrice.Value, market.MaxPrice.Value, market.PriceStepSize, outputPrice);
 		}
 
 		/// <summary>
@@ -257,7 +258,9 @@ namespace ExchangeSharp
 		protected async Task<decimal> ClampOrderQuantity(string marketSymbol, decimal outputQuantity)
 		{
 			ExchangeMarket? market = await GetExchangeMarketFromCacheAsync(marketSymbol);
-			return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize, market.MaxTradeSize, market.QuantityStepSize, outputQuantity);
+			if (market.MinPrice == null || market.MaxPrice == null || market.PriceStepSize == null)
+				throw new NotSupportedException($"Exchange must return {nameof(market.MinPrice)} and {nameof(market.MaxPrice)} in order for {nameof(ClampOrderQuantity)}() to work");
+			else return market == null ? outputQuantity : CryptoUtility.ClampDecimal(market.MinTradeSize.Value, market.MaxTradeSize.Value, market.QuantityStepSize, outputQuantity);
 		}
 
 		/// <summary>
@@ -284,7 +287,7 @@ namespace ExchangeSharp
 		{
 			if (string.IsNullOrEmpty(marketSymbol))
 			{
-				throw new ArgumentException("Symbol must be non null and non empty");
+				throw new ArgumentException("Market symbol must be non null and non empty");
 			}
 			string[] pieces = marketSymbol.Split(separator);
 			if (MarketSymbolIsReversed == false) //if reversed then put quote currency first
@@ -299,12 +302,12 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Base and quote currency</returns>
-		protected virtual(string baseCurrency, string quoteCurrency)OnSplitMarketSymbolToCurrencies(string marketSymbol)
+		protected virtual (string baseCurrency, string quoteCurrency) OnSplitMarketSymbolToCurrencies(string marketSymbol)
 		{
 			var pieces = marketSymbol.Split(MarketSymbolSeparator[0]);
 			if (pieces.Length < 2)
 			{
-				throw new InvalidOperationException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in at least 2 pieces.");
+				throw new ArgumentException($"Splitting {Name} symbol '{marketSymbol}' with symbol separator '{MarketSymbolSeparator}' must result in at least 2 pieces.");
 			}
 			string baseCurrency = MarketSymbolIsReversed ? pieces[1] : pieces[0];
 			string quoteCurrency = MarketSymbolIsReversed ? pieces[0] : pieces[1];
@@ -578,7 +581,7 @@ namespace ExchangeSharp
 		/// Normalize an exchange specific symbol. The symbol should already be in the correct order,
 		/// this method just deals with casing and putting in the right separator.
 		/// </summary>
-		/// <param name="marketSymbol">Symbol</param>
+		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Normalized symbol</returns>
 		public virtual string NormalizeMarketSymbol(string? marketSymbol)
 		{
@@ -645,8 +648,8 @@ namespace ExchangeSharp
 		/// <returns>Exchange market symbol</returns>
 		public virtual Task<string> CurrenciesToExchangeMarketSymbol(string baseCurrency, string quoteCurrency)
 		{
-			string symbol = (MarketSymbolIsReversed ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}");
-			return Task.FromResult(MarketSymbolIsUppercase ? symbol.ToUpperInvariant() : symbol);
+			string marketSymbol = (MarketSymbolIsReversed ? $"{quoteCurrency}{MarketSymbolSeparator}{baseCurrency}" : $"{baseCurrency}{MarketSymbolSeparator}{quoteCurrency}");
+			return Task.FromResult(MarketSymbolIsUppercase ? marketSymbol.ToUpperInvariant() : marketSymbol);
 		}
 
 		/// <summary>
@@ -1035,11 +1038,12 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="orderId">Order id of the order to cancel</param>
 		/// <param name="marketSymbol">Symbol of order (most exchanges do not require this)</param>
-		public virtual async Task CancelOrderAsync(string orderId, string? marketSymbol = null)
+		/// <param name="isClientOrderId">Whether the order id parameter is the server assigned id or client provided id</param>
+		public virtual async Task CancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
 		{
 			// *NOTE* do not wrap in CacheMethodCall
 			await new SynchronizationContextRemover();
-			await OnCancelOrderAsync(orderId, NormalizeMarketSymbol(marketSymbol));
+			await OnCancelOrderAsync(orderId, NormalizeMarketSymbol(marketSymbol), isClientOrderId);
 		}
 
 		/// <summary>
@@ -1066,7 +1070,7 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Get open margin position
 		/// </summary>
-		/// <param name="marketSymbol">Symbol</param>
+		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Open margin position result</returns>
 		public virtual async Task<ExchangeMarginPositionResult> GetOpenPositionAsync(string marketSymbol)
 		{
@@ -1077,7 +1081,7 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Close a margin position
 		/// </summary>
-		/// <param name="marketSymbol">Symbol</param>
+		/// <param name="marketSymbol">Market symbol</param>
 		/// <returns>Close margin position result</returns>
 		public virtual async Task<ExchangeCloseMarginPositionResult> CloseMarginPositionAsync(string marketSymbol)
 		{

@@ -88,7 +88,7 @@ namespace ExchangeSharp.BinanceGroup
 					Result = status,
 					ResultCode = CurrentOrderStatus,
 					Message = OrderRejectReason, // can use for multiple things in the future if needed
-					Amount = CumulativeFilledQuantity,
+					AmountFilled = TradeId != null ? LastExecutedQuantity : CumulativeFilledQuantity,
 					Price = OrderPrice,
 					AveragePrice = CumulativeQuoteAssetTransactedQuantity / CumulativeFilledQuantity, // Average price can be found by doing Z divided by z.
 					OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(OrderCreationTime),

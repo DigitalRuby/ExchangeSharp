@@ -23,9 +23,15 @@ namespace ExchangeSharp
 		#region [ Implementation ]
 
 		/// <inheritdoc />
-		protected async override Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected async override Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			await MakeJsonRequestAsync<JToken>($"/orders/{orderId}", null, await GetNoncePayloadAsync(), "DELETE");
+			var url = "/orders/";
+			if (isClientOrderId)
+			{
+				url += "by_client_id/";
+			}
+
+			await MakeJsonRequestAsync<JToken>($"{url}{orderId}", null, await GetNoncePayloadAsync(), "DELETE");
 		}
 
 		/// <inheritdoc />
@@ -285,7 +291,7 @@ namespace ExchangeSharp
 		/// <inheritdoc />
 		protected async override Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{ // https://docs.ftx.com/#get-order-status and https://docs.ftx.com/#get-order-status-by-client-id
-			if (!string.IsNullOrEmpty(marketSymbol)) throw new NotImplementedException("Searching by marketSymbol is either not implemented by or supported by this exchange. Please submit a PR if you are interested in this feature");
+			if (!string.IsNullOrEmpty(marketSymbol)) throw new NotSupportedException("Searching by marketSymbol is either not implemented by or supported by this exchange. Please submit a PR if you are interested in this feature");
 
 			var url = "/orders/";
 			if (isClientOrderId)
@@ -398,7 +404,11 @@ namespace ExchangeSharp
 			{
 				JToken parsedMsg = JToken.Parse(msg.ToStringFromUTF8());
 
-				if (parsedMsg["channel"].ToStringInvariant().Equals("trades")
+				if (parsedMsg["type"].ToStringInvariant() == "error")
+				{
+					throw new APIException(parsedMsg["msg"].ToStringInvariant());
+				}
+				else if (parsedMsg["channel"].ToStringInvariant().Equals("trades")
 				&& !parsedMsg["type"].ToStringInvariant().Equals("subscribed"))
 				{
 					foreach (var data in parsedMsg["data"])
@@ -418,7 +428,7 @@ namespace ExchangeSharp
 					{
 						op = "subscribe",
 						market = marketSymbols[i],
-						channel = "trades"
+						channel = "trades",
 					});
 				}
 			});

@@ -37,13 +37,13 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			List<string> symbols = new List<string>();
+			List<string> marketSymbols = new List<string>();
 			JToken token = await MakeJsonRequestAsync<JToken>("/availablesymbols", MarketUrl);
-			foreach (string symbol in token)
+			foreach (string marketSymbol in token)
 			{
-				symbols.Add(symbol);
+				marketSymbols.Add(marketSymbol);
 			}
-			return symbols;
+			return marketSymbols;
 		}
 
 		// NOT SUPPORTED
@@ -105,7 +105,7 @@ namespace ExchangeSharp
 		// DONE
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			// In Aquanow market order, when buying crypto the amount of crypto that is bought is the receiveQuantity
 			// and when selling the amount of crypto that is sold is the deliverQuantity
 			string amountParameter = order.IsBuy ? "receiveQuantity" : "deliverQuantity";
@@ -201,7 +201,7 @@ namespace ExchangeSharp
 			{
 				return null;
 			}
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			JToken result = await MakeJsonRequestAsync<JToken>($"/trades/v1/order?orderId={orderId}", null, payload, "GET");
 			bool isBuy = result["tradeSide"].ToStringInvariant() == "buy" ? true : false;
@@ -233,8 +233,9 @@ namespace ExchangeSharp
 			return orderDetails;
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			var payload = await GetNoncePayloadAsync();
 			payload["orderId"] = orderId;
 			JToken token = await MakeJsonRequestAsync<JToken>("/trades/v1/order", null, payload, "DELETE");

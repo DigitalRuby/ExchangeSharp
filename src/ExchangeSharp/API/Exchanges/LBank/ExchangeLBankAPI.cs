@@ -39,6 +39,8 @@ namespace ExchangeSharp
 		/// </summary>
 		public override string BaseUrl { get; set; } = "https://api.lbank.info/v1";
 
+		public override string BaseUrlWebSocket { get; set; } = "wss://www.lbkex.net/ws/V2/";
+
 		/// <summary>
 		/// Gets the name of the API.
 		/// </summary>
@@ -297,7 +299,7 @@ namespace ExchangeSharp
 		//PlaceOrder   9
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
-			if (order.IsPostOnly != null) throw new NotImplementedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
 			Dictionary<string, object> payload = new Dictionary<string, object>
 		   {
 				{ "amount", order.Amount },
@@ -345,8 +347,9 @@ namespace ExchangeSharp
 		}
 
 		//CancelOrder   12
-		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = new Dictionary<string, object>
 			{
 				{ "api_key", PublicApiKey.ToUnsecureString() },
@@ -360,7 +363,7 @@ namespace ExchangeSharp
 		//GetOrderDetails   13
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			Dictionary<string, object> payload = new Dictionary<string, object>
 			{
 				{ "api_key", PublicApiKey.ToUnsecureString() },
@@ -537,6 +540,81 @@ namespace ExchangeSharp
 		}
 
 		#endregion PARSERS PrivateAPI
+
+		#region Websockets
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+			return await ConnectPublicWebSocketAsync("", async (_socket, msg) =>
+			{
+				/* {
+					 "trade":{
+						 "volume":6.3607,
+						 "amount":77148.9303,
+						 "price":12129,
+						 "direction":"sell",
+						 "TS":"2019-06-28T19:55:49.460"
+					 },
+					 "type":"trade",
+					 "pair":"btc_usdt",
+					 "SERVER":"V2",
+					 "TS":"2019-06-28T19:55:49.466"
+					}*/
+				JToken token = JToken.Parse(msg.ToStringFromUTF8());
+				if (token["status"].ToStringInvariant() == "error")
+				{
+					if (token["message"].ToStringInvariant().Contains("Invalid order pairs"))
+					{
+						// ignore, bc invalid order pairs are normal in LBank
+					}
+					else throw new APIException(token["message"].ToStringInvariant());
+				}
+				if (token["action"].ToStringInvariant() == "ping")
+				{/* # ping
+					{
+						"action":"ping",
+						"ping":"0ca8f854-7ba7-4341-9d86-d3327e52804e"
+					}
+					# pong
+					{
+						"action":"pong",
+						"pong":"0ca8f854-7ba7-4341-9d86-d3327e52804e"
+					} */
+					var pong = new
+					{
+						action = "pong",
+						pong = token["ping"].ToStringInvariant(),
+					};
+					await _socket.SendMessageAsync(pong);
+				}
+				else if (token["type"].ToStringInvariant() == "trade")
+				{
+					var trade = token["trade"].ParseTrade("amount", "price", "direction", "TS", TimestampType.Iso8601China, null);
+					string marketSymbol = token["pair"].ToStringInvariant();
+					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
+				}
+			}, async (_socket) =>
+			{ /* {
+					"action":"subscribe",
+					"subscribe":"trade",
+					"pair":"eth_btc"
+				  }*/
+				foreach (var marketSymbol in marketSymbols)
+				{
+					var subscribeRequest = new
+					{
+						action = "subscribe",
+						subscribe = "trade",
+						pair = marketSymbol,
+					};
+					await _socket.SendMessageAsync(subscribeRequest);
+				}
+			});
+		}
+		#endregion
 
 		#region HELPERS
 

@@ -45,6 +45,11 @@ namespace ExchangeSharp
 			NonceEndPointField = "iso";
 			NonceEndPointStyle = NonceStyle.Iso8601;
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
+			/* Rate limits from Coinbase Pro webpage
+			 * Public endpoints - We throttle public endpoints by IP: 10 requests per second, up to 15 requests per second in bursts. Some endpoints may have custom rate limits.
+			 * Private endpoints - We throttle private endpoints by profile ID: 15 requests per second, up to 30 requests per second in bursts. Some endpoints may have custom rate limits.
+			 * fills endpoint has a custom rate limit of 10 requests per second, up to 20 requests per second in bursts. */
+			RateLimit = new RateGate(9, TimeSpan.FromSeconds(1)); // set to 9 to be safe
 		}
 
 
@@ -210,7 +215,7 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			return (await GetMarketSymbolsMetadataAsync()).Where(market => market.IsActive).Select(market => market.MarketSymbol);
+			return (await GetMarketSymbolsMetadataAsync()).Where(market => market.IsActive ?? true).Select(market => market.MarketSymbol);
 		}
 
 		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
@@ -311,7 +316,7 @@ namespace ExchangeSharp
 				if (message.Contains(@"""l2update"""))
 				{
 					// parse delta update
-					var delta = JsonConvert.DeserializeObject<Level2>(message);
+					var delta = JsonConvert.DeserializeObject<Level2>(message, SerializerSettings);
 					book.MarketSymbol = delta.ProductId;
 					book.SequenceId = delta.Time.Ticks;
 					foreach (string[] change in delta.Changes)
@@ -331,7 +336,7 @@ namespace ExchangeSharp
 				else if (message.Contains(@"""snapshot"""))
 				{
 					// parse snapshot
-					var snapshot = JsonConvert.DeserializeObject<Snapshot>(message);
+					var snapshot = JsonConvert.DeserializeObject<Snapshot>(message, SerializerSettings);
 					book.MarketSymbol = snapshot.ProductId;
 					foreach (decimal[] ask in snapshot.Asks)
 					{
@@ -446,11 +451,11 @@ namespace ExchangeSharp
 			return await ConnectPublicWebSocketAsync("/", async (_socket, msg) =>
 			{
 				var token = msg.ToStringFromUTF8();
-				var response = JsonConvert.DeserializeObject<BaseMessage>(token);
+				var response = JsonConvert.DeserializeObject<BaseMessage>(token, SerializerSettings);
 				switch (response.Type)
 				{
 					case ResponseType.Subscriptions:
-						var subscription = JsonConvert.DeserializeObject<Subscription>(token);
+						var subscription = JsonConvert.DeserializeObject<Subscription>(token, SerializerSettings);
 						if (subscription.Channels == null || !subscription.Channels.Any())
 						{
 							Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() no channels subscribed");
@@ -468,37 +473,37 @@ namespace ExchangeSharp
 					case ResponseType.L2Update:
 						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
 					case ResponseType.Heartbeat:
-						var heartbeat = JsonConvert.DeserializeObject<Heartbeat>(token);
+						var heartbeat = JsonConvert.DeserializeObject<Heartbeat>(token, SerializerSettings);
 						Trace.WriteLine($"{nameof(OnUserDataWebSocketAsync)}() heartbeat received {heartbeat}");
 						break;
 					case ResponseType.Received:
-						var received = JsonConvert.DeserializeObject<Received>(token);
+						var received = JsonConvert.DeserializeObject<Received>(token, SerializerSettings);
 						callback(received.ExchangeOrderResult);
 						break;
 					case ResponseType.Open:
-						var open = JsonConvert.DeserializeObject<Open>(token);
+						var open = JsonConvert.DeserializeObject<Open>(token, SerializerSettings);
 						callback(open.ExchangeOrderResult);
 						break;
 					case ResponseType.Done:
-						var done = JsonConvert.DeserializeObject<Done>(token);
+						var done = JsonConvert.DeserializeObject<Done>(token, SerializerSettings);
 						callback(done.ExchangeOrderResult);
 						break;
 					case ResponseType.Match:
-						var match = JsonConvert.DeserializeObject<Match>(token);
+						var match = JsonConvert.DeserializeObject<Match>(token, SerializerSettings);
 						callback(match.ExchangeOrderResult);
 						break;
 					case ResponseType.LastMatch:
 						//var lastMatch = JsonConvert.DeserializeObject<LastMatch>(token);
 						throw new NotImplementedException($"Not expecting type {response.Type} in {nameof(OnUserDataWebSocketAsync)}()");
 					case ResponseType.Error:
-						var error = JsonConvert.DeserializeObject<Error>(token);
+						var error = JsonConvert.DeserializeObject<Error>(token, SerializerSettings);
 						throw new APIException($"{error.Reason}: {error.Message}");
 					case ResponseType.Change:
-						var change = JsonConvert.DeserializeObject<Change>(token);
+						var change = JsonConvert.DeserializeObject<Change>(token, SerializerSettings);
 						callback(change.ExchangeOrderResult);
 						break;
 					case ResponseType.Activate:
-						var activate = JsonConvert.DeserializeObject<Activate>(token);
+						var activate = JsonConvert.DeserializeObject<Activate>(token, SerializerSettings);
 						callback(activate.ExchangeOrderResult);
 						break;
 					case ResponseType.Status:
@@ -733,15 +738,20 @@ namespace ExchangeSharp
 			}
 
 			order.ExtraParameters.CopyTo(payload);
-			JToken result = await MakeJsonRequestAsync<JToken>("/orders", null, payload, "POST");
-			return ParseOrder(result);
+			var result = await MakeJsonRequestFullAsync<JToken>("/orders", null, payload, "POST");
+			var resultOrder = ParseOrder(result.Response);
+			resultOrder.HTTPHeaderDate = result.HTTPHeaderDate.Value.UtcDateTime;
+			return resultOrder;
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{ // Orders may be queried using either the exchange assigned id or the client assigned client_oid. When using client_oid it must be preceded by the client: namespace.
 			JToken obj = await MakeJsonRequestAsync<JToken>("/orders/" + (isClientOrderId ? "client:" : "") + orderId,
 				null, await GetNoncePayloadAsync(), "GET");
-			return ParseOrder(obj);
+			var order = ParseOrder(obj);
+			if (!order.MarketSymbol.Equals(marketSymbol, StringComparison.InvariantCultureIgnoreCase))
+				throw new DataMisalignedException($"Order {orderId} found, but symbols {order.MarketSymbol} and {marketSymbol} don't match");
+			else return order;
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
@@ -807,9 +817,9 @@ namespace ExchangeSharp
 			}
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			var jToken = await MakeJsonRequestAsync<JToken>("orders/" + orderId, null, await GetNoncePayloadAsync(), "DELETE");
+			var jToken = await MakeJsonRequestAsync<JToken>("orders/" + (isClientOrderId ? "client:" : "") + orderId, null, await GetNoncePayloadAsync(), "DELETE");
 			if (jToken.ToStringInvariant() != orderId)
 				throw new APIException($"Cancelled {jToken.ToStringInvariant()} when trying to cancel {orderId}");
 		}

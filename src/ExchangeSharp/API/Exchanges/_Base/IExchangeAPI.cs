@@ -25,7 +25,7 @@ namespace ExchangeSharp
 		#region Utility Methods
 
 		/// <summary>
-		/// Normalize a symbol for use on this exchange.
+		/// Normalize a market symbol for use on this exchange.
 		/// </summary>
 		/// <param name="marketSymbol">Symbol</param>
 		/// <returns>Normalized symbol</returns>
@@ -231,7 +231,8 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="orderId">Order id of the order to cancel</param>
 		/// <param name="marketSymbol">Market symbol of the order to cancel (not required for most exchanges)</param>
-		Task CancelOrderAsync(string orderId, string? marketSymbol = null);
+		/// <param name="isClientOrderId">Whether the order id parameter is the server assigned id or client provided id</param>
+		Task CancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false);
 
 		/// <summary>
 		/// Asynchronous withdraws request.

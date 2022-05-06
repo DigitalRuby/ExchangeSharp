@@ -83,7 +83,8 @@ namespace ExchangeSharp
 			{
 				foreach (JToken token in obj)
 				{
-					symbols.Add(token["id"].ToStringInvariant());
+					if (token["trade_status"].ToStringLowerInvariant() == "tradable")
+						symbols.Add(token["id"].ToStringInvariant());
 				}
 			}
 			return symbols;
@@ -117,7 +118,7 @@ namespace ExchangeSharp
 					var market = new ExchangeMarket
 					{
 						MarketSymbol = marketSymbolToken["id"].ToStringUpperInvariant(),
-						IsActive = marketSymbolToken["trade_status"].ToStringUpperInvariant() == "tradable",
+						IsActive = marketSymbolToken["trade_status"].ToStringLowerInvariant() == "tradable",
 						QuoteCurrency = marketSymbolToken["quote"].ToStringUpperInvariant(),
 						BaseCurrency = marketSymbolToken["base"].ToStringUpperInvariant(),
 					};
@@ -293,7 +294,7 @@ namespace ExchangeSharp
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
 		{
 			if (order.OrderType != OrderType.Limit)
-				throw new InvalidOperationException("Gate.io API supports only limit orders");
+				throw new NotSupportedException("Gate.io API supports only limit orders");
 
 			var payload = await GetNoncePayloadAsync();
 			AddOrderToPayload(order, payload);
@@ -380,11 +381,11 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
-			if (string.IsNullOrEmpty(symbol))
+			if (string.IsNullOrWhiteSpace(symbol))
 			{
-				throw new InvalidOperationException("MarketSymbol is required for querying order details with Gate.io API");
+				throw new ArgumentNullException("MarketSymbol is required for querying order details with Gate.io API");
 			}
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			var payload = await GetNoncePayloadAsync();
 			var responseToken = await MakeJsonRequestAsync<JToken>($"/spot/orders/{orderId}?currency_pair={symbol}", payload: payload);
@@ -394,9 +395,9 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
 		{
-			if (string.IsNullOrEmpty(symbol))
+			if (string.IsNullOrWhiteSpace(symbol))
 			{
-				throw new InvalidOperationException("MarketSymbol is required for querying open orders with Gate.io API");
+				throw new ArgumentNullException("MarketSymbol is required for querying open orders with Gate.io API");
 			}
 
 			var payload = await GetNoncePayloadAsync();
@@ -421,26 +422,27 @@ namespace ExchangeSharp
 			return responseToken.Select(x => ParseOrder(x)).ToArray();
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null, bool isClientOrderId = false)
 		{
-			if (string.IsNullOrEmpty(symbol))
+			if (string.IsNullOrWhiteSpace(symbol))
 			{
-				throw new InvalidOperationException("MarketSymbol is required for cancelling order with Gate.io API");
+				throw new ArgumentNullException("MarketSymbol is required for cancelling order with Gate.io API");
 			}
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			await MakeJsonRequestAsync<JToken>($"/spot/orders/{orderId}?currency_pair={symbol}", BaseUrl, payload, "DELETE");
 		}
 
+		string unixTimeInSeconds => ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.Now)).ToStringInvariant();
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object>? payload)
 		{
 			if (CanMakeAuthenticatedRequest(payload))
 			{
 				payload.Remove("nonce");
-				var timestamp = ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(DateTime.Now)).ToStringInvariant();
 
 				request.AddHeader("KEY", PublicApiKey!.ToUnsecureString());
-				request.AddHeader("Timestamp", timestamp);
+				request.AddHeader("Timestamp", unixTimeInSeconds);
 
 				var privateApiKey = PrivateApiKey!.ToUnsecureString();
 
@@ -452,7 +454,7 @@ namespace ExchangeSharp
 					var hashBytes = sha512Hash.ComputeHash(sourceBytes);
 					var bodyHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
 					var queryString = string.IsNullOrEmpty(request.RequestUri.Query) ? "" : request.RequestUri.Query.Substring(1);
-					var signatureString = $"{request.Method}\n{request.RequestUri.AbsolutePath}\n{queryString}\n{bodyHash}\n{timestamp}";
+					var signatureString = $"{request.Method}\n{request.RequestUri.AbsolutePath}\n{queryString}\n{bodyHash}\n{unixTimeInSeconds}";
 
 					using (HMACSHA512 hmac = new HMACSHA512(Encoding.UTF8.GetBytes(privateApiKey)))
 					{
@@ -467,6 +469,53 @@ namespace ExchangeSharp
 			{
 				await base.ProcessRequestAsync(request, payload);
 			}
+		}
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync(true)).ToArray();
+			}
+			return await ConnectPublicWebSocketAsync(null, messageCallback: async (_socket, msg) =>
+			{
+				JToken parsedMsg = JToken.Parse(msg.ToStringFromUTF8());
+
+				if (parsedMsg["channel"].ToStringInvariant().Equals("spot.trades"))
+				{
+					if (parsedMsg["error"] != null)
+						throw new APIException($"Exchange returned error: {parsedMsg["error"].ToStringInvariant()}");
+					else if (parsedMsg["result"]["status"].ToStringInvariant().Equals("success"))
+					{
+						// successfully subscribed to trade stream
+					}
+					else
+   					{
+						var exchangeTrade = parsedMsg["result"].ParseTrade("amount", "price", "side", "create_time_ms", TimestampType.UnixMillisecondsDouble, "id");
+
+						await callback(new KeyValuePair<string, ExchangeTrade>(parsedMsg["result"]["currency_pair"].ToStringInvariant(), exchangeTrade));
+					}
+				}
+			}, connectCallback: async (_socket) =>
+			{/*{	"time": int(time.time()),
+					"channel": "spot.trades",
+					"event": "subscribe",  # "unsubscribe" for unsubscription
+					"payload": ["BTC_USDT"]
+				}*/
+
+				// this doesn't work for some reason
+				//await _socket.SendMessageAsync(new
+				//{
+				//	time = unixTimeInSeconds,
+				//	channel = "spot.trades",
+				//	@event = "subscribe",
+				//	payload = marketSymbols,
+				//});
+				var quotedSymbols = marketSymbols.Select(s => $"\"{s}\"");
+				var combinedString = string.Join(",", quotedSymbols);
+				await _socket.SendMessageAsync(
+					$"{{  \"time\": {unixTimeInSeconds},\"channel\": \"spot.trades\",\"event\": \"subscribe\",\"payload\": [{combinedString}]	}}");
+			});
 		}
 	}
 }

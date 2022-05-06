@@ -715,11 +715,10 @@ namespace ExchangeSharp
 			{
 				return null;
 			}
-			if (isClientOrderId) throw new NotImplementedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			object nonce = await GenerateNonceAsync();
 			Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
-			{ { "txid", orderId }, { "nonce", nonce }
-			};
+			{ { "txid", orderId }, { "nonce", nonce } };
 			JToken result = await MakeJsonRequestAsync<JToken>("/0/private/QueryOrders", null, payload);
 			ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
 			if (result == null || result[orderId] == null)
@@ -768,8 +767,9 @@ namespace ExchangeSharp
 		//    return token["trades"].Select(t => TradeHistoryToExchangeOrderResult(t));
 		//}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null)
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
+			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
 			object nonce = await GenerateNonceAsync();
 			Dictionary<string, object> payload = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
 			{ { "txid", orderId }, { "nonce", nonce }
