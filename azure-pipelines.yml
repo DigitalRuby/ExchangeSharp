@@ -50,6 +50,10 @@ jobs:
           packageType: sdk
           version: 6.x
       - task: DotNetCoreCLI@2
+        displayName: 'Restore'
+        inputs:
+          command: 'restore'
+      - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
         inputs:
           command: 'build'
