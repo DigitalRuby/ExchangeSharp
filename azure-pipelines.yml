@@ -44,6 +44,11 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     steps:
+      - task: UseDotNet@2
+        displayName: 'Install current .NET Core SDK'
+        inputs:
+          packageType: sdk
+          version: 6.x
       - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
         inputs:
