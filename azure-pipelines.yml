@@ -54,12 +54,12 @@ jobs:
         inputs:
            command: 'restore'
            projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-     - task: DotNetCoreCLI@2
-        displayName: 'Build lib+console'
-        inputs:
-          command: 'build'
-          configuration: $(BuildConfiguration)
-          projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
+      - task: DotNetCoreCLI@2
+         displayName: 'Build lib+console'
+         inputs:
+           command: 'build'
+           configuration: $(BuildConfiguration)
+           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
