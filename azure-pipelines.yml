@@ -52,7 +52,7 @@ jobs:
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
         inputs:
-          command: 'restore'
+           command: 'restore'
            projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
      - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
