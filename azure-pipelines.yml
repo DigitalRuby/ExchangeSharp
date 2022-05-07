@@ -58,9 +58,8 @@ jobs:
         displayName: 'Build lib+console'
         inputs:
           command: 'build'
-          configuration: $(BuildConfiguration)
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          #arguments: '--version-suffix prerelease-$(Date:yyyyMMddHHmmss)'
+          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(Date:yyyyMMddHHmmss)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
