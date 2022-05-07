@@ -81,8 +81,8 @@ jobs:
         displayName: 'NuGet push'
         inputs:
           command: push
-          nuGetFeedType: 'internal'
-          publishVstsFeed: 'DigitalRuby'
+          nuGetFeedType: 'external'
+          publishVstsFeed: 'DigitalRuby/DigitalRuby'
   - job: build_tag
     displayName: Build console app
     timeoutInMinutes: 5
