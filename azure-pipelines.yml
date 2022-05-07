@@ -81,7 +81,7 @@ jobs:
         displayName: 'NuGet push'
         inputs:
           command: push
-          publishVstsFeed: 'PublicProject/DigitalRuby'
+          publishVstsFeed: 'DigitalRuby/DigitalRuby'
           allowPackageConflicts: true
   - job: build_tag
     displayName: Build console app
