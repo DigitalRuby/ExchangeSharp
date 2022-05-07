@@ -69,14 +69,13 @@ jobs:
       #    projects: 'tests/*/*.csproj'
       #    publishTestResults: true
       #    testRunTitle: 'All tests'
-      #- task: DotNetCoreCLI@2
-      #  displayName: 'NuGet Pack'
-      #  inputs:
-      #    command: pack
-      #    packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
-      #    packDestination: '$(Build.ArtifactStagingDirectory)'
-      #    versioningScheme: byBuildNumber
-      #    name: $(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.rr)
+      - task: DotNetCoreCLI@2
+        displayName: 'NuGet Pack'
+        inputs:
+          command: pack
+          packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
+          packDestination: '$(Build.ArtifactStagingDirectory)'
+          versioningScheme: off
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
       - task: NuGetCommand@2
