@@ -74,10 +74,8 @@ jobs:
           command: pack
           packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
           packDestination: '$(Build.ArtifactStagingDirectory)'
-          versioningScheme: byPrereleaseNumber
-          majorVersion: '$(Major)'
-          minorVersion: '$(Minor)'
-          patchVersion: '$(Patch)'
+          versioningScheme: byBuildNumber
+          name: $(BuildDefinitionName)_$(Date:yyyyMMdd)$(Rev:.rr)
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
       - task: NuGetCommand@2
