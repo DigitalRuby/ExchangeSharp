@@ -60,7 +60,7 @@ jobs:
           command: 'build'
           configuration: $(BuildConfiguration)
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          arguments: '--version-suffix prerelease-$(date +%Y%m%d%H%M%S)'
+          arguments: '--version-suffix prerelease-$(Date:yyyyMMddHHmmss)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
