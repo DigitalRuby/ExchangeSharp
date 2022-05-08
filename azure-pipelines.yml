@@ -77,12 +77,12 @@ jobs:
           versioningScheme: off
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
-      - script: nuget push $(Build.ArtifactStagingDirectory)/*.nupkg -NonInteractive -Source https://pkgs.dev.azure.com/DigitalRuby/DigitalRuby/_packaging/DigitalRuby/nuget/v3/index.json -ApiKey AzureArtifacts -Verbosity Detailed
-      #- task: NuGetCommand@2
-      #  displayName: 'NuGet push'
-      #  inputs:
-      #    command: push
-      #    publishVstsFeed: 'DigitalRuby/DigitalRuby'
+      #- script: nuget push $(Build.ArtifactStagingDirectory)/*.nupkg -NonInteractive -Source https://pkgs.dev.azure.com/DigitalRuby/DigitalRuby/_packaging/DigitalRuby/nuget/v3/index.json -ApiKey AzureArtifacts -Verbosity Detailed
+      - task: NuGetCommand@2
+        displayName: 'NuGet push'
+        inputs:
+          command: push
+          publishVstsFeed: 'DigitalRuby/DigitalRuby'
   - job: build_tag
     displayName: Build console app
     timeoutInMinutes: 5
