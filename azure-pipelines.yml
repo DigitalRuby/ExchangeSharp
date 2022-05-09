@@ -42,14 +42,24 @@ jobs:
     timeoutInMinutes: 2
     continueOnError: false
     pool:
-      vmImage: ubuntu-18.04
+      vmImage: ubuntu-latest
     steps:
+      - task: UseDotNet@2
+        displayName: 'Install current .NET Core SDK'
+        inputs:
+          packageType: sdk
+          version: 6.x
+      - task: DotNetCoreCLI@2
+        displayName: 'Restore'
+        inputs:
+           command: 'restore'
+           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
       - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
         inputs:
           command: 'build'
-          configuration: $(BuildConfiguration)
-          projects: 'src/ExchangeSharpConsole/ExchangeSharpConsole.csproj'
+          projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
+          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(Date:yyyyMMddHHmmss)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
@@ -62,20 +72,18 @@ jobs:
         displayName: 'NuGet Pack'
         inputs:
           command: pack
-          packagesToPack: '**/*.csproj'
+          packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
           packDestination: '$(Build.ArtifactStagingDirectory)'
-          versioningScheme: byPrereleaseNumber
-          majorVersion: '$(Major)'
-          minorVersion: '$(Minor)'
-          patchVersion: '$(Patch)'
-       - task: NuGetAuthenticate@0
-         displayName: 'NuGet Authenticate'
-       - task: NuGetCommand@2
-         displayName: 'NuGet push'
-         inputs:
-         command: push
-         publishVstsFeed: 'PublicProject/DigitalRuby'
-         allowPackageConflicts: true
+          versioningScheme: off
+      - task: NuGetToolInstaller@1
+      - task: NuGetAuthenticate@0
+        displayName: 'NuGet Authenticate'
+      #- script: nuget push $(Build.ArtifactStagingDirectory)/*.nupkg -NonInteractive -Source https://pkgs.dev.azure.com/DigitalRuby/DigitalRuby/_packaging/DigitalRuby/nuget/v3/index.json -ApiKey AzureArtifacts -Verbosity Detailed
+      - task: NuGetCommand@2
+        displayName: 'NuGet push'
+        inputs:
+          command: push
+          publishVstsFeed: DigitalRuby/DigitalRubyFeed
   - job: build_tag
     displayName: Build console app
     timeoutInMinutes: 5
