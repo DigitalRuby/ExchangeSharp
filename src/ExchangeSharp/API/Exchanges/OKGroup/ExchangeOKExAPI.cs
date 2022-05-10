@@ -30,8 +30,8 @@ namespace ExchangeSharp
 		public override string BaseUrl { get; set; } = "https://www.okex.com/api/v1";
 		public override string BaseUrlV2 { get; set; } = "https://www.okex.com/v2/spot";
 		public override string BaseUrlV3 { get; set; } = "https://www.okex.com/api";
-		public override string BaseUrlWebSocket { get; set; } = "wss://ws.okex.com:8443/ws/v5";
-		public string BaseUrlV5 { get; set; } = "https://www.okex.com/api/v5";
+		public override string BaseUrlWebSocket { get; set; } = "wss://ws.okx.com:8443/ws/v5";
+		public string BaseUrlV5 { get; set; } = "https://www.okx.com/api/v5";
 		protected override bool IsFuturesAndSwapEnabled { get; } = true;
 
 		private ExchangeOKExAPI()
