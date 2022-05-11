@@ -419,7 +419,7 @@ namespace ExchangeSharp
 			return await ConnectWebSocketOkexAsync(
 				async (_socket) =>
 				{
-					marketSymbols = await AddMarketSymbolsToChannel(_socket, "books-l2-tbt", marketSymbols);
+					marketSymbols = await AddMarketSymbolsToChannel(_socket, "books", marketSymbols);
 				}, (_socket, symbol, sArray, token) =>
 				{
 					ExchangeOrderBook book = token.ParseOrderBookFromJTokenArrays();
