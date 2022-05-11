@@ -60,7 +60,7 @@ jobs:
         inputs:
           command: 'build'
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate)' --output $(Build.ArtifactStagingDirectory)
+          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate) --output $(Build.ArtifactStagingDirectory)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
