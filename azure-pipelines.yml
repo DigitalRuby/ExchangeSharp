@@ -35,6 +35,7 @@ schedules:
 variables:
   BuildConfiguration: 'Release'
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  PipelineDate: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
 
 jobs:
   - job: build_ci
@@ -59,7 +60,7 @@ jobs:
         inputs:
           command: 'build'
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(pipeline.startTime)'
+          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
