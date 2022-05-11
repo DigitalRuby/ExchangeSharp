@@ -52,14 +52,14 @@ jobs:
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
         inputs:
-           command: 'restore'
-           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
+          command: 'restore'
+          projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
       - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
         inputs:
           command: 'build'
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
+          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
