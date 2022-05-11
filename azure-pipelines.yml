@@ -35,6 +35,7 @@ schedules:
 variables:
   BuildConfiguration: 'Release'
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  PipelineDate: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
 
 jobs:
   - job: build_ci
@@ -52,14 +53,14 @@ jobs:
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
         inputs:
-           command: 'restore'
-           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
+          command: 'restore'
+          projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
       - task: DotNetCoreCLI@2
         displayName: 'Build lib+console'
         inputs:
           command: 'build'
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(Date:yyyyMMddHHmmss)'
+          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate) --output $(Build.ArtifactStagingDirectory)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
@@ -68,22 +69,21 @@ jobs:
       #    projects: 'tests/*/*.csproj'
       #    publishTestResults: true
       #    testRunTitle: 'All tests'
-      - task: DotNetCoreCLI@2
-        displayName: 'NuGet Pack'
-        inputs:
-          command: pack
-          packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          packDestination: '$(Build.ArtifactStagingDirectory)'
-          versioningScheme: off
+      #- task: DotNetCoreCLI@2
+      #  displayName: 'NuGet Pack'
+      #  inputs:
+      #    command: pack
+      #    packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
+      #    packDestination: '$(Build.ArtifactStagingDirectory)'
+      #    versioningScheme: off
       - task: NuGetToolInstaller@1
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
-      #- script: nuget push $(Build.ArtifactStagingDirectory)/*.nupkg -NonInteractive -Source https://pkgs.dev.azure.com/DigitalRuby/DigitalRuby/_packaging/DigitalRuby/nuget/v3/index.json -ApiKey AzureArtifacts -Verbosity Detailed
       - task: NuGetCommand@2
         displayName: 'NuGet push'
         inputs:
           command: push
-          publishVstsFeed: DigitalRuby/DigitalRubyFeed
+          publishVstsFeed: DigitalRuby/DigitalRuby
   - job: build_tag
     displayName: Build console app
     timeoutInMinutes: 5
