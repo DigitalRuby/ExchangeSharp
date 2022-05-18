@@ -528,7 +528,7 @@ namespace ExchangeSharp
 			T jsonResult = JsonConvert.DeserializeObject<T>(result.Response, SerializerSettings);
 			if (jsonResult is JToken token)
 			{
-				return new IAPIRequestMaker.RequestResult<T>() { Response = (T)(object)CheckJsonResponse(token) };
+				return new IAPIRequestMaker.RequestResult<T>() { Response = (T)(object)CheckJsonResponse(token), HTTPHeaderDate = result.HTTPHeaderDate };
 			}
 			return new IAPIRequestMaker.RequestResult<T>() { Response = jsonResult, HTTPHeaderDate = result.HTTPHeaderDate };
 		}
