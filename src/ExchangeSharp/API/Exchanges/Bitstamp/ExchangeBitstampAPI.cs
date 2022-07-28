@@ -286,7 +286,10 @@ namespace ExchangeSharp
             }
             string _symbol = $"{baseCurrency}-{quoteCurrency}";
 
-            decimal amountFilled = 0, spentQuoteCurrency = 0, price = 0;
+            decimal amountFilled = 0;
+            decimal spentQuoteCurrency = 0;
+            decimal price = 0;
+            decimal fees = 0;
 
             foreach (var t in transactions)
             {
@@ -294,6 +297,7 @@ namespace ExchangeSharp
                 if (type != 2) { continue; }
                 spentQuoteCurrency += t[quoteCurrency].ConvertInvariant<decimal>();
                 amountFilled += t[baseCurrency].ConvertInvariant<decimal>();
+                fees += t["fee"].ConvertInvariant<decimal>();
                 //set price only one time
                 if (price == 0)
                 {
@@ -309,6 +313,8 @@ namespace ExchangeSharp
                 MarketSymbol = _symbol,
                 AveragePrice = spentQuoteCurrency / amountFilled,
                 Price = price,
+                Fees = fees,
+                FeesCurrency = quoteCurrency,
 				Result = status,
 				ResultCode = statusCode
 			};
