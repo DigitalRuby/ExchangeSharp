@@ -61,6 +61,14 @@ namespace ExchangeSharp.BinanceGroup
 			MarketSymbolIsUppercase = true;
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
 			ExchangeGlobalCurrencyReplacements["BCC"] = "BCH";
+			/* Binance rate limits are a combination of 3 things:
+			 * - 1200 request weights per 1 minute
+			 * - 100 orders per 10 seconds
+			 * - 200,000 orders per 1 day
+			 * - 5,000 raw requests per 5 min
+			 * Since the most restrictive is the 100 orders per 10 seconds, and OCO orders count for 2, we can conservatively do a little less than 50 per 10 seconds
+			 */
+			RateLimit = new RateGate(40, TimeSpan.FromSeconds(10)); // set to 9 to be safe
 		}
 
 		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
