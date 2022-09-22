@@ -101,7 +101,8 @@ namespace ExchangeSharp.BinanceGroup
 
 		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
 		{
-			var result = await MakeJsonRequestAsync<List<Currency>>("/capital/config/getall", BaseUrlSApi);
+			Dictionary<string, object> payload = await GetNoncePayloadAsync();
+			var result = await MakeJsonRequestAsync<List<Currency>>("/capital/config/getall", BaseUrlSApi, payload);
 
 			return result.ToDictionary(x => x.AssetCode, x => new ExchangeCurrency
 			{
