@@ -242,8 +242,15 @@ namespace ExchangeSharp.BinanceGroup
 			JToken obj = await MakeJsonRequestAsync<JToken>("/ticker/24hr", BaseUrlApi);
 			foreach (JToken child in obj)
 			{
-				string marketSymbol = child["symbol"].ToStringInvariant();
-				tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(marketSymbol, child)));
+				var marketSymbol = child["symbol"].ToStringInvariant();
+				try
+				{
+					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ParseTickerAsync(marketSymbol, child)));
+				}
+				catch
+				{
+					// ignored
+				}
 			}
 			return tickers;
 		}
