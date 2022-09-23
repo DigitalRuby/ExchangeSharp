@@ -104,7 +104,8 @@ namespace ExchangeSharp.BinanceGroup
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			var result = await MakeJsonRequestAsync<List<Currency>>("/capital/config/getall", BaseUrlSApi, payload);
 
-			return result.ToDictionary(x => x.AssetCode, x => new ExchangeCurrency
+			return result.Where(x => !string.IsNullOrWhiteSpace(x.AssetCode))
+				.ToDictionary(x => x.AssetCode, x => new ExchangeCurrency
 			{
 				Name = x.AssetCode,
 				FullName = x.AssetName,
