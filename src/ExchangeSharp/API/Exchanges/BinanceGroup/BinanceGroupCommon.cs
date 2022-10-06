@@ -68,7 +68,7 @@ namespace ExchangeSharp.BinanceGroup
 			 * - 5,000 raw requests per 5 min
 			 * Since the most restrictive is the 100 orders per 10 seconds, and OCO orders count for 2, we can conservatively do a little less than 50 per 10 seconds
 			 */
-			RateLimit = new RateGate(40, TimeSpan.FromSeconds(10)); // set to 9 to be safe
+			RateLimit = new RateGate(40, TimeSpan.FromSeconds(10));
 		}
 
 		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
