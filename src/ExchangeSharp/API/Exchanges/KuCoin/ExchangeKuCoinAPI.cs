@@ -62,6 +62,21 @@ namespace ExchangeSharp
             }
         }
 
+        protected override JToken CheckJsonResponse(JToken result)
+        {
+	        if (result == null)
+	        {
+		        throw new APIException("No result from server");
+	        }
+
+	        if (!string.IsNullOrWhiteSpace(result["msg"].ToStringInvariant()))
+	        {
+		        throw new APIException(result.ToStringInvariant());
+	        }
+
+	        return base.CheckJsonResponse(result);
+        }
+
 		#region ProcessRequest
 
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
