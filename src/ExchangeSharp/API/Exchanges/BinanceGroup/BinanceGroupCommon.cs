@@ -269,11 +269,21 @@ namespace ExchangeSharp.BinanceGroup
 				JToken token = JToken.Parse(msg.ToStringFromUTF8());
 				List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
 				ExchangeTicker ticker;
-				foreach (JToken childToken in token["data"])
+
+				// if it is the tickers stream, data will be an array, else it is an direct item.
+				var data = token["data"];
+				if (data is JArray)
+					foreach (JToken childToken in data)
+					{
+						ticker = await ParseTickerWebSocketAsync(childToken);
+						tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
+					}
+				else
 				{
-					ticker = await ParseTickerWebSocketAsync(childToken);
+					ticker = await ParseTickerWebSocketAsync(data);
 					tickerList.Add(new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
 				}
+
 				if (tickerList.Count != 0)
 				{
 					callback(tickerList);
