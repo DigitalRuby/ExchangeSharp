@@ -1363,6 +1363,29 @@ namespace ExchangeSharp
             return (decimal)Math.Pow(10, -1 * precision);
         }
 
+
+        /// <summary>
+        /// Precision to step size.
+        /// For example, precision of 5 would return a step size of 0.00001
+        /// </summary>
+        public static decimal PrecisionToStepSize(decimal precision)
+        {
+	        var sb = new StringBuilder();
+	        sb.Append("0");
+	        if (precision > 0) sb.Append(".");
+	        if (precision == 1)
+	        {
+		        sb.Append("1");
+		        return decimal.Parse(sb.ToStringInvariant());
+	        }
+	        for (var i = 0; i < precision; i++)
+	        {
+		        sb.Append(i + 1 == precision ? "1" : "0");
+	        }
+
+	        return decimal.Parse(sb.ToStringInvariant());
+        }
+
         /// <summary>
         /// Make a task execute synchronously - do not call this from the UI thread or it will lock up the application
         /// You should almos always use async / await instead
