@@ -19,14 +19,11 @@ namespace ExchangeSharp
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Net;
     using System.Threading.Tasks;
-
-    using Newtonsoft.Json;
 
     public sealed partial class ExchangePoloniexAPI : ExchangeAPI
     {
-        public override string BaseUrl { get; set; } = "https://poloniex.com";
+        public override string BaseUrl { get; set; } = "https://api.poloniex.com";
         public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
 
 		private ExchangePoloniexAPI()
@@ -275,15 +272,34 @@ namespace ExchangeSharp
             return await this.ParseTickerAsync(token, symbol, 2, 3, 1, 5, 6);
         }
 
+        public override string PeriodSecondsToString(int seconds)
+        {
+	        var allowedPeriods = new[]
+	        {
+		        "MINUTE_1", "MINUTE_5", "MINUTE_10", "MINUTE_15",
+		        "MINUTE_30", "HOUR_1", "HOUR_2", "HOUR_4", "HOUR_6",
+		        "HOUR_12", "DAY_1", "DAY_3", "WEEK_1", "MONTH_1"
+	        };
+	        var period = CryptoUtility.SecondsToPeriodStringLongReverse(seconds);
+	        var periodIsvalid = allowedPeriods.Any(x => x == period);
+	        if (!periodIsvalid) throw new ArgumentOutOfRangeException(nameof(period), $"{period} is not valid period on Poloniex");
+
+	        return period;
+        }
+
         protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
         {
-            if (CanMakeAuthenticatedRequest(payload))
-            {
-                string form = CryptoUtility.GetFormForPayload(payload);
-                request.AddHeader("Key", PublicApiKey.ToUnsecureString());
-                request.AddHeader("Sign", CryptoUtility.SHA512Sign(form, PrivateApiKey.ToUnsecureString()));
-                request.Method = "POST";
-                await CryptoUtility.WriteToRequestAsync(request, form);
+	        if (CanMakeAuthenticatedRequest(payload))
+	        {
+		        payload["signTimestamp"] = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
+		        var form = payload.GetFormForPayload();
+                var sig = $"{request.Method}\n" +
+                          $"{request.RequestUri.PathAndQuery}\n" +
+                          $"{form}";
+                request.AddHeader("key", PublicApiKey.ToUnsecureString());
+                request.AddHeader("signTimestamp", payload["signTimestamp"].ToStringInvariant());
+                request.AddHeader("signature", CryptoUtility.SHA256Sign(sig, PrivateApiKey.ToUnsecureString(), true));
+                await request.WriteToRequestAsync(form);
             }
         }
 
@@ -331,54 +347,50 @@ namespace ExchangeSharp
 
         protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
         {
-			//https://docs.poloniex.com/#returnticker
-			/*
-			  {
-			  "BTC_BTS": {
-				"id": 14,
-				"last": "0.00000090",
-				"lowestAsk": "0.00000091",
-				"highestBid": "0.00000089",
-				"percentChange": "-0.02173913",
-				"baseVolume": "0.28698296",
-				"quoteVolume": "328356.84081156",
-				"isFrozen": "0",
-				"postOnly": "0",
-				"high24hr": "0.00000093",
-				"low24hr": "0.00000087"
-			  },...
-             */
+			//https://api.poloniex.com/markets
+			// [
+			// {
+			// 	"symbol": "BTC_USDT",
+			// 	"baseCurrencyName": "BTC",
+			// 	"quoteCurrencyName": "USDT",
+			// 	"displayName": "BTC/USDT",
+			// 	"state": "NORMAL",
+			// 	"visibleStartTime": 1659018819512,
+			// 	"tradableStartTime": 1659018819512,
+			// 	"symbolTradeLimit": {
+			// 		"symbol": "BTC_USDT",
+			// 		"priceScale": 2,
+			// 		"quantityScale": 6, - base
+			// 		"amountScale": 2, - quote
+			// 		"minQuantity": "0.000001" - base,
+			// 		"minAmount": "1", - quote
+			// 		"highestBid": "0",
+			// 		"lowestAsk": "0"
+			// 	},
+			// 	"crossMargin": {
+			// 		"supportCrossMargin": true,
+			// 		"maxLeverage": 3
+			// 	}
+			// ]
 
 			var markets = new List<ExchangeMarket>();
-            Dictionary<string, JToken> lookup = await MakeJsonRequestAsync<Dictionary<string, JToken>>("/public?command=returnTicker");
-            // StepSize is 8 decimal places for both price and amount on everything at Polo
-            const decimal StepSize = 0.00000001m;
-            const decimal minTradeSize = 0.0001m;
+            var symbols = await MakeJsonRequestAsync<JToken>("/markets");
 
-            foreach (var kvp in lookup)
+            foreach (var symbol in symbols)
             {
-                var market = new ExchangeMarket { MarketSymbol = kvp.Key, IsActive = false };
-
-				string isFrozen = kvp.Value["isFrozen"].ToStringInvariant();
-				string postOnly = kvp.Value["postOnly"].ToStringInvariant();
-				if (string.Equals(isFrozen, "0") && string.Equals(postOnly, "0"))
-                {
-                    market.IsActive = true;
-                }
-
-                string[] pairs = kvp.Key.Split('_');
-                if (pairs.Length == 2)
-                {
-					market.MarketId = kvp.Value["id"].ToStringLowerInvariant();
-					market.QuoteCurrency = pairs[0];
-                    market.BaseCurrency = pairs[1];
-                    market.PriceStepSize = StepSize;
-                    market.QuantityStepSize = StepSize;
-                    market.MinPrice = StepSize;
-                    market.MinTradeSize = minTradeSize;
-                }
-
-                markets.Add(market);
+	            var market = new ExchangeMarket
+	            {
+		            MarketSymbol = symbol["symbol"].ToStringInvariant(),
+		            IsActive = ParsePairState(symbol["state"].ToStringInvariant()),
+		            BaseCurrency = symbol["baseCurrencyName"].ToStringInvariant(),
+		            QuoteCurrency = symbol["quoteCurrencyName"].ToStringInvariant(),
+		            MinTradeSize = symbol["symbolTradeLimit"]["minQuantity"].Value<decimal>(),
+		            MinTradeSizeInQuoteCurrency = symbol["symbolTradeLimit"]["minAmount"].Value<decimal>(),
+		            PriceStepSize = CryptoUtility.PrecisionToStepSize(symbol["symbolTradeLimit"]["priceScale"].Value<decimal>()),
+		            QuantityStepSize = CryptoUtility.PrecisionToStepSize(symbol["symbolTradeLimit"]["quantityScale"].Value<decimal>()),
+		            MarginEnabled = symbol["crossMargin"]["supportCrossMargin"].Value<bool>()
+	            };
+	            markets.Add(market);
             }
 
             return markets;
@@ -399,17 +411,38 @@ namespace ExchangeSharp
 
         protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
         {
-            // {"BTC_LTC":{"last":"0.0251","lowestAsk":"0.02589999","highestBid":"0.0251","percentChange":"0.02390438","baseVolume":"6.16485315","quoteVolume":"245.82513926"}
-            List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/public?command=returnTicker");
-            foreach (JProperty prop in obj.Children())
+	        //https://api.poloniex.com/markets/ticker24h
+	        // [ {
+		       //  "symbol" : "BTS_BTC",
+		       //  "open" : "0.0000005026",
+		       //  "low" : "0.0000004851",
+		       //  "high" : "0.0000005799",
+		       //  "close" : "0.0000004851",
+		       //  "quantity" : "34444",
+		       //  "amount" : "0.0179936481",
+		       //  "tradeCount" : 48,
+		       //  "startTime" : 1676918100000,
+		       //  "closeTime" : 1677004501011,
+		       //  "displayName" : "BTS/BTC",
+		       //  "dailyChange" : "-0.0348",
+		       //  "bid" : "0.0000004852",
+		       //  "bidQuantity" : "725",
+		       //  "ask" : "0.0000004962",
+		       //  "askQuantity" : "238",
+		       //  "ts" : 1677004503839,
+		       //  "markPrice" : "0.000000501"
+	        // }]
+            var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+            var tickerResponse = await MakeJsonRequestAsync<JToken>("/markets/ticker24h");
+            foreach (var instrument in tickerResponse)
             {
-                string marketSymbol = prop.Name;
-                JToken values = prop.Value;
-                //NOTE: Poloniex uses the term "caseVolume" when referring to the QuoteCurrencyVolume
-                ExchangeTicker ticker = await this.ParseTickerAsync(values, marketSymbol, "lowestAsk", "highestBid", "last", "quoteVolume", "baseVolume", idKey: "id");
-                tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, ticker));
+	            var symbol = instrument["symbol"].ToStringInvariant();
+	            var ticker = await this.ParseTickerAsync(
+		            instrument, symbol, askKey: "ask", bidKey: "bid", baseVolumeKey: "quantity", lastKey: "close",
+		            quoteVolumeKey: "amount", timestampKey: "ts", timestampType: TimestampType.UnixMilliseconds);
+	            tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
             }
+
             return tickers;
         }
 
@@ -602,108 +635,94 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
         {
-            // {"asks":[["0.01021997",22.83117932],["0.01022000",82.3204],["0.01022480",140],["0.01023054",241.06436945],["0.01023057",140]],"bids":[["0.01020233",164.195],["0.01020232",66.22565096],["0.01020200",5],["0.01020010",66.79296968],["0.01020000",490.19563761]],"isFrozen":"0","seq":147171861}
-            JToken token = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=" + marketSymbol + "&depth=" + maxCount);
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(token);
+	        //https://api.poloniex.com/markets/{symbol}/orderBook?scale={scale}&limit={limit}
+	        // {
+		       //  "time" : 1677005825632,
+		       //  "scale" : "0.01",
+		       //  "asks" : [ "24702.89", "0.046082", "24702.90", "0.001681", "24703.09", "0.002037", "24710.10", "0.143572", "24712.18", "0.00118", "24713.68", "0.606951", "24724.80", "0.133", "24728.93", "0.7", "24728.94", "0.4", "24737.10", "0.135203" ],
+		       //  "bids" : [ "24700.03", "1.006472", "24700.02", "0.001208", "24698.71", "0.607319", "24697.99", "0.001973", "24688.50", "0.133", "24679.41", "0.4", "24679.40", "0.135", "24678.55", "0.3", "24667.00", "0.262", "24661.39", "0.14" ],
+		       //  "ts" : 1677005825637
+	        // }
+	        var response = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}/orderBook?limit={maxCount}");
+            return response.ParseOrderBookFromJTokenArray();
         }
 
-        protected override async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100)
-        {
-            List<KeyValuePair<string, ExchangeOrderBook>> books = new List<KeyValuePair<string, ExchangeOrderBook>>();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/public?command=returnOrderBook&currencyPair=all&depth=" + maxCount);
-            foreach (JProperty token in obj.Children())
-            {
-                ExchangeOrderBook book = new ExchangeOrderBook();
-                foreach (JArray array in token.First["asks"])
-                {
-                    var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
-                    book.Asks[depth.Price] = depth;
-                }
-                foreach (JArray array in token.First["bids"])
-                {
-                    var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
-                    book.Bids[depth.Price] = depth;
-                }
-                books.Add(new KeyValuePair<string, ExchangeOrderBook>(token.Name, book));
-            }
-            return books;
-        }
-
-		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+        protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
 		{
-			List<ExchangeTrade> trades = new List<ExchangeTrade>();
-			//https://docs.poloniex.com/#returnorderbook note poloniex limit = 1000
-			int requestLimit = (limit == null || limit < 1 || limit > 1000) ? 1000 : (int)limit;
-			string url = "/public?command=returnTradeHistory&currencyPair=" + marketSymbol + "&limit=" + requestLimit ;
+			//https://api.poloniex.com/markets/{symbol}/trades?limit={limit}
+			// Returns a list of recent trades, request param limit is optional, its default value is 500, and max value is 1000.
+			// [
+			// {
+			// 	"id": "194",
+			// 	"price": "1.9",
+			// 	"quantity": "110",
+			// 	"amount": "209.00",
+			// 	"takerSide": "SELL",
+			// 	"ts": 1648690080545,
+			// 	"createTime": 1648634905695
+			// }
+			// ]
 
-			//JToken obj = await MakeJsonRequestAsync<JToken>($"/aggTrades?symbol={marketSymbol}&limit={maxRequestLimit}");
-			JToken obj = await MakeJsonRequestAsync<JToken>(url);
+			limit = (limit == null || limit < 1 || limit > 1000) ? 1000 : limit;
 
-			//JToken obj = await MakeJsonRequestAsync<JToken>("/public/trades/" + marketSymbol + "?limit=" + maxRequestLimit + "?sort=DESC");
-			if(obj.HasValues) { //
-				foreach(JToken token in obj) {
-					var trade = token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601UTC, "globalTradeID");
-					trades.Add(trade);
-				}
-			}
+			var tradesResponse = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}/trades?limit={limit}");
+
+			var trades = tradesResponse
+				.Select(t =>
+					t.ParseTrade(
+						amountKey: "amount", priceKey: "price", typeKey: "takerSide",
+						timestampKey: "ts", TimestampType.UnixMilliseconds, idKey: "id",
+						typeKeyIsBuyValue: "BUY")).ToList();
+
 			return trades;
 		}
 
-		protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-        {
-            // [{"globalTradeID":245321705,"tradeID":11501281,"date":"2017-10-20 17:39:17","type":"buy","rate":"0.01022188","amount":"0.00954454","total":"0.00009756"},...]
-            ExchangeHistoricalTradeHelper state = new ExchangeHistoricalTradeHelper(this)
-            {
-                Callback = callback,
-                EndDate = endDate,
-                MillisecondGranularity = false,
-                ParseFunction = (JToken token) => token.ParseTrade("amount", "rate", "type", "date", TimestampType.Iso8601UTC, "globalTradeID"),
-                StartDate = startDate,
-                MarketSymbol = marketSymbol,
-                TimestampFunction = (DateTime dt) => ((long)CryptoUtility.UnixTimestampFromDateTimeSeconds(dt)).ToStringInvariant(),
-                Url = "/public?command=returnTradeHistory&currencyPair=[marketSymbol]&start={0}&end={1}"
-            };
-            await state.ProcessHistoricalTrades();
-        }
-
         protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
         {
-            if (limit != null)
-            {
-                throw new APIException("Limit parameter not supported");
-            }
+	        //https://api.poloniex.com/markets/{symbol}/candles?interval={interval}&limit={limit}&startTime={startTime}&endTime={endTime}
+	        // [
+	        // [
+	        // "45218",
+	        // "47590.82",
+	        // "47009.11",
+	        // "45516.6",
+	        // "13337805.8",
+	        // "286.639111",
+	        // "0",
+	        // "0",
+	        // 0,
+	        // 0,
+	        // "46531.7",
+	        // "DAY_1",
+	        // 1648684800000,
+	        // 1648771199999
+	        //  ]
+		    //  ]
+		    limit = (limit == null || limit < 1 || limit > 500) ? 500 : limit;
+	        var period = PeriodSecondsToString(periodSeconds);
+	        var url = $"/markets/{marketSymbol}/candles?interval={period}&limit={limit}";
+	        if (startDate != null)
+	        {
+		        url = $"{url}&startTime={new DateTimeOffset(startDate.Value).ToUnixTimeMilliseconds()}";
+	        }
+	        if (endDate != null)
+	        {
+		        url = $"{url}&endTime={new DateTimeOffset(endDate.Value).ToUnixTimeMilliseconds()}";
+	        }
 
-            // https://poloniex.com/public?command=returnChartData&currencyPair=BTC_XMR&start=1405699200&end=9999999999&period=14400
-            // [{"date":1405699200,"high":0.0045388,"low":0.00403001,"open":0.00404545,"close":0.00435873,"volume":44.34555992,"quoteVolume":10311.88079097,"weightedAverage":0.00430043}]
-            string url = "/public?command=returnChartData&currencyPair=" + marketSymbol;
-            if (startDate != null)
-            {
-                url += "&start=" + (long)startDate.Value.UnixTimestampFromDateTimeSeconds();
-            }
-            url += "&end=" + (endDate == null ? long.MaxValue.ToStringInvariant() : ((long)endDate.Value.UnixTimestampFromDateTimeSeconds()).ToStringInvariant());
-            url += "&period=" + periodSeconds.ToStringInvariant();
-            JToken token = await MakeJsonRequestAsync<JToken>(url);
-            List<MarketCandle> candles = new List<MarketCandle>();
-            foreach (JToken candle in token)
-            {
-                candles.Add(this.ParseCandle(candle, marketSymbol, periodSeconds, "open", "high", "low", "close", "date", TimestampType.UnixSeconds, "quoteVolume", "volume", "weightedAverage"));
-            }
-            return candles;
+	        var candleResponse = await MakeJsonRequestAsync<JToken>(url);
+	        return candleResponse
+		        .Select(cr => this.ParseCandle(
+			        cr, marketSymbol, periodSeconds, 2, 1, 0, 3, 12, TimestampType.UnixMilliseconds,
+			        5, 4, 10))
+		        .ToList();
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-            JToken result = await MakePrivateAPIRequestAsync("returnCompleteBalances");
-            foreach (JProperty child in result.Children())
-            {
-                decimal amount = child.Value["available"].ConvertInvariant<decimal>();
-                if (amount > 0m)
-                {
-                    amounts[child.Name] = amount;
-                }
-            }
-            return amounts;
+	        Dictionary<string, object> payload = await GetNoncePayloadAsync();
+	        var response =  await MakeJsonRequestAsync<JToken>("/accounts/balances", payload: payload);
+            return null;
         }
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
@@ -1068,6 +1087,13 @@ namespace ExchangeSharp
             // Stay safe and don't return a possibly half-baked deposit address missing a tag
             return false;
 
+        }
+
+        private static bool ParsePairState(string state)
+        {
+	        if (string.IsNullOrWhiteSpace(state)) return false;
+
+	        return state == "NORMAL";
         }
 
         /// <summary>
