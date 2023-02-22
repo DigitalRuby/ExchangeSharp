@@ -1220,6 +1220,48 @@ namespace ExchangeSharp
         }
 
         /// <summary>
+        /// Convert seconds to a period string, i.e. SECOND_5, MINUTE_1, HOUR_2, DAY_3, WEEK_1week, MONTH_1, YEAR_1 etc.
+        /// </summary>
+        /// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+        /// <returns>Period string</returns>
+        public static string SecondsToPeriodStringLongReverse(int seconds)
+        {
+	        const int minuteThreshold = 60;
+	        const int hourThreshold = 60 * 60;
+	        const int dayThreshold = 60 * 60 * 24;
+	        const int weekThreshold = dayThreshold * 7;
+	        const int monthThreshold = dayThreshold * 30;
+	        const int yearThreshold = monthThreshold * 12;
+
+	        if (seconds >= yearThreshold)
+	        {
+		        return $"YEAR_{seconds / yearThreshold}";
+	        }
+	        if (seconds >= monthThreshold)
+	        {
+		        return $"MONTH_{seconds / monthThreshold}";
+	        }
+	        if (seconds >= weekThreshold)
+	        {
+		        return $"WEEK_{seconds / weekThreshold}";
+	        }
+	        if (seconds >= dayThreshold)
+	        {
+		        return $"DAY_{seconds / dayThreshold}";
+	        }
+	        if (seconds >= hourThreshold)
+	        {
+		        return $"HOUR_{seconds / hourThreshold}";
+	        }
+	        if (seconds >= minuteThreshold)
+	        {
+		        return $"MINUTE_{seconds / minuteThreshold}";
+	        }
+
+	        return $"SECOND_{seconds}";
+        }
+
+        /// <summary>
         /// Load protected data as strings from file. Call this function in your production environment, loading in a securely encrypted file which will stay encrypted in memory.
         /// </summary>
         /// <param name="path">Path to load from</param>
