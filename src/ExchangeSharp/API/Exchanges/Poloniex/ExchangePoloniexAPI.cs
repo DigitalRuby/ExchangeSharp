@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System.Diagnostics;
+using System.Web;
 
 namespace ExchangeSharp
 {
@@ -294,11 +295,11 @@ namespace ExchangeSharp
 		        payload["signTimestamp"] = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
 		        var form = payload.GetFormForPayload();
                 var sig = $"{request.Method}\n" +
-                          $"{request.RequestUri.PathAndQuery}\n" +
-                          $"{form}";
+                $"{request.RequestUri.PathAndQuery}\n" +
+                $"{HttpUtility.UrlEncode(form)}";
                 request.AddHeader("key", PublicApiKey.ToUnsecureString());
+                request.AddHeader("signature", CryptoUtility.SHA256Sign(sig, PrivateApiKey.ToUnsecureString()));
                 request.AddHeader("signTimestamp", payload["signTimestamp"].ToStringInvariant());
-                request.AddHeader("signature", CryptoUtility.SHA256Sign(sig, PrivateApiKey.ToUnsecureString(), true));
                 await request.WriteToRequestAsync(form);
             }
         }
@@ -720,7 +721,8 @@ namespace ExchangeSharp
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-	        Dictionary<string, object> payload = await GetNoncePayloadAsync();
+	        // Dictionary<string, object> payload = await GetNoncePayloadAsync();
+	        Dictionary<string, object> payload = new Dictionary<string, object>();
 	        var response =  await MakeJsonRequestAsync<JToken>("/accounts/balances", payload: payload);
             return null;
         }
