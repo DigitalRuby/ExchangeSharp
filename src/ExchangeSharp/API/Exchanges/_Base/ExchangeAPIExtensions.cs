@@ -351,6 +351,46 @@ namespace ExchangeSharp
 			return result;
 		}
 
+		/// <summary>Common order book parsing method, some exchanges (like Poloniex) use single array for the whole depth (price and qty) like
+		/// "asks" : [ "24500.00", "0.024105", "24513.16", "0.611916", "24514.27", "0.001987"]</summary>
+		/// <param name="token">Token</param>
+		/// <param name="asks">Asks key</param>
+		/// <param name="bids">Bids key</param>
+		/// <param name="sequence">Timestamp or sequence number</param>
+		/// <returns>Order book</returns>
+		internal static ExchangeOrderBook ParseOrderBookFromJTokenArray
+		(
+			this JToken token,
+			string asks = "asks",
+			string bids = "bids",
+			string sequence = "ts"
+		)
+		{
+			var book = new ExchangeOrderBook { SequenceId = (token[sequence] ?? throw new InvalidOperationException()).ConvertInvariant<long>() };
+			var asksCount = (token[asks] ?? throw new InvalidOperationException()).Count();
+			var bidsCount = (token[bids] ?? throw new InvalidOperationException()).Count();
+
+			for (var i = 0; i < asksCount; i++)
+			{
+				if (i % 2 != 0) continue;
+				var price = token[asks][i].Value<decimal>();
+				var amount = token[asks][i+1].Value<decimal>();
+				var depth = new ExchangeOrderPrice { Price = price, Amount = amount };
+				book.Asks[depth.Price] = depth;
+			}
+
+			for (var i = 0; i < bidsCount; i++)
+			{
+				if (i % 2 != 0) continue;
+				var price = token[bids][i].Value<decimal>();
+				var amount = token[bids][i+1].Value<decimal>();
+				var depth = new ExchangeOrderPrice { Price = price, Amount = amount };
+				book.Bids[depth.Price] = depth;
+			}
+
+			return book;
+		}
+
 		/// <summary>Common order book parsing method, most exchanges use "asks" and "bids" with
 		/// arrays of length 2 for price and amount (or amount and price)</summary>
 		/// <param name="token">Token</param>
