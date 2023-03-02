@@ -187,7 +187,7 @@ namespace ExchangeSharpTests
             {
                 foreach (JToken token in array)
                 {
-                    orders.Add(polo.ParseOpenOrder(token));
+                    orders.Add(ExchangePoloniexAPI.ParseOrder(token));
                 }
             }
 
@@ -202,7 +202,7 @@ namespace ExchangeSharpTests
         {
             var polo = await CreatePoloniexAPI();
             var marketOrders = JsonConvert.DeserializeObject<JToken>(Unfilled);
-            ExchangeOrderResult order = polo.ParseOpenOrder(marketOrders[0]);
+            var order = ExchangePoloniexAPI.ParseOrder(marketOrders[0]);
             order.OrderId.Should().Be("35329211614");
             order.IsBuy.Should().BeTrue();
             order.AmountFilled.Should().Be(0);
