@@ -475,80 +475,15 @@ namespace ExchangeSharp
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
 			Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
-			params string[] marketSymbols)
-		{
-			Dictionary<int, string> messageIdToSymbol = new Dictionary<int, string>();
-			Dictionary<string, int> symbolToMessageId = new Dictionary<string, int>();
-			var symMeta = await GetMarketSymbolsMetadataAsync();
-			foreach (var symbol in symMeta)
-			{
-				messageIdToSymbol.Add(int.Parse(symbol.MarketId), symbol.MarketSymbol);
-				symbolToMessageId.Add(symbol.MarketSymbol, int.Parse(symbol.MarketId));
-			}
-
-			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
-			{
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
-				if (token.Type == JTokenType.Object && token["error"] != null)
-					throw new APIException($"Exchange returned error: {token["error"].ToStringInvariant()}");
-				int msgId = token[0].ConvertInvariant<int>();
-
-				if (msgId == 1010 || token.Count() == 2) // "[7,2]"
+			params string[] marketSymbols) =>
+			await ConnectWebsocketPublicAsync(
+				async (socket) => { await SubscribeToChannel(socket, "trades", marketSymbols); },
+				async (socket, symbol, sArray, token) =>
 				{
-					// this is a heartbeat message
-					return;
-				}
-
-				var seq = token[1].ConvertInvariant<long>();
-				var dataArray = token[2];
-				foreach (var data in dataArray)
-				{
-					var dataType = data[0].ToStringInvariant();
-					if (dataType == "i")
-					{
-						// can also populate messageIdToSymbol from here
-						continue;
-					}
-					else if (dataType == "t")
-					{
-						if (messageIdToSymbol.TryGetValue(msgId, out string symbol))
-						{
-							//   0        1                 2                  3         4          5            6
-							// ["t", "<trade id>", <1 for buy 0 for sell>, "<price>", "<size>", <timestamp>, "<epoch_ms>"]
-							ExchangeTrade trade = data.ParseTrade(amountKey: 4, priceKey: 3, typeKey: 2,
-								timestampKey: 6,
-								timestampType: TimestampType.UnixMilliseconds, idKey: 1, typeKeyIsBuyValue: "1");
-							await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-						}
-					}
-					else if (dataType == "o")
-					{
-						continue;
-					}
-					else
-					{
-						continue;
-					}
-				}
-			}, async (_socket) =>
-			{
-				IEnumerable<int> marketIDs = null;
-				if (marketSymbols == null || marketSymbols.Length == 0)
-				{
-					marketIDs = messageIdToSymbol.Keys;
-				}
-				else
-				{
-					marketIDs = marketSymbols.Select(s => symbolToMessageId[s]);
-				}
-
-				// subscribe to order book and trades channel for each symbol
-				foreach (var id in marketIDs)
-				{
-					await _socket.SendMessageAsync(new { command = "subscribe", channel = id });
-				}
-			});
-		}
+					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price", typeKey: "takerSide",
+						timestampKey: "ts", TimestampType.UnixMilliseconds, idKey: "id");
+					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+				});
 
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
 			Action<ExchangeOrderBook> callback,
