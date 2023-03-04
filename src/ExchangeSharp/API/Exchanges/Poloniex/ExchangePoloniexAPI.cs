@@ -458,9 +458,8 @@ namespace ExchangeSharp
 
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(
 			Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
-			params string[] symbols)
-		{
-			return await ConnectWebsocketPublicAsync(
+			params string[] symbols) =>
+			await ConnectWebsocketPublicAsync(
 				async (socket) => { await SubscribeToChannel(socket, "ticker", symbols); },
 				async (socket, symbol, sArray, token) =>
 				{
@@ -471,7 +470,6 @@ namespace ExchangeSharp
 					};
 					callback(tickers);
 				});
-		}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
 			Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
@@ -490,96 +488,17 @@ namespace ExchangeSharp
 			int maxCount = 20,
 			params string[] marketSymbols)
 		{
-			Dictionary<int, Tuple<string, long>> messageIdToSymbol = new Dictionary<int, Tuple<string, long>>();
-			return await ConnectPublicWebSocketAsync(string.Empty, (_socket, msg) =>
-			{
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
-				int msgId = token[0].ConvertInvariant<int>();
-
-				//return if this is a heartbeat message
-				if (msgId == 1010)
+			return await ConnectWebsocketPublicAsync(
+				async (socket) =>
 				{
-					return Task.CompletedTask;
-				}
-
-				var seq = token[1].ConvertInvariant<long>();
-				var dataArray = token[2];
-				ExchangeOrderBook book = new ExchangeOrderBook();
-				foreach (var data in dataArray)
+					await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount);
+				}, (socket, symbol, sArray, token) =>
 				{
-					var dataType = data[0].ToStringInvariant();
-					if (dataType == "i")
-					{
-						var marketInfo = data[1];
-						var market = marketInfo["currencyPair"].ToStringInvariant();
-						messageIdToSymbol[msgId] = new Tuple<string, long>(market, 0);
-
-						// we are only returning the deltas, this would create a full order book which we don't want, but keeping it
-						//  here for historical reference
-						/*
-						foreach (JProperty jprop in marketInfo["orderBook"][0].Cast<JProperty>())
-						{
-						    var depth = new ExchangeOrderPrice
-						    {
-						        Price = jprop.Name.ConvertInvariant<decimal>(),
-						        Amount = jprop.Value.ConvertInvariant<decimal>()
-						    };
-						    book.Asks[depth.Price] = depth;
-						}
-						foreach (JProperty jprop in marketInfo["orderBook"][1].Cast<JProperty>())
-						{
-						    var depth = new ExchangeOrderPrice
-						    {
-						        Price = jprop.Name.ConvertInvariant<decimal>(),
-						        Amount = jprop.Value.ConvertInvariant<decimal>()
-						    };
-						    book.Bids[depth.Price] = depth;
-						}
-						*/
-					}
-					else if (dataType == "o")
-					{
-						//removes or modifies an existing item on the order books
-						if (messageIdToSymbol.TryGetValue(msgId, out Tuple<string, long> symbol))
-						{
-							int type = data[1].ConvertInvariant<int>();
-							var depth = new ExchangeOrderPrice
-							{
-								Price = data[2].ConvertInvariant<decimal>(),
-								Amount = data[3].ConvertInvariant<decimal>()
-							};
-							var list = (type == 1 ? book.Bids : book.Asks);
-							list[depth.Price] = depth;
-							book.MarketSymbol = symbol.Item1;
-							book.SequenceId = symbol.Item2 + 1;
-							messageIdToSymbol[msgId] = new Tuple<string, long>(book.MarketSymbol, book.SequenceId);
-						}
-					}
-					else
-					{
-						continue;
-					}
-				}
-
-				if (book != null && (book.Asks.Count != 0 || book.Bids.Count != 0))
-				{
+					var book = token.ParseOrderBookFromJTokenArrays();
+					book.MarketSymbol = symbol;
 					callback(book);
-				}
-
-				return Task.CompletedTask;
-			}, async (_socket) =>
-			{
-				if (marketSymbols == null || marketSymbols.Length == 0)
-				{
-					marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-				}
-
-				// subscribe to order book and trades channel for each symbol
-				foreach (var sym in marketSymbols)
-				{
-					await _socket.SendMessageAsync(new { command = "subscribe", channel = NormalizeMarketSymbol(sym) });
-				}
-			});
+					return Task.CompletedTask;
+				});
 		}
 
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
@@ -1097,6 +1016,30 @@ namespace ExchangeSharp
 				Event = "subscribe",
 				Channel = new[] { channel },
 				Symbols = marketSymbols
+			}, SerializerSettings);
+
+			await socket.SendMessageAsync(payload);
+		}
+
+		private async Task SubscribeToOrderBookDepthChannel(
+			IWebSocket socket,
+			string[] marketSymbols,
+			int depth = 20)
+		{
+			var depthIsValid = depth == 5 || depth == 10 || depth == 20;
+			if (!depthIsValid)
+				throw new ArgumentOutOfRangeException(nameof(depth));
+			if (marketSymbols.Length == 0)
+			{
+				marketSymbols = (await OnGetMarketSymbolsAsync()).ToArray();
+			}
+
+			var payload = JsonConvert.SerializeObject(new
+			{
+				Event = "subscribe",
+				Channel = new[] { "book" },
+				Symbols = marketSymbols,
+				Depth = depth
 			}, SerializerSettings);
 
 			await socket.SendMessageAsync(payload);
