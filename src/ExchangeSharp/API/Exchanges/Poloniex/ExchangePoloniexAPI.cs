@@ -11,6 +11,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 using System.Diagnostics;
+using System.Threading;
+using Newtonsoft.Json;
 
 namespace ExchangeSharp
 {
@@ -24,7 +26,7 @@ namespace ExchangeSharp
 	public sealed partial class ExchangePoloniexAPI : ExchangeAPI
 	{
 		public override string BaseUrl { get; set; } = "https://api.poloniex.com";
-		public override string BaseUrlWebSocket { get; set; } = "wss://api2.poloniex.com";
+		public override string BaseUrlWebSocket { get; set; } = "wss://ws.poloniex.com/ws";
 
 		private ExchangePoloniexAPI()
 		{
@@ -222,18 +224,25 @@ namespace ExchangeSharp
 
 		private async Task<ExchangeTicker> ParseTickerWebSocketAsync(string symbol, JToken token)
 		{
-			/*
-			last: args[1],
-			lowestAsk: args[2],
-			highestBid: args[3],
-			percentChange: args[4],
-			baseVolume: args[5],
-			quoteVolume: args[6],
-			isFrozen: args[7],
-			high24hr: args[8],
-			low24hr: args[9]
-			*/
-			return await this.ParseTickerAsync(token, symbol, 2, 3, 1, 5, 6);
+			// {
+			// 	"symbol": "ETH_USDT",
+			// 	"dailyChange": "0.9428",
+			// 	"high": "507",
+			// 	"amount": "20",
+			// 	"quantity": "3",
+			// 	"tradeCount": 11,
+			// 	"low": "16",
+			// 	"closeTime": 1634062351868,
+			// 	"startTime": 1633996800000,
+			// 	"close": "204",
+			// 	"open": "105",
+			// 	"ts": 1648052794867,
+			// 	"markPrice": "205",
+			// }
+
+			return await this.ParseTickerAsync(token, symbol, askKey: null, bidKey: null, lastKey: "close",
+				baseVolumeKey: "quantity", quoteVolumeKey: "amount", timestampKey: "ts",
+				TimestampType.UnixMilliseconds);
 		}
 
 		public override string PeriodSecondsToString(int seconds)
@@ -451,34 +460,17 @@ namespace ExchangeSharp
 			Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
 			params string[] symbols)
 		{
-			Dictionary<string, string> idsToSymbols = new Dictionary<string, string>();
-			return await ConnectPublicWebSocketAsync(string.Empty, async (_socket, msg) =>
-			{
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
-				if (token[0].ConvertInvariant<int>() == 1002)
+			return await ConnectWebsocketPublicAsync(
+				async (socket) => { await SubscribeToChannel(socket, "ticker", symbols); },
+				async (socket, symbol, sArray, token) =>
 				{
-					if (token is JArray outerArray && outerArray.Count > 2 && outerArray[2] is JArray array &&
-					    array.Count > 9 &&
-					    idsToSymbols.TryGetValue(array[0].ToStringInvariant(), out string symbol))
+					var tickers = new List<KeyValuePair<string, ExchangeTicker>>
 					{
-						callback.Invoke(new List<KeyValuePair<string, ExchangeTicker>>
-						{
-							new KeyValuePair<string, ExchangeTicker>(symbol,
-								await ParseTickerWebSocketAsync(symbol, array))
-						});
-					}
-				}
-			}, async (_socket) =>
-			{
-				var tickers = await GetTickersAsync();
-				foreach (var ticker in tickers)
-				{
-					idsToSymbols[ticker.Value.Id] = ticker.Key;
-				}
-
-				// subscribe to ticker channel (1002)
-				await _socket.SendMessageAsync(new { command = "subscribe", channel = 1002 });
-			});
+						new KeyValuePair<string, ExchangeTicker>(symbol,
+							await this.ParseTickerWebSocketAsync(symbol, token))
+					};
+					callback(tickers);
+				});
 		}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
@@ -1111,6 +1103,68 @@ namespace ExchangeSharp
 			}
 
 			return details;
+		}
+
+		private Task<IWebSocket> ConnectWebsocketPublicAsync(
+			Func<IWebSocket, Task> connected,
+			Func<IWebSocket, string, string[], JToken, Task> callback)
+		{
+			Timer pingTimer = null;
+			return ConnectPublicWebSocketAsync(
+				url: "/public",
+				messageCallback: async (socket, msg) =>
+				{
+					var token = JToken.Parse(msg.ToStringFromUTF8());
+					var eventType = token["event"]?.ToStringInvariant();
+					if (eventType != null)
+					{
+						if (eventType != "error") return;
+						Logger.Info("Websocket unable to connect: " + token["msg"]?.ToStringInvariant());
+						return;
+					}
+
+					if (token["data"] == null) return;
+
+					foreach (var d in token["data"])
+					{
+						await callback(socket, d["symbol"]?.ToStringInvariant(), null, d);
+					}
+				},
+				connectCallback: async (socket) =>
+				{
+					await connected(socket);
+					pingTimer ??= new Timer(
+						callback: async s =>
+							await socket.SendMessageAsync(
+								JsonConvert.SerializeObject(new { Event = "ping" }, SerializerSettings)),
+						null, 0, 15000);
+				},
+				disconnectCallback: socket =>
+				{
+					pingTimer?.Dispose();
+					pingTimer = null;
+					return Task.CompletedTask;
+				});
+		}
+
+		private static async Task SubscribeToChannel(
+			IWebSocket socket,
+			string channel,
+			string[] marketSymbols)
+		{
+			if (marketSymbols.Length == 0)
+			{
+				marketSymbols = new[] { "all" };
+			}
+
+			var payload = JsonConvert.SerializeObject(new
+			{
+				Event = "subscribe",
+				Channel = new[] { channel },
+				Symbols = marketSymbols
+			}, SerializerSettings);
+
+			await socket.SendMessageAsync(payload);
 		}
 	}
 
