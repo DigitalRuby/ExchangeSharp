@@ -838,20 +838,16 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
 			Action<ExchangeOrderBook> callback,
 			int maxCount = 20,
-			params string[] marketSymbols)
-		{
-			return await ConnectWebsocketPublicAsync(
-				async (socket) =>
-				{
-					await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount);
-				}, (socket, symbol, sArray, token) =>
+			params string[] marketSymbols) =>
+			await ConnectWebsocketPublicAsync(
+				async (socket) => { await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount); },
+				(socket, symbol, sArray, token) =>
 				{
 					var book = token.ParseOrderBookFromJTokenArrays();
 					book.MarketSymbol = symbol;
 					callback(book);
 					return Task.CompletedTask;
 				});
-		}
 
 		private static string ParseFeesCurrency(bool isBuy, string symbol)
 		{
