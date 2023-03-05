@@ -849,6 +849,24 @@ namespace ExchangeSharp
 					return Task.CompletedTask;
 				});
 
+		protected override async Task<IWebSocket> OnGetCandlesWebSocketAsync(
+			Func<MarketCandle, Task> callback,
+			int periodSeconds,
+			params string[] marketSymbols) =>
+			await ConnectWebsocketPublicAsync(
+				async (socket) =>
+				{
+					await SubscribeToChannel(socket,
+						$"candles_{CryptoUtility.SecondsToPeriodStringLongReverse(periodSeconds).ToLowerInvariant()}",
+						marketSymbols);
+				}, async (socket, symbol, sArray, token) =>
+				{
+					var candle = this.ParseCandle(token, symbol, periodSeconds, "open", "high", "low", "close",
+						"ts", TimestampType.UnixMilliseconds, "quantity", "amount", null, "tradeCount");
+
+					await callback(candle);
+				});
+
 		private static string ParseFeesCurrency(bool isBuy, string symbol)
 		{
 			string feesCurrency = null;
