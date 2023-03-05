@@ -1220,7 +1220,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Convert seconds to a period string, i.e. SECOND_5, MINUTE_1, HOUR_2, DAY_3, WEEK_1week, MONTH_1, YEAR_1 etc.
+        /// Convert seconds to a period string, i.e. SECOND_5, MINUTE_1, HOUR_2, DAY_3, WEEK_1, MONTH_1, YEAR_1 etc.
         /// </summary>
         /// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
         /// <returns>Period string</returns>
