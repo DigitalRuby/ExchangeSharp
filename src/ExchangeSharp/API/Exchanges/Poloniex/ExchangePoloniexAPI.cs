@@ -456,51 +456,6 @@ namespace ExchangeSharp
 			return tickers;
 		}
 
-		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(
-			Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
-			params string[] symbols) =>
-			await ConnectWebsocketPublicAsync(
-				async (socket) => { await SubscribeToChannel(socket, "ticker", symbols); },
-				async (socket, symbol, sArray, token) =>
-				{
-					var tickers = new List<KeyValuePair<string, ExchangeTicker>>
-					{
-						new KeyValuePair<string, ExchangeTicker>(symbol,
-							await this.ParseTickerWebSocketAsync(symbol, token))
-					};
-					callback(tickers);
-				});
-
-		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
-			Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
-			params string[] marketSymbols) =>
-			await ConnectWebsocketPublicAsync(
-				async (socket) => { await SubscribeToChannel(socket, "trades", marketSymbols); },
-				async (socket, symbol, sArray, token) =>
-				{
-					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price", typeKey: "takerSide",
-						timestampKey: "ts", TimestampType.UnixMilliseconds, idKey: "id");
-					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-				});
-
-		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
-			Action<ExchangeOrderBook> callback,
-			int maxCount = 20,
-			params string[] marketSymbols)
-		{
-			return await ConnectWebsocketPublicAsync(
-				async (socket) =>
-				{
-					await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount);
-				}, (socket, symbol, sArray, token) =>
-				{
-					var book = token.ParseOrderBookFromJTokenArrays();
-					book.MarketSymbol = symbol;
-					callback(book);
-					return Task.CompletedTask;
-				});
-		}
-
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
 		{
 			//https://api.poloniex.com/markets/{symbol}/orderBook?scale={scale}&limit={limit}
@@ -851,6 +806,51 @@ namespace ExchangeSharp
 			}
 
 			return transactions;
+		}
+
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(
+			Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
+			params string[] symbols) =>
+			await ConnectWebsocketPublicAsync(
+				async (socket) => { await SubscribeToChannel(socket, "ticker", symbols); },
+				async (socket, symbol, sArray, token) =>
+				{
+					var tickers = new List<KeyValuePair<string, ExchangeTicker>>
+					{
+						new KeyValuePair<string, ExchangeTicker>(symbol,
+							await this.ParseTickerWebSocketAsync(symbol, token))
+					};
+					callback(tickers);
+				});
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
+			Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+			params string[] marketSymbols) =>
+			await ConnectWebsocketPublicAsync(
+				async (socket) => { await SubscribeToChannel(socket, "trades", marketSymbols); },
+				async (socket, symbol, sArray, token) =>
+				{
+					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price", typeKey: "takerSide",
+						timestampKey: "ts", TimestampType.UnixMilliseconds, idKey: "id");
+					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+				});
+
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
+			Action<ExchangeOrderBook> callback,
+			int maxCount = 20,
+			params string[] marketSymbols)
+		{
+			return await ConnectWebsocketPublicAsync(
+				async (socket) =>
+				{
+					await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount);
+				}, (socket, symbol, sArray, token) =>
+				{
+					var book = token.ParseOrderBookFromJTokenArrays();
+					book.MarketSymbol = symbol;
+					callback(book);
+					return Task.CompletedTask;
+				});
 		}
 
 		private static string ParseFeesCurrency(bool isBuy, string symbol)
