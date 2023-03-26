@@ -33,6 +33,7 @@ namespace ExchangeSharp
 			RequestContentType = "application/json";
 			MarketSymbolSeparator = "_";
 			WebSocketOrderBookType = WebSocketOrderBookType.DeltasOnly;
+			RateLimit = new RateGate(10, TimeSpan.FromSeconds(1));
 		}
 
 		/// <summary>
