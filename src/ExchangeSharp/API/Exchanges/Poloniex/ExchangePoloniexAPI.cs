@@ -78,9 +78,8 @@ namespace ExchangeSharp
 					fieldCount[split[0]] = split[1].ConvertInvariant<int>();
 				}
 			}
-
 			WithdrawalFieldCount = fieldCount;
-			ExchangeGlobalCurrencyReplacements["STR"] = "XLM"; // wtf
+
 			return Task.CompletedTask;
 		}
 
