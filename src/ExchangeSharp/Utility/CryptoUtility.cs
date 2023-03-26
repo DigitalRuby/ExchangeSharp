@@ -1412,14 +1412,12 @@ namespace ExchangeSharp
         /// </summary>
         public static decimal PrecisionToStepSize(decimal precision)
         {
+	        if (precision == 0) return 1;
+
 	        var sb = new StringBuilder();
 	        sb.Append("0");
 	        if (precision > 0) sb.Append(".");
-	        if (precision == 1)
-	        {
-		        sb.Append("1");
-		        return decimal.Parse(sb.ToStringInvariant());
-	        }
+
 	        for (var i = 0; i < precision; i++)
 	        {
 		        sb.Append(i + 1 == precision ? "1" : "0");
