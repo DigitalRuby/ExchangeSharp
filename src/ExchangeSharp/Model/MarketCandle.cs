@@ -1,4 +1,4 @@
-﻿/*
+/*
 MIT LICENSE
 
 Copyright 2017 Digital Ruby, LLC - http://www.digitalruby.com
@@ -83,6 +83,7 @@ namespace ExchangeSharp
 		/// </summary>
         public int Count { get; set; }
 
+		public bool IsClosed { get; set; }
         /// <summary>
         /// ToString
         /// </summary>
