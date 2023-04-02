@@ -67,11 +67,16 @@ namespace ExchangeSharp
     /// </summary>
     public sealed class ExchangeOrderBook
     {
-        /// <summary>
-        /// The sequence id. This increments as updates come through. Not all exchanges will populate this.
-        /// This property is not serialized using the ToBinary and FromBinary methods.
-        /// </summary>
-        public long SequenceId { get; set; }
+		/// <summary>
+		/// Needed to distinguish between fool book and deltas
+		/// </summary>
+		public bool IsFromSnapshot { get; set; }
+		public string ExchangeName { get; set; }
+		/// <summary>
+		/// The sequence id. This increments as updates come through. Not all exchanges will populate this.
+		/// This property is not serialized using the ToBinary and FromBinary methods.
+		/// </summary>
+		public long SequenceId { get; set; }
 
         /// <summary>
         /// The market symbol.
