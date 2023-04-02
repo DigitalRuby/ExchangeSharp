@@ -5,7 +5,6 @@ using System.Text;
 
 namespace ExchangeSharp
 {
-	[ApiName(ExchangeName.Bybit)]
 	public class ExchangeBybitLinearAPI : ExchangeBybitV5Base
 	{
 		protected override MarketCategory MarketCategory => MarketCategory.Linear;
@@ -18,4 +17,5 @@ namespace ExchangeSharp
 			IsUnifiedAccount = isUnifiedAccount;
 		}
 	}
+	public partial class ExchangeName { public const string BybitLinear = "BybitLinear"; }
 }

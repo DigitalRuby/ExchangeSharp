@@ -68,7 +68,7 @@ namespace ExchangeSharp
     public sealed class ExchangeOrderBook
     {
 		/// <summary>
-		/// Needed to distinguish between fool book and deltas
+		/// Needed to distinguish between full book and deltas
 		/// </summary>
 		public bool IsFromSnapshot { get; set; }
 		public string ExchangeName { get; set; }

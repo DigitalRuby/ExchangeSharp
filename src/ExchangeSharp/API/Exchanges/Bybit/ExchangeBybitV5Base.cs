@@ -160,7 +160,10 @@ namespace ExchangeSharp
 			string url = "/v5/market/kline";
 			int maxLimit = 200;
 			limit ??= maxLimit;
-			if (limit.Value > maxLimit) { limit = maxLimit; }
+			if (limit.Value > maxLimit)
+			{
+				limit = maxLimit;
+			}
 			List<MarketCandle> candles = new List<MarketCandle>();
 			string periodString = PeriodSecondsToString(periodSeconds);
 			if (startDate == null)
@@ -244,7 +247,10 @@ namespace ExchangeSharp
 			Dictionary<string, decimal> amounts = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 
 			var accountBalances = result["list"].FirstOrDefault(i => i["accountType"].ToStringInvariant() == accType);
-			if (accountBalances == null) return amounts;
+			if (accountBalances == null)
+			{
+				return amounts;
+			}
 			if (IsUnifiedAccount.Value)
 			{
 				// All assets that can be used as collateral, converted to USD, will be here
@@ -253,7 +259,6 @@ namespace ExchangeSharp
 			string balanceKey = accType == "SPOT" ? "free" : "availableToWithdraw";
 			foreach (var coin in accountBalances["coin"])
 			{
-
 				decimal amount = coin[balanceKey].ConvertInvariant<decimal>();
 				if (amount > 0m)
 				{

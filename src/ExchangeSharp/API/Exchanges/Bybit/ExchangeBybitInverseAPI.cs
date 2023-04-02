@@ -5,7 +5,6 @@ using ExchangeSharp.Bybit;
 
 namespace ExchangeSharp
 {
-	[ApiName(ExchangeName.Bybit)]
 	public class ExchangeBybitInverseAPI : ExchangeBybitV5Base
 	{
 		protected override MarketCategory MarketCategory => MarketCategory.Inverse;
@@ -18,4 +17,5 @@ namespace ExchangeSharp
 			IsUnifiedAccount = isUnifiedAccount;
 		}
 	}
+	public partial class ExchangeName { public const string BybitInverse = "BybitInverse"; }
 }
