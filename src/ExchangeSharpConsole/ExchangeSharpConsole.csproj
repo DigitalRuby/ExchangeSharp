@@ -5,8 +5,8 @@
     <AssemblyName>exchange-sharp</AssemblyName>
     <TargetFramework>net6.0</TargetFramework>
     <NeutralLanguage>en</NeutralLanguage>
-    <AssemblyVersion>1.0.3</AssemblyVersion>
-    <FileVersion>1.0.3</FileVersion>
+    <AssemblyVersion>1.0.4</AssemblyVersion>
+    <FileVersion>1.0.4</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
