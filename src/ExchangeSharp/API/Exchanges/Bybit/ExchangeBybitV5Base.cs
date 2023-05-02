@@ -205,37 +205,21 @@ namespace ExchangeSharp
 		/// Account status (is account Unified) needed in some private end-points (e.g. OnGetAmountsAvailableToTradeAsync or GetRecentOrderAsync). 
 		/// Better be set with constructor. If it's not set, this method will be used to get the account status.
 		/// </summary>
-		public async Task GetAccountInfo()
+		public async Task GetAccountUnifiedStatusAsync()
 		{
-			try
-			{
-				JObject result = await MakeJsonRequestAsync<JObject>("/v5/account/info", null, await GetNoncePayloadAsync());
-				int statusId = result["unifiedMarginStatus"].ConvertInvariant<int>();
-				IsUnifiedAccount = statusId switch
-				{
-					1 => false,
-					2 => MarketCategory == MarketCategory.Linear || MarketCategory == MarketCategory.Option,
-					3 => MarketCategory == MarketCategory.Linear || MarketCategory == MarketCategory.Option || MarketCategory == MarketCategory.Spot,
-					_ => throw new ArgumentOutOfRangeException($"statusId is {statusId}"),
-				};
-			}
-			catch (APIException e)
-			{
-				if (e.Message.Contains("3400026")) // for some reason bybit returns an {code:3400026, message:'account not exist'} error if account is not unified
-				{
-					IsUnifiedAccount = false;
-				}
-				else
-				{
-					throw;
-				}
-			}
+			JObject result = await MakeJsonRequestAsync<JObject>("/v5/user/query-api", null, await GetNoncePayloadAsync());
+			IsUnifiedAccount = result["unified"].ConvertInvariant<int>() == 1 || result["uta"].ConvertInvariant<int>() == 1;
+		}
+		public async Task<DateTime> GetAPIKeyExpirationDateAsync()
+		{
+			JObject result = await MakeJsonRequestAsync<JObject>("/v5/user/query-api", null, await GetNoncePayloadAsync());
+			return CryptoUtility.ParseTimestamp(result["expiredAt"], TimestampType.Iso8601UTC);
 		}
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
 		{
 			if (IsUnifiedAccount == null)
 			{
-				await GetAccountInfo();
+				await GetAccountUnifiedStatusAsync();
 			}
 			var payload = await GetNoncePayloadAsync();
 			string accType = MarketCategory == MarketCategory.Inverse ? "CONTRACT" :
@@ -388,7 +372,7 @@ namespace ExchangeSharp
 			}
 			if (IsUnifiedAccount == null)
 			{
-				await GetAccountInfo();
+				await GetAccountUnifiedStatusAsync();
 			}
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload.Add("symbol", marketSymbol);
