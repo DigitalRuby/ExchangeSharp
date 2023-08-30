@@ -661,6 +661,7 @@ namespace ExchangeSharp.BinanceGroup
 			bool currencySet = false;
 			foreach (var trade in tradesInOrder)
 			{
+				result.Fees ??= 0;
 				result.Fees += trade["commission"].ConvertInvariant<decimal>();
 
 				// TODO: Not sure how to handle commissions in different currencies, for example if you run out of BNB mid-trade
@@ -1016,6 +1017,7 @@ namespace ExchangeSharp.BinanceGroup
 						currencySet = true;
 					}
 
+					result.Fees ??= 0;
 					result.Fees += fill["commission"].ConvertInvariant<decimal>();
 
 					decimal price = fill["price"].ConvertInvariant<decimal>();
