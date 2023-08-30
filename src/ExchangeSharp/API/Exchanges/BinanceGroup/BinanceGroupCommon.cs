@@ -642,6 +642,9 @@ namespace ExchangeSharp.BinanceGroup
 			// Add up the fees from each trade in the order
 			Dictionary<string, object> feesPayload = await GetNoncePayloadAsync();
 			feesPayload["symbol"] = marketSymbol!;
+   			if (!isClientOrderId) {
+   				feesPayload["orderId"] = orderId;
+	   		}
 			JToken feesToken = await MakeJsonRequestAsync<JToken>("/myTrades", BaseUrlApi, feesPayload);
 			ParseFees(feesToken, result);
 
