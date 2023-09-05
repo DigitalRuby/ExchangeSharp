@@ -236,16 +236,19 @@ namespace ExchangeSharp
 			//}
 			//    }
 
-			ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
-			orderResult.Result = ExchangeAPIOrderResult.Filled;
-			orderResult.Message = "";
-			orderResult.MarketSymbol = order["pair"].ToStringInvariant();
-			orderResult.IsBuy = (order["type"].ToStringInvariant() == "buy");
-			orderResult.Amount = order["vol"].ConvertInvariant<decimal>();
-			orderResult.Fees = order["fee"].ConvertInvariant<decimal>();
-			orderResult.Price = order["price"].ConvertInvariant<decimal>();
-			orderResult.AveragePrice = order["price"].ConvertInvariant<decimal>();
-			orderResult.TradeId = order["postxid"].ToStringInvariant(); //verify which is orderid & tradeid
+			ExchangeOrderResult orderResult = new ExchangeOrderResult
+			{
+				OrderId = orderId,
+				Result = ExchangeAPIOrderResult.Filled,
+				Message = "",
+				MarketSymbol = order["pair"].ToStringInvariant(),
+				IsBuy = order["type"].ToStringInvariant() == "buy",
+				Amount = order["vol"].ConvertInvariant<decimal>(),
+				Fees = order["fee"].ConvertInvariant<decimal>(),
+				Price = order["price"].ConvertInvariant<decimal>(),
+				AveragePrice = order["price"].ConvertInvariant<decimal>(),
+				TradeId = order["postxid"].ToStringInvariant() //verify which is orderid & tradeid
+			};
 			orderResult.OrderId = order["ordertxid"].ToStringInvariant(); //verify which is orderid & tradeid
 			orderResult.AmountFilled = order["vol"].ConvertInvariant<decimal>();
 			// orderResult.OrderDate - not provided here. ideally would be null but ExchangeOrderResult.OrderDate is not nullable
@@ -256,6 +259,21 @@ namespace ExchangeSharp
 			orderResult.FeesCurrency = pairs[1];
 
 			return orderResult;
+		}
+
+		internal ExchangeOrderResult ExtendResultsWithOrderDescr(ExchangeOrderResult result, string orderStr)
+		{
+			//"buy 0.00000001 XBTUSD @ limit 1000000"
+			//"buy 58.00000000 ADAUSDT @ market"
+			string[] orderStrParts = orderStr.Split(' ');
+			result.IsBuy = string.Equals(orderStrParts[0], "buy", StringComparison.InvariantCultureIgnoreCase);
+			result.Amount = orderStrParts[1].ConvertInvariant<decimal>();
+			result.MarketSymbol = orderStrParts[2];
+			var isMarket = string.Equals(orderStrParts[4], "market", StringComparison.InvariantCultureIgnoreCase);
+			if (!isMarket) {
+				result.Price = orderStrParts[5].ConvertInvariant<decimal>();
+			}
+			return result;
 		}
 
 		private async Task<IEnumerable<ExchangeOrderResult>> QueryOrdersAsync(string symbol, string path)
@@ -496,12 +514,12 @@ namespace ExchangeSharp
 				{
 					tickers.Add(new KeyValuePair<string, ExchangeTicker>(marketSymbol, await ConvertToExchangeTickerAsync(marketSymbol, ticker)));
 				}
-				catch(Exception e)
+				catch (Exception e)
 				{
 					Logger.Error(e);
 				}
 			}
-			if(unfoundSymbols.Count > 0)
+			if (unfoundSymbols.Count > 0)
 			{
 				Logger.Warn($"Of {marketSymbols.Count()} symbols, tickers could not be found for {unfoundSymbols.Count}: [{String.Join(", ", unfoundSymbols)}]");
 			}
@@ -700,11 +718,16 @@ namespace ExchangeSharp
 			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
 			ExchangeOrderResult result = new ExchangeOrderResult
 			{
-				OrderDate = CryptoUtility.UtcNow
+				OrderDate = CryptoUtility.UtcNow,
+				Result = ExchangeAPIOrderResult.Open
 			};
 			if (token["txid"] is JArray array)
 			{
 				result.OrderId = array[0].ToStringInvariant();
+			}
+			if (token["descr"] is JObject descrArray)
+			{
+				result = ExtendResultsWithOrderDescr(result, descrArray["order"].ToStringInvariant());
 			}
 			return result;
 		}
@@ -869,7 +892,7 @@ namespace ExchangeSharp
 					string marketSymbol = token[3].ToStringInvariant();
 					//Kraken updates the candle open time to the current time, but we want it as open-time i.e. close-time - interval
 					token[1][0] = token[1][1].ConvertInvariant<long>() - interval * 60;
-					var candle = this.ParseCandle(token[1], marketSymbol, interval * 60, 2, 3, 4, 5, 0, TimestampType.UnixSeconds, 7, null, 6,8);
+					var candle = this.ParseCandle(token[1], marketSymbol, interval * 60, 2, 3, 4, 5, 0, TimestampType.UnixSeconds, 7, null, 6, 8);
 					await callbackAsync(candle);
 				}
 			}, connectCallback: async (_socket) =>
@@ -895,7 +918,7 @@ namespace ExchangeSharp
 					{
 						if (token.Count == 3 && token[1].ToString() == "openOrders")
 						{
-							foreach(JToken element in token[0])
+							foreach (JToken element in token[0])
 							{
 								if (element is JObject position)
 								{
