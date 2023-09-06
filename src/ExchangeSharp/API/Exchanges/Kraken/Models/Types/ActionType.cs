@@ -5,12 +5,12 @@ using System.Text;
 
 namespace ExchangeSharp.API.Exchanges.Kraken.Models.Types
 {
-    internal enum ActionType
-    {
-        [EnumMember(Value = "subscribe")]
-        Subscribe,
+	internal enum ActionType
+	{
+		[EnumMember(Value = "subscribe")]
+		Subscribe,
 
-        [EnumMember(Value = "unsubscribe")]
-        Unsubscribe
-    }
+		[EnumMember(Value = "unsubscribe")]
+		Unsubscribe
+	}
 }

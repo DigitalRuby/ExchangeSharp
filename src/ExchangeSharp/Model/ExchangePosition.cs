@@ -14,45 +14,45 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Contains information about a position on exchange
-    /// </summary>
-    public class ExchangePosition
-    {
-        /// <summary>
-        /// Market Symbol
-        /// </summary>
-        public string MarketSymbol { get; set; }
+	/// <summary>
+	/// Contains information about a position on exchange
+	/// </summary>
+	public class ExchangePosition
+	{
+		/// <summary>
+		/// Market Symbol
+		/// </summary>
+		public string MarketSymbol { get; set; }
 
-        /// <summary>
-        /// Amount
-        /// </summary>
-        public decimal Amount { get; set; }
+		/// <summary>
+		/// Amount
+		/// </summary>
+		public decimal Amount { get; set; }
 
-        /// <summary>
-        /// Average Price
-        /// </summary>
-        public decimal AveragePrice { get; set; }
+		/// <summary>
+		/// Average Price
+		/// </summary>
+		public decimal AveragePrice { get; set; }
 
-        /// <summary>
-        /// Liquidation Price
-        /// </summary>
-        public decimal LiquidationPrice { get; set; }
+		/// <summary>
+		/// Liquidation Price
+		/// </summary>
+		public decimal LiquidationPrice { get; set; }
 
-        /// <summary>
-        /// Leverage
-        /// </summary>
-        public decimal Leverage { get; set; }
+		/// <summary>
+		/// Leverage
+		/// </summary>
+		public decimal Leverage { get; set; }
 
-        /// <summary>
-        /// Last Price
-        /// Last Price on Exchange
-        /// </summary>
-        public decimal LastPrice { get; set; }
+		/// <summary>
+		/// Last Price
+		/// Last Price on Exchange
+		/// </summary>
+		public decimal LastPrice { get; set; }
 
-        /// <summary>
-        /// TimeStamp
-        /// </summary>
-        public DateTime TimeStamp { get; set; }
-    }
+		/// <summary>
+		/// TimeStamp
+		/// </summary>
+		public DateTime TimeStamp { get; set; }
+	}
 }

@@ -4,11 +4,11 @@ using System.Text;
 
 namespace ExchangeSharp.Bybit
 {
-    public enum MarketCategory
-    {
-        Linear,
-        Inverse,
-        Option,
-        Spot
-    }
+	public enum MarketCategory
+	{
+		Linear,
+		Inverse,
+		Option,
+		Spot
+	}
 }

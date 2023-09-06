@@ -12,39 +12,39 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// State of transaction status
-    /// </summary>
-    public enum TransactionStatus
-    {
-        /// <summary>
-        /// AwaitingApproval
-        /// </summary>
-        AwaitingApproval,
+	/// <summary>
+	/// State of transaction status
+	/// </summary>
+	public enum TransactionStatus
+	{
+		/// <summary>
+		/// AwaitingApproval
+		/// </summary>
+		AwaitingApproval,
 
-        /// <summary>
-        /// Complete
-        /// </summary>
-        Complete,
+		/// <summary>
+		/// Complete
+		/// </summary>
+		Complete,
 
-        /// <summary>
-        /// Failure
-        /// </summary>
-        Failure,
+		/// <summary>
+		/// Failure
+		/// </summary>
+		Failure,
 
-        /// <summary>
-        /// Processing
-        /// </summary>
-        Processing,
+		/// <summary>
+		/// Processing
+		/// </summary>
+		Processing,
 
-        /// <summary>
-        /// Rejected
-        /// </summary>
-        Rejected,
+		/// <summary>
+		/// Rejected
+		/// </summary>
+		Rejected,
 
-        /// <summary>
-        /// Unknown
-        /// </summary>
-        Unknown
-    }
+		/// <summary>
+		/// Unknown
+		/// </summary>
+		Unknown
+	}
 }

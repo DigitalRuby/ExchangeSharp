@@ -15,47 +15,47 @@ using System.Collections.Generic;
 
 namespace ExchangeSharp
 {
-    public class ExchangeBalances
-    {
-        /// <summary>
-        /// DateTime of the balances update
-        /// </summary>
-        public DateTime EventTime { get; set; }
+	public class ExchangeBalances
+	{
+		/// <summary>
+		/// DateTime of the balances update
+		/// </summary>
+		public DateTime EventTime { get; set; }
 
-        /// <summary>
-        /// What the balances represent in this update
-        /// </summary>
-        public BalancesUpdateType BalancesUpdateType { get; set; }
+		/// <summary>
+		/// What the balances represent in this update
+		/// </summary>
+		public BalancesUpdateType BalancesUpdateType { get; set; }
 
-        /// <summary>
-        /// Dictionary of symbols and amounts
-        /// </summary>
-        public Dictionary<string, decimal> Balances { get; set; }
-    }
+		/// <summary>
+		/// Dictionary of symbols and amounts
+		/// </summary>
+		public Dictionary<string, decimal> Balances { get; set; }
+	}
 
-    /// <summary>
-    /// What the balances represent in the update
-    /// </summary>
-    public enum BalancesUpdateType
-    {
-        /// <summary>
-        /// Total amount in acount
-        /// </summary>
-        Total,
+	/// <summary>
+	/// What the balances represent in the update
+	/// </summary>
+	public enum BalancesUpdateType
+	{
+		/// <summary>
+		/// Total amount in acount
+		/// </summary>
+		Total,
 
-        /// <summary>
-        /// Amount available to trade
-        /// </summary>
-        AvailableToTrade,
+		/// <summary>
+		/// Amount available to trade
+		/// </summary>
+		AvailableToTrade,
 
-        /// <summary>
-        /// Amounts available using margin
-        /// </summary>
-        AvailableToMargin,
+		/// <summary>
+		/// Amounts available using margin
+		/// </summary>
+		AvailableToMargin,
 
-        /// <summary>
-        /// The amount that is moving (such as uring a withdrawal or transfer
-        /// </summary>
-        Delta,
-    }
+		/// <summary>
+		/// The amount that is moving (such as uring a withdrawal or transfer
+		/// </summary>
+		Delta,
+	}
 }

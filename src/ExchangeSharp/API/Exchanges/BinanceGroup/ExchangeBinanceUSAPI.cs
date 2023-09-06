@@ -14,14 +14,14 @@ using ExchangeSharp.BinanceGroup;
 
 namespace ExchangeSharp
 {
-    public sealed class ExchangeBinanceUSAPI : BinanceGroupCommon
-    {
-        public override string BaseUrl { get; set; } = "https://api.binance.us";
-        public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.us:9443";
-    }
+	public sealed class ExchangeBinanceUSAPI : BinanceGroupCommon
+	{
+		public override string BaseUrl { get; set; } = "https://api.binance.us";
+		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.us:9443";
+	}
 
-    public partial class ExchangeName
-    {
-        public const string BinanceUS = "BinanceUS";
-    }
+	public partial class ExchangeName
+	{
+		public const string BinanceUS = "BinanceUS";
+	}
 }

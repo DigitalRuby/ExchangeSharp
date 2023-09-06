@@ -14,54 +14,54 @@ using System.Linq;
 
 namespace ExchangeSharp
 {
-    /// <summary>Result of exchange order</summary>
-    public enum ExchangeAPIOrderResult
-    {
-        /// <summary>Order status is unknown - equivalent of setting ExchangeAPIOrderResult property to null</summary>
-        Unknown,
+	/// <summary>Result of exchange order</summary>
+	public enum ExchangeAPIOrderResult
+	{
+		/// <summary>Order status is unknown - equivalent of setting ExchangeAPIOrderResult property to null</summary>
+		Unknown,
 
-        /// <summary>Order has been filled completely</summary>
-        Filled,
+		/// <summary>Order has been filled completely</summary>
+		Filled,
 
-        /// <summary>Order partially filled</summary>
-        FilledPartially,
+		/// <summary>Order partially filled</summary>
+		FilledPartially,
 
-        /// <summary>Order is open but no amount has been filled yet</summary>
-        Open,
+		/// <summary>Order is open but no amount has been filled yet</summary>
+		Open,
 
-        /// <summary>Order is pending but not yet open</summary>
-        PendingOpen,
+		/// <summary>Order is pending but not yet open</summary>
+		PendingOpen,
 
-        /// <summary>Order rejected by exchange, likely due to error in order</summary>
-        Rejected,
+		/// <summary>Order rejected by exchange, likely due to error in order</summary>
+		Rejected,
 
-        /// <summary> Order expired on exchange and no longer active </summary>
-        Expired,
+		/// <summary> Order expired on exchange and no longer active </summary>
+		Expired,
 
-        /// <summary>Order was cancelled</summary>
-        Canceled,
+		/// <summary>Order was cancelled</summary>
+		Canceled,
 
-        /// <summary>Order cancelled after partially filled</summary>
-        FilledPartiallyAndCancelled,
+		/// <summary>Order cancelled after partially filled</summary>
+		FilledPartiallyAndCancelled,
 
-        /// <summary>Order is pending cancel</summary>
-        PendingCancel,
-    }
+		/// <summary>Order is pending cancel</summary>
+		PendingCancel,
+	}
 
-    public static class ExchangeAPIOrderResultExtensions
-    {
-        public static ExchangeAPIOrderResult[] Completed =>
-            new[]
-            {
-                ExchangeAPIOrderResult.Filled,
+	public static class ExchangeAPIOrderResultExtensions
+	{
+		public static ExchangeAPIOrderResult[] Completed =>
+				new[]
+				{
+								ExchangeAPIOrderResult.Filled,
                 // don't include FilledPartially, since this means order is still open
                 ExchangeAPIOrderResult.Rejected,
-                ExchangeAPIOrderResult.Expired,
-                ExchangeAPIOrderResult.Canceled,
-                ExchangeAPIOrderResult.FilledPartiallyAndCancelled,
-            };
+								ExchangeAPIOrderResult.Expired,
+								ExchangeAPIOrderResult.Canceled,
+								ExchangeAPIOrderResult.FilledPartiallyAndCancelled,
+				};
 
-        public static bool IsCompleted(this ExchangeAPIOrderResult eaor) =>
-            Completed.Contains(eaor);
-    }
+		public static bool IsCompleted(this ExchangeAPIOrderResult eaor) =>
+				Completed.Contains(eaor);
+	}
 }

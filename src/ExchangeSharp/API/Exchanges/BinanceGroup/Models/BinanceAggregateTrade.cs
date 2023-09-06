@@ -12,14 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.BinanceGroup
 {
-    public sealed class BinanceAggregateTrade : ExchangeTrade
-    {
-        public long FirstTradeId { get; set; }
-        public long LastTradeId { get; set; }
+	public sealed class BinanceAggregateTrade : ExchangeTrade
+	{
+		public long FirstTradeId { get; set; }
+		public long LastTradeId { get; set; }
 
-        public override string ToString()
-        {
-            return string.Format("{0},{1},{2}", base.ToString(), FirstTradeId, LastTradeId);
-        }
-    }
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2}", base.ToString(), FirstTradeId, LastTradeId);
+		}
+	}
 }

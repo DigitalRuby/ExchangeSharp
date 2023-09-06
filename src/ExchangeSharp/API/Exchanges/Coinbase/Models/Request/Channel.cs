@@ -12,20 +12,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Coinbase
 {
-    using System.Collections.Generic;
+	using System.Collections.Generic;
 
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Converters;
 
-    internal class Channel
-    {
-        [JsonConverter(typeof(StringEnumConverter))]
-        [JsonProperty("name")]
-        public ChannelType Name { get; set; }
+	internal class Channel
+	{
+		[JsonConverter(typeof(StringEnumConverter))]
+		[JsonProperty("name")]
+		public ChannelType Name { get; set; }
 
-        [JsonProperty("product_ids")]
-        public List<string> ProductIds { get; set; }
+		[JsonProperty("product_ids")]
+		public List<string> ProductIds { get; set; }
 
-        public override string ToString() => $"{Name} channel w/ {ProductIds.Count} symbols";
-    }
+		public override string ToString() => $"{Name} channel w/ {ProductIds.Count} symbols";
+	}
 }

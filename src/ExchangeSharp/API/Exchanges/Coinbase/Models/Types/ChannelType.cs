@@ -12,26 +12,26 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Coinbase
 {
-    using System.Runtime.Serialization;
+	using System.Runtime.Serialization;
 
-    internal enum ChannelType
-    {
-        [EnumMember(Value = "full")]
-        Full,
+	internal enum ChannelType
+	{
+		[EnumMember(Value = "full")]
+		Full,
 
-        [EnumMember(Value = "heartbeat")]
-        Heartbeat,
+		[EnumMember(Value = "heartbeat")]
+		Heartbeat,
 
-        [EnumMember(Value = "level2")]
-        Level2,
+		[EnumMember(Value = "level2")]
+		Level2,
 
-        [EnumMember(Value = "matches")]
-        Matches,
+		[EnumMember(Value = "matches")]
+		Matches,
 
-        [EnumMember(Value = "ticker")]
-        Ticker,
+		[EnumMember(Value = "ticker")]
+		Ticker,
 
-        [EnumMember(Value = "user")]
-        User
-    }
+		[EnumMember(Value = "user")]
+		User
+	}
 }

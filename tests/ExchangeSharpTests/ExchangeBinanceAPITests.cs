@@ -25,14 +25,14 @@ using NSubstitute;
 
 namespace ExchangeSharpTests
 {
-    [TestClass]
-    public class ExchangeBinanceAPITests
-    {
-        [TestMethod]
-        public void DeserializeDiff()
-        {
-            string toParse =
-                @"{
+	[TestClass]
+	public class ExchangeBinanceAPITests
+	{
+		[TestMethod]
+		public void DeserializeDiff()
+		{
+			string toParse =
+					@"{
   ""e"": ""depthUpdate"",
   ""E"": 123456789,    
   ""s"": ""BNBBTC"",     
@@ -53,18 +53,18 @@ namespace ExchangeSharpTests
     ]
   ]
 }";
-            var diff = JsonConvert.DeserializeObject<MarketDepthDiffUpdate>(
-                toParse,
-                BaseAPI.SerializerSettings
-            );
-            ValidateDiff(diff);
-        }
+			var diff = JsonConvert.DeserializeObject<MarketDepthDiffUpdate>(
+					toParse,
+					BaseAPI.SerializerSettings
+			);
+			ValidateDiff(diff);
+		}
 
-        [TestMethod]
-        public void DeserializeComboStream()
-        {
-            string toParse =
-                @"{
+		[TestMethod]
+		public void DeserializeComboStream()
+		{
+			string toParse =
+					@"{
 	""stream"": ""bnbbtc@depth"",
 	""data"": {
 		""e"": ""depthUpdate"",
@@ -87,78 +87,78 @@ namespace ExchangeSharpTests
 	}
 }";
 
-            var multistream = JsonConvert.DeserializeObject<MultiDepthStream>(
-                toParse,
-                BaseAPI.SerializerSettings
-            );
-            multistream.Stream.Should().Be("bnbbtc@depth");
-            ValidateDiff(multistream.Data);
-        }
+			var multistream = JsonConvert.DeserializeObject<MultiDepthStream>(
+					toParse,
+					BaseAPI.SerializerSettings
+			);
+			multistream.Stream.Should().Be("bnbbtc@depth");
+			ValidateDiff(multistream.Data);
+		}
 
-        [TestMethod]
-        public void DeserializeRealData()
-        {
-            string real =
-                "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
-            var diff = JsonConvert.DeserializeObject<MultiDepthStream>(
-                real,
-                BaseAPI.SerializerSettings
-            );
-            diff.Data.EventTime.Should().Be(1527540113575);
-        }
+		[TestMethod]
+		public void DeserializeRealData()
+		{
+			string real =
+					"{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
+			var diff = JsonConvert.DeserializeObject<MultiDepthStream>(
+					real,
+					BaseAPI.SerializerSettings
+			);
+			diff.Data.EventTime.Should().Be(1527540113575);
+		}
 
-        [TestMethod]
-        public async Task CurrenciesParsedCorrectly()
-        {
-            var requestMaker = Substitute.For<IAPIRequestMaker>();
-            var binance = await ExchangeAPI.GetExchangeAPIAsync<ExchangeBinanceAPI>();
-            binance.RequestMaker = requestMaker;
-            requestMaker
-                .MakeRequestAsync(
-                    "/capital/config/getall",
-                    ((ExchangeBinanceAPI)binance).BaseUrlSApi
-                )
-                .Returns(
-                    new IAPIRequestMaker.RequestResult<string>()
-                    {
-                        Response = Resources.BinanceGetAllAssets
-                    }
-                );
-            IReadOnlyDictionary<string, ExchangeCurrency> currencies =
-                await binance.GetCurrenciesAsync();
-            currencies.Should().HaveCount(3);
-            currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
-            bnb.DepositEnabled.Should().BeFalse();
-            bnb.WithdrawalEnabled.Should().BeTrue();
-            bnb.MinConfirmations.Should().Be(30);
-            bnb.FullName.Should().Be("Binance Coin");
-            bnb.Name.Should().Be("BNB");
-            bnb.TxFee.Should().Be(0.006m);
-            bnb.CoinType.Should().Be("ETH");
+		[TestMethod]
+		public async Task CurrenciesParsedCorrectly()
+		{
+			var requestMaker = Substitute.For<IAPIRequestMaker>();
+			var binance = await ExchangeAPI.GetExchangeAPIAsync<ExchangeBinanceAPI>();
+			binance.RequestMaker = requestMaker;
+			requestMaker
+					.MakeRequestAsync(
+							"/capital/config/getall",
+							((ExchangeBinanceAPI)binance).BaseUrlSApi
+					)
+					.Returns(
+							new IAPIRequestMaker.RequestResult<string>()
+							{
+								Response = Resources.BinanceGetAllAssets
+							}
+					);
+			IReadOnlyDictionary<string, ExchangeCurrency> currencies =
+					await binance.GetCurrenciesAsync();
+			currencies.Should().HaveCount(3);
+			currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
+			bnb.DepositEnabled.Should().BeFalse();
+			bnb.WithdrawalEnabled.Should().BeTrue();
+			bnb.MinConfirmations.Should().Be(30);
+			bnb.FullName.Should().Be("Binance Coin");
+			bnb.Name.Should().Be("BNB");
+			bnb.TxFee.Should().Be(0.006m);
+			bnb.CoinType.Should().Be("ETH");
 
-            bnb.BaseAddress.Should().BeNullOrEmpty("api does not provide this info");
+			bnb.BaseAddress.Should().BeNullOrEmpty("api does not provide this info");
 
-            currencies.TryGetValue("NEO", out ExchangeCurrency neo).Should().BeTrue();
-            neo.Name.Should().Be("NEO");
-            neo.FullName.Should().Be("NEO");
-            neo.DepositEnabled.Should().BeTrue();
-            neo.WithdrawalEnabled.Should().BeFalse();
-            neo.TxFee.Should().Be(0);
-            neo.MinConfirmations.Should().Be(5);
-            neo.CoinType.Should().Be("NEO");
-        }
+			currencies.TryGetValue("NEO", out ExchangeCurrency neo).Should().BeTrue();
+			neo.Name.Should().Be("NEO");
+			neo.FullName.Should().Be("NEO");
+			neo.DepositEnabled.Should().BeTrue();
+			neo.WithdrawalEnabled.Should().BeFalse();
+			neo.TxFee.Should().Be(0);
+			neo.MinConfirmations.Should().Be(5);
+			neo.CoinType.Should().Be("NEO");
+		}
 
-        private static void ValidateDiff(MarketDepthDiffUpdate diff)
-        {
-            diff.EventType.Should().Be("depthUpdate");
-            diff.EventTime.Should().Be(123456789);
-            diff.MarketSymbol.Should().Be("BNBBTC");
-            diff.FirstUpdate.Should().Be(157);
-            diff.FinalUpdate.Should().Be(160);
-            diff.Bids[0][0].Should().Be("0.0024");
-            diff.Bids[0][1].Should().Be("10");
-            diff.Asks[0][0].Should().Be("0.0026");
-            diff.Asks[0][1].Should().Be("100");
-        }
-    }
+		private static void ValidateDiff(MarketDepthDiffUpdate diff)
+		{
+			diff.EventType.Should().Be("depthUpdate");
+			diff.EventTime.Should().Be(123456789);
+			diff.MarketSymbol.Should().Be("BNBBTC");
+			diff.FirstUpdate.Should().Be(157);
+			diff.FinalUpdate.Should().Be(160);
+			diff.Bids[0][0].Should().Be("0.0024");
+			diff.Bids[0][1].Should().Be("10");
+			diff.Asks[0][0].Should().Be("0.0026");
+			diff.Asks[0][1].Should().Be("100");
+		}
+	}
 }

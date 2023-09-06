@@ -18,14 +18,14 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp.KuCoin
 {
-    public class KuCoinTrade : ExchangeTrade
-    {
-        public string MakerOrderId { get; set; } // nullable
-        public string TakerOrderId { get; set; } // nullable
+	public class KuCoinTrade : ExchangeTrade
+	{
+		public string MakerOrderId { get; set; } // nullable
+		public string TakerOrderId { get; set; } // nullable
 
-        public override string ToString()
-        {
-            return string.Format("{0},{1},{2}", base.ToString(), MakerOrderId, TakerOrderId);
-        }
-    }
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2}", base.ToString(), MakerOrderId, TakerOrderId);
+		}
+	}
 }

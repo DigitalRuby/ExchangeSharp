@@ -19,126 +19,126 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Details of an exchangetrade
-    /// </summary>
-    public class ExchangeTrade
-    {
-        /// <summary>
-        /// Timestamp
-        /// </summary>
-        public DateTime Timestamp { get; set; }
+	/// <summary>
+	/// Details of an exchangetrade
+	/// </summary>
+	public class ExchangeTrade
+	{
+		/// <summary>
+		/// Timestamp
+		/// </summary>
+		public DateTime Timestamp { get; set; }
 
-        /// <summary>
-        /// Trade id
-        /// </summary>
-        public string Id { get; set; }
+		/// <summary>
+		/// Trade id
+		/// </summary>
+		public string Id { get; set; }
 
-        /// <summary>
-        /// Price
-        /// </summary>
-        public decimal Price { get; set; }
+		/// <summary>
+		/// Price
+		/// </summary>
+		public decimal Price { get; set; }
 
-        /// <summary>
-        /// Amount
-        /// </summary>
-        public decimal Amount { get; set; }
+		/// <summary>
+		/// Amount
+		/// </summary>
+		public decimal Amount { get; set; }
 
-        /// <summary>
-        /// True if buy, false if sell - for some exchanges (Binance) the meaning can be different, i.e. is the buyer the maker
-        /// </summary>
-        public bool IsBuy
-        {
-            get { return ((Flags & ExchangeTradeFlags.IsBuy) == ExchangeTradeFlags.IsBuy); }
-            set
-            {
-                Flags = (
-                    value ? Flags | ExchangeTradeFlags.IsBuy : Flags & (~ExchangeTradeFlags.IsBuy)
-                );
-            }
-        }
+		/// <summary>
+		/// True if buy, false if sell - for some exchanges (Binance) the meaning can be different, i.e. is the buyer the maker
+		/// </summary>
+		public bool IsBuy
+		{
+			get { return ((Flags & ExchangeTradeFlags.IsBuy) == ExchangeTradeFlags.IsBuy); }
+			set
+			{
+				Flags = (
+						value ? Flags | ExchangeTradeFlags.IsBuy : Flags & (~ExchangeTradeFlags.IsBuy)
+				);
+			}
+		}
 
-        /// <summary>
-        /// Flags - note that only the IsBuy bit of flags is persisted in the ToBinary and FromBinary methods.
-        /// </summary>
-        public ExchangeTradeFlags Flags { get; set; }
+		/// <summary>
+		/// Flags - note that only the IsBuy bit of flags is persisted in the ToBinary and FromBinary methods.
+		/// </summary>
+		public ExchangeTradeFlags Flags { get; set; }
 
-        /// <summary>
-        /// ToString
-        /// </summary>
-        /// <returns>String</returns>
-        public override string ToString()
-        {
-            StringBuilder flagsSB = new StringBuilder();
-            if ((Flags & ExchangeTradeFlags.IsFromSnapshot) == ExchangeTradeFlags.IsFromSnapshot)
-                flagsSB.Append("snap");
-            if (
-                (Flags & ExchangeTradeFlags.IsLastFromSnapshot)
-                == ExchangeTradeFlags.IsLastFromSnapshot
-            )
-                flagsSB.Append(":last");
-            return string.Format(
-                "{0:s},p:{1},a:{2},{3},id:{4},{5}",
-                Timestamp,
-                Price,
-                Amount,
-                IsBuy ? "Buy" : "Sell",
-                Id,
-                flagsSB
-            );
-        }
+		/// <summary>
+		/// ToString
+		/// </summary>
+		/// <returns>String</returns>
+		public override string ToString()
+		{
+			StringBuilder flagsSB = new StringBuilder();
+			if ((Flags & ExchangeTradeFlags.IsFromSnapshot) == ExchangeTradeFlags.IsFromSnapshot)
+				flagsSB.Append("snap");
+			if (
+					(Flags & ExchangeTradeFlags.IsLastFromSnapshot)
+					== ExchangeTradeFlags.IsLastFromSnapshot
+			)
+				flagsSB.Append(":last");
+			return string.Format(
+					"{0:s},p:{1},a:{2},{3},id:{4},{5}",
+					Timestamp,
+					Price,
+					Amount,
+					IsBuy ? "Buy" : "Sell",
+					Id,
+					flagsSB
+			);
+		}
 
-        /// <summary>
-        /// Write to binary writer
-        /// </summary>
-        /// <param name="writer">Binary writer</param>
-        public void ToBinary(BinaryWriter writer)
-        {
-            writer.Write(Timestamp.ToUniversalTime().Ticks);
-            writer.Write(Id);
-            writer.Write((double)Price);
-            writer.Write((double)Amount);
-            writer.Write(IsBuy);
-        }
+		/// <summary>
+		/// Write to binary writer
+		/// </summary>
+		/// <param name="writer">Binary writer</param>
+		public void ToBinary(BinaryWriter writer)
+		{
+			writer.Write(Timestamp.ToUniversalTime().Ticks);
+			writer.Write(Id);
+			writer.Write((double)Price);
+			writer.Write((double)Amount);
+			writer.Write(IsBuy);
+		}
 
-        /// <summary>
-        /// Read from binary reader
-        /// </summary>
-        /// <param name="reader">Binary reader</param>
-        public void FromBinary(BinaryReader reader)
-        {
-            Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
-            Id = reader.ReadString();
-            Price = (decimal)reader.ReadDouble();
-            Amount = (decimal)reader.ReadDouble();
-            IsBuy = reader.ReadBoolean();
-        }
-    }
+		/// <summary>
+		/// Read from binary reader
+		/// </summary>
+		/// <param name="reader">Binary reader</param>
+		public void FromBinary(BinaryReader reader)
+		{
+			Timestamp = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
+			Id = reader.ReadString();
+			Price = (decimal)reader.ReadDouble();
+			Amount = (decimal)reader.ReadDouble();
+			IsBuy = reader.ReadBoolean();
+		}
+	}
 
-    /// <summary>
-    /// Exchange trade flags
-    /// </summary>
-    [Flags]
-    public enum ExchangeTradeFlags
-    {
-        /// <summary>
-        /// Whether the trade is a buy, if not it is a sell
-        /// </summary>
-        IsBuy = 1,
+	/// <summary>
+	/// Exchange trade flags
+	/// </summary>
+	[Flags]
+	public enum ExchangeTradeFlags
+	{
+		/// <summary>
+		/// Whether the trade is a buy, if not it is a sell
+		/// </summary>
+		IsBuy = 1,
 
-        /// <summary>
-        /// Whether the trade is from a snapshot
-        /// </summary>
-        IsFromSnapshot = 2,
+		/// <summary>
+		/// Whether the trade is from a snapshot
+		/// </summary>
+		IsFromSnapshot = 2,
 
-        /// <summary>
-        /// Whether the trade is the last trade from a snapshot
-        /// </summary>
-        IsLastFromSnapshot = 4,
+		/// <summary>
+		/// Whether the trade is the last trade from a snapshot
+		/// </summary>
+		IsLastFromSnapshot = 4,
 
-        /// <summary>
-        /// Is neither buy nor sell
-        /// </summary>
-        HasNoSide = 8,
-    }
+		/// <summary>
+		/// Is neither buy nor sell
+		/// </summary>
+		HasNoSide = 8,
+	}
 }

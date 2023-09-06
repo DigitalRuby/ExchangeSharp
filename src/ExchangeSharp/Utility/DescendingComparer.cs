@@ -12,15 +12,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    using System;
-    using System.Collections.Generic;
+	using System;
+	using System.Collections.Generic;
 
-    public class DescendingComparer<T> : IComparer<T>
-        where T : IComparable<T>
-    {
-        public int Compare(T x, T y)
-        {
-            return y.CompareTo(x);
-        }
-    }
+	public class DescendingComparer<T> : IComparer<T>
+			where T : IComparable<T>
+	{
+		public int Compare(T x, T y)
+		{
+			return y.CompareTo(x);
+		}
+	}
 }

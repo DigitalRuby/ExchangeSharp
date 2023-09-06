@@ -10,54 +10,54 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ExchangeSharp;
+using System;
 using System.Net;
 using System.Security;
-using System;
+using ExchangeSharp;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExchangeSharpTests
 {
-    [TestClass]
-    public class ExchangeBitfinexTests
-    {
-        private SecureString _pvtKey = new NetworkCredential("", "privKey").SecurePassword;
-        private SecureString _pubKey = new NetworkCredential("", "SecKey").SecurePassword;
+	[TestClass]
+	public class ExchangeBitfinexTests
+	{
+		private SecureString _pvtKey = new NetworkCredential("", "privKey").SecurePassword;
+		private SecureString _pubKey = new NetworkCredential("", "SecKey").SecurePassword;
 
-        [TestMethod]
-        public void SubmitStopMarginOrder()
-        {
-            IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
-            ExchangeOrderRequest order = new ExchangeOrderRequest
-            {
-                MarketSymbol = "ADAUSD",
-                Amount = System.Convert.ToDecimal(0.0001),
-                IsBuy = true,
-                IsMargin = true,
-                OrderType = OrderType.Stop,
-                StopPrice = System.Convert.ToDecimal(100)
-            };
-            api.PrivateApiKey = _pvtKey;
-            api.PublicApiKey = _pubKey;
-            ExchangeOrderResult result = api.PlaceOrderAsync(order).Result;
-        }
+		[TestMethod]
+		public void SubmitStopMarginOrder()
+		{
+			IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
+			ExchangeOrderRequest order = new ExchangeOrderRequest
+			{
+				MarketSymbol = "ADAUSD",
+				Amount = System.Convert.ToDecimal(0.0001),
+				IsBuy = true,
+				IsMargin = true,
+				OrderType = OrderType.Stop,
+				StopPrice = System.Convert.ToDecimal(100)
+			};
+			api.PrivateApiKey = _pvtKey;
+			api.PublicApiKey = _pubKey;
+			ExchangeOrderResult result = api.PlaceOrderAsync(order).Result;
+		}
 
-        [TestMethod]
-        public void GetDataFromMarketWithSpecialChar()
-        {
-            IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
-            string marketTicker = "DOGE:USD";
-            DateTime start = new DateTime(2021, 12, 1);
-            DateTime end = DateTime.Today;
-            System.Collections.Generic.IEnumerable<MarketCandle> result = api.GetCandlesAsync(
-                marketTicker,
-                86400,
-                start,
-                end,
-                1000
-            ).Result;
-            result.Should().HaveCountGreaterThan(0, "Returned data");
-        }
-    }
+		[TestMethod]
+		public void GetDataFromMarketWithSpecialChar()
+		{
+			IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
+			string marketTicker = "DOGE:USD";
+			DateTime start = new DateTime(2021, 12, 1);
+			DateTime end = DateTime.Today;
+			System.Collections.Generic.IEnumerable<MarketCandle> result = api.GetCandlesAsync(
+					marketTicker,
+					86400,
+					start,
+					end,
+					1000
+			).Result;
+			result.Should().HaveCountGreaterThan(0, "Returned data");
+		}
+	}
 }

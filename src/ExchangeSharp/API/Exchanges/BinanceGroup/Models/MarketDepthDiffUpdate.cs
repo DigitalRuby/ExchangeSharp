@@ -12,31 +12,31 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.BinanceGroup
 {
-    using System.Collections.Generic;
+	using System.Collections.Generic;
 
-    using Newtonsoft.Json;
+	using Newtonsoft.Json;
 
-    internal class MarketDepthDiffUpdate
-    {
-        [JsonProperty("e")]
-        public string EventType { get; set; }
+	internal class MarketDepthDiffUpdate
+	{
+		[JsonProperty("e")]
+		public string EventType { get; set; }
 
-        [JsonProperty("E")]
-        public long EventTime { get; set; }
+		[JsonProperty("E")]
+		public long EventTime { get; set; }
 
-        [JsonProperty("s")]
-        public string MarketSymbol { get; set; }
+		[JsonProperty("s")]
+		public string MarketSymbol { get; set; }
 
-        [JsonProperty("U")]
-        public long FirstUpdate { get; set; }
+		[JsonProperty("U")]
+		public long FirstUpdate { get; set; }
 
-        [JsonProperty("u")]
-        public long FinalUpdate { get; set; }
+		[JsonProperty("u")]
+		public long FinalUpdate { get; set; }
 
-        [JsonProperty("b")]
-        public List<List<object>> Bids { get; set; }
+		[JsonProperty("b")]
+		public List<List<object>> Bids { get; set; }
 
-        [JsonProperty("a")]
-        public List<List<object>> Asks { get; set; }
-    }
+		[JsonProperty("a")]
+		public List<List<object>> Asks { get; set; }
+	}
 }
