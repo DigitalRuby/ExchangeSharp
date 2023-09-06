@@ -51,8 +51,6 @@ namespace ExchangeSharp
             return this;
         }
 
-        public void GetResult()
-        {
-        }
+        public void GetResult() { }
     }
 }

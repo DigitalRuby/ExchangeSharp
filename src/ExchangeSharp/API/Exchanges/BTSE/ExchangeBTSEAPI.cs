@@ -2,354 +2,446 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp
 {
-	using Newtonsoft.Json.Linq;
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Threading.Tasks;
+    using Newtonsoft.Json.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
 
-	public sealed partial class ExchangeBTSEAPI : ExchangeAPI
-	{
-		public override string BaseUrl { get; set; } = "https://api.btse.com/spot";
-		public const string TestnetUrl = "https://testapi.btse.io/spot";
+    public sealed partial class ExchangeBTSEAPI : ExchangeAPI
+    {
+        public override string BaseUrl { get; set; } = "https://api.btse.com/spot";
+        public const string TestnetUrl = "https://testapi.btse.io/spot";
 
-		private ExchangeBTSEAPI()
-		{
-			NonceStyle = NonceStyle.UnixMillisecondsString;
-		}
-		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
-		{
-			return (await GetTickersAsync()).Select(pair => pair.Key);
-		}
+        private ExchangeBTSEAPI()
+        {
+            NonceStyle = NonceStyle.UnixMillisecondsString;
+        }
 
-		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
-		{
-			JToken allPairs = await MakeJsonRequestAsync<JToken>("/api/v3.1/market_summary", BaseUrl);
-			var tasks = allPairs.Select(async token => await ParseBTSETicker(token,
-				token["symbol"].Value<string>()));
+        protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
+        {
+            return (await GetTickersAsync()).Select(pair => pair.Key);
+        }
 
-			return (await Task.WhenAll(tasks)).Select(ticker =>
-				new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker));
-		}
+        protected override async Task<
+            IEnumerable<KeyValuePair<string, ExchangeTicker>>
+        > OnGetTickersAsync()
+        {
+            JToken allPairs = await MakeJsonRequestAsync<JToken>(
+                "/api/v3.1/market_summary",
+                BaseUrl
+            );
+            var tasks = allPairs.Select(
+                async token => await ParseBTSETicker(token, token["symbol"].Value<string>())
+            );
 
-		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
-		{
-			JToken ticker = await MakeJsonRequestAsync<JToken>("/api/v3.1/market_summary", BaseUrl,
-				new Dictionary<string, object>()
-				{
-					{"symbol", marketSymbol}
-				});
-			return await ParseBTSETicker(ticker, marketSymbol);
-		}
+            return (await Task.WhenAll(tasks)).Select(
+                ticker => new KeyValuePair<string, ExchangeTicker>(ticker.MarketSymbol, ticker)
+            );
+        }
 
-		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol,
-			int periodSeconds, DateTime? startDate = null, DateTime? endDate = null,
-			int? limit = null)
-		{
-			var payload = new Dictionary<string, object>()
-			{
-				{"symbol", marketSymbol},
-				{"resolution", periodSeconds}
-			};
+        protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
+        {
+            JToken ticker = await MakeJsonRequestAsync<JToken>(
+                "/api/v3.1/market_summary",
+                BaseUrl,
+                new Dictionary<string, object>() { { "symbol", marketSymbol } }
+            );
+            return await ParseBTSETicker(ticker, marketSymbol);
+        }
 
-			if (startDate != null)
-			{
-				payload.Add("start", startDate.Value.UnixTimestampFromDateTimeMilliseconds());
-			}
+        protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(
+            string marketSymbol,
+            int periodSeconds,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            int? limit = null
+        )
+        {
+            var payload = new Dictionary<string, object>()
+            {
+                { "symbol", marketSymbol },
+                { "resolution", periodSeconds }
+            };
 
-			if (endDate != null)
-			{
-				payload.Add("end", startDate.Value.UnixTimestampFromDateTimeMilliseconds());
-			}
+            if (startDate != null)
+            {
+                payload.Add("start", startDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            }
 
-			JToken ticker = await MakeJsonRequestAsync<JArray>("/api/v3.1/ohlcv", null, payload, "GET");
-			return ticker.Select(token =>
-				this.ParseCandle(token, marketSymbol, periodSeconds, 1, 2, 3, 4, 0, TimestampType.UnixMilliseconds, 5));
-		}
+            if (endDate != null)
+            {
+                payload.Add("end", startDate.Value.UnixTimestampFromDateTimeMilliseconds());
+            }
 
-		protected override async Task OnCancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false)
-		{
-			var payload = await GetNoncePayloadAsync();
+            JToken ticker = await MakeJsonRequestAsync<JArray>(
+                "/api/v3.1/ohlcv",
+                null,
+                payload,
+                "GET"
+            );
+            return ticker.Select(
+                token =>
+                    this.ParseCandle(
+                        token,
+                        marketSymbol,
+                        periodSeconds,
+                        1,
+                        2,
+                        3,
+                        4,
+                        0,
+                        TimestampType.UnixMilliseconds,
+                        5
+                    )
+            );
+        }
 
-			payload["order_id"] = orderId.ConvertInvariant<long>();
-			var url = new UriBuilder(BaseUrl) {Path = "/api/v3.1/order"};
-			url.AppendPayloadToQuery(new Dictionary<string, object>()
-			{
-				{"symbol", marketSymbol},
-				{"orderID", orderId}
-			});
+        protected override async Task OnCancelOrderAsync(
+            string orderId,
+            string? marketSymbol = null,
+            bool isClientOrderId = false
+        )
+        {
+            var payload = await GetNoncePayloadAsync();
 
-			await MakeJsonRequestAsync<JToken>($"/api/v3.1/order{url.Query}",
-				requestMethod: "DELETE", payload: payload);
-		}
+            payload["order_id"] = orderId.ConvertInvariant<long>();
+            var url = new UriBuilder(BaseUrl) { Path = "/api/v3.1/order" };
+            url.AppendPayloadToQuery(
+                new Dictionary<string, object>()
+                {
+                    { "symbol", marketSymbol },
+                    { "orderID", orderId }
+                }
+            );
 
-		protected override Task<Dictionary<string, decimal>> OnGetAmountsAsync()
-		{
-			return GetBTSEBalance(false);
-		}
+            await MakeJsonRequestAsync<JToken>(
+                $"/api/v3.1/order{url.Query}",
+                requestMethod: "DELETE",
+                payload: payload
+            );
+        }
 
-		protected override Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
-		{
-			return GetBTSEBalance(true);
-		}
+        protected override Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+        {
+            return GetBTSEBalance(false);
+        }
 
-		protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
-		{
-			var payload = await GetNoncePayloadAsync();
+        protected override Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+        {
+            return GetBTSEBalance(true);
+        }
 
-			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/fees",
-				requestMethod: "GET", payload: payload);
+        protected override async Task<Dictionary<string, decimal>> OnGetFeesAsync()
+        {
+            var payload = await GetNoncePayloadAsync();
 
-			//taker or maker fees in BTSE.. i chose maker for here
-			return Extract(result, token => (token["symbol"].Value<string>(), token["makerFee"].Value<decimal>()));
-		}
+            var result = await MakeJsonRequestAsync<JToken>(
+                "/api/v3.1/user/fees",
+                requestMethod: "GET",
+                payload: payload
+            );
 
-		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
-			string? marketSymbol = null)
-		{
-			if (marketSymbol == null) throw new ArgumentNullException(nameof(marketSymbol));
-			var payload = await GetNoncePayloadAsync();
+            //taker or maker fees in BTSE.. i chose maker for here
+            return Extract(
+                result,
+                token => (token["symbol"].Value<string>(), token["makerFee"].Value<decimal>())
+            );
+        }
 
-			var url = new UriBuilder(BaseUrl) {Path = "/api/v3.1/user/open_orders"};
-			url.AppendPayloadToQuery(new Dictionary<string, object>()
-			{
-				{"symbol", marketSymbol}
-			});
+        protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
+            string? marketSymbol = null
+        )
+        {
+            if (marketSymbol == null)
+                throw new ArgumentNullException(nameof(marketSymbol));
+            var payload = await GetNoncePayloadAsync();
 
-			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/open_orders"+url.Query,
-				requestMethod: "GET", payload: payload);
+            var url = new UriBuilder(BaseUrl) { Path = "/api/v3.1/user/open_orders" };
+            url.AppendPayloadToQuery(
+                new Dictionary<string, object>() { { "symbol", marketSymbol } }
+            );
 
-			return Extract2(result, token => new ExchangeOrderResult()
-			{
-				Amount = token["size"].Value<decimal>(),
-				AmountFilled = token["filledSize"].Value<decimal>(),
-				OrderId = token["orderID"].Value<string>(),
-				IsBuy = token["side"].Value<string>() == "BUY",
-				Price = token["price"].Value<decimal>(),
-				MarketSymbol = token["symbol"].Value<string>(),
-				OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
-				ClientOrderId = token["clOrderID"].Value<string>(),
-				Result = FromOrderState(token["orderState"].Value<string>())
-			});
-		}
+            var result = await MakeJsonRequestAsync<JToken>(
+                "/api/v3.1/user/open_orders" + url.Query,
+                requestMethod: "GET",
+                payload: payload
+            );
 
-		private ExchangeAPIOrderResult FromOrderState(string s)
-		{
-			switch (s)
-			{
-				case "STATUS_ACTIVE":
-					return ExchangeAPIOrderResult.Open;
-				case "ORDER_CANCELLED":
-					return ExchangeAPIOrderResult.Canceled;
-				case "ORDER_FULLY_TRANSACTED":
-					return ExchangeAPIOrderResult.Filled;
-				case "ORDER_PARTIALLY_TRANSACTED":
-					return ExchangeAPIOrderResult.FilledPartially;
-				default:
-					return ExchangeAPIOrderResult.Unknown;
-			}
-		}
+            return Extract2(
+                result,
+                token =>
+                    new ExchangeOrderResult()
+                    {
+                        Amount = token["size"].Value<decimal>(),
+                        AmountFilled = token["filledSize"].Value<decimal>(),
+                        OrderId = token["orderID"].Value<string>(),
+                        IsBuy = token["side"].Value<string>() == "BUY",
+                        Price = token["price"].Value<decimal>(),
+                        MarketSymbol = token["symbol"].Value<string>(),
+                        OrderDate = token["timestamp"]
+                            .ConvertInvariant<long>()
+                            .UnixTimeStampToDateTimeMilliseconds(),
+                        ClientOrderId = token["clOrderID"].Value<string>(),
+                        Result = FromOrderState(token["orderState"].Value<string>())
+                    }
+            );
+        }
 
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest request)
-		{var payload = await GetNoncePayloadAsync();
+        private ExchangeAPIOrderResult FromOrderState(string s)
+        {
+            switch (s)
+            {
+                case "STATUS_ACTIVE":
+                    return ExchangeAPIOrderResult.Open;
+                case "ORDER_CANCELLED":
+                    return ExchangeAPIOrderResult.Canceled;
+                case "ORDER_FULLY_TRANSACTED":
+                    return ExchangeAPIOrderResult.Filled;
+                case "ORDER_PARTIALLY_TRANSACTED":
+                    return ExchangeAPIOrderResult.FilledPartially;
+                default:
+                    return ExchangeAPIOrderResult.Unknown;
+            }
+        }
 
-			var dict = new Dictionary<string, object>();
+        protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
+            ExchangeOrderRequest request
+        )
+        {
+            var payload = await GetNoncePayloadAsync();
 
-			var id = request.OrderId ?? request.ClientOrderId;
-			if (!string.IsNullOrEmpty(id))
-			{
-				dict.Add("clOrderID",id);
+            var dict = new Dictionary<string, object>();
 
-			}
+            var id = request.OrderId ?? request.ClientOrderId;
+            if (!string.IsNullOrEmpty(id))
+            {
+                dict.Add("clOrderID", id);
+            }
 
-			dict.Add("size", request.Amount);
-			dict.Add("side", request.IsBuy ? "BUY" : "SELL");
-			dict.Add("symbol", request.MarketSymbol);
-			if (request.IsPostOnly != null) payload["postOnly"] = request.IsPostOnly;
+            dict.Add("size", request.Amount);
+            dict.Add("side", request.IsBuy ? "BUY" : "SELL");
+            dict.Add("symbol", request.MarketSymbol);
+            if (request.IsPostOnly != null)
+                payload["postOnly"] = request.IsPostOnly;
 
-			switch (request.OrderType )
-			{
-				case OrderType.Limit:
-					dict.Add("txType", "LIMIT");
-					dict.Add("type", "LIMIT");
-					dict.Add("price", request.Price);
-					break;
-				case OrderType.Market:
-					dict.Add("type", "MARKET");
-					break;
-				case OrderType.Stop:
-					dict.Add("stopPrice", request.StopPrice);
-					dict.Add("price", request.Price);
-					dict.Add("txType", "STOP");
-					break;
-			}
+            switch (request.OrderType)
+            {
+                case OrderType.Limit:
+                    dict.Add("txType", "LIMIT");
+                    dict.Add("type", "LIMIT");
+                    dict.Add("price", request.Price);
+                    break;
+                case OrderType.Market:
+                    dict.Add("type", "MARKET");
+                    break;
+                case OrderType.Stop:
+                    dict.Add("stopPrice", request.StopPrice);
+                    dict.Add("price", request.Price);
+                    dict.Add("txType", "STOP");
+                    break;
+            }
 
-			foreach (var extraParameter in request.ExtraParameters)
-			{
-				if (!dict.ContainsKey(extraParameter.Key))
-				{
-					dict.Add(extraParameter.Key, extraParameter.Value);
-				}
-			}
+            foreach (var extraParameter in request.ExtraParameters)
+            {
+                if (!dict.ContainsKey(extraParameter.Key))
+                {
+                    dict.Add(extraParameter.Key, extraParameter.Value);
+                }
+            }
 
+            payload.Add("body", dict);
 
-			payload.Add("body", dict);
+            var result = await MakeJsonRequestAsync<JToken>(
+                "/api/v3.1/order",
+                requestMethod: "POST",
+                payload: payload
+            );
+            return Extract2(
+                    result,
+                    token =>
+                    {
+                        var status = ExchangeAPIOrderResult.Unknown;
+                        switch (token["status"].Value<int>())
+                        {
+                            case 2: // ORDER_INSERTED
+                                status = ExchangeAPIOrderResult.Open;
+                                break;
+                            case 4: // ORDER_FULLY_TRANSACTED
+                                status = ExchangeAPIOrderResult.Filled;
+                                break;
+                            case 5: // ORDER_PARTIALLY_TRANSACTED
+                                status = ExchangeAPIOrderResult.FilledPartially;
+                                break;
+                            case 6: // ORDER_CANCELLED
+                                status = ExchangeAPIOrderResult.Canceled;
+                                break;
+                            case 8: // INSUFFICIENT_BALANCE
+                                status = ExchangeAPIOrderResult.Rejected;
+                                break;
+                            case 9: //trigger inserted
+                            case 10: //trigger activated
+                                status = ExchangeAPIOrderResult.Open;
+                                break;
+                            case 15: //rejected
+                                status = ExchangeAPIOrderResult.Rejected;
+                                break;
+                            case 16: //not found
+                                status = ExchangeAPIOrderResult.Unknown;
+                                break;
+                        }
 
-			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/order",
-				requestMethod: "POST", payload: payload);
-			return Extract2(result, token =>
-			{
-				var status = ExchangeAPIOrderResult.Unknown;
-				switch (token["status"].Value<int>())
-				{
-					case 2: // ORDER_INSERTED
-						status = ExchangeAPIOrderResult.Open;
-						break;
-					case 4: // ORDER_FULLY_TRANSACTED
-						status = ExchangeAPIOrderResult.Filled;
-						break;
-					case 5: // ORDER_PARTIALLY_TRANSACTED
-						status = ExchangeAPIOrderResult.FilledPartially;
-						break;
-					case 6: // ORDER_CANCELLED
-						status = ExchangeAPIOrderResult.Canceled;
-						break;
-					case 8: // INSUFFICIENT_BALANCE
-						status = ExchangeAPIOrderResult.Rejected;
-						break;
-					case 9: //trigger inserted
-					case 10: //trigger activated
-						status = ExchangeAPIOrderResult.Open;
-						break;
-					case 15: //rejected
-						status = ExchangeAPIOrderResult.Rejected;
-						break;
-					case 16: //not found
-						status = ExchangeAPIOrderResult.Unknown;
-						break;
-				}
+                        return new ExchangeOrderResult()
+                        {
+                            Message = token["message"].Value<string>(),
+                            OrderId = token["orderID"].Value<string>(),
+                            IsBuy = token["side"].Value<string>().ToLowerInvariant() == "buy",
+                            Price = token["price"].Value<decimal>(),
+                            MarketSymbol = token["symbol"].Value<string>(),
+                            Result = status,
+                            Amount = token["size"].Value<decimal>(),
+                            OrderDate = token["timestamp"]
+                                .ConvertInvariant<long>()
+                                .UnixTimeStampToDateTimeMilliseconds(),
+                            ClientOrderId = token["clOrderID"].Value<string>(),
+                            AveragePrice = token["averageFillPrice"].Value<decimal>(),
+                            AmountFilled = token["fillSize"].Value<decimal>(),
+                        };
+                    }
+                )
+                .First();
+        }
 
-				return new ExchangeOrderResult()
-				{
-					Message = token["message"].Value<string>(),
-					OrderId = token["orderID"].Value<string>(),
-					IsBuy = token["side"].Value<string>().ToLowerInvariant() == "buy",
-					Price = token["price"].Value<decimal>(),
-					MarketSymbol = token["symbol"].Value<string>(),
-					Result = status,
-					Amount = token["size"].Value<decimal>(),
-					OrderDate = token["timestamp"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
-					ClientOrderId = token["clOrderID"].Value<string>(),
-					AveragePrice = token["averageFillPrice"].Value<decimal>(),
-					AmountFilled = token["fillSize"].Value<decimal>(),
+        protected override Uri ProcessRequestUrl(
+            UriBuilder url,
+            Dictionary<string, object> payload,
+            string method
+        )
+        {
+            if (method == "GET" && (payload?.Count ?? 0) != 0 && !payload.ContainsKey("nonce"))
+            {
+                url.AppendPayloadToQuery(payload);
+            }
+            return base.ProcessRequestUrl(url, payload, method);
+        }
 
-				};
-			}).First();
-		}
+        protected override async Task ProcessRequestAsync(
+            IHttpWebRequest request,
+            Dictionary<string, object> payload
+        )
+        {
+            if (CanMakeAuthenticatedRequest(payload))
+            {
+                if (payload.TryGetValue("body", out var body))
+                {
+                    payload.Remove("body");
+                }
 
-		protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
-		{
-			if (method == "GET" && (payload?.Count ?? 0) != 0 && !payload.ContainsKey("nonce"))
-			{
-				url.AppendPayloadToQuery(payload);
-			}
-			return base.ProcessRequestUrl(url, payload, method);
-		}
+                var nonce = payload["nonce"].ToString();
+                payload.Remove("nonce");
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
-		{
-			if (CanMakeAuthenticatedRequest(payload))
-			{
-				if (payload.TryGetValue("body", out var body))
-				{
-					payload.Remove("body");
-				}
+                var json = JsonConvert.SerializeObject(body ?? payload);
+                if (json == "{}")
+                {
+                    json = "";
+                }
 
-				var nonce = payload["nonce"].ToString();
-				payload.Remove("nonce");
+                var passphrase = Passphrase?.ToUnsecureString();
+                if (string.IsNullOrEmpty(passphrase))
+                {
+                    passphrase = PrivateApiKey?.ToUnsecureString();
+                }
 
-				var json = JsonConvert.SerializeObject(body ?? payload);
-				if (json == "{}")
-				{
-					json = "";
-				}
+                var hexSha384 = CryptoUtility.SHA384Sign(
+                    $"{request.RequestUri.AbsolutePath.Replace("/spot", string.Empty)}{nonce}{json}",
+                    passphrase
+                );
+                request.AddHeader("btse-sign", hexSha384);
+                request.AddHeader("btse-nonce", nonce);
+                request.AddHeader("btse-api", PublicApiKey.ToUnsecureString());
+                await request.WriteToRequestAsync(json);
+            }
 
-				var passphrase = Passphrase?.ToUnsecureString();
-				if (string.IsNullOrEmpty(passphrase))
-				{
-					passphrase = PrivateApiKey?.ToUnsecureString();
-				}
+            await base.ProcessRequestAsync(request, payload);
+        }
 
-				var hexSha384 = CryptoUtility.SHA384Sign(
-					$"{request.RequestUri.AbsolutePath.Replace("/spot", string.Empty)}{nonce}{json}",
-					passphrase);
-				request.AddHeader("btse-sign", hexSha384);
-				request.AddHeader("btse-nonce", nonce);
-				request.AddHeader("btse-api", PublicApiKey.ToUnsecureString());
-				await request.WriteToRequestAsync(json);
-			}
+        protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
+        {
+            var result = await base.GetNoncePayloadAsync();
+            if (result.ContainsKey("recvWindow"))
+            {
+                result.Remove("recvWindow");
+            }
 
-			await base.ProcessRequestAsync(request, payload);
-		}
+            return result;
+        }
 
-		protected override async Task<Dictionary<string, object>> GetNoncePayloadAsync()
-		{
-			var result = await base.GetNoncePayloadAsync();
-			if (result.ContainsKey("recvWindow"))
-			{
-				result.Remove("recvWindow");
-			}
+        private Dictionary<TKey, TValue> Extract<TKey, TValue>(
+            JToken token,
+            Func<JToken, (TKey, TValue)> processor
+        )
+        {
+            if (token is JArray resultArr)
+            {
+                return resultArr
+                    .Select(processor.Invoke)
+                    .ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
+            }
 
-			return result;
-		}
+            var resItem = processor.Invoke(token);
+            return new Dictionary<TKey, TValue>() { { resItem.Item1, resItem.Item2 } };
+        }
 
-		private Dictionary<TKey, TValue> Extract<TKey, TValue>(JToken token, Func<JToken, (TKey, TValue)> processor)
-		{
-			if (token is JArray resultArr)
-			{
-				return resultArr.Select(processor.Invoke)
-					.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
-			}
+        private IEnumerable<TValue> Extract2<TValue>(JToken token, Func<JToken, TValue> processor)
+        {
+            if (token is JArray resultArr)
+            {
+                return resultArr.Select(processor.Invoke);
+            }
 
-			var resItem = processor.Invoke(token);
-			return new Dictionary<TKey, TValue>()
-			{
-				{resItem.Item1, resItem.Item2}
-			};
-		}
+            return new List<TValue>() { processor.Invoke(token) };
+        }
 
-		private IEnumerable<TValue> Extract2<TValue>(JToken token, Func<JToken, TValue> processor)
-		{
-			if (token is JArray resultArr)
-			{
-				return resultArr.Select(processor.Invoke);
-			}
+        private async Task<ExchangeTicker> ParseBTSETicker(JToken ticker, string marketSymbol)
+        {
+            return await this.ParseTickerAsync(
+                ticker,
+                marketSymbol,
+                "lowestAsk",
+                "highestBid",
+                "last",
+                "volume",
+                null,
+                null,
+                TimestampType.UnixMilliseconds,
+                "base",
+                "quote",
+                "symbol"
+            );
+        }
 
-			return new List<TValue>()
-			{
-				processor.Invoke(token)
-			};
-		}
+        private async Task<Dictionary<string, decimal>> GetBTSEBalance(bool availableOnly)
+        {
+            var payload = await GetNoncePayloadAsync();
 
-		private async Task<ExchangeTicker> ParseBTSETicker(JToken ticker, string marketSymbol)
-		{
-			return await this.ParseTickerAsync(ticker, marketSymbol, "lowestAsk", "highestBid", "last", "volume", null,
-				null, TimestampType.UnixMilliseconds, "base", "quote", "symbol");
-		}
+            var result = await MakeJsonRequestAsync<JToken>(
+                "/api/v3.1/user/wallet",
+                requestMethod: "GET",
+                payload: payload
+            );
+            return Extract(
+                result,
+                token =>
+                    (
+                        token["currency"].Value<string>(),
+                        token[availableOnly ? "available" : "total"].Value<decimal>()
+                    )
+            );
+        }
+    }
 
-		private async Task<Dictionary<string, decimal>> GetBTSEBalance(bool availableOnly)
-		{
-			var payload = await GetNoncePayloadAsync();
-
-			var result = await MakeJsonRequestAsync<JToken>("/api/v3.1/user/wallet",
-				requestMethod: "GET", payload: payload);
-			return Extract(result, token => (token["currency"].Value<string>(), token[availableOnly?"available": "total"].Value<decimal>()));
-		}
-
-	}
-
-	public partial class ExchangeName
-	{
-		public const string BTSE = "BTSE";
-	}
+    public partial class ExchangeName
+    {
+        public const string BTSE = "BTSE";
+    }
 }

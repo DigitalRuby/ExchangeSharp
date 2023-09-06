@@ -29,7 +29,13 @@ namespace ExchangeSharp
         /// <param name="basePath">Base path to export to, should not contain symbol, symbol will be appended</param>
         /// <param name="sinceDateTime">Start date to begin export at</param>
         /// <param name="callback">Callback if api is not null to notify of progress</param>
-        public static async Task ExportExchangeTrades(IExchangeAPI api, string marketSymbol, string basePath, DateTime sinceDateTime, Action<long> callback = null)
+        public static async Task ExportExchangeTrades(
+            IExchangeAPI api,
+            string marketSymbol,
+            string basePath,
+            DateTime sinceDateTime,
+            Action<long> callback = null
+        )
         {
             basePath = Path.Combine(basePath, marketSymbol);
             Directory.CreateDirectory(basePath);
@@ -52,9 +58,20 @@ namespace ExchangeSharp
                             }
                             lastYear = trade.Timestamp.Year;
                             lastMonth = trade.Timestamp.Month;
-                            writer = new StreamWriter(basePath + trade.Timestamp.Year + "-" + trade.Timestamp.Month.ToString("00") + ".csv");
+                            writer = new StreamWriter(
+                                basePath
+                                    + trade.Timestamp.Year
+                                    + "-"
+                                    + trade.Timestamp.Month.ToString("00")
+                                    + ".csv"
+                            );
                         }
-                        writer.WriteLine("{0},{1},{2}", CryptoUtility.UnixTimestampFromDateTimeSeconds(trade.Timestamp), trade.Price, trade.Amount);
+                        writer.WriteLine(
+                            "{0},{1},{2}",
+                            CryptoUtility.UnixTimestampFromDateTimeSeconds(trade.Timestamp),
+                            trade.Price,
+                            trade.Amount
+                        );
                         if (++count % 100 == 0)
                         {
                             callback?.Invoke(count);

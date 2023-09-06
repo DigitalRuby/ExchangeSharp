@@ -33,6 +33,7 @@ namespace ExchangeSharp
         public int WindowSize => _windowSize;
 
         public T WeightingMultiplier => _weightingMultiplier;
+
         /// <summary>
         /// Current moving average
         /// </summary>
@@ -59,7 +60,13 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0}:{1}, {2}:{3}", MovingAverage, Slope, ExponentialMovingAverage, ExponentialSlope);
+            return string.Format(
+                "{0}:{1}, {2}:{3}",
+                MovingAverage,
+                Slope,
+                ExponentialMovingAverage,
+                ExponentialSlope
+            );
         }
 
         /// <summary>
@@ -126,7 +133,9 @@ namespace ExchangeSharp
             // exponential moving average
             if (_previousExponentialMovingAverage != double.MinValue)
             {
-                ExponentialMovingAverage = ((nextValue - _previousExponentialMovingAverage) * _weightingMultiplier) + _previousExponentialMovingAverage;
+                ExponentialMovingAverage =
+                    ((nextValue - _previousExponentialMovingAverage) * _weightingMultiplier)
+                    + _previousExponentialMovingAverage;
                 ExponentialSlope = ExponentialMovingAverage - _previousExponentialMovingAverage;
 
                 //update previous average
@@ -209,7 +218,9 @@ namespace ExchangeSharp
             // exponential moving average
             if (_previousExponentialMovingAverage != decimal.MinValue)
             {
-                ExponentialMovingAverage = ((nextValue - _previousExponentialMovingAverage) * _weightingMultiplier) + _previousExponentialMovingAverage;
+                ExponentialMovingAverage =
+                    ((nextValue - _previousExponentialMovingAverage) * _weightingMultiplier)
+                    + _previousExponentialMovingAverage;
                 ExponentialSlope = ExponentialMovingAverage - _previousExponentialMovingAverage;
 
                 //update previous average

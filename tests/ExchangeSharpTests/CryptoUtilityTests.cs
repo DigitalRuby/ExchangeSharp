@@ -63,10 +63,22 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void ClampPrice()
         {
-            CryptoUtility.ClampDecimal(0.00000100m, 100000.00000000m, 0.00000100m, 0.05507632m).Should().Be(0.055076m);
-            CryptoUtility.ClampDecimal(0.00000010m, 100000.00000000m, 0.00000010m, 0.00052286m).Should().Be(0.0005228m);
-            CryptoUtility.ClampDecimal(0.00001000m, 100000.00000000m, 0.00001000m, 0.02525215m).Should().Be(0.02525m);
-            CryptoUtility.ClampDecimal(0.00001000m, 100000.00000000m, null, 0.00401212m).Should().Be(0.00401212m);
+            CryptoUtility
+                .ClampDecimal(0.00000100m, 100000.00000000m, 0.00000100m, 0.05507632m)
+                .Should()
+                .Be(0.055076m);
+            CryptoUtility
+                .ClampDecimal(0.00000010m, 100000.00000000m, 0.00000010m, 0.00052286m)
+                .Should()
+                .Be(0.0005228m);
+            CryptoUtility
+                .ClampDecimal(0.00001000m, 100000.00000000m, 0.00001000m, 0.02525215m)
+                .Should()
+                .Be(0.02525m);
+            CryptoUtility
+                .ClampDecimal(0.00001000m, 100000.00000000m, null, 0.00401212m)
+                .Should()
+                .Be(0.00401212m);
         }
 
         [TestMethod]
@@ -80,47 +92,94 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void ClampPriceOutOfRange()
         {
-            void a() => CryptoUtility.ClampDecimal(-0.00000100m, 100000.00000000m, 0.00000100m, 0.05507632m);
+            void a() =>
+                CryptoUtility.ClampDecimal(
+                    -0.00000100m,
+                    100000.00000000m,
+                    0.00000100m,
+                    0.05507632m
+                );
             Invoking(a).Should().Throw<ArgumentOutOfRangeException>();
 
-            void b() => CryptoUtility.ClampDecimal(0.00000100m, -100000.00000000m, 0.00000100m, 0.05507632m);
+            void b() =>
+                CryptoUtility.ClampDecimal(
+                    0.00000100m,
+                    -100000.00000000m,
+                    0.00000100m,
+                    0.05507632m
+                );
             Invoking(b).Should().Throw<ArgumentOutOfRangeException>();
 
-            void c() => CryptoUtility.ClampDecimal(0.00000100m, 100000.00000000m, 0.00000100m, -0.05507632m);
+            void c() =>
+                CryptoUtility.ClampDecimal(
+                    0.00000100m,
+                    100000.00000000m,
+                    0.00000100m,
+                    -0.05507632m
+                );
             Invoking(c).Should().Throw<ArgumentOutOfRangeException>();
 
-            void d() => CryptoUtility.ClampDecimal(0.00000100m, 100000.00000000m, -0.00000100m, 0.05507632m);
+            void d() =>
+                CryptoUtility.ClampDecimal(
+                    0.00000100m,
+                    100000.00000000m,
+                    -0.00000100m,
+                    0.05507632m
+                );
             Invoking(d).Should().Throw<ArgumentOutOfRangeException>();
 
-            void e() => CryptoUtility.ClampDecimal(100000.00000000m, 0.00000100m, -0.00000100m, 0.05507632m);
+            void e() =>
+                CryptoUtility.ClampDecimal(
+                    100000.00000000m,
+                    0.00000100m,
+                    -0.00000100m,
+                    0.05507632m
+                );
             Invoking(e).Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [TestMethod]
         public void ClampQuantity()
         {
-            CryptoUtility.ClampDecimal(0.01000000m, 90000000.00000000m, 0.01000000m, 34.55215m).Should().Be(34.55m);
-            CryptoUtility.ClampDecimal(0.00100000m, 90000000.00000000m, 0.00100000m, 941.4192m).Should().Be(941.419m);
-            CryptoUtility.ClampDecimal(0.00000100m, 90000000.00000000m, 0.00000100m, 172.94102192m).Should().Be(172.941021m);
-            CryptoUtility.ClampDecimal(0.00010000m, 90000000.00000000m, null, 1837.31935m).Should().Be(1837.31935m);
+            CryptoUtility
+                .ClampDecimal(0.01000000m, 90000000.00000000m, 0.01000000m, 34.55215m)
+                .Should()
+                .Be(34.55m);
+            CryptoUtility
+                .ClampDecimal(0.00100000m, 90000000.00000000m, 0.00100000m, 941.4192m)
+                .Should()
+                .Be(941.419m);
+            CryptoUtility
+                .ClampDecimal(0.00000100m, 90000000.00000000m, 0.00000100m, 172.94102192m)
+                .Should()
+                .Be(172.941021m);
+            CryptoUtility
+                .ClampDecimal(0.00010000m, 90000000.00000000m, null, 1837.31935m)
+                .Should()
+                .Be(1837.31935m);
         }
 
         [TestMethod]
         public void ClampQuantityOutOfRange()
         {
-            void a() => CryptoUtility.ClampDecimal(-0.00010000m, 900000.00000000m, 0.00010000m, 33.393832m);
+            void a() =>
+                CryptoUtility.ClampDecimal(-0.00010000m, 900000.00000000m, 0.00010000m, 33.393832m);
             Invoking(a).Should().Throw<ArgumentOutOfRangeException>();
 
-            void b() => CryptoUtility.ClampDecimal(0.00010000m, -900000.00000000m, 0.00010000m, 33.393832m);
+            void b() =>
+                CryptoUtility.ClampDecimal(0.00010000m, -900000.00000000m, 0.00010000m, 33.393832m);
             Invoking(b).Should().Throw<ArgumentOutOfRangeException>();
 
-            void c() => CryptoUtility.ClampDecimal(0.00010000m, 900000.00000000m, 0.00010000m, -33.393832m);
+            void c() =>
+                CryptoUtility.ClampDecimal(0.00010000m, 900000.00000000m, 0.00010000m, -33.393832m);
             Invoking(c).Should().Throw<ArgumentOutOfRangeException>();
 
-            void d() => CryptoUtility.ClampDecimal(0.00010000m, 900000.00000000m, -0.00010000m, 33.393832m);
+            void d() =>
+                CryptoUtility.ClampDecimal(0.00010000m, 900000.00000000m, -0.00010000m, 33.393832m);
             Invoking(d).Should().Throw<ArgumentOutOfRangeException>();
 
-            void e() => CryptoUtility.ClampDecimal(900000.00000000m, 0.00010000m, -0.00010000m, 33.393832m);
+            void e() =>
+                CryptoUtility.ClampDecimal(900000.00000000m, 0.00010000m, -0.00010000m, 33.393832m);
             Invoking(e).Should().Throw<ArgumentOutOfRangeException>();
         }
 
@@ -144,7 +203,25 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void AESEncryption()
         {
-            byte[] salt = new byte[] { 65, 61, 53, 222, 105, 5, 199, 241, 213, 56, 19, 120, 251, 37, 66, 185 };
+            byte[] salt = new byte[]
+            {
+                65,
+                61,
+                53,
+                222,
+                105,
+                5,
+                199,
+                241,
+                213,
+                56,
+                19,
+                120,
+                251,
+                37,
+                66,
+                185
+            };
             byte[] data = new byte[255];
             for (int i = 0; i < data.Length; i++)
             {
@@ -172,7 +249,11 @@ namespace ExchangeSharpTests
 
             for (int i = 0; i < 4; i++)
             {
-                DataProtector.DataProtectionScope scope = (i < 2 ? DataProtector.DataProtectionScope.CurrentUser : DataProtector.DataProtectionScope.LocalMachine);
+                DataProtector.DataProtectionScope scope = (
+                    i < 2
+                        ? DataProtector.DataProtectionScope.CurrentUser
+                        : DataProtector.DataProtectionScope.LocalMachine
+                );
                 RSA rsa = DataProtector.RSAFromFile(scope);
                 byte[] encrypted = rsa.Encrypt(originalValue, RSAEncryptionPadding.Pkcs1);
                 byte[] decrypted = rsa.Decrypt(encrypted, RSAEncryptionPadding.Pkcs1);
@@ -207,7 +288,15 @@ namespace ExchangeSharpTests
             try
             {
                 CultureInfo info2 = new CultureInfo("fr-FR");
-                string[] decimals = new string[] { "7800.07", "0.00172", "155975495", "7.93E+3", "0.00018984", "155975362" };
+                string[] decimals = new string[]
+                {
+                    "7800.07",
+                    "0.00172",
+                    "155975495",
+                    "7.93E+3",
+                    "0.00018984",
+                    "155975362"
+                };
                 foreach (string doubleString in decimals)
                 {
                     Thread.CurrentThread.CurrentCulture = info;
@@ -228,45 +317,51 @@ namespace ExchangeSharpTests
 
         [ConditionalTestMethod]
         [PlatformSpecificTest(
-	        ~TestPlatforms.OSX,
-	        "Has an issue on MacOS. See https://github.com/dotnet/corefx/issues/42607"
-	    )]
+            ~TestPlatforms.OSX,
+            "Has an issue on MacOS. See https://github.com/dotnet/corefx/issues/42607"
+        )]
         public async Task RateGate()
         {
-	        const int timesPerPeriod = 1;
-	        const int ms = 100;
-	        const int loops = 5;
-	        const double msMax = (double) ms * 1.5;
-	        const double msMin = (double) ms * (1.0 / 1.5);
-	        var gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
+            const int timesPerPeriod = 1;
+            const int ms = 100;
+            const int loops = 5;
+            const double msMax = (double)ms * 1.5;
+            const double msMin = (double)ms * (1.0 / 1.5);
+            var gate = new RateGate(timesPerPeriod, TimeSpan.FromMilliseconds(ms));
 
-	        var entered = await gate.WaitToProceedAsync(0);
-	        if (!entered)
-	        {
-		        throw new APIException("Rate gate should have allowed immediate access to first attempt");
-	        }
+            var entered = await gate.WaitToProceedAsync(0);
+            if (!entered)
+            {
+                throw new APIException(
+                    "Rate gate should have allowed immediate access to first attempt"
+                );
+            }
 
-	        for (var i = 0; i < loops; i++)
-	        {
-		        var timer = Stopwatch.StartNew();
-		        await gate.WaitToProceedAsync();
-		        timer.Stop();
+            for (var i = 0; i < loops; i++)
+            {
+                var timer = Stopwatch.StartNew();
+                await gate.WaitToProceedAsync();
+                timer.Stop();
 
-		        if (i <= 0)
-		        {
-			        continue;
-		        }
+                if (i <= 0)
+                {
+                    continue;
+                }
 
-		        // check for too much elapsed time with a little fudge
-		        Assert.IsTrue(
-			        timer.Elapsed.TotalMilliseconds <= msMax,
-			        "Rate gate took too long to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms"
-		        );
-		        Assert.IsTrue(
-			        timer.Elapsed.TotalMilliseconds >= msMin,
-			        "Rate gate took too little to wait in between calls: " + timer.Elapsed.TotalMilliseconds + "ms"
-		        );
-	        }
+                // check for too much elapsed time with a little fudge
+                Assert.IsTrue(
+                    timer.Elapsed.TotalMilliseconds <= msMax,
+                    "Rate gate took too long to wait in between calls: "
+                        + timer.Elapsed.TotalMilliseconds
+                        + "ms"
+                );
+                Assert.IsTrue(
+                    timer.Elapsed.TotalMilliseconds >= msMin,
+                    "Rate gate took too little to wait in between calls: "
+                        + timer.Elapsed.TotalMilliseconds
+                        + "ms"
+                );
+            }
         }
     }
 }

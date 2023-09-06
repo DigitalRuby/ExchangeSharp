@@ -175,12 +175,12 @@ namespace ExchangeSharp
             [JsonProperty("OT")]
             public OrderSide OrderSide { get; set; }
 
-	    /// <summary>Rate of the fill</summary>
-	    [JsonProperty("FI")]
-	    public long FillId { get; set; }
-	}	
+            /// <summary>Rate of the fill</summary>
+            [JsonProperty("FI")]
+            public long FillId { get; set; }
+        }
 
-	internal class BittrexStreamQueryExchangeState
+        internal class BittrexStreamQueryExchangeState
         {
             [JsonProperty("N")]
             public long Nonce { get; set; }
@@ -205,16 +205,17 @@ namespace ExchangeSharp
         internal class OrderSideConverter : BaseConverter<OrderSide>
         {
             public OrderSideConverter()
-                : this(true)
-            {
-            }
+                : this(true) { }
 
             public OrderSideConverter(bool quotes)
-                : base(quotes)
-            {
-            }
+                : base(quotes) { }
 
-            protected override Dictionary<OrderSide, string> Mapping => new Dictionary<OrderSide, string> { { OrderSide.Buy, "BUY" }, { OrderSide.Sell, "SELL" } };
+            protected override Dictionary<OrderSide, string> Mapping =>
+                new Dictionary<OrderSide, string>
+                {
+                    { OrderSide.Buy, "BUY" },
+                    { OrderSide.Sell, "SELL" }
+                };
         }
 
         internal class BittrexStreamMarketHistory
@@ -253,16 +254,17 @@ namespace ExchangeSharp
             public class FillTypeConverter : BaseConverter<FillType>
             {
                 public FillTypeConverter()
-                    : this(true)
-                {
-                }
+                    : this(true) { }
 
                 public FillTypeConverter(bool quotes)
-                    : base(quotes)
-                {
-                }
+                    : base(quotes) { }
 
-                protected override Dictionary<FillType, string> Mapping => new Dictionary<FillType, string> { { FillType.Fill, "FILL" }, { FillType.PartialFill, "PARTIAL_FILL" } };
+                protected override Dictionary<FillType, string> Mapping =>
+                    new Dictionary<FillType, string>
+                    {
+                        { FillType.Fill, "FILL" },
+                        { FillType.PartialFill, "PARTIAL_FILL" }
+                    };
             }
         }
     }

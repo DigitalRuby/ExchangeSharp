@@ -28,7 +28,7 @@ using NSubstitute;
 
 namespace ExchangeSharpTests
 {
-	// TODO: FIX: Poloniex order amount and amount filled are inconsistant
+    // TODO: FIX: Poloniex order amount and amount filled are inconsistant
 
     [TestClass]
     public sealed class ExchangePoloniexAPITests
@@ -40,15 +40,18 @@ namespace ExchangeSharpTests
             {
                 requestMaker.GlobalResponse = response;
             }
-			var api = (await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Poloniex) as ExchangePoloniexAPI)!;
-			api.RequestMaker = requestMaker;
-			return api;
+            var api = (
+                await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Poloniex) as ExchangePoloniexAPI
+            )!;
+            api.RequestMaker = requestMaker;
+            return api;
         }
 
         [TestMethod]
         public async Task ParseBuyOrder_SingleTrade_HappyPath()
         {
-            const string BuyOrder = @"{
+            const string BuyOrder =
+                @"{
     ""orderNumber"": 31226040,
     ""resultingTrades"": [{
         ""amount"": ""338.8732"",
@@ -62,13 +65,13 @@ namespace ExchangeSharpTests
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(BuyOrder);
             var polo = await CreatePoloniexAPI();
-			var orderRequest = new ExchangeOrderRequest
-			{
-				MarketSymbol = "FOO_FOO",
-				Amount = 338.8732m,
-				Price = 0.00000173m,
-				IsBuy = true
-			};
+            var orderRequest = new ExchangeOrderRequest
+            {
+                MarketSymbol = "FOO_FOO",
+                Amount = 338.8732m,
+                Price = 0.00000173m,
+                IsBuy = true
+            };
             ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeTrue();
@@ -83,7 +86,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ParseSellOrder_SingleTrade_HappyPath()
         {
-            const string SellOrder = @"{
+            const string SellOrder =
+                @"{
     ""orderNumber"": 31226040,
     ""resultingTrades"": [{
         ""amount"": ""338.8732"",
@@ -97,14 +101,14 @@ namespace ExchangeSharpTests
 
             var singleOrder = JsonConvert.DeserializeObject<JToken>(SellOrder);
             var polo = await CreatePoloniexAPI();
-			var orderRequest = new ExchangeOrderRequest
-			{
-				MarketSymbol = "FOO_FOO",
-				Amount = 338.8732m,
-				Price = 0.00000173m,
-				IsBuy = false
-			};
-			ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
+            var orderRequest = new ExchangeOrderRequest
+            {
+                MarketSymbol = "FOO_FOO",
+                Amount = 338.8732m,
+                Price = 0.00000173m,
+                IsBuy = false
+            };
+            ExchangeOrderResult order = polo.ParsePlacedOrder(singleOrder, orderRequest);
             order.OrderId.Should().Be("31226040");
             order.IsBuy.Should().BeFalse();
             order.Amount.Should().Be(338.8732m);
@@ -119,7 +123,9 @@ namespace ExchangeSharpTests
         public async Task ReturnOrderTrades_Sell_HasCorrectValues()
         {
             var order = new ExchangeOrderResult();
-            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTradesSell);
+            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(
+                ReturnOrderTradesSell
+            );
             var polo = await CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.Amount.Should().Be(119.83405116M);
@@ -137,7 +143,9 @@ namespace ExchangeSharpTests
         public async Task ReturnOrderTrades_Buy_HasCorrectValues()
         {
             var order = new ExchangeOrderResult();
-            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_SimpleBuy);
+            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(
+                ReturnOrderTrades_SimpleBuy
+            );
             var polo = await CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.OrderId.Should().BeNullOrEmpty();
@@ -155,7 +163,9 @@ namespace ExchangeSharpTests
         public async Task ReturnOrderTrades_BuyComplicatedPriceAvg_IsCorrect()
         {
             var order = new ExchangeOrderResult();
-            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(ReturnOrderTrades_GasBuy);
+            var orderWithMultipleTrades = JsonConvert.DeserializeObject<JToken>(
+                ReturnOrderTrades_GasBuy
+            );
             var polo = await CreatePoloniexAPI();
             polo.ParseOrderTrades(orderWithMultipleTrades, order);
             order.AveragePrice.Should().Be(0.0397199908083616777777777778m);
@@ -165,7 +175,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ReturnOpenOrders_SingleMarket_Parses()
         {
-            string marketOrdersJson = @"[{
+            string marketOrdersJson =
+                @"[{
             ""orderNumber"": ""120466"",
             ""type"": ""sell"",
             ""rate"": ""0.025"",
@@ -218,7 +229,9 @@ namespace ExchangeSharpTests
         {
             var polo = await CreatePoloniexAPI(Unfilled);
 
-            IEnumerable<ExchangeOrderResult> orders = await polo.GetOpenOrderDetailsAsync("ETH_BCH");
+            IEnumerable<ExchangeOrderResult> orders = await polo.GetOpenOrderDetailsAsync(
+                "ETH_BCH"
+            );
             ExchangeOrderResult order = orders.Single();
             order.OrderId.Should().Be("35329211614");
             order.IsBuy.Should().BeTrue();
@@ -268,7 +281,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task GetOrderDetails_OrderNotFound_DoesNotThrow()
         {
-            const string response = @"{""error"":""Order not found, or you are not the person who placed it.""}";
+            const string response =
+                @"{""error"":""Order not found, or you are not the person who placed it.""}";
             var polo = await CreatePoloniexAPI(response);
             async Task a() => await polo.GetOrderDetailsAsync("1");
             Invoking(a).Should().Throw<APIException>();
@@ -288,7 +302,9 @@ namespace ExchangeSharpTests
         public async Task GetCompletedOrderDetails_MultipleOrders()
         {
             var polo = await CreatePoloniexAPI(ReturnOrderTrades_AllGas);
-            IEnumerable<ExchangeOrderResult> orders = await polo.GetCompletedOrderDetailsAsync("ETH_GAS");
+            IEnumerable<ExchangeOrderResult> orders = await polo.GetCompletedOrderDetailsAsync(
+                "ETH_GAS"
+            );
             orders.Should().HaveCount(2);
             ExchangeOrderResult sellorder = orders.Single(x => !x.IsBuy);
             sellorder.AveragePrice.Should().Be(0.04123m);
@@ -350,35 +366,37 @@ namespace ExchangeSharpTests
                 }
             };
 
-			// retrieve without BTC_BCH in the result
-			var result = await polo.GetExchangeMarketFromCacheAsync("XMR_LTC");
-			result.Should().NotBeNull();
+            // retrieve without BTC_BCH in the result
+            var result = await polo.GetExchangeMarketFromCacheAsync("XMR_LTC");
+            result.Should().NotBeNull();
             requestCount.Should().Be(1);
-			result = await polo.GetExchangeMarketFromCacheAsync("BTC_BCH");
-			result.Should().BeNull();
+            result = await polo.GetExchangeMarketFromCacheAsync("BTC_BCH");
+            result.Should().BeNull();
             requestCount.Should().Be(2);
 
             // now many moons later we request BTC_BCH, which wasn't in the first request but is in the latest exchange result
-            (polo.RequestMaker as MockAPIRequestMaker).GlobalResponse = Resources.PoloniexGetSymbolsMetadata2;
-			result = await polo.GetExchangeMarketFromCacheAsync("BTC_BCH");
-			result.Should().NotBeNull();
+            (polo.RequestMaker as MockAPIRequestMaker).GlobalResponse =
+                Resources.PoloniexGetSymbolsMetadata2;
+            result = await polo.GetExchangeMarketFromCacheAsync("BTC_BCH");
+            result.Should().NotBeNull();
             requestCount.Should().Be(3);
 
-			// and lets make sure it doesn't return something for null and garbage symbols
-			result = await polo.GetExchangeMarketFromCacheAsync(null);
-			result.Should().BeNull();
-			result = await polo.GetExchangeMarketFromCacheAsync(string.Empty);
-			result.Should().BeNull();
-			result = await polo.GetExchangeMarketFromCacheAsync("324235!@^%Q@#%^");
-			result.Should().BeNull();
-			result = await polo.GetExchangeMarketFromCacheAsync("NOCOIN_NORESULT");
-			result.Should().BeNull();
+            // and lets make sure it doesn't return something for null and garbage symbols
+            result = await polo.GetExchangeMarketFromCacheAsync(null);
+            result.Should().BeNull();
+            result = await polo.GetExchangeMarketFromCacheAsync(string.Empty);
+            result.Should().BeNull();
+            result = await polo.GetExchangeMarketFromCacheAsync("324235!@^%Q@#%^");
+            result.Should().BeNull();
+            result = await polo.GetExchangeMarketFromCacheAsync("NOCOIN_NORESULT");
+            result.Should().BeNull();
         }
 
         private static Func<Task> Invoking(Func<Task> action) => action;
 
         #region RealResponseJSON
-        private const string SingleMarketTradeHistory = @"[{
+        private const string SingleMarketTradeHistory =
+            @"[{
     ""globalTradeID"": 25129732,
     ""tradeID"": ""6325758"",
     ""date"": ""2016-04-05 08:08:40"",
@@ -404,7 +422,8 @@ namespace ExchangeSharpTests
 
         #region CompletedOrderDetails
 
-        private const string CompletedOrderDetails = @"[{
+        private const string CompletedOrderDetails =
+            @"[{
     ""globalTradeID"": 345739440,
     ""tradeID"": ""6238142"",
     ""date"": ""2018-02-16 19:55:15"",
@@ -463,7 +482,8 @@ namespace ExchangeSharpTests
 
         #endregion
 
-        private const string ReturnOrderTradesSell = @"[{
+        private const string ReturnOrderTradesSell =
+            @"[{
     ""globalTradeID"": 353843995,
     ""tradeID"": 1524326,
     ""currencyPair"": ""BTC_VIA"",
@@ -495,7 +515,8 @@ namespace ExchangeSharpTests
     ""date"": ""2018-03-15 02:00:31""
 }]";
 
-        private const string ReturnOrderTrades_SimpleBuy = @"[{
+        private const string ReturnOrderTrades_SimpleBuy =
+            @"[{
     ""globalTradeID"": 345736206,
     ""tradeID"": 6238021,
     ""currencyPair"": ""BTC_XEM"",
@@ -519,7 +540,8 @@ namespace ExchangeSharpTests
 
         #region ReturnOrderTrades_GasBuy
 
-        private const string ReturnOrderTrades_GasBuy = @"[{
+        private const string ReturnOrderTrades_GasBuy =
+            @"[{
     ""globalTradeID"": 358351885,
     ""tradeID"": 130147,
     ""currencyPair"": ""ETH_GAS"",
@@ -645,7 +667,8 @@ namespace ExchangeSharpTests
 
         #region GetCompletedOrderDetails_AllGas
 
-        private const string ReturnOrderTrades_AllGas = @"[{
+        private const string ReturnOrderTrades_AllGas =
+            @"[{
     ""globalTradeID"": 359099213,
     ""tradeID"": ""130931"",
     ""date"": ""2018-04-04 01:31:41"",
@@ -959,11 +982,13 @@ namespace ExchangeSharpTests
 
         #region GetCompletedOrderDetails_AllSymbols
 
-        private const string GetCompletedOrderDetails_AllSymbolsOrders = @"{""BTC_MAID"": [ { ""globalTradeID"": 29251512, ""tradeID"": ""1385888"", ""date"": ""2016-05-03 01:29:55"", ""rate"": ""0.00014243"", ""amount"": ""353.74692925"", ""total"": ""0.05038417"", ""fee"": ""0.00200000"", ""orderNumber"": ""12603322113"", ""type"": ""buy"", ""category"": ""settlement"" }, { ""globalTradeID"": 29251511, ""tradeID"": ""1385887"", ""date"": ""2016-05-03 01:29:55"", ""rate"": ""0.00014111"", ""amount"": ""311.24262497"", ""total"": ""0.04391944"", ""fee"": ""0.00200000"", ""orderNumber"": ""12603319116"", ""type"": ""sell"", ""category"": ""marginTrade"" }";
+        private const string GetCompletedOrderDetails_AllSymbolsOrders =
+            @"{""BTC_MAID"": [ { ""globalTradeID"": 29251512, ""tradeID"": ""1385888"", ""date"": ""2016-05-03 01:29:55"", ""rate"": ""0.00014243"", ""amount"": ""353.74692925"", ""total"": ""0.05038417"", ""fee"": ""0.00200000"", ""orderNumber"": ""12603322113"", ""type"": ""buy"", ""category"": ""settlement"" }, { ""globalTradeID"": 29251511, ""tradeID"": ""1385887"", ""date"": ""2016-05-03 01:29:55"", ""rate"": ""0.00014111"", ""amount"": ""311.24262497"", ""total"": ""0.04391944"", ""fee"": ""0.00200000"", ""orderNumber"": ""12603319116"", ""type"": ""sell"", ""category"": ""marginTrade"" }";
 
         #endregion GetCompletedOrderDetails_AllSymbols
 
-        private const string Unfilled = @"[{
+        private const string Unfilled =
+            @"[{
     ""orderNumber"": ""35329211614"",
     ""type"": ""buy"",
     ""rate"": ""0.50000000"",
@@ -974,7 +999,8 @@ namespace ExchangeSharpTests
     ""margin"": 0
 }]";
 
-        private const string AllUnfilledOrders = @"{
+        private const string AllUnfilledOrders =
+            @"{
     ""BTC_AMP"": [],
     ""BTC_ARDR"": [],
     ""BTC_BCH"": [],
@@ -1084,6 +1110,6 @@ namespace ExchangeSharpTests
     ""XMR_NXT"": [],
     ""XMR_ZEC"": []
 }";
-#endregion
+        #endregion
     }
 }

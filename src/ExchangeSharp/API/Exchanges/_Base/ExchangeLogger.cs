@@ -49,7 +49,11 @@ namespace ExchangeSharp
             Stream stream = File.Open(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             if (compress)
             {
-                stream = new System.IO.Compression.GZipStream(stream, System.IO.Compression.CompressionLevel.Optimal, false);
+                stream = new System.IO.Compression.GZipStream(
+                    stream,
+                    System.IO.Compression.CompressionLevel.Optimal,
+                    false
+                );
             }
             return new BinaryWriter(stream);
         }
@@ -62,16 +66,34 @@ namespace ExchangeSharp
         /// <param name="intervalSeconds">Interval in seconds between updates</param>
         /// <param name="path">The path to write the log files to</param>
         /// <param name="compress">Whether to compress the log files using gzip compression</param>
-        public ExchangeLogger(IExchangeAPI api, string marketSymbol, float intervalSeconds, string path, bool compress = false)
+        public ExchangeLogger(
+            IExchangeAPI api,
+            string marketSymbol,
+            float intervalSeconds,
+            string path,
+            bool compress = false
+        )
         {
             string compressExtension = (compress ? ".gz" : string.Empty);
             API = api;
             MarketSymbol = marketSymbol;
             Interval = TimeSpan.FromSeconds(intervalSeconds);
-            sysTimeWriter = CreateLogWriter(Path.Combine(path, api.Name + "_time.bin" + compressExtension), compress);
-            tickerWriter = CreateLogWriter(Path.Combine(path, api.Name + "_ticker.bin" + compressExtension), compress);
-            bookWriter = CreateLogWriter(Path.Combine(path, api.Name + "_book.bin" + compressExtension), compress);
-            tradeWriter = CreateLogWriter(Path.Combine(path, api.Name + "_trades.bin" + compressExtension), compress);
+            sysTimeWriter = CreateLogWriter(
+                Path.Combine(path, api.Name + "_time.bin" + compressExtension),
+                compress
+            );
+            tickerWriter = CreateLogWriter(
+                Path.Combine(path, api.Name + "_ticker.bin" + compressExtension),
+                compress
+            );
+            bookWriter = CreateLogWriter(
+                Path.Combine(path, api.Name + "_book.bin" + compressExtension),
+                compress
+            );
+            tradeWriter = CreateLogWriter(
+                Path.Combine(path, api.Name + "_trades.bin" + compressExtension),
+                compress
+            );
         }
 
         /// <summary>
@@ -98,9 +120,17 @@ namespace ExchangeSharp
                 else
                 {
                     // make API calls first, if they fail we will try again later
-                    Tickers = new KeyValuePair<string, ExchangeTicker>[1] { new KeyValuePair<string, ExchangeTicker>(MarketSymbol, await API.GetTickerAsync(MarketSymbol)) };
+                    Tickers = new KeyValuePair<string, ExchangeTicker>[1]
+                    {
+                        new KeyValuePair<string, ExchangeTicker>(
+                            MarketSymbol,
+                            await API.GetTickerAsync(MarketSymbol)
+                        )
+                    };
                     OrderBook = await API.GetOrderBookAsync(MarketSymbol);
-                    Trades = (await API.GetRecentTradesAsync(MarketSymbol)).OrderBy(t => t.Timestamp).ToArray();
+                    Trades = (await API.GetRecentTradesAsync(MarketSymbol))
+                        .OrderBy(t => t.Timestamp)
+                        .ToArray();
 
                     // all API calls succeeded, we can write to files
 
@@ -192,22 +222,39 @@ namespace ExchangeSharp
             {
                 return new BinaryReader(File.OpenRead(basePath));
             }
-            return new BinaryReader(new System.IO.Compression.GZipStream(File.OpenRead(basePath + ".gz"), System.IO.Compression.CompressionMode.Decompress, false));
+            return new BinaryReader(
+                new System.IO.Compression.GZipStream(
+                    File.OpenRead(basePath + ".gz"),
+                    System.IO.Compression.CompressionMode.Decompress,
+                    false
+                )
+            );
         }
 
-		/// <summary>
-		/// Begins logging exchanges - writes errors to console. You should block the app using Console.ReadLine.
-		/// </summary>
-		/// <param name="path">Path to write files to</param>
-		/// <param name="intervalSeconds">Interval in seconds in between each log calls for each exchange</param>
-		/// <param name="terminateAction">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</param>
-		/// <param name="compress">Whether to compress the log files</param>
-		/// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
-		[Obsolete("Use the async version")]
-        public static void LogExchanges(string path, float intervalSeconds, out Action terminateAction, bool compress, params string[] exchangeNamesAndSymbols)
-		{
-			terminateAction = LogExchangesAsync(path, intervalSeconds, compress, exchangeNamesAndSymbols).Result;
-		}
+        /// <summary>
+        /// Begins logging exchanges - writes errors to console. You should block the app using Console.ReadLine.
+        /// </summary>
+        /// <param name="path">Path to write files to</param>
+        /// <param name="intervalSeconds">Interval in seconds in between each log calls for each exchange</param>
+        /// <param name="terminateAction">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</param>
+        /// <param name="compress">Whether to compress the log files</param>
+        /// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
+        [Obsolete("Use the async version")]
+        public static void LogExchanges(
+            string path,
+            float intervalSeconds,
+            out Action terminateAction,
+            bool compress,
+            params string[] exchangeNamesAndSymbols
+        )
+        {
+            terminateAction = LogExchangesAsync(
+                path,
+                intervalSeconds,
+                compress,
+                exchangeNamesAndSymbols
+            ).Result;
+        }
 
         /// <summary>
         /// Begins logging exchanges - writes errors to console. You should block the app using Console.ReadLine.
@@ -217,17 +264,31 @@ namespace ExchangeSharp
         /// <param name="compress">Whether to compress the log files</param>
         /// <param name="exchangeNamesAndSymbols">Exchange names and symbols to log</param>
         /// <returns">Call this when the process is about to exit, like a WM_CLOSE message on Windows.</returns>
-        public static async Task<Action> LogExchangesAsync(string path, float intervalSeconds, bool compress, params string[] exchangeNamesAndSymbols)
+        public static async Task<Action> LogExchangesAsync(
+            string path,
+            float intervalSeconds,
+            bool compress,
+            params string[] exchangeNamesAndSymbols
+        )
         {
             bool terminating = false;
             Action terminator = null;
             path = (string.IsNullOrWhiteSpace(path) ? "./" : path);
             Dictionary<ExchangeLogger, int> errors = new Dictionary<ExchangeLogger, int>();
             List<ExchangeLogger> loggers = new List<ExchangeLogger>();
-            for (int i = 0; i < exchangeNamesAndSymbols.Length;)
+            for (int i = 0; i < exchangeNamesAndSymbols.Length; )
             {
-                loggers.Add(new ExchangeLogger(await ExchangeAPI.GetExchangeAPIAsync(exchangeNamesAndSymbols[i++]), exchangeNamesAndSymbols[i++], intervalSeconds, path, compress));
-            };
+                loggers.Add(
+                    new ExchangeLogger(
+                        await ExchangeAPI.GetExchangeAPIAsync(exchangeNamesAndSymbols[i++]),
+                        exchangeNamesAndSymbols[i++],
+                        intervalSeconds,
+                        path,
+                        compress
+                    )
+                );
+            }
+            ;
             foreach (ExchangeLogger logger in loggers)
             {
                 logger.Start();
@@ -260,7 +321,7 @@ namespace ExchangeSharp
             };
 
             // make sure to close properly
-            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+            Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
             {
                 terminator();
             };
@@ -268,7 +329,10 @@ namespace ExchangeSharp
             {
                 terminator();
             };
-            Logger.Info("Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.", string.Join(", ", loggers.Select(l => l.API.Name)));
+            Logger.Info(
+                "Loggers \"{0}\" started, press ENTER or CTRL-C to terminate.",
+                string.Join(", ", loggers.Select(l => l.API.Name))
+            );
 
             return terminator;
         }
@@ -282,7 +346,9 @@ namespace ExchangeSharp
         public static IEnumerable<Dictionary<string, ExchangeTicker>> ReadMultiTickers(string path)
         {
             int count;
-            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, ExchangeTicker> tickers = new Dictionary<string, ExchangeTicker>(
+                StringComparer.OrdinalIgnoreCase
+            );
             ExchangeTicker ticker;
             string key;
             using (BinaryReader tickerReader = ExchangeLogger.OpenLogReader(path))
@@ -343,7 +409,11 @@ namespace ExchangeSharp
         /// <summary>
         /// Latest tickers
         /// </summary>
-        public IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> Tickers { get; private set; }
+        public IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>> Tickers
+        {
+            get;
+            private set;
+        }
 
         /// <summary>
         /// Latest order book
@@ -356,4 +426,3 @@ namespace ExchangeSharp
         public ExchangeTrade[] Trades { get; private set; }
     }
 }
-

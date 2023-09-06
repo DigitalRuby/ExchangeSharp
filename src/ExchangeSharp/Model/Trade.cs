@@ -42,7 +42,11 @@ namespace ExchangeSharp
         /// <returns>String</returns>
         public override string ToString()
         {
-            return CryptoUtility.UnixTimeStampToDateTimeMilliseconds(Ticks).ToLocalTime() + ": " + Amount + " at " + Price;
+            return CryptoUtility.UnixTimeStampToDateTimeMilliseconds(Ticks).ToLocalTime()
+                + ": "
+                + Amount
+                + " at "
+                + Price;
         }
     }
 }

@@ -65,7 +65,8 @@ namespace ExchangeSharp
         /// <param name="key">Key</param>
         /// <param name="value">Value</param>
         /// <param name="factory">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
-        Task<CachedItem<T>> GetOrCreate<T>(string key, Func<Task<CachedItem<T>>> factory) where T : class;
+        Task<CachedItem<T>> GetOrCreate<T>(string key, Func<Task<CachedItem<T>>> factory)
+            where T : class;
 
         /// <summary>
         /// Remove a key from the cache immediately
@@ -80,22 +81,20 @@ namespace ExchangeSharp
     /// </summary>
     public class MemoryCache : IDisposable, ICache
     {
-        private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<string, KeyValuePair<DateTime, object>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, KeyValuePair<DateTime, object>> cache = new Dictionary<
+            string,
+            KeyValuePair<DateTime, object>
+        >(StringComparer.OrdinalIgnoreCase);
         private readonly Timer cacheTimer;
         private readonly ReaderWriterLockSlim cacheTimerLock = new ReaderWriterLockSlim();
 
 #if DEBUG
 
         private readonly int cacheTimerInterval;
-
 #endif
-
-
-        
 
         private void TimerCallback(object state)
         {
-
 #if DEBUG
 
             // disable timer during debug, we don't want multiple callbacks fouling things up
@@ -127,7 +126,6 @@ namespace ExchangeSharp
             cacheTimer.Change(cacheTimerInterval, cacheTimerInterval);
 
 #endif
-
         }
 
         /// <summary>
@@ -136,7 +134,6 @@ namespace ExchangeSharp
         /// <param name="cleanupIntervalMilliseconds">Cleanup interval in milliseconds, removes expired items from cache</param>
         public MemoryCache(int cleanupIntervalMilliseconds = 10000)
         {
-
 #if DEBUG
 
             cacheTimerInterval = cleanupIntervalMilliseconds;
@@ -144,7 +141,12 @@ namespace ExchangeSharp
 #endif
 
             // set timer to remove expired cache items
-            cacheTimer = new Timer(new System.Threading.TimerCallback(TimerCallback), null, cleanupIntervalMilliseconds, cleanupIntervalMilliseconds);
+            cacheTimer = new Timer(
+                new System.Threading.TimerCallback(TimerCallback),
+                null,
+                cleanupIntervalMilliseconds,
+                cleanupIntervalMilliseconds
+            );
         }
 
         /// <summary>
@@ -164,9 +166,7 @@ namespace ExchangeSharp
             {
                 cacheTimer.Dispose();
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         /// <summary>
@@ -176,7 +176,11 @@ namespace ExchangeSharp
         /// <param name="key">Key</param>
         /// <param name="value">Value</param>
         /// <param name="notFound">Create T if not found, null to not do this. Item1 = value, Item2 = expiration.</param>
-        public async Task<CachedItem<T>> GetOrCreate<T>(string key, Func<Task<CachedItem<T>>> notFound) where T : class
+        public async Task<CachedItem<T>> GetOrCreate<T>(
+            string key,
+            Func<Task<CachedItem<T>>> notFound
+        )
+            where T : class
         {
             CachedItem<T> newItem = default;
             cacheTimerLock.EnterReadLock();
@@ -207,7 +211,10 @@ namespace ExchangeSharp
                 cacheTimerLock.EnterWriteLock();
                 try
                 {
-                    cache[key] = new KeyValuePair<DateTime, object>(newItem.Expiration, newItem.Value);
+                    cache[key] = new KeyValuePair<DateTime, object>(
+                        newItem.Expiration,
+                        newItem.Value
+                    );
                 }
                 finally
                 {

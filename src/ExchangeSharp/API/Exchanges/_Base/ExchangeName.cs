@@ -24,44 +24,53 @@ namespace ExchangeSharp
     /// </summary>
     public static partial class ExchangeName
     {
-		private static readonly Type exchangeApiType = typeof(ExchangeAPI);
-		private static readonly HashSet<string> exchangeNames = new HashSet<string>();
+        private static readonly Type exchangeApiType = typeof(ExchangeAPI);
+        private static readonly HashSet<string> exchangeNames = new HashSet<string>();
 
         static ExchangeName()
         {
-			foreach (FieldInfo field in typeof(ExchangeName).GetFields(BindingFlags.Public | BindingFlags.Static))
-			{
-				// pull value of name field
-				string name = field.GetValue(null)!.ToString();
+            foreach (
+                FieldInfo field in typeof(ExchangeName).GetFields(
+                    BindingFlags.Public | BindingFlags.Static
+                )
+            )
+            {
+                // pull value of name field
+                string name = field.GetValue(null)!.ToString();
 
-				// make sure we have a valid type for the name
-				_ = GetExchangeType(name);
+                // make sure we have a valid type for the name
+                _ = GetExchangeType(name);
 
-				// add to unique list of names
-				exchangeNames.Add(name);
-			}
+                // add to unique list of names
+                exchangeNames.Add(name);
+            }
         }
 
-		internal static Type GetExchangeType(string exchangeName)
-		{
-			try
-			{
-				// make sure we have a valid type for the name
-				Type type = Type.GetType($"ExchangeSharp.Exchange{exchangeName}API", true, true);
+        internal static Type GetExchangeType(string exchangeName)
+        {
+            try
+            {
+                // make sure we have a valid type for the name
+                Type type = Type.GetType($"ExchangeSharp.Exchange{exchangeName}API", true, true);
 
-				// we had better have a type sub-classing from ExchangeAPI
-				if (type is null || !type.IsSubclassOf(exchangeApiType))
-				{
-					throw new ApplicationException($"Name of {exchangeName} is not an {nameof(ExchangeAPI)} class");
-				}
-				return type;
-			}
-			catch (Exception ex)
-			{
-				// fatal
-				throw new ApplicationException($"Failed to get type from exchange name {exchangeName}", ex);
-			}
-		}
+                // we had better have a type sub-classing from ExchangeAPI
+                if (type is null || !type.IsSubclassOf(exchangeApiType))
+                {
+                    throw new ApplicationException(
+                        $"Name of {exchangeName} is not an {nameof(ExchangeAPI)} class"
+                    );
+                }
+                return type;
+            }
+            catch (Exception ex)
+            {
+                // fatal
+                throw new ApplicationException(
+                    $"Failed to get type from exchange name {exchangeName}",
+                    ex
+                );
+            }
+        }
 
         /// <summary>
         /// Check if an exchange name exists
@@ -76,6 +85,9 @@ namespace ExchangeSharp
         /// <summary>
         /// Get a list of all exchange names
         /// </summary>
-        public static IReadOnlyCollection<string> ExchangeNames { get { return exchangeNames; } }
+        public static IReadOnlyCollection<string> ExchangeNames
+        {
+            get { return exchangeNames; }
+        }
     }
 }

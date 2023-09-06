@@ -25,10 +25,10 @@ namespace ExchangeSharp
     /// </summary>
     public abstract partial class ExchangeAPI
     {
-		/*
-		protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync();
+        /*
+        protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync();
         protected virtual Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> OnGetOrderBooksAsync(int maxCount = 100);
-		protected virtual Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol, int? limit = null);
+        protected virtual Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol, int? limit = null);
         protected virtual Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync();
         protected virtual Task<IEnumerable<string>> OnGetSymbolsAsync();
         protected virtual Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync();
@@ -67,17 +67,20 @@ namespace ExchangeSharp
         protected virtual void OnDispose();
         */
 
-		/// <summary>
-		/// Dictionary of key (exchange currency) and value (global currency).
-		/// Some exchanges (Yobit for example) use odd names for some currencies like BCC for Bitcoin Cash.
-		/// <example><![CDATA[ 
-		/// ExchangeGlobalCurrencyReplacements[typeof(ExchangeYobitAPI)] = new KeyValuePair<string, string>[]
-		/// {
-		///     new KeyValuePair<string, string>("BCC", "BCH")
-		/// };
-		/// ]]></example>
-		/// </summary>
-		protected Dictionary<string, string> ExchangeGlobalCurrencyReplacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// Dictionary of key (exchange currency) and value (global currency).
+        /// Some exchanges (Yobit for example) use odd names for some currencies like BCC for Bitcoin Cash.
+        /// <example><![CDATA[
+        /// ExchangeGlobalCurrencyReplacements[typeof(ExchangeYobitAPI)] = new KeyValuePair<string, string>[]
+        /// {
+        ///     new KeyValuePair<string, string>("BCC", "BCH")
+        /// };
+        /// ]]></example>
+        /// </summary>
+        protected Dictionary<string, string> ExchangeGlobalCurrencyReplacements = new Dictionary<
+            string,
+            string
+        >(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Separator for exchange symbol. If not a hyphen, set in constructor. This should be one character and is a string for convenience of concatenation.
@@ -97,7 +100,8 @@ namespace ExchangeSharp
         /// <summary>
         /// The type of web socket order book supported
         /// </summary>
-        public WebSocketOrderBookType WebSocketOrderBookType { get; protected set; } = WebSocketOrderBookType.None;
+        public WebSocketOrderBookType WebSocketOrderBookType { get; protected set; } =
+            WebSocketOrderBookType.None;
     }
 
     // implement this and change the field name and value to the name of your exchange

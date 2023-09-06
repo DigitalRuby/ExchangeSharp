@@ -34,18 +34,38 @@ namespace ExchangeSharp
     /// </summary>
     public static class CryptoUtility
     {
-        internal static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-        internal static readonly DateTime UnixEpochLocal = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Local);
+        internal static readonly DateTime UnixEpoch = new DateTime(
+            1970,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            DateTimeKind.Utc
+        );
+        internal static readonly DateTime UnixEpochLocal = new DateTime(
+            1970,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            DateTimeKind.Local
+        );
         internal static readonly Encoding Utf8EncodingNoPrefix = new UTF8Encoding(false, true);
-		static bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-		static string chinaZoneId = isWindows ? "China Standard Time" : "Asia/Shanghai";
-		static TimeZoneInfo chinaZone = TimeZoneInfo.FindSystemTimeZoneById(chinaZoneId);
-		static string koreanZoneId = isWindows ? "Korea Standard Time" : "Asia/Seoul";
-		static TimeZoneInfo koreaZone = TimeZoneInfo.FindSystemTimeZoneById(koreanZoneId);
+        static bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+            OSPlatform.Windows
+        );
+        static string chinaZoneId = isWindows ? "China Standard Time" : "Asia/Shanghai";
+        static TimeZoneInfo chinaZone = TimeZoneInfo.FindSystemTimeZoneById(chinaZoneId);
+        static string koreanZoneId = isWindows ? "Korea Standard Time" : "Asia/Seoul";
+        static TimeZoneInfo koreaZone = TimeZoneInfo.FindSystemTimeZoneById(koreanZoneId);
 
-		private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
+        private static Func<DateTime> utcNowFunc = UtcNowFuncImpl;
 
-		private static DateTime UtcNowFuncImpl()
+        private static DateTime UtcNowFuncImpl()
         {
             // this is the only place in the code that DateTime.UtcNow is allowed. DateTime.UtcNow and DateTime.Now should not exist anywhere else in the code.
             return DateTime.UtcNow;
@@ -91,7 +111,11 @@ namespace ExchangeSharp
         /// <param name="obj">Object</param>
         /// <param name="name">Parameter name</param>
         /// <param name="message">Message</param>
-        public static void ThrowIfNullOrWhitespace(this string obj, string name, string? message = null)
+        public static void ThrowIfNullOrWhitespace(
+            this string obj,
+            string name,
+            string? message = null
+        )
         {
             if (string.IsNullOrWhiteSpace(obj))
             {
@@ -137,7 +161,11 @@ namespace ExchangeSharp
         /// <param name="other">Other string</param>
         /// <param name="option">Option</param>
         /// <returns>True if equal, false if not</returns>
-        public static bool EqualsWithOption(this string s, string other, StringComparison option = StringComparison.OrdinalIgnoreCase)
+        public static bool EqualsWithOption(
+            this string s,
+            string other,
+            StringComparison option = StringComparison.OrdinalIgnoreCase
+        )
         {
             if (s == null || other == null)
             {
@@ -175,7 +203,9 @@ namespace ExchangeSharp
         {
             using (var compressStream = new MemoryStream(bytes))
             {
-                using (var zipStream = new DeflateStream(compressStream, CompressionMode.Decompress))
+                using (
+                    var zipStream = new DeflateStream(compressStream, CompressionMode.Decompress)
+                )
                 {
                     using (var resultStream = new MemoryStream())
                     {
@@ -186,19 +216,27 @@ namespace ExchangeSharp
             }
         }
 
-		public enum SourceTimeZone
-		{
-			/// <summary> time zone is specifically specified in string </summary>
-			AsSpecified,
-			Local, China, Korea, UTC,
-		}
+        public enum SourceTimeZone
+        {
+            /// <summary> time zone is specifically specified in string </summary>
+            AsSpecified,
+            Local,
+            China,
+            Korea,
+            UTC,
+        }
+
         /// <summary>
         /// Convert object to a UTC DateTime
         /// </summary>
         /// <param name="obj">Object to convert</param>
         /// <param name="defaultValue">Default value if no conversion is possible</param>
         /// <returns>DateTime in UTC or defaultValue if no conversion possible</returns>
-        public static DateTime ToDateTimeInvariant(this object obj, SourceTimeZone sourceTimeZone = SourceTimeZone.UTC, DateTime defaultValue = default)
+        public static DateTime ToDateTimeInvariant(
+            this object obj,
+            SourceTimeZone sourceTimeZone = SourceTimeZone.UTC,
+            DateTime defaultValue = default
+        )
         {
             if (obj == null)
             {
@@ -207,26 +245,33 @@ namespace ExchangeSharp
             JValue? jValue = obj as JValue;
             if (jValue != null && jValue.Value == null)
             {
-				Logger.Error("Failed parsing of datetime - setting to default value");
+                Logger.Error("Failed parsing of datetime - setting to default value");
                 return defaultValue;
             }
-            DateTime dt = (DateTime)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(DateTime), CultureInfo.InvariantCulture);
-			switch (sourceTimeZone)
-			{
-				case SourceTimeZone.AsSpecified:
-					throw new NotImplementedException(); // TODO: implement this when needed
-				case SourceTimeZone.Local:
-					return DateTime.SpecifyKind(dt, DateTimeKind.Local).ToUniversalTime(); // convert to UTC
-				case SourceTimeZone.China:
-					return TimeZoneInfo.ConvertTime(dt, chinaZone, TimeZoneInfo.Utc); // convert to UTC
-				case SourceTimeZone.Korea:
-					return TimeZoneInfo.ConvertTime(dt, koreaZone, TimeZoneInfo.Utc); // convert to UTC
-				case SourceTimeZone.UTC:
-					return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-				default:
-					throw new NotImplementedException($"Unexpected {nameof(sourceTimeZone)}: {sourceTimeZone}");
-			}
-		}
+            DateTime dt = (DateTime)
+                Convert.ChangeType(
+                    jValue == null ? obj : jValue.Value,
+                    typeof(DateTime),
+                    CultureInfo.InvariantCulture
+                );
+            switch (sourceTimeZone)
+            {
+                case SourceTimeZone.AsSpecified:
+                    throw new NotImplementedException(); // TODO: implement this when needed
+                case SourceTimeZone.Local:
+                    return DateTime.SpecifyKind(dt, DateTimeKind.Local).ToUniversalTime(); // convert to UTC
+                case SourceTimeZone.China:
+                    return TimeZoneInfo.ConvertTime(dt, chinaZone, TimeZoneInfo.Utc); // convert to UTC
+                case SourceTimeZone.Korea:
+                    return TimeZoneInfo.ConvertTime(dt, koreaZone, TimeZoneInfo.Utc); // convert to UTC
+                case SourceTimeZone.UTC:
+                    return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                default:
+                    throw new NotImplementedException(
+                        $"Unexpected {nameof(sourceTimeZone)}: {sourceTimeZone}"
+                    );
+            }
+        }
 
         /// <summary>
         /// Convert an object to another type using invariant culture. Consider using the string or DateTime conversions if you are dealing with those types.
@@ -249,7 +294,12 @@ namespace ExchangeSharp
             T result;
             try
             {
-                result = (T)Convert.ChangeType(jValue == null ? obj : jValue.Value, typeof(T), CultureInfo.InvariantCulture);
+                result = (T)
+                    Convert.ChangeType(
+                        jValue == null ? obj : jValue.Value,
+                        typeof(T),
+                        CultureInfo.InvariantCulture
+                    );
                 if (typeof(T) == typeof(decimal))
                 {
                     return (T)(object)((decimal)(object)result).Normalize();
@@ -265,21 +315,29 @@ namespace ExchangeSharp
                 else
                 {
                     // fallback to float conversion, i.e. 1E-1 for a decimal conversion will fail
-                    string stringValue = (jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant());
-                    if (string.IsNullOrWhiteSpace(stringValue)) return defaultValue;
-                    decimal decimalValue = decimal.Parse(stringValue, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture);
-                    return (T)Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
+                    string stringValue = (
+                        jValue == null ? obj.ToStringInvariant() : jValue.Value.ToStringInvariant()
+                    );
+                    if (string.IsNullOrWhiteSpace(stringValue))
+                        return defaultValue;
+                    decimal decimalValue = decimal.Parse(
+                        stringValue,
+                        System.Globalization.NumberStyles.Float,
+                        CultureInfo.InvariantCulture
+                    );
+                    return (T)
+                        Convert.ChangeType(decimalValue, typeof(T), CultureInfo.InvariantCulture);
                 }
             }
             return result;
         }
 
-		/// <summary>
-		/// Covnert a secure string to a non-secure string
-		/// </summary>
-		/// <param name="s">SecureString</param>
-		/// <returns>Non-secure string</returns>
-		public static string ToUnsecureString(this SecureString s)
+        /// <summary>
+        /// Covnert a secure string to a non-secure string
+        /// </summary>
+        /// <param name="s">SecureString</param>
+        /// <returns>Non-secure string</returns>
+        public static string ToUnsecureString(this SecureString s)
         {
             if (s == null)
             {
@@ -410,10 +468,7 @@ namespace ExchangeSharp
         /// <returns>Encoded string</returns>
         public static string JWTEncode(this byte[] input)
         {
-            return Convert.ToBase64String(input)
-                .Trim('=')
-                .Replace('+', '-')
-                .Replace('/', '_');
+            return Convert.ToBase64String(input).Trim('=').Replace('+', '-').Replace('/', '_');
         }
 
         /// <summary>
@@ -423,7 +478,8 @@ namespace ExchangeSharp
         /// <returns>Encoded string</returns>
         public static string JWTEncode(this string input)
         {
-            return Convert.ToBase64String(input.ToBytesUTF8())
+            return Convert
+                .ToBase64String(input.ToBytesUTF8())
                 .Trim('=')
                 .Replace('+', '-')
                 .Replace('/', '_');
@@ -439,10 +495,16 @@ namespace ExchangeSharp
             string output = input.Replace('-', '+').Replace('_', '/');
             switch (output.Length % 4) // Pad with trailing '='s
             {
-                case 0: break; // No pad chars in this case
-                case 2: output += "=="; break; // Two pad chars
-                case 3: output += "="; break; // One pad char
-                default: throw new ArgumentException("Bad JWT string: " + input);
+                case 0:
+                    break; // No pad chars in this case
+                case 2:
+                    output += "==";
+                    break; // Two pad chars
+                case 3:
+                    output += "=";
+                    break; // One pad char
+                default:
+                    throw new ArgumentException("Bad JWT string: " + input);
             }
             return Convert.FromBase64String(output).ToStringFromUTF8();
         }
@@ -457,10 +519,16 @@ namespace ExchangeSharp
             string output = input.Replace('-', '+').Replace('_', '/');
             switch (output.Length % 4) // Pad with trailing '='s
             {
-                case 0: break; // No pad chars in this case
-                case 2: output += "=="; break; // Two pad chars
-                case 3: output += "="; break; // One pad char
-                default: throw new ArgumentException("Bad JWT string: " + input);
+                case 0:
+                    break; // No pad chars in this case
+                case 2:
+                    output += "==";
+                    break; // Two pad chars
+                case 3:
+                    output += "=";
+                    break; // One pad char
+                default:
+                    throw new ArgumentException("Bad JWT string: " + input);
             }
             return Convert.FromBase64String(output);
         }
@@ -504,7 +572,12 @@ namespace ExchangeSharp
         /// <param name="stepSize">Smallest unit value should be evenly divisible by</param>
         /// <param name="value">Value to clamp</param>
         /// <returns>Clamped value</returns>
-        public static decimal ClampDecimal(decimal minValue, decimal maxValue, decimal? stepSize, decimal value)
+        public static decimal ClampDecimal(
+            decimal minValue,
+            decimal maxValue,
+            decimal? stepSize,
+            decimal value
+        )
         {
             if (minValue < 0)
             {
@@ -586,7 +659,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
         /// <returns>UTC DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(
+            this double unixTimeStampMilliseconds
+        )
         {
             return UnixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
@@ -596,7 +671,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
         /// <returns>UTC DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampToDateTimeMilliseconds(
+            this long unixTimeStampMilliseconds
+        )
         {
             return UnixEpoch.AddMilliseconds(unixTimeStampMilliseconds);
         }
@@ -606,7 +683,9 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
         /// <returns>Local DateTime</returns>
-        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this double unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(
+            this double unixTimeStampMilliseconds
+        )
         {
             return UnixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
         }
@@ -616,47 +695,55 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
         /// <returns>Local DateTime</returns>
-        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(this long unixTimeStampMilliseconds)
+        public static DateTime UnixTimeStampLocalToDateTimeMilliseconds(
+            this long unixTimeStampMilliseconds
+        )
         {
             return UnixEpochLocal.AddMilliseconds(unixTimeStampMilliseconds).ToUniversalTime();
         }
 
-		/// <summary>
-		/// Get a UTC date time from a unix epoch in microseconds
-		/// </summary>
-		/// <param name="unixTimeStampSeconds">Unix epoch in microseconds</param>
-		/// <returns>UTC DateTime</returns>
-		public static DateTime UnixTimeStampToDateTimeMicroseconds(this long unixTimeStampMicroseconds)
-		{
-			return UnixEpoch.AddTicks(unixTimeStampMicroseconds * 10);
-		}
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in microseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in microseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeMicroseconds(
+            this long unixTimeStampMicroseconds
+        )
+        {
+            return UnixEpoch.AddTicks(unixTimeStampMicroseconds * 10);
+        }
 
         /// <summary>
         /// Get a UTC date time from a unix epoch in nanoseconds
         /// </summary>
         /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
         /// <returns>UTC DateTime</returns>
-        public static DateTime UnixTimeStampToDateTimeNanoseconds(this double unixTimeStampNanoseconds)
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(
+            this double unixTimeStampNanoseconds
+        )
         {
             return UnixEpoch.AddTicks((long)unixTimeStampNanoseconds / 100);
         }
 
-		/// <summary>
-		/// Get a UTC date time from a unix epoch in nanoseconds
-		/// </summary>
-		/// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
-		/// <returns>UTC DateTime</returns>
-		public static DateTime UnixTimeStampToDateTimeNanoseconds(this long unixTimeStampNanoseconds)
-		{
-			return UnixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
-		}
+        /// <summary>
+        /// Get a UTC date time from a unix epoch in nanoseconds
+        /// </summary>
+        /// <param name="unixTimeStampSeconds">Unix epoch in milliseconds</param>
+        /// <returns>UTC DateTime</returns>
+        public static DateTime UnixTimeStampToDateTimeNanoseconds(
+            this long unixTimeStampNanoseconds
+        )
+        {
+            return UnixEpoch.AddTicks(unixTimeStampNanoseconds / 100);
+        }
 
-		/// <summary>
-		/// Get a unix timestamp in seconds from a DateTime
-		/// </summary>
-		/// <param name="dt">DateTime</param>
-		/// <returns>Unix epoch in seconds</returns>
-		public static double UnixTimestampFromDateTimeSeconds(this DateTime dt)
+        /// <summary>
+        /// Get a unix timestamp in seconds from a DateTime
+        /// </summary>
+        /// <param name="dt">DateTime</param>
+        /// <returns>Unix epoch in seconds</returns>
+        public static double UnixTimestampFromDateTimeSeconds(this DateTime dt)
         {
             if (dt.Kind != DateTimeKind.Utc)
             {
@@ -694,25 +781,25 @@ namespace ExchangeSharp
 
             switch (type)
             {
-				case TimestampType.Iso8601Local:
-					return value.ToDateTimeInvariant(SourceTimeZone.Local);
+                case TimestampType.Iso8601Local:
+                    return value.ToDateTimeInvariant(SourceTimeZone.Local);
 
-				case TimestampType.Iso8601China:
-					return value.ToDateTimeInvariant(SourceTimeZone.China);
+                case TimestampType.Iso8601China:
+                    return value.ToDateTimeInvariant(SourceTimeZone.China);
 
-				case TimestampType.Iso8601Korea:
-					return value.ToDateTimeInvariant(SourceTimeZone.Korea);
+                case TimestampType.Iso8601Korea:
+                    return value.ToDateTimeInvariant(SourceTimeZone.Korea);
 
-				case TimestampType.Iso8601UTC:
-					return value.ToDateTimeInvariant(SourceTimeZone.UTC);
+                case TimestampType.Iso8601UTC:
+                    return value.ToDateTimeInvariant(SourceTimeZone.UTC);
 
-				case TimestampType.UnixNanoseconds:
+                case TimestampType.UnixNanoseconds:
                     return UnixTimeStampToDateTimeNanoseconds(value.ConvertInvariant<long>());
 
-				case TimestampType.UnixMicroeconds:
-					return UnixTimeStampToDateTimeMicroseconds(value.ConvertInvariant<long>());
+                case TimestampType.UnixMicroeconds:
+                    return UnixTimeStampToDateTimeMicroseconds(value.ConvertInvariant<long>());
 
-				case TimestampType.UnixMillisecondsDouble:
+                case TimestampType.UnixMillisecondsDouble:
                     return UnixTimeStampToDateTimeMilliseconds(value.ConvertInvariant<double>());
 
                 case TimestampType.UnixMilliseconds:
@@ -767,7 +854,10 @@ namespace ExchangeSharp
             return string.Empty;
         }
 
-        public static string GetJsonForPayload(this Dictionary<string, object> payload, bool includeNonce = true)
+        public static string GetJsonForPayload(
+            this Dictionary<string, object> payload,
+            bool includeNonce = true
+        )
         {
             if (includeNonce == false)
             {
@@ -775,7 +865,6 @@ namespace ExchangeSharp
             }
             return (GetJsonForPayload(payload));
         }
-
 
         /// <summary>
         /// Write a form to a request
@@ -802,7 +891,10 @@ namespace ExchangeSharp
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
         /// <returns>The form string that was written</returns>
-        public static async Task<string> WritePayloadFormToRequestAsync(this IHttpWebRequest request, Dictionary<string, object> payload)
+        public static async Task<string> WritePayloadFormToRequestAsync(
+            this IHttpWebRequest request,
+            Dictionary<string, object> payload
+        )
         {
             string form = GetFormForPayload(payload);
             await WriteToRequestAsync(request, form);
@@ -815,7 +907,10 @@ namespace ExchangeSharp
         /// <param name="request">Request</param>
         /// <param name="payload">Payload</param>
         /// <returns>The json string that was written</returns>
-        public static async Task<string> WritePayloadJsonToRequestAsync(this IHttpWebRequest request, Dictionary<string, object> payload)
+        public static async Task<string> WritePayloadJsonToRequestAsync(
+            this IHttpWebRequest request,
+            Dictionary<string, object> payload
+        )
         {
             string json = GetJsonForPayload(payload);
             await WriteToRequestAsync(request, json);
@@ -830,18 +925,37 @@ namespace ExchangeSharp
         /// <param name="orderByKey">Whether to order by the key</param>
         /// <param name="formEncode">True to use form encoding, false to use url encoding</param>
         /// <returns>Form string</returns>
-        public static string GetFormForPayload(this IReadOnlyDictionary<string, object> payload, bool includeNonce = true, bool orderByKey = true, bool formEncode = true)
+        public static string GetFormForPayload(
+            this IReadOnlyDictionary<string, object> payload,
+            bool includeNonce = true,
+            bool orderByKey = true,
+            bool formEncode = true
+        )
         {
             if (payload != null && payload.Count != 0)
             {
                 StringBuilder form = new StringBuilder();
-                IEnumerable<KeyValuePair<string, object>> e = (orderByKey ? payload.OrderBy(kv => kv.Key) : payload.AsEnumerable<KeyValuePair<string, object>>());
+                IEnumerable<KeyValuePair<string, object>> e = (
+                    orderByKey
+                        ? payload.OrderBy(kv => kv.Key)
+                        : payload.AsEnumerable<KeyValuePair<string, object>>()
+                );
                 foreach (KeyValuePair<string, object> keyValue in e)
                 {
-                    if (!string.IsNullOrWhiteSpace(keyValue.Key) && keyValue.Value != null && (includeNonce || keyValue.Key != "nonce"))
+                    if (
+                        !string.IsNullOrWhiteSpace(keyValue.Key)
+                        && keyValue.Value != null
+                        && (includeNonce || keyValue.Key != "nonce")
+                    )
                     {
-                        string key = (formEncode ? keyValue.Key.FormEncode() : keyValue.Key.UrlEncode());
-                        string value = (formEncode ? keyValue.Value.ToStringInvariant().FormEncode() : keyValue.Value.ToStringInvariant().UrlEncode());
+                        string key = (
+                            formEncode ? keyValue.Key.FormEncode() : keyValue.Key.UrlEncode()
+                        );
+                        string value = (
+                            formEncode
+                                ? keyValue.Value.ToStringInvariant().FormEncode()
+                                : keyValue.Value.ToStringInvariant().UrlEncode()
+                        );
                         form.Append($"{key}={value}&");
                     }
                 }
@@ -859,7 +973,10 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="uri">Uri builder</param>
         /// <param name="payload">Payload to append</param>
-        public static void AppendPayloadToQuery(this UriBuilder uri, Dictionary<string, object> payload)
+        public static void AppendPayloadToQuery(
+            this UriBuilder uri,
+            Dictionary<string, object> payload
+        )
         {
             if (uri.Query.Length > 1)
             {
@@ -881,7 +998,11 @@ namespace ExchangeSharp
         /// <param name="key">Key</param>
         /// <param name="defaultValue">Default value</param>
         /// <returns>Found value or default</returns>
-        public static TValue TryGetValueOrDefault<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue)
+        public static TValue TryGetValueOrDefault<TKey, TValue>(
+            this IReadOnlyDictionary<TKey, TValue> dictionary,
+            TKey key,
+            TValue defaultValue
+        )
         {
             if (!dictionary.TryGetValue(key, out TValue value))
             {
@@ -897,7 +1018,10 @@ namespace ExchangeSharp
         /// <typeparam name="TValue">Value type</typeparam>
         /// <param name="sourceDictionary"></param>
         /// <param name="destinationDictionary"></param>
-        public static void CopyTo<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> sourceDictionary, IDictionary<TKey, TValue> destinationDictionary)
+        public static void CopyTo<TKey, TValue>(
+            this IReadOnlyDictionary<TKey, TValue> sourceDictionary,
+            IDictionary<TKey, TValue> destinationDictionary
+        )
         {
             foreach (var kv in sourceDictionary)
             {
@@ -913,14 +1037,23 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, string key)
         {
-            return new HMACSHA256(key.ToBytesUTF8()).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA256(key.ToBytesUTF8())
+                .ComputeHash(message.ToBytesUTF8())
+                .Aggregate(
+                    new StringBuilder(),
+                    (sb, b) => sb.AppendFormat("{0:x2}", b),
+                    (sb) => sb.ToString()
+                );
         }
 
         public static string SHA256Sign(string message, string key, bool UseASCII)
         {
             var encoding = new ASCIIEncoding();
-            return Convert.ToBase64String(new HMACSHA256(encoding.GetBytes(key)).ComputeHash(encoding.GetBytes(message)));
+            return Convert.ToBase64String(
+                new HMACSHA256(encoding.GetBytes(key)).ComputeHash(encoding.GetBytes(message))
+            );
         }
+
         /// <summary>
         /// Sign a message with SHA256 hash
         /// </summary>
@@ -929,7 +1062,13 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA256Sign(string message, byte[] key)
         {
-            return new HMACSHA256(key).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA256(key)
+                .ComputeHash(message.ToBytesUTF8())
+                .Aggregate(
+                    new StringBuilder(),
+                    (sb, b) => sb.AppendFormat("{0:x2}", b),
+                    (sb) => sb.ToString()
+                );
         }
 
         /// <summary>
@@ -951,7 +1090,13 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA384Sign(string message, string key)
         {
-            return new HMACSHA384(key.ToBytesUTF8()).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(key.ToBytesUTF8())
+                .ComputeHash(message.ToBytesUTF8())
+                .Aggregate(
+                    new StringBuilder(),
+                    (sb, b) => sb.AppendFormat("{0:x2}", b),
+                    (sb) => sb.ToString()
+                );
         }
 
         /// <summary>
@@ -962,7 +1107,13 @@ namespace ExchangeSharp
         /// <returns>Signature</returns>
         public static string SHA384Sign(string message, byte[] key)
         {
-            return new HMACSHA384(key).ComputeHash(message.ToBytesUTF8()).Aggregate(new StringBuilder(), (sb, b) => sb.AppendFormat("{0:x2}", b), (sb) => sb.ToString());
+            return new HMACSHA384(key)
+                .ComputeHash(message.ToBytesUTF8())
+                .Aggregate(
+                    new StringBuilder(),
+                    (sb, b) => sb.AppendFormat("{0:x2}", b),
+                    (sb) => sb.ToString()
+                );
         }
 
         /// <summary>
@@ -984,15 +1135,15 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, string key)
         {
-	        byte[] hashmessage;
+            byte[] hashmessage;
 
-	        using (var hmac = new HMACSHA512(key.ToBytesUTF8()))
-	        {
-		        var messagebyte = message.ToBytesUTF8();
-		        hashmessage = hmac.ComputeHash(messagebyte);
-	        }
+            using (var hmac = new HMACSHA512(key.ToBytesUTF8()))
+            {
+                var messagebyte = message.ToBytesUTF8();
+                hashmessage = hmac.ComputeHash(messagebyte);
+            }
 
-	        return BitConverter.ToString(hashmessage).Replace("-", "");
+            return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -1003,14 +1154,14 @@ namespace ExchangeSharp
         /// <returns>Signature in hex</returns>
         public static string SHA512Sign(string message, byte[] key)
         {
-	        byte[] hashmessage;
-	        using (var hmac = new HMACSHA512(key))
-	        {
-		        var messagebyte = message.ToBytesUTF8();
-		        hashmessage = hmac.ComputeHash(messagebyte);
-	        }
+            byte[] hashmessage;
+            using (var hmac = new HMACSHA512(key))
+            {
+                var messagebyte = message.ToBytesUTF8();
+                hashmessage = hmac.ComputeHash(messagebyte);
+            }
 
-	        return BitConverter.ToString(hashmessage).Replace("-", "");
+            return BitConverter.ToString(hashmessage).Replace("-", "");
         }
 
         /// <summary>
@@ -1077,7 +1228,14 @@ namespace ExchangeSharp
         /// <returns>Encrypted data</returns>
         public static byte[] AesEncryption(byte[] input, byte[] password, byte[] salt)
         {
-            if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
+            if (
+                input == null
+                || input.Length == 0
+                || password == null
+                || password.Length == 0
+                || salt == null
+                || salt.Length == 0
+            )
             {
                 return null;
             }
@@ -1108,17 +1266,26 @@ namespace ExchangeSharp
         /// <returns>Decrypted data</returns>
         public static byte[]? AesDecryption(byte[] input, byte[] password, byte[] salt)
         {
-            if (input == null || input.Length == 0 || password == null || password.Length == 0 || salt == null || salt.Length == 0)
+            if (
+                input == null
+                || input.Length == 0
+                || password == null
+                || password.Length == 0
+                || salt == null
+                || salt.Length == 0
+            )
             {
                 return null;
             }
             MemoryStream decrypted = new MemoryStream();
-            using (RijndaelManaged AES = new RijndaelManaged()
-            {
-                KeySize = 256,
-                BlockSize = 128,
-                Padding = PaddingMode.PKCS7,
-            })
+            using (
+                RijndaelManaged AES = new RijndaelManaged()
+                {
+                    KeySize = 256,
+                    BlockSize = 128,
+                    Padding = PaddingMode.PKCS7,
+                }
+            )
             {
                 var key = new Rfc2898DeriveBytes(password, salt, 1024);
                 AES.Key = key.GetBytes(AES.KeySize / 8);
@@ -1126,7 +1293,10 @@ namespace ExchangeSharp
                 AES.Mode = CipherMode.CBC;
                 MemoryStream encrypted = new MemoryStream(input);
                 byte[] saltMatch = new byte[salt.Length];
-                if (encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length || !salt.SequenceEqual(saltMatch))
+                if (
+                    encrypted.Read(saltMatch, 0, saltMatch.Length) != salt.Length
+                    || !salt.SequenceEqual(saltMatch)
+                )
                 {
                     throw new InvalidOperationException("Invalid salt");
                 }
@@ -1226,39 +1396,39 @@ namespace ExchangeSharp
         /// <returns>Period string</returns>
         public static string SecondsToPeriodStringLongReverse(int seconds)
         {
-	        const int minuteThreshold = 60;
-	        const int hourThreshold = 60 * 60;
-	        const int dayThreshold = 60 * 60 * 24;
-	        const int weekThreshold = dayThreshold * 7;
-	        const int monthThreshold = dayThreshold * 30;
-	        const int yearThreshold = monthThreshold * 12;
+            const int minuteThreshold = 60;
+            const int hourThreshold = 60 * 60;
+            const int dayThreshold = 60 * 60 * 24;
+            const int weekThreshold = dayThreshold * 7;
+            const int monthThreshold = dayThreshold * 30;
+            const int yearThreshold = monthThreshold * 12;
 
-	        if (seconds >= yearThreshold)
-	        {
-		        return $"YEAR_{seconds / yearThreshold}";
-	        }
-	        if (seconds >= monthThreshold)
-	        {
-		        return $"MONTH_{seconds / monthThreshold}";
-	        }
-	        if (seconds >= weekThreshold)
-	        {
-		        return $"WEEK_{seconds / weekThreshold}";
-	        }
-	        if (seconds >= dayThreshold)
-	        {
-		        return $"DAY_{seconds / dayThreshold}";
-	        }
-	        if (seconds >= hourThreshold)
-	        {
-		        return $"HOUR_{seconds / hourThreshold}";
-	        }
-	        if (seconds >= minuteThreshold)
-	        {
-		        return $"MINUTE_{seconds / minuteThreshold}";
-	        }
+            if (seconds >= yearThreshold)
+            {
+                return $"YEAR_{seconds / yearThreshold}";
+            }
+            if (seconds >= monthThreshold)
+            {
+                return $"MONTH_{seconds / monthThreshold}";
+            }
+            if (seconds >= weekThreshold)
+            {
+                return $"WEEK_{seconds / weekThreshold}";
+            }
+            if (seconds >= dayThreshold)
+            {
+                return $"DAY_{seconds / dayThreshold}";
+            }
+            if (seconds >= hourThreshold)
+            {
+                return $"HOUR_{seconds / hourThreshold}";
+            }
+            if (seconds >= minuteThreshold)
+            {
+                return $"MINUTE_{seconds / minuteThreshold}";
+            }
 
-	        return $"SECOND_{seconds}";
+            return $"SECOND_{seconds}";
         }
 
         /// <summary>
@@ -1405,25 +1575,26 @@ namespace ExchangeSharp
             return (decimal)Math.Pow(10, -1 * precision);
         }
 
-
         /// <summary>
         /// Precision to step size.
         /// For example, precision of 5 would return a step size of 0.00001
         /// </summary>
         public static decimal PrecisionToStepSize(decimal precision)
         {
-	        if (precision == 0) return 1;
+            if (precision == 0)
+                return 1;
 
-	        var sb = new StringBuilder();
-	        sb.Append("0");
-	        if (precision > 0) sb.Append(".");
+            var sb = new StringBuilder();
+            sb.Append("0");
+            if (precision > 0)
+                sb.Append(".");
 
-	        for (var i = 0; i < precision; i++)
-	        {
-		        sb.Append(i + 1 == precision ? "1" : "0");
-	        }
+            for (var i = 0; i < precision; i++)
+            {
+                sb.Append(i + 1 == precision ? "1" : "0");
+            }
 
-	        return decimal.Parse(sb.ToStringInvariant());
+            return decimal.Parse(sb.ToStringInvariant());
         }
 
         /// <summary>
@@ -1457,27 +1628,47 @@ namespace ExchangeSharp
         /// <param name="method">Method implementation</param>
         /// <param name="arguments">Function arguments - function name and then param name, value, name, value, etc.</param>
         /// <returns></returns>
-        public static async Task<T> CacheMethod<T>(this ICache cache, Dictionary<string, TimeSpan> methodCachePolicy, Func<Task<T>> method, params object?[] arguments) where T : class
+        public static async Task<T> CacheMethod<T>(
+            this ICache cache,
+            Dictionary<string, TimeSpan> methodCachePolicy,
+            Func<Task<T>> method,
+            params object?[] arguments
+        )
+            where T : class
         {
             await new SynchronizationContextRemover();
             methodCachePolicy.ThrowIfNull(nameof(methodCachePolicy));
             if (arguments.Length % 2 == 0)
             {
-                throw new ArgumentException("Must pass function name and then name and value of each argument");
+                throw new ArgumentException(
+                    "Must pass function name and then name and value of each argument"
+                );
             }
             string methodName = (arguments[0] ?? string.Empty).ToStringInvariant();
             string cacheKey = methodName;
-            for (int i = 1; i < arguments.Length;)
+            for (int i = 1; i < arguments.Length; )
             {
-                cacheKey += "|" + (arguments[i++] ?? string.Empty).ToStringInvariant() + "=" + (arguments[i++] ?? string.Empty).ToStringInvariant("(null)");
+                cacheKey +=
+                    "|"
+                    + (arguments[i++] ?? string.Empty).ToStringInvariant()
+                    + "="
+                    + (arguments[i++] ?? string.Empty).ToStringInvariant("(null)");
             }
             if (methodCachePolicy.TryGetValue(methodName, out TimeSpan cacheTime))
             {
-                return (await cache.GetOrCreate<T>(cacheKey, async () =>
-                {
-                    T innerResult = await method();
-                    return new CachedItem<T>(innerResult, CryptoUtility.UtcNow.Add(cacheTime));
-                })).Value;
+                return (
+                    await cache.GetOrCreate<T>(
+                        cacheKey,
+                        async () =>
+                        {
+                            T innerResult = await method();
+                            return new CachedItem<T>(
+                                innerResult,
+                                CryptoUtility.UtcNow.Add(cacheTime)
+                            );
+                        }
+                    )
+                ).Value;
             }
             else
             {
@@ -1488,12 +1679,18 @@ namespace ExchangeSharp
         /// <summary>
         /// Utf-8 encoding with no prefix bytes
         /// </summary>
-        public static Encoding UTF8EncodingNoPrefix { get { return Utf8EncodingNoPrefix; } }
+        public static Encoding UTF8EncodingNoPrefix
+        {
+            get { return Utf8EncodingNoPrefix; }
+        }
 
         /// <summary>
         /// Return CryptoUtility.UtcNow or override if SetDateTimeUtcNowFunc has been called
         /// </summary>
-        public static DateTime UtcNow { get { return utcNowFunc(); } }
+        public static DateTime UtcNow
+        {
+            get { return utcNowFunc(); }
+        }
 
         /// <summary>
         /// True if platform is Windows, false otherwise
@@ -1516,20 +1713,20 @@ namespace ExchangeSharp
         /// </summary>
         None,
 
-		/// <summary>
-		/// Unix nanoseconds (long)
-		/// </summary>
-		UnixNanoseconds,
+        /// <summary>
+        /// Unix nanoseconds (long)
+        /// </summary>
+        UnixNanoseconds,
 
-		/// <summary>
-		/// Unix microseconds (long)
-		/// </summary>
-		UnixMicroeconds,
+        /// <summary>
+        /// Unix microseconds (long)
+        /// </summary>
+        UnixMicroeconds,
 
-		/// <summary>
-		/// Unix milliseconds (double)
-		/// </summary>
-		UnixMillisecondsDouble,
+        /// <summary>
+        /// Unix milliseconds (double)
+        /// </summary>
+        UnixMillisecondsDouble,
 
         /// <summary>
         /// Unix milliseconds (long)
@@ -1546,24 +1743,24 @@ namespace ExchangeSharp
         /// </summary>
         UnixSeconds,
 
-		/// <summary>
-		/// ISO 8601 in local time
-		/// </summary>
-		Iso8601Local,
+        /// <summary>
+        /// ISO 8601 in local time
+        /// </summary>
+        Iso8601Local,
 
-		/// <summary>
-		/// ISO 8601 in china Standard Time
-		/// </summary>
-		Iso8601China,
+        /// <summary>
+        /// ISO 8601 in china Standard Time
+        /// </summary>
+        Iso8601China,
 
-		/// <summary>
-		/// ISO 8601 in Korea Standard Time
-		/// </summary>
-		Iso8601Korea,
+        /// <summary>
+        /// ISO 8601 in Korea Standard Time
+        /// </summary>
+        Iso8601Korea,
 
-		/// <summary>
-		/// ISO 8601 in UTC
-		/// </summary>
-		Iso8601UTC,
-	}
+        /// <summary>
+        /// ISO 8601 in UTC
+        /// </summary>
+        Iso8601UTC,
+    }
 }

@@ -98,7 +98,13 @@ namespace ExchangeSharp
             tickers = tickersStart;
         }
 
-        public Trade* TickersPtr { get { return tickers; } }
-        public int TickersCount {  get { return tickersCount; } }
+        public Trade* TickersPtr
+        {
+            get { return tickers; }
+        }
+        public int TickersCount
+        {
+            get { return tickersCount; }
+        }
     }
 }

@@ -43,26 +43,31 @@ namespace ExchangeSharp
     /// </summary>
     public interface IAPIRequestMaker
     {
-		public class RequestResult<T>
-		{
-			/// <summary> request response </summary>
-			public T Response { get; set; }
+        public class RequestResult<T>
+        {
+            /// <summary> request response </summary>
+            public T Response { get; set; }
 
-			/// <summary> raw HTTP header date </summary>
-			public DateTimeOffset? HTTPHeaderDate { get; set; }
-		}
+            /// <summary> raw HTTP header date </summary>
+            public DateTimeOffset? HTTPHeaderDate { get; set; }
+        }
 
-		/// <summary>
-		/// Make a request to a path on the API
-		/// </summary>
-		/// <param name="url">Path and query</param>
-		/// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-		/// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-		/// The encoding of payload is API dependant but is typically json.</param>
-		/// <param name="method">Request method or null for default</param>
-		/// <returns>Raw response</returns>
-		/// <exception cref="System.Exception">Request fails</exception>
-		Task<RequestResult<string>> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null);
+        /// <summary>
+        /// Make a request to a path on the API
+        /// </summary>
+        /// <param name="url">Path and query</param>
+        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
+        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
+        /// The encoding of payload is API dependant but is typically json.</param>
+        /// <param name="method">Request method or null for default</param>
+        /// <returns>Raw response</returns>
+        /// <exception cref="System.Exception">Request fails</exception>
+        Task<RequestResult<string>> MakeRequestAsync(
+            string url,
+            string? baseUrl = null,
+            Dictionary<string, object>? payload = null,
+            string? method = null
+        );
 
         /// <summary>
         /// An action to execute when a request has been made (this request and state and object (response or exception))
@@ -176,7 +181,7 @@ namespace ExchangeSharp
         /// Request cache policy
         /// </summary>
         System.Net.Cache.RequestCachePolicy RequestCachePolicy { get; set; }
-        
+
         /// <summary>
         /// Request timeout, this will get assigned to the request before sending it off
         /// </summary>

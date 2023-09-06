@@ -49,7 +49,11 @@ namespace ExchangeSharp
             /// <param name="statusDescription">Description</param>
             /// <param name="cancellationToken">Cancel token</param>
             /// <returns>Task</returns>
-            Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
+            Task CloseAsync(
+                WebSocketCloseStatus closeStatus,
+                string statusDescription,
+                CancellationToken cancellationToken
+            );
 
             /// <summary>
             /// Close output immediately
@@ -58,7 +62,11 @@ namespace ExchangeSharp
             /// <param name="statusDescription">Description</param>
             /// <param name="cancellationToken">Cancel token</param>
             /// <returns>Task</returns>
-            Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken);
+            Task CloseOutputAsync(
+                WebSocketCloseStatus closeStatus,
+                string statusDescription,
+                CancellationToken cancellationToken
+            );
 
             /// <summary>
             /// Connect
@@ -74,7 +82,10 @@ namespace ExchangeSharp
             /// <param name="buffer">Buffer</param>
             /// <param name="cancellationToken">Cancel token</param>
             /// <returns>Result</returns>
-            Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken);
+            Task<WebSocketReceiveResult> ReceiveAsync(
+                ArraySegment<byte> buffer,
+                CancellationToken cancellationToken
+            );
 
             /// <summary>
             /// Send
@@ -84,18 +95,21 @@ namespace ExchangeSharp
             /// <param name="endOfMessage">True if end of message, false otherwise</param>
             /// <param name="cancellationToken">Cancel token</param>
             /// <returns>Task</returns>
-            Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken);
+            Task SendAsync(
+                ArraySegment<byte> buffer,
+                WebSocketMessageType messageType,
+                bool endOfMessage,
+                CancellationToken cancellationToken
+            );
         }
 
         private class ClientWebSocketImplementation : IClientWebSocketImplementation
         {
-            private readonly System.Net.WebSockets.ClientWebSocket webSocket = new System.Net.WebSockets.ClientWebSocket()
-            {
-	            Options =
-				{
-					Proxy = APIRequestMaker.Proxy
-				}
-            };
+            private readonly System.Net.WebSockets.ClientWebSocket webSocket =
+                new System.Net.WebSockets.ClientWebSocket()
+                {
+                    Options = { Proxy = APIRequestMaker.Proxy }
+                };
 
             public WebSocketState State
             {
@@ -113,14 +127,26 @@ namespace ExchangeSharp
                 webSocket.Dispose();
             }
 
-            public Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+            public Task CloseAsync(
+                WebSocketCloseStatus closeStatus,
+                string statusDescription,
+                CancellationToken cancellationToken
+            )
             {
                 return webSocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
             }
 
-            public Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+            public Task CloseOutputAsync(
+                WebSocketCloseStatus closeStatus,
+                string statusDescription,
+                CancellationToken cancellationToken
+            )
             {
-                return webSocket.CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
+                return webSocket.CloseOutputAsync(
+                    closeStatus,
+                    statusDescription,
+                    cancellationToken
+                );
             }
 
             public Task ConnectAsync(Uri uri, CancellationToken cancellationToken)
@@ -128,29 +154,47 @@ namespace ExchangeSharp
                 return webSocket.ConnectAsync(uri, cancellationToken);
             }
 
-            public Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
+            public Task<WebSocketReceiveResult> ReceiveAsync(
+                ArraySegment<byte> buffer,
+                CancellationToken cancellationToken
+            )
             {
                 return webSocket.ReceiveAsync(buffer, cancellationToken);
             }
 
-            public Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
+            public Task SendAsync(
+                ArraySegment<byte> buffer,
+                WebSocketMessageType messageType,
+                bool endOfMessage,
+                CancellationToken cancellationToken
+            )
             {
-				if (webSocket.State == WebSocketState.Open)
-					return webSocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
-				else return Task.CompletedTask;
+                if (webSocket.State == WebSocketState.Open)
+                    return webSocket.SendAsync(
+                        buffer,
+                        messageType,
+                        endOfMessage,
+                        cancellationToken
+                    );
+                else
+                    return Task.CompletedTask;
             }
         }
 
         private const int receiveChunkSize = 8192;
 
-        private static Func<IClientWebSocketImplementation> webSocketCreator = () => new ClientWebSocketImplementation();
+        private static Func<IClientWebSocketImplementation> webSocketCreator = () =>
+            new ClientWebSocketImplementation();
 
         // created from factory, allows swapping out underlying implementation
         private IClientWebSocketImplementation webSocket;
 
-        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancellationTokenSource =
+            new CancellationTokenSource();
         private readonly CancellationToken cancellationToken;
-        private readonly BlockingCollection<object> messageQueue = new BlockingCollection<object>(new ConcurrentQueue<object>());
+        private readonly BlockingCollection<object> messageQueue = new BlockingCollection<object>(
+            new ConcurrentQueue<object>()
+        );
 
         private bool disposed;
 
@@ -180,6 +224,7 @@ namespace ExchangeSharp
         public TimeSpan ConnectInterval { get; set; } = TimeSpan.FromHours(1.0);
 
         private TimeSpan _keepAlive = TimeSpan.FromSeconds(30.0);
+
         /// <summary>
         /// Keep alive interval (default is 30 seconds)
         /// </summary>
@@ -245,10 +290,10 @@ namespace ExchangeSharp
         {
             CreateWebSocket();
 
-			// kick off message parser and message listener
-			Task.Run(MessageTask);
-			Task.Run(ReadTask);
-		}
+            // kick off message parser and message listener
+            Task.Run(MessageTask);
+            Task.Run(ReadTask);
+        }
 
         /// <summary>
         /// Close and dispose of all resources, stops the web socket and shuts it down.
@@ -257,38 +302,44 @@ namespace ExchangeSharp
         {
             if (!disposed)
             {
-				Task.Run(async () =>
-				{
-					try
-					{
-						if (webSocket.State == WebSocketState.Open)
-						{
-							if (CloseCleanly)
-							{
-								await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
-									"Dispose", cancellationToken);
-							}
-							else
-							{
-								await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
-									"Dispose", cancellationToken);
-							}
-						}
-						disposed = true;
-					}
-					catch (OperationCanceledException)
-					{
-						// dont care
-					}
-					catch (Exception ex)
-					{
-						Logger.Info(ex.ToString());
-					}
-					cancellationTokenSource.Cancel();
-					webSocket.Dispose();
-					messageQueue.CompleteAdding();
-				});
-			}
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (webSocket.State == WebSocketState.Open)
+                        {
+                            if (CloseCleanly)
+                            {
+                                await webSocket.CloseAsync(
+                                    WebSocketCloseStatus.NormalClosure,
+                                    "Dispose",
+                                    cancellationToken
+                                );
+                            }
+                            else
+                            {
+                                await webSocket.CloseOutputAsync(
+                                    WebSocketCloseStatus.NormalClosure,
+                                    "Dispose",
+                                    cancellationToken
+                                );
+                            }
+                        }
+                        disposed = true;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // dont care
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Info(ex.ToString());
+                    }
+                    cancellationTokenSource.Cancel();
+                    webSocket.Dispose();
+                    messageQueue.CompleteAdding();
+                });
+            }
         }
 
         /// <summary>
@@ -300,28 +351,35 @@ namespace ExchangeSharp
         {
             if (webSocket.State == WebSocketState.Open)
             {
-                QueueActions(async (socket) =>
-                {
-                    byte[] bytes;
-                    WebSocketMessageType messageType;
-                    if (message is string s)
+                QueueActions(
+                    async (socket) =>
                     {
-                        bytes = s.ToBytesUTF8();
-                        messageType = WebSocketMessageType.Text;
+                        byte[] bytes;
+                        WebSocketMessageType messageType;
+                        if (message is string s)
+                        {
+                            bytes = s.ToBytesUTF8();
+                            messageType = WebSocketMessageType.Text;
+                        }
+                        else if (message is byte[] b)
+                        {
+                            bytes = b;
+                            messageType = WebSocketMessageType.Binary;
+                        }
+                        else
+                        {
+                            bytes = JsonConvert.SerializeObject(message).ToBytesUTF8();
+                            messageType = WebSocketMessageType.Text;
+                        }
+                        ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(bytes);
+                        await webSocket.SendAsync(
+                            messageArraySegment,
+                            messageType,
+                            true,
+                            cancellationToken
+                        );
                     }
-                    else if (message is byte[] b)
-                    {
-                        bytes = b;
-                        messageType = WebSocketMessageType.Binary;
-                    }
-                    else
-                    {
-                        bytes = JsonConvert.SerializeObject(message).ToBytesUTF8();
-                        messageType = WebSocketMessageType.Text;
-                    }
-                    ArraySegment<byte> messageArraySegment = new ArraySegment<byte>(bytes);
-                    await webSocket.SendAsync(messageArraySegment, messageType, true, cancellationToken);
-                });
+                );
                 return Task.FromResult<bool>(true);
             }
             return Task.FromResult<bool>(false);
@@ -332,46 +390,54 @@ namespace ExchangeSharp
             if (actions != null && actions.Length != 0 && !messageQueue.IsAddingCompleted)
             {
                 Func<IWebSocket, Task>[] actionsCopy = actions;
-                messageQueue.Add((Func<Task>)(async () =>
-                {
-                    foreach (var action in actionsCopy.Where(a => a != null))
-                    {
-                        try
+                messageQueue.Add(
+                    (Func<Task>)(
+                        async () =>
                         {
-                            await action.Invoke(this);
+                            foreach (var action in actionsCopy.Where(a => a != null))
+                            {
+                                try
+                                {
+                                    await action.Invoke(this);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Info(ex.ToString());
+                                }
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Info(ex.ToString());
-                        }
-                    }
-                }));
+                    )
+                );
             }
         }
 
         private void QueueActionsWithNoExceptions(params Func<IWebSocket, Task>[] actions)
         {
             if (actions != null && actions.Length != 0 && !messageQueue.IsAddingCompleted)
-			{
+            {
                 Func<IWebSocket, Task>[] actionsCopy = actions;
-                messageQueue.Add((Func<Task>)(async () =>
-                {
-                    foreach (var action in actionsCopy.Where(a => a != null))
-                    {
-                        while (!disposed)
+                messageQueue.Add(
+                    (Func<Task>)(
+                        async () =>
                         {
-                            try
+                            foreach (var action in actionsCopy.Where(a => a != null))
                             {
-                                await action.Invoke(this);
-                                break;
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.Info(ex.ToString());
+                                while (!disposed)
+                                {
+                                    try
+                                    {
+                                        await action.Invoke(this);
+                                        break;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Info(ex.ToString());
+                                    }
+                                }
                             }
                         }
-                    }
-                }));
+                    )
+                );
             }
         }
 
@@ -401,7 +467,7 @@ namespace ExchangeSharp
 
             while (!disposed)
             {
-				MemoryStream stream = new MemoryStream();
+                MemoryStream stream = new MemoryStream();
                 try
                 {
                     // open the socket
@@ -431,8 +497,11 @@ namespace ExchangeSharp
                             {
                                 if (result.MessageType == WebSocketMessageType.Close)
                                 {
-                                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure,
-										string.Empty, new CancellationToken()); // if it's closing, then let it complete
+                                    await webSocket.CloseAsync(
+                                        WebSocketCloseStatus.NormalClosure,
+                                        string.Empty,
+                                        new CancellationToken()
+                                    ); // if it's closing, then let it complete
                                     QueueActions(InvokeDisconnected);
                                 }
                                 else
@@ -440,14 +509,22 @@ namespace ExchangeSharp
                                     stream.Write(receiveBuffer.Array, 0, result.Count);
                                 }
                             }
-                        }
-                        while (result != null && !result.EndOfMessage && !disposed);
+                        } while (result != null && !result.EndOfMessage && !disposed);
                         if (stream.Length != 0 && !disposed)
                         {
                             // if text message and we are handling text messages
-                            if (result.MessageType == WebSocketMessageType.Text && OnTextMessage != null)
+                            if (
+                                result.MessageType == WebSocketMessageType.Text
+                                && OnTextMessage != null
+                            )
                             {
-                                messageQueue.Add(Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length));
+                                messageQueue.Add(
+                                    Encoding.UTF8.GetString(
+                                        stream.GetBuffer(),
+                                        0,
+                                        (int)stream.Length
+                                    )
+                                );
                             }
                             // otherwise treat message as binary
                             else
@@ -462,15 +539,15 @@ namespace ExchangeSharp
                         }
                     }
                 }
-				catch (OperationCanceledException) // includes TaskCanceledException
-				{
-					// dont care
-				}
-				catch (IOException ex)
-				{
-					Logger.Info(ex.ToString());
-				}
-				catch (Exception ex)
+                catch (OperationCanceledException) // includes TaskCanceledException
+                {
+                    // dont care
+                }
+                catch (IOException ex)
+                {
+                    Logger.Info(ex.ToString());
+                }
+                catch (Exception ex)
                 {
                     // eat exceptions, most likely a result of a disconnect, either way we will re-create the web socket
                     Logger.Info(ex.ToString());
@@ -482,8 +559,8 @@ namespace ExchangeSharp
                 }
                 try
                 {
-					stream.Close();
-					webSocket.Dispose();
+                    stream.Close();
+                    webSocket.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -540,7 +617,10 @@ namespace ExchangeSharp
                         Logger.Info(ex.ToString());
                     }
                 }
-                if (ConnectInterval.Ticks > 0 && (CryptoUtility.UtcNow - lastCheck) >= ConnectInterval)
+                if (
+                    ConnectInterval.Ticks > 0
+                    && (CryptoUtility.UtcNow - lastCheck) >= ConnectInterval
+                )
                 {
                     lastCheck = CryptoUtility.UtcNow;
 

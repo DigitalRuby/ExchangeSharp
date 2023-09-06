@@ -5,12 +5,12 @@ using System.Text;
 
 namespace ExchangeSharp.API.Exchanges.Kraken.Models.Types
 {
-	internal class Subscription
-	{
-		[JsonProperty("name")]
-		public string Name { get; set; }
+    internal class Subscription
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
 
-		[JsonProperty("depth")]
-		public int Depth { get; set; }
-	}
+        [JsonProperty("depth")]
+        public int Depth { get; set; }
+    }
 }

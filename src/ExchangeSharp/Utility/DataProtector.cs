@@ -55,7 +55,6 @@ namespace ExchangeSharp
             // Protect data with a non-recoverable key
             CRYPTPROTECT_NO_RECOVERY = 0x20,
 
-
             // Verify the protection of a protected blob
             CRYPTPROTECT_VERIFY_PROTECTION = 0x40
         }
@@ -87,23 +86,63 @@ namespace ExchangeSharp
         }
 
         [SuppressUnmanagedCodeSecurity]
-        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
+        [DllImport(
+            "kernel32.dll",
+            SetLastError = true,
+            CallingConvention = CallingConvention.StdCall,
+            CharSet = CharSet.Auto
+        )]
         private static extern IntPtr LocalFree(IntPtr hMem);
 
         [SuppressUnmanagedCodeSecurity]
-        [DllImport("crypt32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
+        [DllImport(
+            "crypt32.dll",
+            SetLastError = true,
+            CallingConvention = CallingConvention.StdCall,
+            CharSet = CharSet.Auto
+        )]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CryptProtectData(ref DATA_BLOB pDataIn, string? szDataDescr, ref DATA_BLOB pOptionalEntropy, IntPtr pvReserved, ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct, CryptProtectFlags dwFlags, ref DATA_BLOB pDataOut);
+        private static extern bool CryptProtectData(
+            ref DATA_BLOB pDataIn,
+            string? szDataDescr,
+            ref DATA_BLOB pOptionalEntropy,
+            IntPtr pvReserved,
+            ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct,
+            CryptProtectFlags dwFlags,
+            ref DATA_BLOB pDataOut
+        );
 
         [SuppressUnmanagedCodeSecurity]
-        [DllImport("crypt32.dll", SetLastError = true, CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
+        [DllImport(
+            "crypt32.dll",
+            SetLastError = true,
+            CallingConvention = CallingConvention.StdCall,
+            CharSet = CharSet.Auto
+        )]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CryptUnprotectData(ref DATA_BLOB pDataIn, string? szDataDescr, ref DATA_BLOB pOptionalEntropy, IntPtr pvReserved, ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct, CryptProtectFlags dwFlags, ref DATA_BLOB pDataOut);
+        private static extern bool CryptUnprotectData(
+            ref DATA_BLOB pDataIn,
+            string? szDataDescr,
+            ref DATA_BLOB pOptionalEntropy,
+            IntPtr pvReserved,
+            ref CRYPTPROTECT_PROMPTSTRUCT pPromptStruct,
+            CryptProtectFlags dwFlags,
+            ref DATA_BLOB pDataOut
+        );
 
-        private static byte[] CryptOperationWindows(bool protect, byte[] data, byte[]? optionalEntropy, DataProtectionScope scope)
+        private static byte[] CryptOperationWindows(
+            bool protect,
+            byte[] data,
+            byte[]? optionalEntropy,
+            DataProtectionScope scope
+        )
         {
             GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            GCHandle handleEntropy = (optionalEntropy != null && optionalEntropy.Length != 0 ? GCHandle.Alloc(optionalEntropy, GCHandleType.Pinned) : new GCHandle());
+            GCHandle handleEntropy = (
+                optionalEntropy != null && optionalEntropy.Length != 0
+                    ? GCHandle.Alloc(optionalEntropy, GCHandleType.Pinned)
+                    : new GCHandle()
+            );
             try
             {
                 DATA_BLOB dataIn = new DATA_BLOB
@@ -114,22 +153,46 @@ namespace ExchangeSharp
                 DATA_BLOB entropy = new DATA_BLOB
                 {
                     cbData = (optionalEntropy == null ? 0 : optionalEntropy.Length),
-                    pbData = (handleEntropy.IsAllocated ? handleEntropy.AddrOfPinnedObject() : IntPtr.Zero)
+                    pbData = (
+                        handleEntropy.IsAllocated ? handleEntropy.AddrOfPinnedObject() : IntPtr.Zero
+                    )
                 };
                 DATA_BLOB dataOut = new DATA_BLOB();
                 CRYPTPROTECT_PROMPTSTRUCT prompt = new CRYPTPROTECT_PROMPTSTRUCT();
-                CryptProtectFlags flags = (scope == DataProtectionScope.CurrentUser ? CryptProtectFlags.CRYPTPROTECT_NONE : CryptProtectFlags.CRYPTPROTECT_LOCAL_MACHINE);
+                CryptProtectFlags flags = (
+                    scope == DataProtectionScope.CurrentUser
+                        ? CryptProtectFlags.CRYPTPROTECT_NONE
+                        : CryptProtectFlags.CRYPTPROTECT_LOCAL_MACHINE
+                );
                 if (protect)
                 {
-                    CryptProtectData(ref dataIn, null, ref entropy, IntPtr.Zero, ref prompt, flags, ref dataOut);
+                    CryptProtectData(
+                        ref dataIn,
+                        null,
+                        ref entropy,
+                        IntPtr.Zero,
+                        ref prompt,
+                        flags,
+                        ref dataOut
+                    );
                 }
                 else
                 {
-                    CryptUnprotectData(ref dataIn, null, ref entropy, IntPtr.Zero, ref prompt, flags, ref dataOut);
+                    CryptUnprotectData(
+                        ref dataIn,
+                        null,
+                        ref entropy,
+                        IntPtr.Zero,
+                        ref prompt,
+                        flags,
+                        ref dataOut
+                    );
                 }
                 if (dataOut.cbData == 0)
                 {
-                    throw new System.IO.InvalidDataException("Unable to protect/unprotect data, most likely the data came from a different user account or a different machine");
+                    throw new System.IO.InvalidDataException(
+                        "Unable to protect/unprotect data, most likely the data came from a different user account or a different machine"
+                    );
                 }
                 byte[] dataCopy = new byte[dataOut.cbData];
                 Marshal.Copy(dataOut.pbData, dataCopy, 0, dataCopy.Length);
@@ -194,10 +257,7 @@ namespace ExchangeSharp
             {
                 try
                 {
-                    CspParameters csp = new CspParameters
-                    {
-                        KeyContainerName = "DAPI"
-                    };
+                    CspParameters csp = new CspParameters { KeyContainerName = "DAPI" };
                     user = new RSACryptoServiceProvider(1536, csp);
                 }
                 catch
@@ -221,7 +281,11 @@ namespace ExchangeSharp
 
             // FIXME	[KeyContainerPermission (SecurityAction.Assert, KeyContainerName = "DAPI",
             //			Flags = KeyContainerPermissionFlags.Open | KeyContainerPermissionFlags.Create)]
-            public static byte[] Protect(byte[] userData, byte[] optionalEntropy, DataProtectionScope scope)
+            public static byte[] Protect(
+                byte[] userData,
+                byte[] optionalEntropy,
+                DataProtectionScope scope
+            )
             {
                 if (userData == null)
                     throw new ArgumentNullException("userData");
@@ -275,7 +339,9 @@ namespace ExchangeSharp
                     secret[35] = 32; // digest size
                     Buffer.BlockCopy(digest, 0, secret, 36, 32);
 
-                    RSAOAEPKeyExchangeFormatter formatter = new RSAOAEPKeyExchangeFormatter(GetKey(scope));
+                    RSAOAEPKeyExchangeFormatter formatter = new RSAOAEPKeyExchangeFormatter(
+                        GetKey(scope)
+                    );
                     header = formatter.CreateKeyExchange(secret);
                 }
                 finally
@@ -307,7 +373,11 @@ namespace ExchangeSharp
 
             //TODO: FIXME	[KeyContainerPermission (SecurityAction.Assert, KeyContainerName = "DAPI",
             //			Flags = KeyContainerPermissionFlags.Open | KeyContainerPermissionFlags.Decrypt)]
-            public static byte[] Unprotect(byte[] encryptedData, byte[] optionalEntropy, DataProtectionScope scope)
+            public static byte[] Unprotect(
+                byte[] encryptedData,
+                byte[] optionalEntropy,
+                DataProtectionScope scope
+            )
             {
                 if (encryptedData == null)
                     throw new ArgumentNullException("encryptedData");
@@ -335,7 +405,8 @@ namespace ExchangeSharp
                 {
                     try
                     {
-                        RSAOAEPKeyExchangeDeformatter deformatter = new RSAOAEPKeyExchangeDeformatter(rsa);
+                        RSAOAEPKeyExchangeDeformatter deformatter =
+                            new RSAOAEPKeyExchangeDeformatter(rsa);
                         secret = deformatter.DecryptKeyExchange(header);
                         valid2 = (secret.Length == 68);
                     }
@@ -379,7 +450,11 @@ namespace ExchangeSharp
                         {
                             try
                             {
-                                cs.Write(encryptedData, headerSize, encryptedData.Length - headerSize);
+                                cs.Write(
+                                    encryptedData,
+                                    headerSize,
+                                    encryptedData.Length - headerSize
+                                );
                                 cs.Close();
                             }
                             catch
@@ -475,15 +550,29 @@ namespace ExchangeSharp
         {
             byte[] esp = new byte[] { 69, 155, 31, 254, 7, 18, 99, 187 };
             byte[] esl = new byte[] { 101, 5, 79, 221, 48, 42, 26, 123 };
-            string xmlFile = (scope == DataProtectionScope.CurrentUser ? Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "esku_123_abc.bin") :
-                Path.Combine(System.Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "eskm_123_abc.bin"));
+            string xmlFile = (
+                scope == DataProtectionScope.CurrentUser
+                    ? Path.Combine(
+                        System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        "esku_123_abc.bin"
+                    )
+                    : Path.Combine(
+                        System.Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "eskm_123_abc.bin"
+                    )
+            );
             RSACryptoServiceProvider rsa;
             if (File.Exists(xmlFile))
             {
                 byte[] xmlBytes = File.ReadAllBytes(xmlFile);
-                xmlBytes = CryptoUtility.AesDecryption(xmlBytes, esp, esl) ?? throw new InvalidDataException("Unable to decrypt file " + xmlFile);
+                xmlBytes =
+                    CryptoUtility.AesDecryption(xmlBytes, esp, esl)
+                    ?? throw new InvalidDataException("Unable to decrypt file " + xmlFile);
                 rsa = new RSACryptoServiceProvider();
-                RSAKeyExtensions.FromXmlString(rsa, CryptoUtility.UTF8EncodingNoPrefix.GetString(xmlBytes));
+                RSAKeyExtensions.FromXmlString(
+                    rsa,
+                    CryptoUtility.UTF8EncodingNoPrefix.GetString(xmlBytes)
+                );
             }
             else
             {
@@ -500,7 +589,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="data">Data to protect</param>
         /// <returns>Protected data</returns>
-        public static byte[] Protect(byte[] data, byte[]? optionalEntropy = null, DataProtectionScope scope = DataProtectionScope.CurrentUser)
+        public static byte[] Protect(
+            byte[] data,
+            byte[]? optionalEntropy = null,
+            DataProtectionScope scope = DataProtectionScope.CurrentUser
+        )
         {
             if (CryptoUtility.IsWindows)
             {
@@ -517,7 +610,11 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="data">Data to unprotect</param>
         /// <returns>Unprotected data</returns>
-        public static byte[] Unprotect(byte[] data, byte[]? optionalEntropy = null, DataProtectionScope scope = DataProtectionScope.CurrentUser)
+        public static byte[] Unprotect(
+            byte[] data,
+            byte[]? optionalEntropy = null,
+            DataProtectionScope scope = DataProtectionScope.CurrentUser
+        )
         {
             if (CryptoUtility.IsWindows)
             {
@@ -545,14 +642,62 @@ namespace ExchangeSharp
                 {
                     switch (node.Name)
                     {
-                        case "Modulus": parameters.Modulus = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "Exponent": parameters.Exponent = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "P": parameters.P = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "Q": parameters.Q = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "DP": parameters.DP = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "DQ": parameters.DQ = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "InverseQ": parameters.InverseQ = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
-                        case "D": parameters.D = (string.IsNullOrEmpty(node.InnerText) ? null : Convert.FromBase64String(node.InnerText)); break;
+                        case "Modulus":
+                            parameters.Modulus = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "Exponent":
+                            parameters.Exponent = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "P":
+                            parameters.P = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "Q":
+                            parameters.Q = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "DP":
+                            parameters.DP = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "DQ":
+                            parameters.DQ = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "InverseQ":
+                            parameters.InverseQ = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
+                        case "D":
+                            parameters.D = (
+                                string.IsNullOrEmpty(node.InnerText)
+                                    ? null
+                                    : Convert.FromBase64String(node.InnerText)
+                            );
+                            break;
                     }
                 }
             }
@@ -568,15 +713,17 @@ namespace ExchangeSharp
         {
             RSAParameters parameters = rsa.ExportParameters(includePrivateParameters);
 
-            return string.Format("<RSAKeyValue><Modulus>{0}</Modulus><Exponent>{1}</Exponent><P>{2}</P><Q>{3}</Q><DP>{4}</DP><DQ>{5}</DQ><InverseQ>{6}</InverseQ><D>{7}</D></RSAKeyValue>",
-                  parameters.Modulus != null ? Convert.ToBase64String(parameters.Modulus) : null,
-                  parameters.Exponent != null ? Convert.ToBase64String(parameters.Exponent) : null,
-                  parameters.P != null ? Convert.ToBase64String(parameters.P) : null,
-                  parameters.Q != null ? Convert.ToBase64String(parameters.Q) : null,
-                  parameters.DP != null ? Convert.ToBase64String(parameters.DP) : null,
-                  parameters.DQ != null ? Convert.ToBase64String(parameters.DQ) : null,
-                  parameters.InverseQ != null ? Convert.ToBase64String(parameters.InverseQ) : null,
-                  parameters.D != null ? Convert.ToBase64String(parameters.D) : null);
+            return string.Format(
+                "<RSAKeyValue><Modulus>{0}</Modulus><Exponent>{1}</Exponent><P>{2}</P><Q>{3}</Q><DP>{4}</DP><DQ>{5}</DQ><InverseQ>{6}</InverseQ><D>{7}</D></RSAKeyValue>",
+                parameters.Modulus != null ? Convert.ToBase64String(parameters.Modulus) : null,
+                parameters.Exponent != null ? Convert.ToBase64String(parameters.Exponent) : null,
+                parameters.P != null ? Convert.ToBase64String(parameters.P) : null,
+                parameters.Q != null ? Convert.ToBase64String(parameters.Q) : null,
+                parameters.DP != null ? Convert.ToBase64String(parameters.DP) : null,
+                parameters.DQ != null ? Convert.ToBase64String(parameters.DQ) : null,
+                parameters.InverseQ != null ? Convert.ToBase64String(parameters.InverseQ) : null,
+                parameters.D != null ? Convert.ToBase64String(parameters.D) : null
+            );
         }
     }
 }

@@ -45,6 +45,6 @@ namespace ExchangeSharp.Coinbase
 
         Error,
 
-		Status,
+        Status,
     }
 }

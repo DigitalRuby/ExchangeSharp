@@ -18,13 +18,14 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp.Bitstamp
 {
-	public class BitstampTrade : ExchangeTrade
-	{
-		public Int64 BuyOrderId { get; set; }
-		public Int64 SellOrderId { get; set; }
-		public override string ToString()
-		{
-			return string.Format("{0},{1},{2}", base.ToString(), BuyOrderId, SellOrderId);
-		}
-	}
+    public class BitstampTrade : ExchangeTrade
+    {
+        public Int64 BuyOrderId { get; set; }
+        public Int64 SellOrderId { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("{0},{1},{2}", base.ToString(), BuyOrderId, SellOrderId);
+        }
+    }
 }

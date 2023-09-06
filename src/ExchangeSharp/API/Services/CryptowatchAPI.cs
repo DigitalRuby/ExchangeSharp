@@ -46,21 +46,54 @@ namespace ExchangeSharp
         /// <param name="after">Optional date to restrict data to after this date</param>
         /// <param name="periods">Periods</param>
         /// <returns>Market candles</returns>
-        public async Task<IEnumerable<MarketCandle>> GetMarketCandlesAsync(string exchange, string marketName, DateTime? before, DateTime? after, params int[] periods)
+        public async Task<IEnumerable<MarketCandle>> GetMarketCandlesAsync(
+            string exchange,
+            string marketName,
+            DateTime? before,
+            DateTime? after,
+            params int[] periods
+        )
         {
             await new SynchronizationContextRemover();
 
             List<MarketCandle> candles = new List<MarketCandle>();
             string periodString = string.Join(",", periods);
-            string beforeDateString = (before == null ? string.Empty : "&before=" + (long)before.Value.UnixTimestampFromDateTimeSeconds());
-            string afterDateString = (after == null ? string.Empty : "&after=" + (long)after.Value.UnixTimestampFromDateTimeSeconds());
-            string url = "/markets/" + exchange + "/" + marketName + "/ohlc?periods=" + periodString + beforeDateString + afterDateString;
+            string beforeDateString = (
+                before == null
+                    ? string.Empty
+                    : "&before=" + (long)before.Value.UnixTimestampFromDateTimeSeconds()
+            );
+            string afterDateString = (
+                after == null
+                    ? string.Empty
+                    : "&after=" + (long)after.Value.UnixTimestampFromDateTimeSeconds()
+            );
+            string url =
+                "/markets/"
+                + exchange
+                + "/"
+                + marketName
+                + "/ohlc?periods="
+                + periodString
+                + beforeDateString
+                + afterDateString;
             JToken token = await MakeCryptowatchRequestAsync(url);
             foreach (JProperty prop in token)
             {
                 foreach (JToken candleToken in prop.Value)
                 {
-                    MarketCandle candle = this.ParseCandle(candleToken, marketName, 0, 1, 2, 3, 4, 0, TimestampType.UnixSeconds, 5);
+                    MarketCandle candle = this.ParseCandle(
+                        candleToken,
+                        marketName,
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        0,
+                        TimestampType.UnixSeconds,
+                        5
+                    );
                     candle.PeriodSeconds = prop.Name.ConvertInvariant<int>();
                     candles.Add(candle);
                 }
@@ -86,34 +119,50 @@ namespace ExchangeSharp
                 {
                     continue;
                 }
-                summaries.Add(new MarketSummary
-                {
-                    ExchangeName = pieces[0],
-                    Name = pieces[1],
-                    HighPrice = prop.Value["price"]["high"].ConvertInvariant<decimal>(),
-                    LastPrice = prop.Value["price"]["last"].ConvertInvariant<decimal>(),
-                    LowPrice = prop.Value["price"]["low"].ConvertInvariant<decimal>(),
-                    PriceChangeAmount = prop.Value["price"]["change"]["absolute"].ConvertInvariant<decimal>(),
-                    PriceChangePercent = prop.Value["price"]["change"]["percentage"].ConvertInvariant<float>(),
-                    Volume = prop.Value["volume"].ConvertInvariant<double>()
-                });
+                summaries.Add(
+                    new MarketSummary
+                    {
+                        ExchangeName = pieces[0],
+                        Name = pieces[1],
+                        HighPrice = prop.Value["price"]["high"].ConvertInvariant<decimal>(),
+                        LastPrice = prop.Value["price"]["last"].ConvertInvariant<decimal>(),
+                        LowPrice = prop.Value["price"]["low"].ConvertInvariant<decimal>(),
+                        PriceChangeAmount = prop.Value["price"]["change"][
+                            "absolute"
+                        ].ConvertInvariant<decimal>(),
+                        PriceChangePercent = prop.Value["price"]["change"][
+                            "percentage"
+                        ].ConvertInvariant<float>(),
+                        Volume = prop.Value["volume"].ConvertInvariant<double>()
+                    }
+                );
             }
 
             return summaries;
         }
 
-        public async Task<ExchangeOrderBook> GetOrderBookAsync(string exchange, string marketSymbol, int maxCount = 100)
+        public async Task<ExchangeOrderBook> GetOrderBookAsync(
+            string exchange,
+            string marketSymbol,
+            int maxCount = 100
+        )
         {
             await new SynchronizationContextRemover();
 
             ExchangeOrderBook book = new ExchangeOrderBook();
-            JToken result = await MakeJsonRequestAsync<JToken>("/markets/" + exchange.ToLowerInvariant() + "/" + marketSymbol + "/orderbook");
+            JToken result = await MakeJsonRequestAsync<JToken>(
+                "/markets/" + exchange.ToLowerInvariant() + "/" + marketSymbol + "/orderbook"
+            );
             int count = 0;
             foreach (JArray array in result["asks"])
             {
                 if (++count > maxCount)
                     break;
-                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                var depth = new ExchangeOrderPrice
+                {
+                    Amount = array[1].ConvertInvariant<decimal>(),
+                    Price = array[0].ConvertInvariant<decimal>()
+                };
                 book.Asks[depth.Price] = depth;
             }
             count = 0;
@@ -121,11 +170,14 @@ namespace ExchangeSharp
             {
                 if (++count > maxCount)
                     break;
-                var depth = new ExchangeOrderPrice { Amount = array[1].ConvertInvariant<decimal>(), Price = array[0].ConvertInvariant<decimal>() };
+                var depth = new ExchangeOrderPrice
+                {
+                    Amount = array[1].ConvertInvariant<decimal>(),
+                    Price = array[0].ConvertInvariant<decimal>()
+                };
                 book.Bids[depth.Price] = depth;
             }
             return book;
         }
-
     }
 }

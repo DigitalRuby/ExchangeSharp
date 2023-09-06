@@ -37,7 +37,12 @@ namespace ExchangeSharp
                 writer.WriteRawValue(Mapping[(T)value]);
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object existingValue,
+            JsonSerializer serializer
+        )
         {
             if (reader.Value == null)
                 return null;
@@ -46,7 +51,9 @@ namespace ExchangeSharp
             if (Mapping.ContainsValue(value))
                 return Mapping.Single(m => m.Value == value).Key;
 
-            var lowerResult = Mapping.SingleOrDefault(m => m.Value.ToLowerInvariant() == value.ToLowerInvariant());
+            var lowerResult = Mapping.SingleOrDefault(
+                m => m.Value.ToLowerInvariant() == value.ToLowerInvariant()
+            );
             if (!lowerResult.Equals(default(KeyValuePair<T, string>)))
                 return lowerResult.Key;
 

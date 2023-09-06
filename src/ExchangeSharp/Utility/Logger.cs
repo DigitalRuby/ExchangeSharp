@@ -94,12 +94,12 @@ namespace ExchangeSharp
         None = Off
     }
 
-	public class LoggerEvent
-	{
-		public LogLevel level;
-		public string text;
-		public object[] args;
-	}
+    public class LoggerEvent
+    {
+        public LogLevel level;
+        public string text;
+        public object[] args;
+    }
 
     /// <summary>
     /// ExchangeSharp logger. Will never throw exceptions.
@@ -108,31 +108,50 @@ namespace ExchangeSharp
     public static class Logger
     {
         private static readonly NLog.Logger logger;
-		public static event Action<LoggerEvent> LogWrite;
+        public static event Action<LoggerEvent> LogWrite;
 
         static Logger()
         {
             try
             {
-				LogFactory factory = null;
-				if (File.Exists(ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath))
-				{
-					factory = LogManager.LoadConfiguration(ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath);
-				}
+                LogFactory factory = null;
+                if (
+                    File.Exists(
+                        ConfigurationManager
+                            .OpenExeConfiguration(ConfigurationUserLevel.None)
+                            .FilePath
+                    )
+                )
+                {
+                    factory = LogManager.LoadConfiguration(
+                        ConfigurationManager
+                            .OpenExeConfiguration(ConfigurationUserLevel.None)
+                            .FilePath
+                    );
+                }
 
-				if (factory == null || factory.Configuration.AllTargets.Count == 0)
-				{
-					if (File.Exists("nlog.config"))
+                if (factory == null || factory.Configuration.AllTargets.Count == 0)
+                {
+                    if (File.Exists("nlog.config"))
                     {
                         factory = LogManager.LoadConfiguration("nlog.config");
                     }
                     else
-					{
-						using var resourceStream = typeof(Logger).Assembly.GetManifestResourceStream("ExchangeSharp.nlog.config");
-						System.Diagnostics.Debug.Assert(resourceStream != null, nameof(resourceStream) + " != null");
-						using var sr = new StreamReader(resourceStream);
+                    {
+                        using var resourceStream =
+                            typeof(Logger).Assembly.GetManifestResourceStream(
+                                "ExchangeSharp.nlog.config"
+                            );
+                        System.Diagnostics.Debug.Assert(
+                            resourceStream != null,
+                            nameof(resourceStream) + " != null"
+                        );
+                        using var sr = new StreamReader(resourceStream);
                         using var xr = XmlReader.Create(sr);
-                        LogManager.Configuration = new XmlLoggingConfiguration(xr, Directory.GetCurrentDirectory());
+                        LogManager.Configuration = new XmlLoggingConfiguration(
+                            xr,
+                            Directory.GetCurrentDirectory()
+                        );
                         factory = LogManager.LogFactory;
                     }
                 }
@@ -154,13 +173,20 @@ namespace ExchangeSharp
         {
             switch (logLevel)
             {
-                case LogLevel.Critical: return NLog.LogLevel.Fatal;
-                case LogLevel.Debug: return NLog.LogLevel.Debug;
-                case LogLevel.Error: return NLog.LogLevel.Error;
-                case LogLevel.Information: return NLog.LogLevel.Info;
-                case LogLevel.Trace: return NLog.LogLevel.Trace;
-                case LogLevel.Warning: return NLog.LogLevel.Warn;
-                default: return NLog.LogLevel.Off;
+                case LogLevel.Critical:
+                    return NLog.LogLevel.Fatal;
+                case LogLevel.Debug:
+                    return NLog.LogLevel.Debug;
+                case LogLevel.Error:
+                    return NLog.LogLevel.Error;
+                case LogLevel.Information:
+                    return NLog.LogLevel.Info;
+                case LogLevel.Trace:
+                    return NLog.LogLevel.Trace;
+                case LogLevel.Warning:
+                    return NLog.LogLevel.Warn;
+                default:
+                    return NLog.LogLevel.Off;
             }
         }
 
@@ -225,7 +251,6 @@ namespace ExchangeSharp
             Write(LogLevel.Warning, text, args);
         }
 
-
         /// <summary>
         /// Log an info message
         /// </summary>
@@ -261,7 +286,14 @@ namespace ExchangeSharp
                     text = string.Format(text, args);
                 }
                 logger?.Log(GetNLogLevel(level), text);
-				LogWrite?.Invoke(new LoggerEvent() { level = level, text = text, args = args });
+                LogWrite?.Invoke(
+                    new LoggerEvent()
+                    {
+                        level = level,
+                        text = text,
+                        args = args
+                    }
+                );
             }
             catch
             {

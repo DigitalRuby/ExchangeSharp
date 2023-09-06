@@ -26,6 +26,6 @@ namespace ExchangeSharp.Coinbase
         [JsonProperty("product_ids")]
         public List<string> ProductIds { get; set; }
 
-		public override string ToString() => $"{Name} channel w/ {ProductIds.Count} symbols";
-	}
+        public override string ToString() => $"{Name} channel w/ {ProductIds.Count} symbols";
+    }
 }

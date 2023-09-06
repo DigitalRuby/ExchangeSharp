@@ -31,7 +31,7 @@ namespace ExchangeSharp
         /// The last price paid for the asset of the market
         /// </summary>
         public decimal LastPrice { get; set; }
-        
+
         /// <summary>
         /// The highest price paid for the asset of the market, usually in the last 24hr
         /// </summary>

@@ -51,11 +51,17 @@ namespace ExchangeSharp
                 }
                 else if (TimestampFunction == null && UrlFunction == null)
                 {
-                    throw new ArgumentException("Missing required parameters", nameof(TimestampFunction) + "," + nameof(UrlFunction));
+                    throw new ArgumentException(
+                        "Missing required parameters",
+                        nameof(TimestampFunction) + "," + nameof(UrlFunction)
+                    );
                 }
                 else if (ParseFunction == null)
                 {
-                    throw new ArgumentException("Missing required parameter", nameof(ParseFunction));
+                    throw new ArgumentException(
+                        "Missing required parameter",
+                        nameof(ParseFunction)
+                    );
                 }
                 else if (string.IsNullOrWhiteSpace(Url))
                 {
@@ -91,7 +97,9 @@ namespace ExchangeSharp
                     }
                     else
                     {
-                        throw new InvalidOperationException("TimestampFunction or UrlFunction must be specified");
+                        throw new InvalidOperationException(
+                            "TimestampFunction or UrlFunction must be specified"
+                        );
                     }
                     JToken obj = await api.MakeJsonRequestAsync<JToken>(url);
 
@@ -100,7 +108,11 @@ namespace ExchangeSharp
                     foreach (JToken token in obj)
                     {
                         trade = ParseFunction(token);
-                        if (!previousTrades.Contains(trade.Id) && trade.Timestamp >= StartDate.Value && trade.Timestamp <= EndDate.Value)
+                        if (
+                            !previousTrades.Contains(trade.Id)
+                            && trade.Timestamp >= StartDate.Value
+                            && trade.Timestamp <= EndDate.Value
+                        )
                         {
                             trades.Add(trade);
                         }
@@ -119,10 +131,10 @@ namespace ExchangeSharp
                     {
                         if (DirectionIsBackwards)
                         {
-							// no trades found, move the whole block back
-							endDateMoving = startDateMoving;
-							startDateMoving = endDateMoving.Subtract(BlockTime);
-						}
+                            // no trades found, move the whole block back
+                            endDateMoving = startDateMoving;
+                            startDateMoving = endDateMoving.Subtract(BlockTime);
+                        }
                         else
                         {
                             // no trades found, move the whole block forward

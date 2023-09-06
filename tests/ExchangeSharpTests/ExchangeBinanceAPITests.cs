@@ -31,7 +31,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public void DeserializeDiff()
         {
-            string toParse = @"{
+            string toParse =
+                @"{
   ""e"": ""depthUpdate"",
   ""E"": 123456789,    
   ""s"": ""BNBBTC"",     
@@ -52,14 +53,18 @@ namespace ExchangeSharpTests
     ]
   ]
 }";
-            var diff = JsonConvert.DeserializeObject<MarketDepthDiffUpdate>(toParse, BaseAPI.SerializerSettings);
+            var diff = JsonConvert.DeserializeObject<MarketDepthDiffUpdate>(
+                toParse,
+                BaseAPI.SerializerSettings
+            );
             ValidateDiff(diff);
         }
 
         [TestMethod]
         public void DeserializeComboStream()
         {
-            string toParse = @"{
+            string toParse =
+                @"{
 	""stream"": ""bnbbtc@depth"",
 	""data"": {
 		""e"": ""depthUpdate"",
@@ -82,7 +87,10 @@ namespace ExchangeSharpTests
 	}
 }";
 
-            var multistream = JsonConvert.DeserializeObject<MultiDepthStream>(toParse, BaseAPI.SerializerSettings);
+            var multistream = JsonConvert.DeserializeObject<MultiDepthStream>(
+                toParse,
+                BaseAPI.SerializerSettings
+            );
             multistream.Stream.Should().Be("bnbbtc@depth");
             ValidateDiff(multistream.Data);
         }
@@ -92,7 +100,10 @@ namespace ExchangeSharpTests
         {
             string real =
                 "{\"stream\":\"bnbbtc@depth\",\"data\":{\"e\":\"depthUpdate\",\"E\":1527540113575,\"s\":\"BNBBTC\",\"U\":77730662,\"u\":77730663,\"b\":[[\"0.00167300\",\"0.00000000\",[]],[\"0.00165310\",\"16.44000000\",[]]],\"a\":[]}}";
-            var diff = JsonConvert.DeserializeObject<MultiDepthStream>(real, BaseAPI.SerializerSettings);
+            var diff = JsonConvert.DeserializeObject<MultiDepthStream>(
+                real,
+                BaseAPI.SerializerSettings
+            );
             diff.Data.EventTime.Should().Be(1527540113575);
         }
 
@@ -100,10 +111,21 @@ namespace ExchangeSharpTests
         public async Task CurrenciesParsedCorrectly()
         {
             var requestMaker = Substitute.For<IAPIRequestMaker>();
-			var binance = await ExchangeAPI.GetExchangeAPIAsync<ExchangeBinanceAPI>();
-			binance.RequestMaker = requestMaker;
-            requestMaker.MakeRequestAsync("/capital/config/getall", ((ExchangeBinanceAPI)binance).BaseUrlSApi).Returns(new IAPIRequestMaker.RequestResult<string>() { Response = Resources.BinanceGetAllAssets });
-            IReadOnlyDictionary<string, ExchangeCurrency> currencies = await binance.GetCurrenciesAsync();
+            var binance = await ExchangeAPI.GetExchangeAPIAsync<ExchangeBinanceAPI>();
+            binance.RequestMaker = requestMaker;
+            requestMaker
+                .MakeRequestAsync(
+                    "/capital/config/getall",
+                    ((ExchangeBinanceAPI)binance).BaseUrlSApi
+                )
+                .Returns(
+                    new IAPIRequestMaker.RequestResult<string>()
+                    {
+                        Response = Resources.BinanceGetAllAssets
+                    }
+                );
+            IReadOnlyDictionary<string, ExchangeCurrency> currencies =
+                await binance.GetCurrenciesAsync();
             currencies.Should().HaveCount(3);
             currencies.TryGetValue("bnb", out ExchangeCurrency bnb).Should().BeTrue();
             bnb.DepositEnabled.Should().BeFalse();

@@ -21,14 +21,14 @@ namespace ExchangeSharp
         /// <summary>Gets or sets the symbol representing the market's currency pair.</summary>
         public string MarketSymbol { get; set; }
 
-		/// <summary>Aternate market symbol</summary>
-		public string AltMarketSymbol { get; set; }
+        /// <summary>Aternate market symbol</summary>
+        public string AltMarketSymbol { get; set; }
 
-		/// <summary>Second aternate market symbol</summary>
-		public string AltMarketSymbol2 { get; set; }
+        /// <summary>Second aternate market symbol</summary>
+        public string AltMarketSymbol2 { get; set; }
 
-		/// <summary>A value indicating whether the market is active.</summary>
-		public bool? IsActive { get; set; }
+        /// <summary>A value indicating whether the market is active.</summary>
+        public bool? IsActive { get; set; }
 
         /// <summary>In a pair like ZRX/BTC, BTC is the quote currency.</summary>
         public string QuoteCurrency { get; set; }

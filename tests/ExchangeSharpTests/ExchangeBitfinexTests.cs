@@ -19,39 +19,45 @@ using FluentAssertions;
 
 namespace ExchangeSharpTests
 {
-	[TestClass]
-	public class ExchangeBitfinexTests
-	{
-		private SecureString _pvtKey = new NetworkCredential("", "privKey").SecurePassword;
-		private SecureString _pubKey = new NetworkCredential("", "SecKey").SecurePassword;
+    [TestClass]
+    public class ExchangeBitfinexTests
+    {
+        private SecureString _pvtKey = new NetworkCredential("", "privKey").SecurePassword;
+        private SecureString _pubKey = new NetworkCredential("", "SecKey").SecurePassword;
 
-		[TestMethod]
-		public void SubmitStopMarginOrder()
-		{
-			IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
-			ExchangeOrderRequest order = new ExchangeOrderRequest
-			{
-				MarketSymbol = "ADAUSD",
-				Amount = System.Convert.ToDecimal(0.0001),
-				IsBuy = true,
-				IsMargin = true,
-				OrderType = OrderType.Stop,
-				StopPrice = System.Convert.ToDecimal(100)
-			};
-			api.PrivateApiKey = _pvtKey;
-			api.PublicApiKey = _pubKey;
-			ExchangeOrderResult result = api.PlaceOrderAsync(order).Result;
-		}
+        [TestMethod]
+        public void SubmitStopMarginOrder()
+        {
+            IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
+            ExchangeOrderRequest order = new ExchangeOrderRequest
+            {
+                MarketSymbol = "ADAUSD",
+                Amount = System.Convert.ToDecimal(0.0001),
+                IsBuy = true,
+                IsMargin = true,
+                OrderType = OrderType.Stop,
+                StopPrice = System.Convert.ToDecimal(100)
+            };
+            api.PrivateApiKey = _pvtKey;
+            api.PublicApiKey = _pubKey;
+            ExchangeOrderResult result = api.PlaceOrderAsync(order).Result;
+        }
 
-		[TestMethod]
-		public void GetDataFromMarketWithSpecialChar()
-		{
-			IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
-			string marketTicker = "DOGE:USD";
-			DateTime start = new DateTime(2021, 12, 1);
-			DateTime end = DateTime.Today;
-			System.Collections.Generic.IEnumerable<MarketCandle> result = api.GetCandlesAsync(marketTicker, 86400, start, end, 1000).Result;
-			result.Should().HaveCountGreaterThan(0, "Returned data");
-		}
-	}
+        [TestMethod]
+        public void GetDataFromMarketWithSpecialChar()
+        {
+            IExchangeAPI api = ExchangeAPI.GetExchangeAPIAsync("Bitfinex").Result;
+            string marketTicker = "DOGE:USD";
+            DateTime start = new DateTime(2021, 12, 1);
+            DateTime end = DateTime.Today;
+            System.Collections.Generic.IEnumerable<MarketCandle> result = api.GetCandlesAsync(
+                marketTicker,
+                86400,
+                start,
+                end,
+                1000
+            ).Result;
+            result.Should().HaveCountGreaterThan(0, "Returned data");
+        }
+    }
 }

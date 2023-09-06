@@ -33,7 +33,6 @@ namespace ExchangeSharp
 #if DEBUG
 
         protected long lastTradeTicks;
-
 #endif
 
         // configuration
@@ -52,9 +51,12 @@ namespace ExchangeSharp
 
         public ExchangeTradeInfo TradeInfo { get; private set; }
 
-        public List<List<KeyValuePair<float, float>>> PlotPoints { get; set; } = new List<List<KeyValuePair<float, float>>>();
-        public List<KeyValuePair<float, float>> BuyPrices { get; } = new List<KeyValuePair<float, float>>();
-        public List<KeyValuePair<float, float>> SellPrices { get; } = new List<KeyValuePair<float, float>>();
+        public List<List<KeyValuePair<float, float>>> PlotPoints { get; set; } =
+            new List<List<KeyValuePair<float, float>>>();
+        public List<KeyValuePair<float, float>> BuyPrices { get; } =
+            new List<KeyValuePair<float, float>>();
+        public List<KeyValuePair<float, float>> SellPrices { get; } =
+            new List<KeyValuePair<float, float>>();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected virtual async Task InitializeAsync(ExchangeTradeInfo info)
@@ -64,8 +66,8 @@ namespace ExchangeSharp
             await UpdateAmountsAsync();
             StartCashFlow = CashFlow;
             Profit = (CashFlow - StartCashFlow) + (ItemCount * (decimal)info.Trade.Price);
-			ItemCount = 0.0m;
-			Buys = Sells = 0;
+            ItemCount = 0.0m;
+            Buys = Sells = 0;
             Spend = 0.0m;
 
 #if DEBUG
@@ -73,7 +75,6 @@ namespace ExchangeSharp
             lastTradeTicks = info.Trade.Ticks;
 
 #endif
-
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,7 +108,14 @@ namespace ExchangeSharp
 
         public override string ToString()
         {
-            return string.Format("Profit: {0}, Cash Flow: {1}, Item Count: {2}, Buys: {3}, Sells: {4}", Profit, CashFlow, ItemCount, Buys, Sells);
+            return string.Format(
+                "Profit: {0}, Cash Flow: {1}, Item Count: {2}, Buys: {3}, Sells: {4}",
+                Profit,
+                CashFlow,
+                ItemCount,
+                Buys,
+                Sells
+            );
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +132,6 @@ namespace ExchangeSharp
             {
                 return;
             }
-
             // init
             else if (LastTradeTimestamp == 0)
             {
@@ -133,10 +140,12 @@ namespace ExchangeSharp
             }
             else if (TradeInfo.Trade.Ticks - LastTradeTimestamp >= Interval)
             {
-
 #if DEBUG
 
-                System.Diagnostics.Debug.Assert(TradeInfo.Trade.Ticks >= lastTradeTicks, "Out of order timestamps on trades!");
+                System.Diagnostics.Debug.Assert(
+                    TradeInfo.Trade.Ticks >= lastTradeTicks,
+                    "Out of order timestamps on trades!"
+                );
                 lastTradeTicks = TradeInfo.Trade.Ticks;
 
 #endif
@@ -159,21 +168,25 @@ namespace ExchangeSharp
                 actualBuyPrice += (actualBuyPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    await TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
-                    {
-                        Amount = count,
-                        IsBuy = true,
-                        Price = actualBuyPrice,
-                        ShouldRoundAmount = false,
-                        MarketSymbol = TradeInfo.MarketSymbol
-                    });
+                    await TradeInfo.ExchangeInfo.API.PlaceOrderAsync(
+                        new ExchangeOrderRequest
+                        {
+                            Amount = count,
+                            IsBuy = true,
+                            Price = actualBuyPrice,
+                            ShouldRoundAmount = false,
+                            MarketSymbol = TradeInfo.MarketSymbol
+                        }
+                    );
                 }
                 else
                 {
                     actualBuyPrice += (actualBuyPrice * FeePercentage);
                     CashFlow -= actualBuyPrice;
                     ItemCount += count;
-                    BuyPrices.Add(new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price));
+                    BuyPrices.Add(
+                        new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price)
+                    );
                 }
                 Buys++;
                 Spend += actualBuyPrice * count;
@@ -193,21 +206,25 @@ namespace ExchangeSharp
                 actualSellPrice -= (actualSellPrice * OrderPriceDifferentialPercentage);
                 if (ProductionMode)
                 {
-                    await TradeInfo.ExchangeInfo.API.PlaceOrderAsync(new ExchangeOrderRequest
-                    {
-                        Amount = count,
-                        IsBuy = false,
-                        Price = actualSellPrice,
-                        ShouldRoundAmount = false,
-                        MarketSymbol = TradeInfo.MarketSymbol
-                    });
+                    await TradeInfo.ExchangeInfo.API.PlaceOrderAsync(
+                        new ExchangeOrderRequest
+                        {
+                            Amount = count,
+                            IsBuy = false,
+                            Price = actualSellPrice,
+                            ShouldRoundAmount = false,
+                            MarketSymbol = TradeInfo.MarketSymbol
+                        }
+                    );
                 }
                 else
                 {
                     actualSellPrice -= (actualSellPrice * FeePercentage);
                     CashFlow += actualSellPrice;
                     ItemCount -= count;
-                    SellPrices.Add(new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price));
+                    SellPrices.Add(
+                        new KeyValuePair<float, float>(TradeInfo.Trade.Ticks, TradeInfo.Trade.Price)
+                    );
                 }
                 Sells++;
                 Earned += actualSellPrice * count;

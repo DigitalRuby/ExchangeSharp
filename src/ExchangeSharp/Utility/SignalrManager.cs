@@ -48,38 +48,40 @@ namespace ExchangeSharp
             private bool disposed;
             private bool initialConnectFired;
 
-			private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
-			/// <summary>
-			/// Interval to call connect at regularly (default is 1 hour)
-			/// </summary>
-			public TimeSpan ConnectInterval
-			{
-				get { return _connectInterval; }
-				set
-				{
-					_connectInterval = value;
-					manager.ConnectInterval = value;
-				}
-			}
+            private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
 
-			private TimeSpan _keepAlive = TimeSpan.FromSeconds(5.0);
-			/// <summary>
-			/// Keep alive interval (default is 5 seconds)
-			/// </summary>
-			public TimeSpan KeepAlive
-			{
-				get { return _keepAlive; }
-				set
-				{
-					_keepAlive = value;
-					manager.KeepAlive = value;
-				}
-			}
+            /// <summary>
+            /// Interval to call connect at regularly (default is 1 hour)
+            /// </summary>
+            public TimeSpan ConnectInterval
+            {
+                get { return _connectInterval; }
+                set
+                {
+                    _connectInterval = value;
+                    manager.ConnectInterval = value;
+                }
+            }
 
-			/// <summary>
-			/// Connected event
-			/// </summary>
-			public event WebSocketConnectionDelegate Connected;
+            private TimeSpan _keepAlive = TimeSpan.FromSeconds(5.0);
+
+            /// <summary>
+            /// Keep alive interval (default is 5 seconds)
+            /// </summary>
+            public TimeSpan KeepAlive
+            {
+                get { return _keepAlive; }
+                set
+                {
+                    _keepAlive = value;
+                    manager.KeepAlive = value;
+                }
+            }
+
+            /// <summary>
+            /// Connected event
+            /// </summary>
+            public event WebSocketConnectionDelegate Connected;
 
             /// <summary>
             /// Disconnected event
@@ -103,7 +105,12 @@ namespace ExchangeSharp
             /// <param name="delayMilliseconds">Delay after invoking each object[] in param, used if the server will disconnect you for too many invoke too fast</param>
             /// <param name="param">End point parameters, each array of strings is a separate call to the end point function. For no parameters, pass null.</param>
             /// <returns>Connection</returns>
-            public async Task OpenAsync(string functionName, Func<string, Task> callback, int delayMilliseconds = 0, object[][]? param = null)
+            public async Task OpenAsync(
+                string functionName,
+                Func<string, Task> callback,
+                int delayMilliseconds = 0,
+                object[][]? param = null
+            )
             {
                 callback.ThrowIfNull(nameof(callback), "Callback must not be null");
 
@@ -122,7 +129,11 @@ namespace ExchangeSharp
                         // performs any needed reconnect
                         await _manager.AddListener(functionName, callback, param);
 
-                        while (!disposed && !_manager.disposed && _manager.hubConnection.State != ConnectionState.Connected)
+                        while (
+                            !disposed
+                            && !_manager.disposed
+                            && _manager.hubConnection.State != ConnectionState.Connected
+                        )
                         {
                             await Task.Delay(100);
                         }
@@ -181,10 +192,12 @@ namespace ExchangeSharp
 
                         // kick off a connect event if this is the first time, the connect event can only get set after the open request is sent
                         Task.Run(async () =>
-                        {
-                            await Task.Delay(1000); // give time for the caller to set a connected event
-                            await InvokeConnected();
-                        }).ConfigureAwait(false).GetAwaiter();
+                            {
+                                await Task.Delay(1000); // give time for the caller to set a connected event
+                                await InvokeConnected();
+                            })
+                            .ConfigureAwait(false)
+                            .GetAwaiter();
                     }
                 }
             }
@@ -227,9 +240,7 @@ namespace ExchangeSharp
                     manager.RemoveListener(functionFullName, callback);
                     InvokeDisconnected().GetAwaiter();
                 }
-                catch
-                {
-                }
+                catch { }
             }
 
             /// <summary>
@@ -247,19 +258,23 @@ namespace ExchangeSharp
         {
             private IConnection connection;
             private string connectionData;
-			private readonly TimeSpan connectInterval;
-			private readonly TimeSpan keepAlive;
+            private readonly TimeSpan connectInterval;
+            private readonly TimeSpan keepAlive;
 
-			public ExchangeSharp.ClientWebSocket WebSocket { get; private set; }
+            public ExchangeSharp.ClientWebSocket WebSocket { get; private set; }
 
             public override bool SupportsKeepAlive => true;
 
-            public WebsocketCustomTransport(IHttpClient client, TimeSpan connectInterval, TimeSpan keepAlive) 
-				: base(client, "webSockets")
+            public WebsocketCustomTransport(
+                IHttpClient client,
+                TimeSpan connectInterval,
+                TimeSpan keepAlive
+            )
+                : base(client, "webSockets")
             {
                 WebSocket = new ExchangeSharp.ClientWebSocket();
                 this.connectInterval = connectInterval;
-				this.keepAlive = keepAlive;
+                this.keepAlive = keepAlive;
             }
 
             ~WebsocketCustomTransport()
@@ -267,7 +282,11 @@ namespace ExchangeSharp
                 Dispose(false);
             }
 
-            protected override void OnStart(IConnection con, string conData, CancellationToken disconToken)
+            protected override void OnStart(
+                IConnection con,
+                string conData,
+                CancellationToken disconToken
+            )
             {
                 connection = con;
                 connectionData = conData;
@@ -290,8 +309,8 @@ namespace ExchangeSharp
                 WebSocket.Uri = new Uri(connectUrl);
                 WebSocket.OnBinaryMessage = WebSocketOnBinaryMessageReceived;
                 WebSocket.OnTextMessage = WebSocketOnTextMessageReceived;
-				WebSocket.ConnectInterval = connectInterval;
-                WebSocket.KeepAlive = keepAlive;         
+                WebSocket.ConnectInterval = connectInterval;
+                WebSocket.KeepAlive = keepAlive;
                 WebSocket.Start();
             }
 
@@ -362,49 +381,53 @@ namespace ExchangeSharp
             public object[][] Param { get; set; }
         }
 
-        private readonly Dictionary<string, HubListener> listeners = new Dictionary<string, HubListener>();
-        private readonly List<SignalrSocketConnection> sockets = new List<SignalrSocketConnection>();
+        private readonly Dictionary<string, HubListener> listeners =
+            new Dictionary<string, HubListener>();
+        private readonly List<SignalrSocketConnection> sockets =
+            new List<SignalrSocketConnection>();
         private readonly SemaphoreSlim reconnectLock = new SemaphoreSlim(1);
 
-		private WebsocketCustomTransport? customTransport;
-		private HubConnection? hubConnection;
+        private WebsocketCustomTransport? customTransport;
+        private HubConnection? hubConnection;
         private IHubProxy? hubProxy;
         private bool disposed;
 
-		private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
-		/// <summary>
-		/// Interval to call connect at regularly (default is 1 hour)
-		/// </summary>
-		public TimeSpan ConnectInterval
-		{
-			get { return _connectInterval; }
-			set
-			{
-				_connectInterval = value;
-				if (customTransport != null)
-					customTransport.WebSocket.ConnectInterval = value;
-			}
-		}
+        private TimeSpan _connectInterval = TimeSpan.FromHours(1.0);
 
-		private TimeSpan _keepAlive = TimeSpan.FromSeconds(5.0);
-		/// <summary>
-		/// Keep alive interval (default is 5 seconds)
-		/// </summary>
-		public TimeSpan KeepAlive
-		{
-			get { return _keepAlive; }
-			set
-			{
-				_keepAlive = value;
-				if (customTransport != null)
-					customTransport.WebSocket.KeepAlive = value;
-			}
-		}
+        /// <summary>
+        /// Interval to call connect at regularly (default is 1 hour)
+        /// </summary>
+        public TimeSpan ConnectInterval
+        {
+            get { return _connectInterval; }
+            set
+            {
+                _connectInterval = value;
+                if (customTransport != null)
+                    customTransport.WebSocket.ConnectInterval = value;
+            }
+        }
 
-		/// <summary>
-		/// Connection url
-		/// </summary>
-		public string ConnectionUrl { get; private set; }
+        private TimeSpan _keepAlive = TimeSpan.FromSeconds(5.0);
+
+        /// <summary>
+        /// Keep alive interval (default is 5 seconds)
+        /// </summary>
+        public TimeSpan KeepAlive
+        {
+            get { return _keepAlive; }
+            set
+            {
+                _keepAlive = value;
+                if (customTransport != null)
+                    customTransport.WebSocket.KeepAlive = value;
+            }
+        }
+
+        /// <summary>
+        /// Connection url
+        /// </summary>
+        public string ConnectionUrl { get; private set; }
 
         /// <summary>
         /// Hub name
@@ -414,7 +437,8 @@ namespace ExchangeSharp
         /// <summary>
         /// Function names to full function names - populate before calling start
         /// </summary>
-        public Dictionary<string, string> FunctionNamesToFullNames { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, string> FunctionNamesToFullNames { get; } =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         internal string GetFunctionFullName(string functionName)
         {
@@ -425,7 +449,11 @@ namespace ExchangeSharp
             return fullFunctionName;
         }
 
-        private async Task AddListener(string functionName, Func<string, Task> callback, object[][] param)
+        private async Task AddListener(
+            string functionName,
+            Func<string, Task> callback,
+            object[][] param
+        )
         {
             string functionFullName = GetFunctionFullName(functionName);
 
@@ -436,7 +464,12 @@ namespace ExchangeSharp
                 {
                     if (!listeners.TryGetValue(functionFullName, out HubListener listener))
                     {
-                        listeners[functionFullName] = listener = new HubListener { FunctionName = functionName, FunctionFullName = functionFullName, Param = param };
+                        listeners[functionFullName] = listener = new HubListener
+                        {
+                            FunctionName = functionName,
+                            FunctionFullName = functionFullName,
+                            Param = param
+                        };
                     }
                     if (!listener.Callbacks.Contains(callback))
                     {
@@ -514,7 +547,16 @@ namespace ExchangeSharp
             try
             {
                 // if hubConnection is null, exception will throw out
-                while (!disposed && (hubConnection == null || (hubConnection.State != ConnectionState.Connected && hubConnection.State != ConnectionState.Connecting)))
+                while (
+                    !disposed
+                    && (
+                        hubConnection == null
+                        || (
+                            hubConnection.State != ConnectionState.Connected
+                            && hubConnection.State != ConnectionState.Connecting
+                        )
+                    )
+                )
                 {
                     try
                     {
@@ -590,8 +632,12 @@ namespace ExchangeSharp
             // create a custom transport, the default transport is really buggy
             DefaultHttpClient client = new DefaultHttpClient();
             customTransport = new WebsocketCustomTransport(client, ConnectInterval, KeepAlive);
-            var autoTransport = new AutoTransport(client, new IClientTransport[] { customTransport });
-            hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout = TimeSpan.FromSeconds(10.0);
+            var autoTransport = new AutoTransport(
+                client,
+                new IClientTransport[] { customTransport }
+            );
+            hubConnection.TransportConnectTimeout = hubConnection.DeadlockErrorTimeout =
+                TimeSpan.FromSeconds(10.0);
 
             // setup connect event
             customTransport.WebSocket.Connected += async (ws) =>
@@ -678,15 +724,15 @@ namespace ExchangeSharp
         /// </summary>
         public void Stop()
         {
-			try
-			{
-				hubConnection.Stop(TimeSpan.FromSeconds(0.1));
-			}
-			catch (NullReferenceException) 
-			{ // bug in SignalR where Stop() throws a NRE if it times out
-			  // https://github.com/SignalR/SignalR/issues/3561
-			}
-		}
+            try
+            {
+                hubConnection.Stop(TimeSpan.FromSeconds(0.1));
+            }
+            catch (NullReferenceException)
+            { // bug in SignalR where Stop() throws a NRE if it times out
+                // https://github.com/SignalR/SignalR/issues/3561
+            }
+        }
 
         /// <summary>
         /// Finalizer
@@ -723,7 +769,8 @@ namespace ExchangeSharp
         /// </summary>
         /// <param name="apiKey">API key</param>
         /// <returns>String</returns>
-        public async Task<string> GetAuthContext(string apiKey) => await hubProxy.Invoke<string>("GetAuthContext", apiKey);
+        public async Task<string> GetAuthContext(string apiKey) =>
+            await hubProxy.Invoke<string>("GetAuthContext", apiKey);
 
         /// <summary>
         /// Authenticate
@@ -731,7 +778,8 @@ namespace ExchangeSharp
         /// <param name="apiKey">API key</param>
         /// <param name="signedChallenge">Challenge</param>
         /// <returns>Result</returns>
-        public async Task<bool> Authenticate(string apiKey, string signedChallenge) => await hubProxy.Invoke<bool>("Authenticate", apiKey, signedChallenge);
+        public async Task<bool> Authenticate(string apiKey, string signedChallenge) =>
+            await hubProxy.Invoke<bool>("Authenticate", apiKey, signedChallenge);
 
         /// <summary>
         /// Converts CoreHub2 socket wire protocol data into JSON.
@@ -747,7 +795,9 @@ namespace ExchangeSharp
             // Step 2: Decompress gzip blob into minified JSON
             using (var decompressedStream = new MemoryStream())
             using (var compressedStream = new MemoryStream(gzipData))
-            using (var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress))
+            using (
+                var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress)
+            )
             {
                 deflateStream.CopyTo(decompressedStream);
                 decompressedStream.Position = 0;

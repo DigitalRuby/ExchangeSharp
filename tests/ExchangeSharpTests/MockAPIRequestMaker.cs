@@ -31,7 +31,12 @@ namespace ExchangeSharpTests
         /// <param name="payload"></param>
         /// <param name="method"></param>
         /// <returns></returns>
-        public async Task<IAPIRequestMaker.RequestResult<string>> MakeRequestAsync(string url, string baseUrl = null, Dictionary<string, object> payload = null, string method = null)
+        public async Task<IAPIRequestMaker.RequestResult<string>> MakeRequestAsync(
+            string url,
+            string baseUrl = null,
+            Dictionary<string, object> payload = null,
+            string method = null
+        )
         {
             await new SynchronizationContextRemover();
             RequestStateChanged?.Invoke(this, RequestMakerState.Begin, null);
@@ -44,13 +49,23 @@ namespace ExchangeSharpTests
             {
                 if (!(response is Exception ex))
                 {
-                    RequestStateChanged?.Invoke(this, RequestMakerState.Finished, response as string);
-                    return new IAPIRequestMaker.RequestResult<string>() { Response = response as string };
+                    RequestStateChanged?.Invoke(
+                        this,
+                        RequestMakerState.Finished,
+                        response as string
+                    );
+                    return new IAPIRequestMaker.RequestResult<string>()
+                    {
+                        Response = response as string
+                    };
                 }
                 RequestStateChanged?.Invoke(this, RequestMakerState.Error, ex);
                 throw ex;
             }
-            return new IAPIRequestMaker.RequestResult<string>() { Response = @"{ ""error"": ""No result from server"" }" };
+            return new IAPIRequestMaker.RequestResult<string>()
+            {
+                Response = @"{ ""error"": ""No result from server"" }"
+            };
         }
     }
 }

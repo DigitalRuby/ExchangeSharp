@@ -67,16 +67,17 @@ namespace ExchangeSharp
     /// </summary>
     public sealed class ExchangeOrderBook
     {
-		/// <summary>
-		/// Needed to distinguish between full book and deltas
-		/// </summary>
-		public bool IsFromSnapshot { get; set; }
-		public string ExchangeName { get; set; }
-		/// <summary>
-		/// The sequence id. This increments as updates come through. Not all exchanges will populate this.
-		/// This property is not serialized using the ToBinary and FromBinary methods.
-		/// </summary>
-		public long SequenceId { get; set; }
+        /// <summary>
+        /// Needed to distinguish between full book and deltas
+        /// </summary>
+        public bool IsFromSnapshot { get; set; }
+        public string ExchangeName { get; set; }
+
+        /// <summary>
+        /// The sequence id. This increments as updates come through. Not all exchanges will populate this.
+        /// This property is not serialized using the ToBinary and FromBinary methods.
+        /// </summary>
+        public long SequenceId { get; set; }
 
         /// <summary>
         /// The market symbol.
@@ -90,31 +91,36 @@ namespace ExchangeSharp
         /// <summary>
         /// List of asks (sells)
         /// </summary>
-        public SortedDictionary<decimal, ExchangeOrderPrice> Asks { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>();
+        public SortedDictionary<decimal, ExchangeOrderPrice> Asks { get; } =
+            new SortedDictionary<decimal, ExchangeOrderPrice>();
 
         /// <summary>
         /// List of bids (buys)
         /// </summary>
-        public SortedDictionary<decimal, ExchangeOrderPrice> Bids { get; } = new SortedDictionary<decimal, ExchangeOrderPrice>(new DescendingComparer<decimal>());
+        public SortedDictionary<decimal, ExchangeOrderPrice> Bids { get; } =
+            new SortedDictionary<decimal, ExchangeOrderPrice>(new DescendingComparer<decimal>());
 
         /// <summary>
-		/// If provided by the exchange, a checksum value that may be used to check orderbook integrity.
-		/// Otherwise it will be null. 
+        /// If provided by the exchange, a checksum value that may be used to check orderbook integrity.
+        /// Otherwise it will be null.
         /// This property is not serialized using the ToBinary and FromBinary methods.
-		/// </summary>
+        /// </summary>
         public string Checksum { get; set; }
 
-		/// <summary>
-		/// ToString
-		/// </summary>
-		/// <returns>String</returns>
-		public override string ToString()
+        /// <summary>
+        /// ToString
+        /// </summary>
+        /// <returns>String</returns>
+        public override string ToString()
         {
-            return string.Format("Book {0}, Asks: {1} ({2:0.00}), Bids: {3} ({4:0.00})", MarketSymbol,
-				Asks.Count,
-				Asks.Values.Sum(a => a.Amount * a.Price),
-				Bids.Count,
-				Bids.Values.Sum(b => b.Amount * b.Price));
+            return string.Format(
+                "Book {0}, Asks: {1} ({2:0.00}), Bids: {3} ({4:0.00})",
+                MarketSymbol,
+                Asks.Count,
+                Asks.Values.Sum(a => a.Amount * a.Price),
+                Bids.Count,
+                Bids.Values.Sum(b => b.Amount * b.Price)
+            );
         }
 
         /// <summary>
@@ -202,29 +208,31 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-		/// Updates this order book with a partial order book update. items with a price-level
-		/// of 0 are removed from the orderbook, all others are inserted/updated with the supplied value
-		/// </summary>
-		/// <param name="partialUpdate">Set of changes to make</param>
+        /// Updates this order book with a partial order book update. items with a price-level
+        /// of 0 are removed from the orderbook, all others are inserted/updated with the supplied value
+        /// </summary>
+        /// <param name="partialUpdate">Set of changes to make</param>
         public void ApplyUpdates(ExchangeOrderBook partialUpdate)
         {
             MergeOrderBookDelta(partialUpdate.Asks, this.Asks);
             MergeOrderBookDelta(partialUpdate.Bids, this.Bids);
-			SequenceId = partialUpdate.SequenceId;
+            SequenceId = partialUpdate.SequenceId;
 
-			static void MergeOrderBookDelta(
+            static void MergeOrderBookDelta(
                 SortedDictionary<decimal, ExchangeOrderPrice> newData,
-                SortedDictionary<decimal, ExchangeOrderPrice> bookData)
+                SortedDictionary<decimal, ExchangeOrderPrice> bookData
+            )
             {
-                newData.ToList().ForEach(x =>
-                {
-                    if (x.Value.Amount <= 0m || x.Value.Price <= 0m)
-                        bookData.Remove(x.Key);
-                    else
-                        bookData[x.Key] = x.Value;
-                });
+                newData
+                    .ToList()
+                    .ForEach(x =>
+                    {
+                        if (x.Value.Amount <= 0m || x.Value.Price <= 0m)
+                            bookData.Remove(x.Key);
+                        else
+                            bookData[x.Key] = x.Value;
+                    });
             }
-
         }
     }
 }

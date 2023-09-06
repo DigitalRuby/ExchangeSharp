@@ -67,7 +67,7 @@ namespace ExchangeSharp
                 exitTimes.TryDequeue(out exitTime);
             }
 
-            // Try to get the next exit time from the queue and compute the time until the next check should take place. If the 
+            // Try to get the next exit time from the queue and compute the time until the next check should take place. If the
             // queue is empty, then no exit times will occur until at least one time unit has passed.
             TimeSpan timeUntilNextCheck;
             if (exitTimes.TryPeek(out exitTime))
@@ -117,7 +117,7 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Initializes a <see cref="RateGate"/> with a rate of <paramref name="occurrences"/> 
+        /// Initializes a <see cref="RateGate"/> with a rate of <paramref name="occurrences"/>
         /// per <paramref name="timeUnit"/>.
         /// </summary>
         /// <param name="occurrences">Number of occurrences allowed per unit of time.</param>
@@ -130,15 +130,24 @@ namespace ExchangeSharp
             // Check the arguments.
             if (occurrences <= 0)
             {
-                throw new ArgumentOutOfRangeException("occurrences", "Number of occurrences must be a positive integer");
+                throw new ArgumentOutOfRangeException(
+                    "occurrences",
+                    "Number of occurrences must be a positive integer"
+                );
             }
             if (timeUnit != timeUnit.Duration())
             {
-                throw new ArgumentOutOfRangeException("timeUnit", "Time unit must be a positive span of time");
+                throw new ArgumentOutOfRangeException(
+                    "timeUnit",
+                    "Time unit must be a positive span of time"
+                );
             }
             if (timeUnit >= TimeSpan.FromMilliseconds(UInt32.MaxValue))
             {
-                throw new ArgumentOutOfRangeException("timeUnit", "Time unit must be less than 2^32 milliseconds");
+                throw new ArgumentOutOfRangeException(
+                    "timeUnit",
+                    "Time unit must be less than 2^32 milliseconds"
+                );
             }
 
             Occurrences = occurrences;
@@ -173,7 +182,7 @@ namespace ExchangeSharp
             // Block until we can enter the semaphore or until the timeout expires.
             var entered = await semaphore.WaitAsync(millisecondsTimeout);
 
-            // If we entered the semaphore, compute the corresponding exit time 
+            // If we entered the semaphore, compute the corresponding exit time
             // and add it to the queue.
             if (entered)
             {

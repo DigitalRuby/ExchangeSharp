@@ -8,13 +8,16 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-	public sealed partial class ExchangeApolloXApi : BinanceGroupCommon
-	{
-		public override string BaseUrl { get; set; } = "https://fapi.apollox.finance";
-		public override string BaseUrlWebSocket { get; set; } = "wss://fstream.apollox.finance";
+    public sealed partial class ExchangeApolloXApi : BinanceGroupCommon
+    {
+        public override string BaseUrl { get; set; } = "https://fapi.apollox.finance";
+        public override string BaseUrlWebSocket { get; set; } = "wss://fstream.apollox.finance";
 
-		public override string BaseUrlApi => $"{BaseUrl}/fapi/v1";
-	}
+        public override string BaseUrlApi => $"{BaseUrl}/fapi/v1";
+    }
 
-	public partial class ExchangeName { public const string ApolloX = "ApolloX"; }
+    public partial class ExchangeName
+    {
+        public const string ApolloX = "ApolloX";
+    }
 }

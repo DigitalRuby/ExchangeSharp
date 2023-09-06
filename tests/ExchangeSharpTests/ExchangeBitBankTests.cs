@@ -17,9 +17,11 @@ namespace ExchangeSharpTests
             {
                 requestMaker.GlobalResponse = response;
             }
-			var api = (await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.BitBank) as ExchangeBitBankAPI)!;
-			api.RequestMaker = requestMaker;
-			return api;
+            var api = (
+                await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.BitBank) as ExchangeBitBankAPI
+            )!;
+            api.RequestMaker = requestMaker;
+            return api;
         }
 
         # region Public API
@@ -27,7 +29,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ShouldParseGetTickerResult()
         {
-            var data = @"
+            var data =
+                @"
             { success: 1,
                 data: {
                     sell: '395733',
@@ -52,7 +55,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ShouldGetTransactions()
         {
-            var data = @"
+            var data =
+                @"
             {
                 success: 1,
                 data: {
@@ -85,7 +89,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ShouldGetCandleStick()
         {
-            var data = @"
+            var data =
+                @"
             {
                 success: 1,
                 data: {
@@ -127,7 +132,9 @@ namespace ExchangeSharpTests
             candle.LowPrice.Should().Be(1612861m);
             candle.ClosePrice.Should().Be(1629941);
             candle.BaseCurrencyVolume.Should().Be(5.8362);
-            candle.Timestamp.Should().Be(DateTimeOffset.FromUnixTimeMilliseconds(1514160000000).DateTime);
+            candle.Timestamp
+                .Should()
+                .Be(DateTimeOffset.FromUnixTimeMilliseconds(1514160000000).DateTime);
         }
 
         # endregion
@@ -136,7 +143,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ShouldGetAssets()
         {
-            var data = @"
+            var data =
+                @"
             {
                 success: 1,
                 data: {
@@ -168,7 +176,8 @@ namespace ExchangeSharpTests
         [TestMethod]
         public async Task ShouldGetOrderDetail()
         {
-            var data = @"
+            var data =
+                @"
             {
                 success: 1,
                 data: {
@@ -194,11 +203,11 @@ namespace ExchangeSharpTests
             resp.Should().BeEquivalentTo(resp2);
         }
 
-
         [TestMethod]
         public async Task ShouldGetOrders()
         {
-            var data = @"
+            var data =
+                @"
             {
                 success: 1,
                 data: {

@@ -81,7 +81,11 @@ namespace ExchangeSharp
             InitializeComponent();
         }
 
-        public void SetPlotPoints(List<List<KeyValuePair<float, float>>> points, List<KeyValuePair<float, float>> buyPrices = null, List<KeyValuePair<float, float>> sellPrices = null)
+        public void SetPlotPoints(
+            List<List<KeyValuePair<float, float>>> points,
+            List<KeyValuePair<float, float>> buyPrices = null,
+            List<KeyValuePair<float, float>> sellPrices = null
+        )
         {
             // clear the chart
             PlotChart.Series.Clear();
@@ -152,10 +156,7 @@ namespace ExchangeSharp
     {
         public static void ShowPlotForm(this Trader trader)
         {
-            PlotForm form = new PlotForm
-            {
-                WindowState = FormWindowState.Maximized
-            };
+            PlotForm form = new PlotForm { WindowState = FormWindowState.Maximized };
             form.SetPlotPoints(trader.PlotPoints, trader.BuyPrices, trader.SellPrices);
             form.ShowDialog();
         }

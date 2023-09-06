@@ -79,18 +79,31 @@ namespace ExchangeSharp
         public decimal WeightedAverage { get; set; }
 
         /// <summary>
-		/// The number of trades if provided. 
-		/// </summary>
+        /// The number of trades if provided.
+        /// </summary>
         public int Count { get; set; }
 
-		public bool IsClosed { get; set; }
+        public bool IsClosed { get; set; }
+
         /// <summary>
         /// ToString
         /// </summary>
         /// <returns>String</returns>
         public override string ToString()
         {
-            return string.Format("{0}/{1}: {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}", Timestamp, PeriodSeconds, OpenPrice, HighPrice, LowPrice, ClosePrice, BaseCurrencyVolume, QuoteCurrencyVolume, WeightedAverage, Count);
+            return string.Format(
+                "{0}/{1}: {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}",
+                Timestamp,
+                PeriodSeconds,
+                OpenPrice,
+                HighPrice,
+                LowPrice,
+                ClosePrice,
+                BaseCurrencyVolume,
+                QuoteCurrencyVolume,
+                WeightedAverage,
+                Count
+            );
         }
     }
 }
