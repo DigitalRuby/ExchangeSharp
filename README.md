@@ -12,7 +12,7 @@ Feel free to visit the discord channel at <https://discord.gg/58ktxXuTVK> and ch
 
 ### Features
 
-- Many exchanges supported with public, private and web socket API
+- Many [exchanges](/src//ExchangeSharp/API/Exchanges/) supported with public, private and web socket API
 - Easy to use code and API
 - Optional global market symbol normalization, since each exchange has their own way of doing market symbols
 - Runs anywhere .NET runs. (Windows, Mac, Linux, Containers, Serverless, iOS, Android, [etc.](https://docs.microsoft.com/en-us/dotnet/core/about))
@@ -26,51 +26,51 @@ The following cryptocurrency exchanges are supported:
 
 | Exchange Name           | Public REST | Private REST | Web Socket    | Notes                                       |
 | ----------------------- | ----------- | ------------ | ------------- | ------------------------------------------- |
-| [ApolloX]               | x           | x            | T R B O U     |                                             |
-| [Aquanow]               | wip         | x            |               |                                             |
-| [Binance]               | x           | x            | T R B O U     |                                             |
-| ~~[Binance Jersey]~~    | ~~x~~       | ~~x~~        | ~~T R B O U~~ | Ceased operations                           |
-| [Binance.US]            | x           | x            | T R B O U     |                                             |
-| [Binance DEX]           |             |              |   R           |                                             |
-| [Bitbank]               | x           | x            |               |                                             |
-| [Bitfinex]              | x           | x            | T R   O       |                                             |
-| [Bitflyer]              |             |              |   R           |                                             |
-| [Bithumb]               | x           |              |   R           |                                             |
-| [BitMEX]                | x           | x            |   R   O       |                                             |
-| [Bitstamp]              | x           | x            |   R           |                                             |
-| [Bittrex]               | x           | x            | T R           |                                             |
-| [BL3P]                  | x           | x            |   R B         | Trades stream does not send trade's ids.    |
-| [Bleutrade]             | x           | x            |               |                                             |
-| [BtcTurk]               |             |              |   R           |                                             |
-| [BTSE]                  | x           | x            |               |                                             |
-| [Bybit]                 | x           | x            |   R           | Has public method for Websocket Positions   |
-| [Coinbase (Pro)]        | x           | x            | T R   O U     |                                             |
-| [Coincheck]             |             |              |   R           |                                             |
-| [Coinmate]              | x           | x            |               |                                             |
-| [Crypto.com]            |             |              |   R           |                                             |
-| [Digifinex]             | x           | x            |   R B         |                                             |
-| [Dydx]                  |             |              |   R           |                                             |
-| [FTX]                   | x           | x            | T R           |                                             |
-| [FTX.us]                | x           | x            | T R           |                                             |
-| [gate.io]               | x           | x            |   R           |                                             |
-| [Gemini]                | x           | x            | T R B         |                                             |
-| [HitBTC]                | x           | x            |   R           |                                             |
-| [Huobi]                 | x           | x            |   R B         |                                             |
-| [Kraken]                | x           | x            |   R           | Dark order symbols not supported            |
-| [KuCoin]                | x           | x            | T R           |                                             |
-| [LBank]                 | x           | x            |   R           |                                             |
-| [Livecoin]              | x           | x            |               |                                             |
-| [NDAX]                  | x           | x            | T R           |                                             |
-| [OKCoin]                | x           | x            |   R B         |                                             |
-| [OKEx]                  | x           | x            | T R B O       |                                             |
-| [Poloniex]              | x           | x            | T R B         |                                             |
-| [UPbit]                 |             |              |   R           |                                             |
-| [YoBit]                 | x           | x            |               |                                             |
-| [ZB.com]                | wip         |              |   R           |                                             |
+| ApolloX                 | x           | x            | T R B O U     |                                             |
+| Aquanow                 | wip         | x            |               |                                             |
+| Binance                 | x           | x            | T R B O U     |                                             |
+| ~~Binance Jersey~~      | ~~x~~       | ~~x~~        | ~~T R B O U~~ | Ceased operations                           |
+| Binance.US              | x           | x            | T R B O U     |                                             |
+| Binance DEX             |             |              |   R           |                                             |
+| Bitbank                 | x           | x            |               |                                             |
+| Bitfinex                | x           | x            | T R   O       |                                             |
+| Bitflyer                |             |              |   R           |                                             |
+| Bithumb                 | x           |              |   R           |                                             |
+| BitMEX                  | x           | x            |   R   O       |                                             |
+| Bitstamp                | x           | x            |   R           |                                             |
+| Bittrex                 | x           | x            | T R           |                                             |
+| BL3P                    | x           | x            |   R B         | Trades stream does not send trade's ids.    |
+| Bleutrade               | x           | x            |               |                                             |
+| BtcTurk                 |             |              |   R           |                                             |
+| BTSE                    | x           | x            |               |                                             |
+| Bybit                   | x           | x            |   R           | Has public method for Websocket Positions   |
+| Coinbase (Pro)          | x           | x            | T R   O U     |                                             |
+| Coincheck               |             |              |   R           |                                             |
+| Coinmate                | x           | x            |               |                                             |
+| Crypto.com              |             |              |   R           |                                             |
+| Digifinex               | x           | x            |   R B         |                                             |
+| Dydx                    |             |              |   R           |                                             |
+| FTX                     | x           | x            | T R           |                                             |
+| FTX.us                  | x           | x            | T R           |                                             |
+| gate.io                 | x           | x            |   R           |                                             |
+| Gemini                  | x           | x            | T R B         |                                             |
+| HitBTC                  | x           | x            |   R           |                                             |
+| Huobi                   | x           | x            |   R B         |                                             |
+| Kraken                  | x           | x            |   R           | Dark order symbols not supported            |
+| KuCoin                  | x           | x            | T R           |                                             |
+| LBank                   | x           | x            |   R           |                                             |
+| Livecoin                | x           | x            |               |                                             |
+| NDAX                    | x           | x            | T R           |                                             |
+| OKCoin                  | x           | x            |   R B         |                                             |
+| OKEx                    | x           | x            | T R B O       |                                             |
+| Poloniex                | x           | x            | T R B         |                                             |
+| UPbit                   |             |              |   R           |                                             |
+| YoBit                   | x           | x            |               |                                             |
+| ZB.com                  | wip         |              |   R           |                                             |
 
 The following cryptocurrency services are supported:
 
-- [Cryptowatch (partial)]
+- Cryptowatch (partial)
 
 Exchange constructors are private, to get access to an exchange in code use:
 
@@ -194,45 +194,3 @@ Jeff Johnson
 
 [nuget]: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
 [websocket4net]: https://github.com/kerryjiang/WebSocket4Net
-[ApolloX]: src/ExchangeSharp/API/Exchanges/ApolloX/
-[Aquanow]: src/ExchangeSharp/API/Exchanges/Aquanow/
-[Binance]: src/ExchangeSharp/API/Exchanges/Binance/
-[Binance Jersey]: src/ExchangeSharp/API/Exchanges/BinanceGroup/
-[Binance.US]: src/ExchangeSharp/API/Exchanges/BinanceGroup/
-[Binance DEX]: src/ExchangeSharp/API/Exchanges/BinanceGroup/
-[BitBank]: src/ExchangeSharp/API/Exchanges/BitBank/
-[Bitfinex]: src/ExchangeSharp/API/Exchanges/Bitfinex/
-[Bitflyer]: src/ExchangeSharp/API/Exchanges/Bitflyer/
-[Bithumb]: src/ExchangeSharp/API/Exchanges/Bithumb/
-[BitMEX]: src/ExchangeSharp/API/Exchanges/BitMEX/
-[Bitstamp]: src/ExchangeSharp/API/Exchanges/Bitstamp/
-[Bittrex]: src/ExchangeSharp/API/Exchanges/Bittrex/
-[BL3P]: src/ExchangeSharp/API/Exchanges/BL3P/
-[Bleutrade]: src/ExchangeSharp/API/Exchanges/Bleutrade/
-[BtcTurk]: src/ExchangeSharp/API/Exchanges/BtcTurk/
-[BTSE]: src/ExchangeSharp/API/Exchanges/BTSE/
-[Bybit]: src/ExchangeSharp/API/Exchanges/Bybit/
-[Coinbase (Pro)]: src/ExchangeSharp/API/Exchanges/Coinbase/
-[Coincheck]: src/ExchangeSharp/API/Exchanges/Coincheck/
-[Coinmate]: src/ExchangeSharp/API/Exchanges/Coinmate/
-[Crypto.com]: src/ExchangeSharp/API/Exchanges/Cryptocom/
-[Digifinex]: src/ExchangeSharp/API/Exchanges/Digifinex/
-[Dydx]: src/ExchangeSharp/API/Exchanges/Dydx/
-[FTX]: src/ExchangeSharp/API/Exchanges/FTX/
-[FTX.us]: src/ExchangeSharp/API/Exchanges/FTX/
-[gate.io]: src/ExchangeSharp/API/Exchanges/GateIo/
-[Gemini]: src/ExchangeSharp/API/Exchanges/Gemini/
-[HitBTC]: src/ExchangeSharp/API/Exchanges/Hitbtc/
-[Huobi]: src/ExchangeSharp/API/Exchanges/Huobi/
-[Kraken]: src/ExchangeSharp/API/Exchanges/Kraken/
-[KuCoin]: src/ExchangeSharp/API/Exchanges/KuCoin/
-[LBank]: src/ExchangeSharp/API/Exchanges/LBank/
-[Livecoin]: src/ExchangeSharp/API/Exchanges/Livecoin/
-[NDAX]: src/ExchangeSharp/API/Exchanges/NDAX/
-[OKCoin]: src/ExchangeSharp/API/Exchanges/OKGroup/
-[OKEx]: src/ExchangeSharp/API/Exchanges/OKGroup/
-[Poloniex]: src/ExchangeSharp/API/Exchanges/Poloniex/
-[UPbit]: src/ExchangeSharp/API/Exchanges/UPbit/
-[YoBit]: src/ExchangeSharp/API/Exchanges/YoBit/
-[ZB.com]: src/ExchangeSharp/API/Exchanges/ZBcom/
-[Cryptowatch (partial)]: src/ExchangeSharp/API/Services/CryptowatchAPI.cs
