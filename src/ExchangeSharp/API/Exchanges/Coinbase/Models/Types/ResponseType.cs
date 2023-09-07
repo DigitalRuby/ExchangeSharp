@@ -12,39 +12,39 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Coinbase
 {
-    using System.Runtime.Serialization;
+	using System.Runtime.Serialization;
 
-    internal enum ResponseType
-    {
-        Unknown = 0,
+	internal enum ResponseType
+	{
+		Unknown = 0,
 
-        Subscriptions,
+		Subscriptions,
 
-        Heartbeat,
+		Heartbeat,
 
-        Ticker,
+		Ticker,
 
-        Snapshot,
+		Snapshot,
 
-        L2Update,
+		L2Update,
 
-        Received,
+		Received,
 
-        Open,
+		Open,
 
-        Done,
+		Done,
 
-        Match,
+		Match,
 
-        [EnumMember(Value = "last_match")]
-        LastMatch,
+		[EnumMember(Value = "last_match")]
+		LastMatch,
 
-        Change,
+		Change,
 
-        Activate,
+		Activate,
 
-        Error,
+		Error,
 
 		Status,
-    }
+	}
 }

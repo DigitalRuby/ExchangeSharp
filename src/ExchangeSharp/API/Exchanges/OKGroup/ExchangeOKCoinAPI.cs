@@ -23,5 +23,8 @@ namespace ExchangeSharp
 		protected override bool IsFuturesAndSwapEnabled { get; } = false;
 	}
 
-	public partial class ExchangeName { public const string OKCoin = "OKCoin"; }
+	public partial class ExchangeName
+	{
+		public const string OKCoin = "OKCoin";
+	}
 }

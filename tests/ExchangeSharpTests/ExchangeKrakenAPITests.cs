@@ -14,7 +14,9 @@ namespace ExchangeSharpTests
 		[TestInitialize()]
 		public async Task Startup()
 		{
-			api = (await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Kraken)).As<ExchangeKrakenAPI>();
+			api = (
+					await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Kraken)
+			).As<ExchangeKrakenAPI>();
 			return;
 		}
 
@@ -23,7 +25,7 @@ namespace ExchangeSharpTests
 		{
 			string toParse = "buy 58.00000000 ADAUSDT @ market";
 			var extendedOrder = api.ExtendResultsWithOrderDescr(new ExchangeOrderResult(), toParse);
-			
+
 			extendedOrder.IsBuy.Should().BeTrue();
 			extendedOrder.Amount.Should().Be(58);
 			extendedOrder.MarketSymbol.Should().Be("ADAUSDT");

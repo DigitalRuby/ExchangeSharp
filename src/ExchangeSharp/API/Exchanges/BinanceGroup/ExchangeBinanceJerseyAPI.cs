@@ -20,5 +20,8 @@ namespace ExchangeSharp
 		public override string BaseUrlWebSocket { get; set; } = "wss://stream.binance.je:9443";
 	}
 
-	public partial class ExchangeName { public const string BinanceJersey = "BinanceJersey"; }
+	public partial class ExchangeName
+	{
+		public const string BinanceJersey = "BinanceJersey";
+	}
 }

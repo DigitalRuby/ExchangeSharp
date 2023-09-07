@@ -9,13 +9,17 @@ namespace ExchangeSharp
 	{
 		protected override MarketCategory MarketCategory => MarketCategory.Inverse;
 		public override string BaseUrlWebSocket => "wss://stream.bybit.com/v5/public/inverse";
-		public ExchangeBybitInverseAPI()
-		{
-		}
+
+		public ExchangeBybitInverseAPI() { }
+
 		public ExchangeBybitInverseAPI(bool isUnifiedAccount)
 		{
 			IsUnifiedAccount = isUnifiedAccount;
 		}
 	}
-	public partial class ExchangeName { public const string BybitInverse = "BybitInverse"; }
+
+	public partial class ExchangeName
+	{
+		public const string BybitInverse = "BybitInverse";
+	}
 }

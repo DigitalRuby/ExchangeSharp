@@ -10,5 +10,8 @@ namespace ExchangeSharp
 		public override string BaseUrlWebSocket { get; set; } = "wss://ftx.us/ws/";
 	}
 
-	public partial class ExchangeName { public const string FTXUS = "FTXUS"; }
+	public partial class ExchangeName
+	{
+		public const string FTXUS = "FTXUS";
+	}
 }

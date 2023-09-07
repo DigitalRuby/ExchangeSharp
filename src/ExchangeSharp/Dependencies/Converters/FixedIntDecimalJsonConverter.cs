@@ -10,9 +10,7 @@ namespace ExchangeSharp
 		private readonly FixedIntDecimalConverter converter;
 
 		public FixedIntDecimalJsonConverter()
-			: this(1)
-		{
-		}
+				: this(1) { }
 
 		public FixedIntDecimalJsonConverter(int multiplier)
 		{
@@ -21,15 +19,15 @@ namespace ExchangeSharp
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			var valueLong = converter.FromDecimal((decimal) value);
+			var valueLong = converter.FromDecimal((decimal)value);
 			writer.WriteValue(valueLong);
 		}
 
 		public override object ReadJson(
-			JsonReader reader,
-			Type objectType,
-			object existingValue,
-			JsonSerializer serializer
+				JsonReader reader,
+				Type objectType,
+				object existingValue,
+				JsonSerializer serializer
 		)
 		{
 			var valueLong = Convert.ToInt64(reader.Value);
@@ -38,8 +36,7 @@ namespace ExchangeSharp
 
 		public override bool CanConvert(Type objectType)
 		{
-			return objectType == typeof(decimal)
-				|| objectType == typeof(long);
+			return objectType == typeof(decimal) || objectType == typeof(long);
 		}
 
 		public override bool CanRead { get; } = true;

@@ -1,9 +1,9 @@
-using ExchangeSharp.API.Exchanges.Kraken.Models.Types;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using ExchangeSharp.API.Exchanges.Kraken.Models.Types;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace ExchangeSharp.API.Exchanges.Kraken.Models.Request
 {

@@ -24,66 +24,87 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    public unsafe class TraderTester : IDisposable
-    {
-        private readonly List<KeyValuePair<double, string>> csv = new List<KeyValuePair<double, string>>();
-        //private double maxProfit;
-        private TradeReaderMemory tradeReader;
-        private DateTime startDate;
-        private DateTime endDate;
-        private const double InitialCashFlow = 25000.0;
-        private const double UnitsToBuy = 1.0f;
-        private long Interval = (long)TimeSpan.FromSeconds(15.0).TotalMilliseconds;
-        //private bool staticTests;
+	public unsafe class TraderTester : IDisposable
+	{
+		private readonly List<KeyValuePair<double, string>> csv =
+				new List<KeyValuePair<double, string>>();
 
-        private void RunAllTests()
-        {
-            // Parallel.Invoke(new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, actions.ToArray());
-        }
+		//private double maxProfit;
+		private TradeReaderMemory tradeReader;
+		private DateTime startDate;
+		private DateTime endDate;
+		private const double InitialCashFlow = 25000.0;
+		private const double UnitsToBuy = 1.0f;
+		private long Interval = (long)TimeSpan.FromSeconds(15.0).TotalMilliseconds;
 
-        private void RunStaticTests()
-        {
-            //staticTests = true;
-        }
+		//private bool staticTests;
 
-        public void Dispose()
-        {
-            tradeReader.Dispose();
-        }
+		private void RunAllTests()
+		{
+			// Parallel.Invoke(new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, actions.ToArray());
+		}
 
-        public int Run(string[] args)
-        {
-            Stopwatch w = Stopwatch.StartNew();
+		private void RunStaticTests()
+		{
+			//staticTests = true;
+		}
 
-            // bear market
-            //startDate = new DateTime(2017, 6, 11, 17, 0, 0, DateTimeKind.Utc);
-            //endDate = new DateTime(2017, 7, 18, 0, 0, 0, DateTimeKind.Utc);
-            startDate = new DateTime(2017, 1, 3, 0, 0, 0, DateTimeKind.Utc);
-            endDate = new DateTime(2017, 1, 7, 0, 0, 0, DateTimeKind.Utc);
+		public void Dispose()
+		{
+			tradeReader.Dispose();
+		}
 
-            byte[] tradeData = TraderFileReader.GetBytesFromBinFiles(@"../../data/btcusd", startDate, endDate);
-            tradeReader = new TradeReaderMemory(tradeData);
+		public int Run(string[] args)
+		{
+			Stopwatch w = Stopwatch.StartNew();
 
-            if (csv.Count != 0)
-            {
-                using (StreamWriter csvWriter = new StreamWriter(@"../../data.csv"))
-                {
-                    csvWriter.WriteLine("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14}",
-                        "StartCashFlow", "UnitsToBuy", "Interval", "BuyThresholdPercent", "SellThresholdPercent",
-                        "BuyReverseThresholdPercent", "BuyFalseReverseThresholdPercent", "SellReverseThresholdPercent",
-                        "Spend", "Profit", "SpendProfitDiff", "ItemCount", "Buys", "Sells", "CashFlow");
-                    csv.Sort((k1, k2) => k2.Key.CompareTo(k1.Key));
-                    Logger.Info("Max: {0}", csv[0].Value);
-                    foreach (var kv in csv)
-                    {
-                        csvWriter.WriteLine(kv.Value);
-                    }
-                }
-            }
+			// bear market
+			//startDate = new DateTime(2017, 6, 11, 17, 0, 0, DateTimeKind.Utc);
+			//endDate = new DateTime(2017, 7, 18, 0, 0, 0, DateTimeKind.Utc);
+			startDate = new DateTime(2017, 1, 3, 0, 0, 0, DateTimeKind.Utc);
+			endDate = new DateTime(2017, 1, 7, 0, 0, 0, DateTimeKind.Utc);
 
-            w.Stop();
-            Logger.Info("Total time: {0}", w.Elapsed);
-            return 0;
-        }
-    }
+			byte[] tradeData = TraderFileReader.GetBytesFromBinFiles(
+					@"../../data/btcusd",
+					startDate,
+					endDate
+			);
+			tradeReader = new TradeReaderMemory(tradeData);
+
+			if (csv.Count != 0)
+			{
+				using (StreamWriter csvWriter = new StreamWriter(@"../../data.csv"))
+				{
+					csvWriter.WriteLine(
+							"{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14}",
+							"StartCashFlow",
+							"UnitsToBuy",
+							"Interval",
+							"BuyThresholdPercent",
+							"SellThresholdPercent",
+							"BuyReverseThresholdPercent",
+							"BuyFalseReverseThresholdPercent",
+							"SellReverseThresholdPercent",
+							"Spend",
+							"Profit",
+							"SpendProfitDiff",
+							"ItemCount",
+							"Buys",
+							"Sells",
+							"CashFlow"
+					);
+					csv.Sort((k1, k2) => k2.Key.CompareTo(k1.Key));
+					Logger.Info("Max: {0}", csv[0].Value);
+					foreach (var kv in csv)
+					{
+						csvWriter.WriteLine(kv.Value);
+					}
+				}
+			}
+
+			w.Stop();
+			Logger.Info("Total time: {0}", w.Elapsed);
+			return 0;
+		}
+	}
 }

@@ -1,9 +1,9 @@
-using ExchangeSharp.API.Exchanges.Coinmate.Models;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ExchangeSharp.API.Exchanges.Coinmate.Models;
+using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -31,84 +31,144 @@ namespace ExchangeSharp
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
-			var response = await MakeCoinmateRequest<JToken>($"/ticker?currencyPair={marketSymbol}");
-			return await this.ParseTickerAsync(response, marketSymbol, "ask", "bid", "last", "amount", null, "timestamp", TimestampType.UnixSeconds);
+			var response = await MakeCoinmateRequest<JToken>(
+					$"/ticker?currencyPair={marketSymbol}"
+			);
+			return await this.ParseTickerAsync(
+					response,
+					marketSymbol,
+					"ask",
+					"bid",
+					"last",
+					"amount",
+					null,
+					"timestamp",
+					TimestampType.UnixSeconds
+			);
 		}
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
 			var response = await MakeCoinmateRequest<CoinmateSymbol[]>("/products");
-			return response.Select(x => $"{x.FromSymbol}{MarketSymbolSeparator}{x.ToSymbol}").ToArray();
+			return response
+					.Select(x => $"{x.FromSymbol}{MarketSymbolSeparator}{x.ToSymbol}")
+					.ToArray();
 		}
 
-		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<
+				IEnumerable<ExchangeMarket>
+		> OnGetMarketSymbolsMetadataAsync()
 		{
 			var response = await MakeCoinmateRequest<CoinmateTradingPair[]>("/tradingPairs");
-			return response.Select(x => new ExchangeMarket
-			{
-				IsActive = true,
-				BaseCurrency = x.FirstCurrency,
-				QuoteCurrency = x.SecondCurrency,
-				MarketSymbol = x.Name,
-				MinTradeSize = x.MinAmount,
-				PriceStepSize = 1 / (decimal)(Math.Pow(10, x.PriceDecimals)),
-				QuantityStepSize = 1 / (decimal)(Math.Pow(10, x.LotDecimals))
-			}).ToArray();
+			return response
+					.Select(
+							x =>
+									new ExchangeMarket
+									{
+										IsActive = true,
+										BaseCurrency = x.FirstCurrency,
+										QuoteCurrency = x.SecondCurrency,
+										MarketSymbol = x.Name,
+										MinTradeSize = x.MinAmount,
+										PriceStepSize = 1 / (decimal)(Math.Pow(10, x.PriceDecimals)),
+										QuantityStepSize = 1 / (decimal)(Math.Pow(10, x.LotDecimals))
+									}
+					)
+					.ToArray();
 		}
 
-		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(
+				string marketSymbol,
+				int maxCount = 100
+		)
 		{
-			var book = await MakeCoinmateRequest<CoinmateOrderBook>("/orderBook?&groupByPriceLimit=False&currencyPair=" + marketSymbol);
-			var result = new ExchangeOrderBook
-			{
-				MarketSymbol = marketSymbol,	
-			};
+			var book = await MakeCoinmateRequest<CoinmateOrderBook>(
+					"/orderBook?&groupByPriceLimit=False&currencyPair=" + marketSymbol
+			);
+			var result = new ExchangeOrderBook { MarketSymbol = marketSymbol, };
 
 			book.Asks
-				.GroupBy(x => x.Price)
-				.ToList()
-				.ForEach(x => result.Asks.Add(x.Key, new ExchangeOrderPrice { Amount = x.Sum(x => x.Amount), Price = x.Key }));
+					.GroupBy(x => x.Price)
+					.ToList()
+					.ForEach(
+							x =>
+									result.Asks.Add(
+											x.Key,
+											new ExchangeOrderPrice { Amount = x.Sum(x => x.Amount), Price = x.Key }
+									)
+					);
 
 			book.Bids
-				.GroupBy(x => x.Price)
-				.ToList()
-				.ForEach(x => result.Bids.Add(x.Key, new ExchangeOrderPrice { Amount = x.Sum(x => x.Amount), Price = x.Key }));
+					.GroupBy(x => x.Price)
+					.ToList()
+					.ForEach(
+							x =>
+									result.Bids.Add(
+											x.Key,
+											new ExchangeOrderPrice { Amount = x.Sum(x => x.Amount), Price = x.Key }
+									)
+					);
 
 			return result;
 		}
 
-		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = null)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(
+				string marketSymbol,
+				int? limit = null
+		)
 		{
-			var txs = await MakeCoinmateRequest<CoinmateTransaction[]>("/transactions?minutesIntoHistory=1440&currencyPair=" + marketSymbol);
-			return txs.Select(x => new ExchangeTrade
-			{
-				Amount = x.Amount,
-				Id = x.TransactionId,
-				IsBuy = x.TradeType == "BUY",
-				Price = x.Price,
-				Timestamp = CryptoUtility.ParseTimestamp(x.Timestamp, TimestampType.UnixMilliseconds)
-			})
-			.Take(limit ?? int.MaxValue)
-			.ToArray();
+			var txs = await MakeCoinmateRequest<CoinmateTransaction[]>(
+					"/transactions?minutesIntoHistory=1440&currencyPair=" + marketSymbol
+			);
+			return txs.Select(
+							x =>
+									new ExchangeTrade
+									{
+										Amount = x.Amount,
+										Id = x.TransactionId,
+										IsBuy = x.TradeType == "BUY",
+										Price = x.Price,
+										Timestamp = CryptoUtility.ParseTimestamp(
+													x.Timestamp,
+													TimestampType.UnixMilliseconds
+											)
+									}
+					)
+					.Take(limit ?? int.MaxValue)
+					.ToArray();
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
 			var payload = await GetNoncePayloadAsync();
-			var balances = await MakeCoinmateRequest<Dictionary<string, CoinmateBalance>>("/balances", payload, "POST");
+			var balances = await MakeCoinmateRequest<Dictionary<string, CoinmateBalance>>(
+					"/balances",
+					payload,
+					"POST"
+			);
 
 			return balances.ToDictionary(x => x.Key, x => x.Value.Balance);
 		}
 
-		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		protected override async Task<
+				Dictionary<string, decimal>
+		> OnGetAmountsAvailableToTradeAsync()
 		{
 			var payload = await GetNoncePayloadAsync();
-			var balances = await MakeCoinmateRequest<Dictionary<string, CoinmateBalance>>("/balances", payload, "POST");
+			var balances = await MakeCoinmateRequest<Dictionary<string, CoinmateBalance>>(
+					"/balances",
+					payload,
+					"POST"
+			);
 
 			return balances.ToDictionary(x => x.Key, x => x.Value.Available);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
 			var payload = await GetNoncePayloadAsync();
 
@@ -126,7 +186,8 @@ namespace ExchangeSharp
 				o = await MakeCoinmateRequest<CoinmateOrder>("/orderById", payload, "POST");
 			}
 
-			if (o == null) return null;
+			if (o == null)
+				return null;
 
 			return new ExchangeOrderResult
 			{
@@ -137,7 +198,10 @@ namespace ExchangeSharp
 				OrderId = o.Id.ToString(),
 				Price = o.Price,
 				IsBuy = o.Type == "BUY",
-				OrderDate = CryptoUtility.ParseTimestamp(o.Timestamp, TimestampType.UnixMilliseconds),
+				OrderDate = CryptoUtility.ParseTimestamp(
+							o.Timestamp,
+							TimestampType.UnixMilliseconds
+					),
 				ResultCode = o.Status,
 				Result = o.Status switch
 				{
@@ -151,7 +215,11 @@ namespace ExchangeSharp
 			};
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		protected override async Task OnCancelOrderAsync(
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
 			var payload = await GetNoncePayloadAsync();
 			payload["orderId"] = orderId;
@@ -159,7 +227,9 @@ namespace ExchangeSharp
 			await MakeCoinmateRequest<bool>("/cancelOrder", payload, "POST");
 		}
 
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
+				ExchangeOrderRequest order
+		)
 		{
 			var payload = await GetNoncePayloadAsync();
 
@@ -201,31 +271,51 @@ namespace ExchangeSharp
 			}
 		}
 
-		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
+				string marketSymbol = null
+		)
 		{
 			var payload = await GetNoncePayloadAsync();
 			payload["currencyPair"] = marketSymbol;
 
-			var orders = await MakeCoinmateRequest<CoinmateOpenOrder[]>("/openOrders", payload, "POST");
+			var orders = await MakeCoinmateRequest<CoinmateOpenOrder[]>(
+					"/openOrders",
+					payload,
+					"POST"
+			);
 
-			return orders.Select(x => new ExchangeOrderResult
-			{
-				Amount = x.Amount,
-				ClientOrderId = x.ClientOrderId?.ToString(),
-				IsBuy = x.Type == "BUY",
-				MarketSymbol = x.CurrencyPair,
-				OrderDate = CryptoUtility.ParseTimestamp(x.Timestamp, TimestampType.UnixMilliseconds),
-				OrderId = x.Id.ToString(),
-				Price = x.Price,
-
-			}).ToArray();
+			return orders
+					.Select(
+							x =>
+									new ExchangeOrderResult
+									{
+										Amount = x.Amount,
+										ClientOrderId = x.ClientOrderId?.ToString(),
+										IsBuy = x.Type == "BUY",
+										MarketSymbol = x.CurrencyPair,
+										OrderDate = CryptoUtility.ParseTimestamp(
+													x.Timestamp,
+													TimestampType.UnixMilliseconds
+											),
+										OrderId = x.Id.ToString(),
+										Price = x.Price,
+									}
+					)
+					.ToArray();
 		}
 
-		protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string currency, bool forceRegenerate = false)
+		protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(
+				string currency,
+				bool forceRegenerate = false
+		)
 		{
 			var payload = await GetNoncePayloadAsync();
 			var currencyName = GetCurrencyName(currency);
-			var addresses = await MakeCoinmateRequest<string[]>($"/{currencyName}DepositAddresses", payload, "POST");
+			var addresses = await MakeCoinmateRequest<string[]>(
+					$"/{currencyName}DepositAddresses",
+					payload,
+					"POST"
+			);
 
 			return new ExchangeDepositDetails
 			{
@@ -234,7 +324,9 @@ namespace ExchangeSharp
 			};
 		}
 
-		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(
+				ExchangeWithdrawalRequest withdrawalRequest
+		)
 		{
 			var payload = await GetNoncePayloadAsync();
 			var currencyName = GetCurrencyName(withdrawalRequest.Currency);
@@ -243,16 +335,19 @@ namespace ExchangeSharp
 			payload["address"] = withdrawalRequest.Address;
 			payload["amountType"] = withdrawalRequest.TakeFeeFromAmount ? "NET" : "GROSS";
 
-			var id = await MakeCoinmateRequest<long?>($"/{currencyName}Withdrawal", payload, "POST");
+			var id = await MakeCoinmateRequest<long?>(
+					$"/{currencyName}Withdrawal",
+					payload,
+					"POST"
+			);
 
-			return new ExchangeWithdrawalResponse
-			{
-				Id = id?.ToString(),
-				Success = id != null
-			};
+			return new ExchangeWithdrawalResponse { Id = id?.ToString(), Success = id != null };
 		}
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override async Task ProcessRequestAsync(
+				IHttpWebRequest request,
+				Dictionary<string, object> payload
+		)
 		{
 			if (CanMakeAuthenticatedRequest(payload))
 			{
@@ -263,7 +358,9 @@ namespace ExchangeSharp
 
 				var apiKey = PublicApiKey.ToUnsecureString();
 				var messageToSign = payload["nonce"].ToStringInvariant() + ClientId + apiKey;
-				var signature = CryptoUtility.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString()).ToUpperInvariant();
+				var signature = CryptoUtility
+						.SHA256Sign(messageToSign, PrivateApiKey.ToUnsecureString())
+						.ToUpperInvariant();
 				payload["signature"] = signature;
 				payload["clientId"] = ClientId;
 				payload["publicKey"] = apiKey;
@@ -271,9 +368,18 @@ namespace ExchangeSharp
 			}
 		}
 
-		private async Task<T> MakeCoinmateRequest<T>(string url, Dictionary<string, object> payload = null, string method = null)
+		private async Task<T> MakeCoinmateRequest<T>(
+				string url,
+				Dictionary<string, object> payload = null,
+				string method = null
+		)
 		{
-			var response = await MakeJsonRequestAsync<CoinmateResponse<T>>(url, null, payload, method);
+			var response = await MakeJsonRequestAsync<CoinmateResponse<T>>(
+					url,
+					null,
+					payload,
+					method
+			);
 
 			if (response.Error)
 			{
@@ -298,6 +404,9 @@ namespace ExchangeSharp
 			};
 		}
 
-		public partial class ExchangeName { public const string Coinmate = "Coinmate"; }
+		public partial class ExchangeName
+		{
+			public const string Coinmate = "Coinmate";
+		}
 	}
 }

@@ -10,7 +10,10 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="status">FTX order status string.</param>
 		/// <returns><see cref="ExchangeAPIOrderResult"/></returns>
-		internal static ExchangeAPIOrderResult ToExchangeAPIOrderResult(this string status, decimal remainingAmount)
+		internal static ExchangeAPIOrderResult ToExchangeAPIOrderResult(
+				this string status,
+				decimal remainingAmount
+		)
 		{
 			return (status, remainingAmount) switch
 			{

@@ -12,14 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Coinbase
 {
-    using System.Runtime.Serialization;
+	using System.Runtime.Serialization;
 
-    internal enum ActionType
-    {
-        [EnumMember(Value = "subscribe")]
-        Subscribe,
+	internal enum ActionType
+	{
+		[EnumMember(Value = "subscribe")]
+		Subscribe,
 
-        [EnumMember(Value = "unsubscribe")]
-        Unsubscribe
-    }
+		[EnumMember(Value = "unsubscribe")]
+		Unsubscribe
+	}
 }

@@ -31,7 +31,10 @@ namespace ExchangeSharpConsole.Options
 					continue;
 				}
 
-				if (ExchangeName != null && !Regex.IsMatch(api.Name, ExchangeName, RegexOptions.IgnoreCase))
+				if (
+						ExchangeName != null
+						&& !Regex.IsMatch(api.Name, ExchangeName, RegexOptions.IgnoreCase)
+				)
 				{
 					continue;
 				}
@@ -62,20 +65,27 @@ namespace ExchangeSharpConsole.Options
 
 		private async Task TestMarketSymbols(IExchangeAPI api, string marketSymbol)
 		{
-			if (FunctionRegex == null || Regex.IsMatch("symbol", FunctionRegex, RegexOptions.IgnoreCase))
+			if (
+					FunctionRegex == null
+					|| Regex.IsMatch("symbol", FunctionRegex, RegexOptions.IgnoreCase)
+			)
 			{
 				Console.Write("Test {0} GetSymbolsAsync... ", api.Name);
-				IReadOnlyCollection<string> symbols = (await api.GetMarketSymbolsAsync())
-					.ToArray();
-				Assert(symbols.Count != 0 &&
-				       symbols.Contains(marketSymbol, StringComparer.OrdinalIgnoreCase));
+				IReadOnlyCollection<string> symbols = (await api.GetMarketSymbolsAsync()).ToArray();
+				Assert(
+						symbols.Count != 0
+								&& symbols.Contains(marketSymbol, StringComparer.OrdinalIgnoreCase)
+				);
 				Console.WriteLine($"OK (default: {marketSymbol}; {symbols.Count} symbols)");
 			}
 		}
 
 		private async Task TestCurrencies(IExchangeAPI api)
 		{
-			if (FunctionRegex == null || Regex.IsMatch("currencies", FunctionRegex, RegexOptions.IgnoreCase))
+			if (
+					FunctionRegex == null
+					|| Regex.IsMatch("currencies", FunctionRegex, RegexOptions.IgnoreCase)
+			)
 			{
 				try
 				{
@@ -93,16 +103,23 @@ namespace ExchangeSharpConsole.Options
 
 		private async Task TestOrderBook(IExchangeAPI api, string marketSymbol)
 		{
-			if (FunctionRegex == null || Regex.IsMatch("orderbook", FunctionRegex, RegexOptions.IgnoreCase))
+			if (
+					FunctionRegex == null
+					|| Regex.IsMatch("orderbook", FunctionRegex, RegexOptions.IgnoreCase)
+			)
 			{
 				try
 				{
 					Console.Write("Test {0} GetOrderBookAsync... ", api.Name);
 					var book = await api.GetOrderBookAsync(marketSymbol);
-					Assert(book.Asks.Count != 0 && book.Bids.Count != 0 &&
-					       book.Asks.First().Value.Amount > 0m &&
-					       book.Asks.First().Value.Price > 0m && book.Bids.First().Value.Amount > 0m &&
-					       book.Bids.First().Value.Price > 0m);
+					Assert(
+							book.Asks.Count != 0
+									&& book.Bids.Count != 0
+									&& book.Asks.First().Value.Amount > 0m
+									&& book.Asks.First().Value.Price > 0m
+									&& book.Bids.First().Value.Amount > 0m
+									&& book.Bids.First().Value.Price > 0m
+					);
 					Console.WriteLine($"OK ({book.Asks.Count} asks, {book.Bids.Count} bids)");
 				}
 				catch (NotImplementedException)
@@ -114,16 +131,27 @@ namespace ExchangeSharpConsole.Options
 
 		private async Task TestTicker(IExchangeAPI api, string marketSymbol)
 		{
-			if (FunctionRegex == null || Regex.IsMatch("ticker", FunctionRegex, RegexOptions.IgnoreCase))
+			if (
+					FunctionRegex == null
+					|| Regex.IsMatch("ticker", FunctionRegex, RegexOptions.IgnoreCase)
+			)
 			{
 				try
 				{
 					Console.Write("Test {0} GetTickerAsync... ", api.Name);
 					var ticker = await api.GetTickerAsync(marketSymbol);
-					Assert(ticker != null && ticker.Ask > 0m && ticker.Bid > 0m && ticker.Last > 0m &&
-					       ticker.Volume != null && ticker.Volume.QuoteCurrencyVolume > 0m &&
-					       ticker.Volume.BaseCurrencyVolume > 0m);
-					Console.WriteLine($"OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})");
+					Assert(
+							ticker != null
+									&& ticker.Ask > 0m
+									&& ticker.Bid > 0m
+									&& ticker.Last > 0m
+									&& ticker.Volume != null
+									&& ticker.Volume.QuoteCurrencyVolume > 0m
+									&& ticker.Volume.BaseCurrencyVolume > 0m
+					);
+					Console.WriteLine(
+							$"OK (ask: {ticker.Ask}, bid: {ticker.Bid}, last: {ticker.Last})"
+					);
 				}
 				catch
 				{
@@ -134,17 +162,23 @@ namespace ExchangeSharpConsole.Options
 
 		private async Task TestTrade(IExchangeAPI api, string marketSymbol)
 		{
-			if (FunctionRegex == null || Regex.IsMatch("trade", FunctionRegex, RegexOptions.IgnoreCase))
+			if (
+					FunctionRegex == null
+					|| Regex.IsMatch("trade", FunctionRegex, RegexOptions.IgnoreCase)
+			)
 			{
 				try
 				{
 					ExchangeTrade[] trades = null;
 					Console.Write("Test {0} GetHistoricalTradesAsync... ", api.Name);
-					await api.GetHistoricalTradesAsync(tradeEnum =>
-					{
-						trades = tradeEnum.ToArray();
-						return true;
-					}, marketSymbol);
+					await api.GetHistoricalTradesAsync(
+							tradeEnum =>
+							{
+								trades = tradeEnum.ToArray();
+								return true;
+							},
+							marketSymbol
+					);
 					Assert(trades.Length != 0 && trades[0].Price > 0m && trades[0].Amount > 0m);
 					Console.WriteLine($"OK ({trades.Length})");
 
@@ -162,21 +196,38 @@ namespace ExchangeSharpConsole.Options
 
 		private async Task TestCandle(IExchangeAPI api, string marketSymbol)
 		{
-			if (FunctionRegex == null || Regex.IsMatch("candle", FunctionRegex, RegexOptions.IgnoreCase))
+			if (
+					FunctionRegex == null
+					|| Regex.IsMatch("candle", FunctionRegex, RegexOptions.IgnoreCase)
+			)
 			{
 				try
 				{
 					Console.Write("Test {0} GetCandlesAsync... ", api.Name);
-					var candles = (await api.GetCandlesAsync(marketSymbol, 86400,
-						CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)), null)).ToArray();
-					Assert(candles.Length != 0 && candles[0].ClosePrice > 0m && candles[0].HighPrice > 0m &&
-					       candles[0].LowPrice > 0m && candles[0].OpenPrice > 0m &&
-					       candles[0].HighPrice >= candles[0].LowPrice &&
-					       candles[0].HighPrice >= candles[0].ClosePrice &&
-					       candles[0].HighPrice >= candles[0].OpenPrice &&
-					       !string.IsNullOrWhiteSpace(candles[0].Name) && candles[0].ExchangeName == api.Name &&
-					       candles[0].PeriodSeconds == 86400 && candles[0].BaseCurrencyVolume > 0.0 &&
-					       candles[0].QuoteCurrencyVolume > 0.0 && candles[0].WeightedAverage >= 0m);
+					var candles = (
+							await api.GetCandlesAsync(
+									marketSymbol,
+									86400,
+									CryptoUtility.UtcNow.Subtract(TimeSpan.FromDays(7.0)),
+									null
+							)
+					).ToArray();
+					Assert(
+							candles.Length != 0
+									&& candles[0].ClosePrice > 0m
+									&& candles[0].HighPrice > 0m
+									&& candles[0].LowPrice > 0m
+									&& candles[0].OpenPrice > 0m
+									&& candles[0].HighPrice >= candles[0].LowPrice
+									&& candles[0].HighPrice >= candles[0].ClosePrice
+									&& candles[0].HighPrice >= candles[0].OpenPrice
+									&& !string.IsNullOrWhiteSpace(candles[0].Name)
+									&& candles[0].ExchangeName == api.Name
+									&& candles[0].PeriodSeconds == 86400
+									&& candles[0].BaseCurrencyVolume > 0.0
+									&& candles[0].QuoteCurrencyVolume > 0.0
+									&& candles[0].WeightedAverage >= 0m
+					);
 
 					Console.WriteLine($"OK ({candles.Length})");
 				}
@@ -212,8 +263,13 @@ namespace ExchangeSharpConsole.Options
 				return "BTC-LTC";
 			}
 
-			if (api is BinanceGroupCommon || api is ExchangeOKExAPI || /* api is ExchangeBleutradeAPI ||*/
-			    api is ExchangeKuCoinAPI || api is ExchangeHuobiAPI)
+			if (
+					api is BinanceGroupCommon
+					|| api is ExchangeOKExAPI
+					|| /* api is ExchangeBleutradeAPI ||*/
+					api is ExchangeKuCoinAPI
+					|| api is ExchangeHuobiAPI
+			)
 			{
 				return "ETH-BTC";
 			}

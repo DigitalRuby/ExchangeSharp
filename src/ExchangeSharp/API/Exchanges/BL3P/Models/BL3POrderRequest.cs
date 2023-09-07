@@ -9,18 +9,13 @@ namespace ExchangeSharp.BL3P
 		[JsonConverter(typeof(FixedIntDecimalJsonConverter), 5)]
 		public decimal Price { get; set; }
 
-
 		[JsonProperty("amount_int")]
 		[JsonConverter(typeof(FixedIntDecimalJsonConverter), 8)]
 		public decimal Amount { get; set; }
 
 		public ExchangeOrderPrice ToExchangeOrder()
 		{
-			return new ExchangeOrderPrice
-			{
-				Amount = Amount,
-				Price = Price
-			};
+			return new ExchangeOrderPrice { Amount = Amount, Price = Price };
 		}
 	}
 }

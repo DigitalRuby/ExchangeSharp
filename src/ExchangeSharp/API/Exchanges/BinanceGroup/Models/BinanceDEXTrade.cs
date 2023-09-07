@@ -22,14 +22,28 @@ namespace ExchangeSharp.BinanceGroup
 		public string BuyerAddress { get; set; }
 		public string SellerAddress { get; set; }
 		public TickerType TickerType { get; set; }
+
 		public override string ToString()
 		{
-			return string.Format("{0},{1},{2},{3},{4},{5}", base.ToString(), BuyerOrderId, SellerOrderId, BuyerAddress, SellerAddress, TickerType);
+			return string.Format(
+					"{0},{1},{2},{3},{4},{5}",
+					base.ToString(),
+					BuyerOrderId,
+					SellerOrderId,
+					BuyerAddress,
+					SellerAddress,
+					TickerType
+			);
 		}
 	}
 
 	public enum TickerType : byte
 	{ // tiekertype 0: Unknown 1: SellTaker 2: BuyTaker 3: BuySurplus 4: SellSurplus 5: Neutral
-		Unknown = 0, SellTaker = 1, BuyTaker = 2, BuySurplus = 3, SellSurplus = 4, Neutral = 5
+		Unknown = 0,
+		SellTaker = 1,
+		BuyTaker = 2,
+		BuySurplus = 3,
+		SellSurplus = 4,
+		Neutral = 5
 	}
 }

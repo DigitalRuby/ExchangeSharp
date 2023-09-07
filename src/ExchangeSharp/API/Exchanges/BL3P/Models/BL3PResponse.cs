@@ -2,22 +2,20 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp.BL3P
 {
-	internal class BL3PEmptyResponse
-		: BL3PResponse<BL3PResponsePayload, BL3PResponsePayloadError>
+	internal class BL3PEmptyResponse : BL3PResponse<BL3PResponsePayload, BL3PResponsePayloadError>
 	{
 		[JsonProperty("data")]
 		protected override BL3PResponsePayload Data { get; set; }
 	}
 
 	internal abstract class BL3PResponse<TSuccess>
-		: BL3PResponse<TSuccess, BL3PResponsePayloadError>
-		where TSuccess : BL3PResponsePayload
-	{
-	}
+			: BL3PResponse<TSuccess, BL3PResponsePayloadError>
+			where TSuccess : BL3PResponsePayload
+	{ }
 
 	internal abstract class BL3PResponse<TSuccess, TFail>
-		where TSuccess : BL3PResponsePayload
-		where TFail : BL3PResponsePayloadError
+			where TSuccess : BL3PResponsePayload
+			where TFail : BL3PResponsePayloadError
 	{
 		[JsonProperty("result", Required = Required.Always)]
 		public BL3PResponseType Result { get; set; }
@@ -26,10 +24,10 @@ namespace ExchangeSharp.BL3P
 		protected abstract BL3PResponsePayload Data { get; set; }
 
 		[JsonIgnore]
-		public virtual TSuccess Success => (TSuccess) Data;
+		public virtual TSuccess Success => (TSuccess)Data;
 
 		[JsonIgnore]
-		public virtual TFail Error => (TFail) Data;
+		public virtual TFail Error => (TFail)Data;
 
 		/// <summary>
 		/// Returns TSuccess or nothing

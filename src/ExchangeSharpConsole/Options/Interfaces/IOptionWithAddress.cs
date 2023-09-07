@@ -3,7 +3,7 @@ using CommandLine;
 namespace ExchangeSharpConsole.Options.Interfaces
 {
 	public interface IOptionWithAddress
-    {
+	{
 		[Option('d', "address", Required = true, HelpText = "Crypto address")]
 		string Address { get; set; }
 

@@ -36,5 +36,5 @@ namespace ExchangeSharp.BinanceGroup
 
 		[JsonProperty("confirmTimes")]
 		public string ConfirmTimes { get; set; }
-	}	
+	}
 }

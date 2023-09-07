@@ -6,67 +6,67 @@
 
 ## Overview
 
-ExchangeSharp is a C# **framework/lib** and [console app](#Installing-the-CLI) for trading and communicating with [various](#Exchanges) exchange API end points for cryptocurrency assets. Many exchanges are supported, along with [web sockets](#Websockets), withdraws and more!
+ExchangeSharp is a C# **framework/lib** and [console app](#installing-the-cli) for trading and communicating with [various](#exchanges) exchange API end points for cryptocurrency assets. Many exchanges are supported, along with [web sockets](#websockets), withdraws and more!
 
-Feel free to visit the discord channel at https://discord.gg/58ktxXuTVK and chat with other developers.
+Feel free to visit the discord channel at <https://discord.gg/58ktxXuTVK> and chat with other developers.
 
 ### Features
 
-- Many exchanges supported with public, private and web socket API
+- Many [exchanges](/src//ExchangeSharp/API/Exchanges/) supported with public, private and web socket API
 - Easy to use code and API
 - Optional global market symbol normalization, since each exchange has their own way of doing market symbols
 - Runs anywhere .NET runs. (Windows, Mac, Linux, Containers, Serverless, iOS, Android, [etc.](https://docs.microsoft.com/en-us/dotnet/core/about))
 - Can be used from [many different C# platforms](https://github.com/dotnet/standard/blob/master/docs/versions/netstandard2.0.md#platform-support)
-- Has a great [CLI](#Installing-the-CLI) that enables you to use all features from all exchanges right from your command line.
+- Has a great [CLI](#installing-the-cli) that enables you to use all features from all exchanges right from your command line.
 
 ### Exchanges
 
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = orderbook / delta orderbook, O = private orders, U = user data)
 
-| Exchange Name  | Public REST | Private REST | Web Socket | Notes                                    |
-| -------------- | ----------- | ------------ | ---------- | ---------------------------------------- |
-| ApolloX        | x           | x            | T R B O U  |
-| Aquanow        | wip         | x            |            |
-| Binance        | x           | x            | T R B O U  |
-| Binance Jersey | x           | x            | T R B O U  | Ceased operations
-| Binance.US     | x           | x            | T R B O U  |
-| Binance DEX    |             |              |   R        |
-| Bitbank        | x           | x            |            |
-| Bitfinex       | x           | x            | T R   O    |
-| Bitflyer       |             |              |   R        |
-| Bithumb        | x           |              |   R        |
-| BitMEX         | x           | x            |   R   O    |
-| Bitstamp       | x           | x            |   R        |
-| Bittrex        | x           | x            | T R        |
-| BL3P           | x           | x            |   R B      | Trades stream does not send trade's ids. |
-| Bleutrade      | x           | x            |            |
-| BtcTurk        |             |              |   R        |
-| BTSE           | x           | x            |            |
-| Bybit          | x           | x            |   R        | Has public method for Websocket Positions
-| Coinbase       | x           | x            | T R   O U  |
-| Coincheck      |             |              |   R        |
-| Coinmate       | x           | x            |            |
-| Crypto.com     |             |              |   R        |
-| Digifinex      | x           | x            |   R B      |
-| Dydx           |             |              |   R        |
-| FTX            | x           | x            | T R        |
-| FTX.us         | x           | x            | T R        |
-| gate.io        | x           | x            |   R        |
-| Gemini         | x           | x            | T R B      |
-| HitBTC         | x           | x            |   R        |
-| Huobi          | x           | x            |   R B      |
-| Kraken         | x           | x            |   R        | Dark order symbols not supported         |
-| KuCoin         | x           | x            | T R        |
-| LBank          | x           | x            |   R        |
-| Livecoin       | x           | x            |            |
-| NDAX           | x           | x            | T R        |
-| OKCoin         | x           | x            |   R B      |
-| OKEx           | x           | x            | T R B O    |
-| Poloniex       | x           | x            | T R B      |
-| UPbit          |             |              |   R        |
-| YoBit          | x           | x            |            |
-| ZB.com         | wip         |              |   R        |
+| Exchange Name           | Public REST | Private REST | Web Socket    | Notes                                       |
+| ----------------------- | ----------- | ------------ | ------------- | ------------------------------------------- |
+| ApolloX                 | x           | x            | T R B O U     |                                             |
+| Aquanow                 | wip         | x            |               |                                             |
+| Binance                 | x           | x            | T R B O U     |                                             |
+| ~~Binance Jersey~~      | ~~x~~       | ~~x~~        | ~~T R B O U~~ | Ceased operations                           |
+| Binance.US              | x           | x            | T R B O U     |                                             |
+| Binance DEX             |             |              |   R           |                                             |
+| Bitbank                 | x           | x            |               |                                             |
+| Bitfinex                | x           | x            | T R   O       |                                             |
+| Bitflyer                |             |              |   R           |                                             |
+| Bithumb                 | x           |              |   R           |                                             |
+| BitMEX                  | x           | x            |   R   O       |                                             |
+| Bitstamp                | x           | x            |   R           |                                             |
+| Bittrex                 | x           | x            | T R           |                                             |
+| BL3P                    | x           | x            |   R B         | Trades stream does not send trade's ids.    |
+| Bleutrade               | x           | x            |               |                                             |
+| BtcTurk                 |             |              |   R           |                                             |
+| BTSE                    | x           | x            |               |                                             |
+| Bybit                   | x           | x            |   R           | Has public method for Websocket Positions   |
+| Coinbase (Pro)          | x           | x            | T R   O U     |                                             |
+| Coincheck               |             |              |   R           |                                             |
+| Coinmate                | x           | x            |               |                                             |
+| Crypto.com              |             |              |   R           |                                             |
+| Digifinex               | x           | x            |   R B         |                                             |
+| Dydx                    |             |              |   R           |                                             |
+| FTX                     | x           | x            | T R           |                                             |
+| FTX.us                  | x           | x            | T R           |                                             |
+| gate.io                 | x           | x            |   R           |                                             |
+| Gemini                  | x           | x            | T R B         |                                             |
+| HitBTC                  | x           | x            |   R           |                                             |
+| Huobi                   | x           | x            |   R B         |                                             |
+| Kraken                  | x           | x            |   R           | Dark order symbols not supported            |
+| KuCoin                  | x           | x            | T R           |                                             |
+| LBank                   | x           | x            |   R           |                                             |
+| Livecoin                | x           | x            |               |                                             |
+| NDAX                    | x           | x            | T R           |                                             |
+| OKCoin                  | x           | x            |   R B         |                                             |
+| OKEx                    | x           | x            | T R B O       |                                             |
+| Poloniex                | x           | x            | T R B         |                                             |
+| UPbit                   |             |              |   R           |                                             |
+| YoBit                   | x           | x            |               |                                             |
+| ZB.com                  | wip         |              |   R           |                                             |
 
 The following cryptocurrency services are supported:
 
@@ -169,7 +169,7 @@ Please read the [contributing guideline](CONTRIBUTING.md) **before** submitting 
 
 ### Consulting
 
-I'm happy to make customizations to the software for you and keep in private repo, email exchangesharp@digitalruby.com.
+I'm happy to make customizations to the software for you and keep in private repo, email <exchangesharp@digitalruby.com>.
 
 ### Donations Gratefully Accepted
 
@@ -189,9 +189,8 @@ Donation totals:
 Thanks for visiting!
 
 Jeff Johnson  
-jeff@digitalruby.com  
-http://www.digitalruby.com
+<jeff@digitalruby.com>  
+<http://www.digitalruby.com>
 
 [nuget]: https://www.nuget.org/packages/DigitalRuby.ExchangeSharp/
 [websocket4net]: https://github.com/kerryjiang/WebSocket4Net
- 

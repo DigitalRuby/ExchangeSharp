@@ -11,11 +11,10 @@ namespace ExchangeSharpConsole.Options
 	[Verb("interactive", HelpText = "Enables an interactive session.")]
 	public class InteractiveOption : BaseOption
 	{
-		internal static readonly string HistoryFilePath =
-			Path.Combine(
+		internal static readonly string HistoryFilePath = Path.Combine(
 				Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
 				".exchange-sharp-history"
-			);
+		);
 
 		/// <summary>
 		/// UTF-8 No BOM
@@ -50,17 +49,15 @@ namespace ExchangeSharpConsole.Options
 				return;
 
 			var lines = File.ReadLines(HistoryFilePath, HistoryFileEncoding)
-				.TakeLast(HistoryMax)
-				.ToArray();
+					.TakeLast(HistoryMax)
+					.ToArray();
 
 			ReadLine.AddHistory(lines);
 		}
 
 		private void SaveHistory()
 		{
-			var lines = ReadLine.GetHistory()
-				.TakeLast(HistoryMax)
-				.ToArray();
+			var lines = ReadLine.GetHistory().TakeLast(HistoryMax).ToArray();
 
 			using var sw = File.CreateText(HistoryFilePath);
 
@@ -79,10 +76,7 @@ namespace ExchangeSharpConsole.Options
 				if (command.Equals("exit", StringComparison.OrdinalIgnoreCase))
 					break;
 
-				var (error, help) = program.ParseArguments(
-					command.Split(' '),
-					out var options
-				);
+				var (error, help) = program.ParseArguments(command.Split(' '), out var options);
 
 				if (error || help)
 					continue;
@@ -98,18 +92,16 @@ namespace ExchangeSharpConsole.Options
 			public AutoCompleter()
 			{
 				var optionsList = Program.Instance.CommandOptions
-					.Where(t => typeof(InteractiveOption) != t)
-					.Select(t => t.GetCustomAttribute<VerbAttribute>(true))
-					.Where(v => !v.Hidden)
-					.Select(v => v.Name)
-					.ToList();
+						.Where(t => typeof(InteractiveOption) != t)
+						.Select(t => t.GetCustomAttribute<VerbAttribute>(true))
+						.Where(v => !v.Hidden)
+						.Select(v => v.Name)
+						.ToList();
 
 				optionsList.Add("help");
 				optionsList.Add("exit");
 
-				options = optionsList
-					.OrderBy(o => o)
-					.ToArray();
+				options = optionsList.OrderBy(o => o).ToArray();
 			}
 
 			public string[] GetSuggestions(string text, int index)
@@ -118,11 +110,11 @@ namespace ExchangeSharpConsole.Options
 					return options;
 
 				return options
-					.Where(o => o.StartsWith(text, StringComparison.OrdinalIgnoreCase))
-					.ToArray();
+						.Where(o => o.StartsWith(text, StringComparison.OrdinalIgnoreCase))
+						.ToArray();
 			}
 
-			public char[] Separators { get; set; } = {' ', '.', '/', '\"', '\''};
+			public char[] Separators { get; set; } = { ' ', '.', '/', '\"', '\'' };
 		}
 	}
 }

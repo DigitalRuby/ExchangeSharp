@@ -74,8 +74,10 @@ namespace ExchangeSharp.BL3P
 
 		public async Task<bool> SendMessageAsync(object message)
 		{
-			var tasks = await Task.WhenAll(webSockets.Select(ws => ws.Key.SendMessageAsync(message)))
-				.ConfigureAwait(false);
+			var tasks = await Task.WhenAll(
+							webSockets.Select(ws => ws.Key.SendMessageAsync(message))
+					)
+					.ConfigureAwait(false);
 
 			return tasks.All(r => r);
 		}

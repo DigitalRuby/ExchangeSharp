@@ -16,7 +16,9 @@ namespace ExchangeSharpTests
 				requestMaker.GlobalResponse = response;
 			}
 
-			var api = (await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.BL3P) as ExchangeBL3PAPI)!;
+			var api = (
+					await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.BL3P) as ExchangeBL3PAPI
+			)!;
 			api.RequestMaker = requestMaker;
 			return api;
 		}
@@ -24,7 +26,8 @@ namespace ExchangeSharpTests
 		[TestMethod]
 		public async Task ShouldParseGetTickerResult()
 		{
-			var json = @"{
+			var json =
+					@"{
   ""currency"": ""BTC"",
   ""last"": 7472.28,
   ""bid"": 7436.76,
@@ -48,8 +51,7 @@ namespace ExchangeSharpTests
 			ticker.Last.Should().Be(7472.28M);
 			ticker.Volume.Should().NotBeNull();
 
-			var timestamp = CryptoUtility.UnixEpoch
-				.AddSeconds(1570628705);
+			var timestamp = CryptoUtility.UnixEpoch.AddSeconds(1570628705);
 			ticker.Volume.Timestamp.Should().Be(timestamp);
 			ticker.Volume.BaseCurrency.Should().Be("BTC");
 			ticker.Volume.BaseCurrencyVolume.Should().Be(23.89647397M);

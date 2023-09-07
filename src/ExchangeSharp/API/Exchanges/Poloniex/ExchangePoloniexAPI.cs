@@ -16,12 +16,12 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp
 {
-	using Newtonsoft.Json.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Newtonsoft.Json.Linq;
 
 	public sealed partial class ExchangePoloniexAPI : ExchangeAPI
 	{
@@ -42,7 +42,10 @@ namespace ExchangeSharp
 		/// </summary>
 		public static IReadOnlyDictionary<string, int> WithdrawalFieldCount { get; set; }
 
-		private async Task<JToken> MakePrivateAPIRequestAsync(string command, IReadOnlyList<object> parameters = null)
+		private async Task<JToken> MakePrivateAPIRequestAsync(
+				string command,
+				IReadOnlyList<object> parameters = null
+		)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			payload["command"] = command;
@@ -64,8 +67,9 @@ namespace ExchangeSharp
 			var fieldCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
 			using var resourceStream =
-				typeof(ExchangePoloniexAPI).Assembly.GetManifestResourceStream(
-					"ExchangeSharp.Properties.Resources.PoloniexWithdrawalFields.csv");
+					typeof(ExchangePoloniexAPI).Assembly.GetManifestResourceStream(
+							"ExchangeSharp.Properties.Resources.PoloniexWithdrawalFields.csv"
+					);
 			Debug.Assert(resourceStream != null, nameof(resourceStream) + " != null");
 			using var sr = new StreamReader(resourceStream);
 
@@ -118,7 +122,9 @@ namespace ExchangeSharp
 				Amount = result["quantity"].ConvertInvariant<decimal>(),
 				AmountFilled = result["filledQuantity"].ConvertInvariant<decimal>(),
 				IsBuy = result["side"].ToStringLowerInvariant() != "sell",
-				OrderDate = result["createTime"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+				OrderDate = result["createTime"]
+							.ConvertInvariant<long>()
+							.UnixTimeStampToDateTimeMilliseconds(),
 				OrderId = result["id"].ToStringInvariant(),
 				Price = result["price"].ConvertInvariant<decimal>(),
 				AveragePrice = result["avgPrice"].ConvertInvariant<decimal>(),
@@ -128,8 +134,12 @@ namespace ExchangeSharp
 			};
 
 			// fee is a percentage taken from the traded amount rounded to 8 decimals
-			order.Fees = CalculateFees(order.Amount, order.Price.Value, order.IsBuy,
-				result["fee"].ConvertInvariant<decimal>());
+			order.Fees = CalculateFees(
+					order.Amount,
+					order.Price.Value,
+					order.IsBuy,
+					result["fee"].ConvertInvariant<decimal>()
+			);
 
 			return order;
 		}
@@ -165,9 +175,11 @@ namespace ExchangeSharp
 				decimal tradeRate = trade["rate"].ConvertInvariant<decimal>();
 
 				order.AveragePrice =
-					(order.AveragePrice.GetValueOrDefault(decimal.Zero) *
-						order.AmountFilled.GetValueOrDefault(decimal.Zero) + tradeAmt * tradeRate) /
-					(order.AmountFilled.GetValueOrDefault(decimal.Zero) + tradeAmt);
+						(
+								order.AveragePrice.GetValueOrDefault(decimal.Zero)
+										* order.AmountFilled.GetValueOrDefault(decimal.Zero)
+								+ tradeAmt * tradeRate
+						) / (order.AmountFilled.GetValueOrDefault(decimal.Zero) + tradeAmt);
 				if (order.Amount == 0m)
 				{
 					order.Amount += tradeAmt;
@@ -183,7 +195,12 @@ namespace ExchangeSharp
 
 				// fee is a percentage taken from the traded amount rounded to 8 decimals
 				order.Fees = order.Fees.GetValueOrDefault(decimal.Zero);
-				order.Fees += CalculateFees(tradeAmt, tradeRate, order.IsBuy, trade["fee"].ConvertInvariant<decimal>());
+				order.Fees += CalculateFees(
+						tradeAmt,
+						tradeRate,
+						order.IsBuy,
+						trade["fee"].ConvertInvariant<decimal>()
+				);
 			}
 
 			if (order.AmountFilled.GetValueOrDefault(decimal.Zero) >= order.Amount)
@@ -200,27 +217,38 @@ namespace ExchangeSharp
 			order.Price = order.AveragePrice;
 		}
 
-		private static decimal CalculateFees(decimal tradeAmt, decimal tradeRate, bool isBuy, decimal fee)
+		private static decimal CalculateFees(
+				decimal tradeAmt,
+				decimal tradeRate,
+				bool isBuy,
+				decimal fee
+		)
 		{
 			decimal amount = isBuy ? tradeAmt * fee : tradeAmt * tradeRate * fee;
 			return Math.Round(amount, 8, MidpointRounding.AwayFromZero);
 		}
 
-		private static IEnumerable<ExchangeOrderResult> ParseCompletedOrderDetails(JToken tradeHistory)
-			=> tradeHistory
-				.Select(o => new ExchangeOrderResult
-				{
-					OrderId = o["orderId"].ToStringInvariant(),
-					MarketSymbol = o["symbol"].ToStringInvariant(),
-					Amount = o["quantity"].ConvertInvariant<decimal>(),
-					IsBuy = o["side"].ToStringLowerInvariant() != "sell",
-					OrderDate = o["createTime"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
-					Price = o["price"].ConvertInvariant<decimal>(),
-					Result = ExchangeAPIOrderResult.Filled,
-					ClientOrderId = o["clientOrderId"].ToStringInvariant(),
-					Fees = o["feeAmount"].ConvertInvariant<decimal>(),
-					FeesCurrency = o["feeCurrency"].ToStringInvariant()
-				});
+		private static IEnumerable<ExchangeOrderResult> ParseCompletedOrderDetails(
+				JToken tradeHistory
+		) =>
+				tradeHistory.Select(
+						o =>
+								new ExchangeOrderResult
+								{
+									OrderId = o["orderId"].ToStringInvariant(),
+									MarketSymbol = o["symbol"].ToStringInvariant(),
+									Amount = o["quantity"].ConvertInvariant<decimal>(),
+									IsBuy = o["side"].ToStringLowerInvariant() != "sell",
+									OrderDate = o["createTime"]
+												.ConvertInvariant<long>()
+												.UnixTimeStampToDateTimeMilliseconds(),
+									Price = o["price"].ConvertInvariant<decimal>(),
+									Result = ExchangeAPIOrderResult.Filled,
+									ClientOrderId = o["clientOrderId"].ToStringInvariant(),
+									Fees = o["feeAmount"].ConvertInvariant<decimal>(),
+									FeesCurrency = o["feeCurrency"].ToStringInvariant()
+								}
+				);
 
 		private async Task<ExchangeTicker> ParseTickerWebSocketAsync(string symbol, JToken token)
 		{
@@ -240,28 +268,53 @@ namespace ExchangeSharp
 			// 	"markPrice": "205",
 			// }
 
-			return await this.ParseTickerAsync(token, symbol, askKey: null, bidKey: null, lastKey: "close",
-				baseVolumeKey: "quantity", quoteVolumeKey: "amount", timestampKey: "ts",
-				TimestampType.UnixMilliseconds);
+			return await this.ParseTickerAsync(
+					token,
+					symbol,
+					askKey: null,
+					bidKey: null,
+					lastKey: "close",
+					baseVolumeKey: "quantity",
+					quoteVolumeKey: "amount",
+					timestampKey: "ts",
+					TimestampType.UnixMilliseconds
+			);
 		}
 
 		public override string PeriodSecondsToString(int seconds)
 		{
 			var allowedPeriods = new[]
 			{
-				"MINUTE_1", "MINUTE_5", "MINUTE_10", "MINUTE_15",
-				"MINUTE_30", "HOUR_1", "HOUR_2", "HOUR_4", "HOUR_6",
-				"HOUR_12", "DAY_1", "DAY_3", "WEEK_1", "MONTH_1"
-			};
+								"MINUTE_1",
+								"MINUTE_5",
+								"MINUTE_10",
+								"MINUTE_15",
+								"MINUTE_30",
+								"HOUR_1",
+								"HOUR_2",
+								"HOUR_4",
+								"HOUR_6",
+								"HOUR_12",
+								"DAY_1",
+								"DAY_3",
+								"WEEK_1",
+								"MONTH_1"
+						};
 			var period = CryptoUtility.SecondsToPeriodStringLongReverse(seconds);
 			var periodIsvalid = allowedPeriods.Any(x => x == period);
 			if (!periodIsvalid)
-				throw new ArgumentOutOfRangeException(nameof(period), $"{period} is not valid period on Poloniex");
+				throw new ArgumentOutOfRangeException(
+						nameof(period),
+						$"{period} is not valid period on Poloniex"
+				);
 
 			return period;
 		}
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override async Task ProcessRequestAsync(
+				IHttpWebRequest request,
+				Dictionary<string, object> payload
+		)
 		{
 			if (CanMakeAuthenticatedRequest(payload))
 			{
@@ -272,35 +325,42 @@ namespace ExchangeSharp
 				{
 					case "GET":
 					case "DELETE":
-					{
-						payload["signTimestamp"] = timestamp;
-						var form = payload.GetFormForPayload();
-						sig = $"{request.Method}\n" +
-						      $"{request.RequestUri.PathAndQuery}\n" +
-						      $"{form}";
+						{
+							payload["signTimestamp"] = timestamp;
+							var form = payload.GetFormForPayload();
+							sig =
+									$"{request.Method}\n"
+									+ $"{request.RequestUri.PathAndQuery}\n"
+									+ $"{form}";
 
-						await request.WriteToRequestAsync(form);
-						break;
-					}
+							await request.WriteToRequestAsync(form);
+							break;
+						}
 					case "POST":
-					{
-						var pl = $"requestBody={payload.GetJsonForPayload()}&signTimestamp={timestamp}";
-						sig = $"{request.Method}\n" +
-						      $"{request.RequestUri.PathAndQuery}\n" +
-						      $"{pl}";
-						await request.WritePayloadJsonToRequestAsync(payload);
-						break;
-					}
+						{
+							var pl =
+									$"requestBody={payload.GetJsonForPayload()}&signTimestamp={timestamp}";
+							sig =
+									$"{request.Method}\n"
+									+ $"{request.RequestUri.PathAndQuery}\n"
+									+ $"{pl}";
+							await request.WritePayloadJsonToRequestAsync(payload);
+							break;
+						}
 				}
 
 				request.AddHeader("key", PublicApiKey.ToUnsecureString());
-				request.AddHeader("signature",
-					CryptoUtility.SHA256SignBase64(sig, PrivateApiKey.ToUnsecureBytesUTF8()));
+				request.AddHeader(
+						"signature",
+						CryptoUtility.SHA256SignBase64(sig, PrivateApiKey.ToUnsecureBytesUTF8())
+				);
 				request.AddHeader("signTimestamp", timestamp.ToStringInvariant());
 			}
 		}
 
-		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		protected override async Task<
+				IReadOnlyDictionary<string, ExchangeCurrency>
+		> OnGetCurrenciesAsync()
 		{
 			//https://api.poloniex.com/v2/currencies
 			// [
@@ -339,10 +399,18 @@ namespace ExchangeSharp
 					FullName = c["name"].ToStringInvariant(),
 					TxFee = c["networkList"][0]["withdrawFee"].ConvertInvariant<decimal>(),
 					DepositEnabled = c["networkList"][0]["depositEnable"].ConvertInvariant<bool>(),
-					WithdrawalEnabled = c["networkList"][0]["withdrawalEnable"].ConvertInvariant<bool>(),
-					MinWithdrawalSize = (c["networkList"][0]["withdrawMin"] ?? 0).ConvertInvariant<decimal>(),
-					BaseAddress = (c["networkList"][0]["depositAddress"] ?? string.Empty).ToStringInvariant(),
-					MinConfirmations = (c["networkList"][0]["minConfirm"] ?? 0).ConvertInvariant<int>()
+					WithdrawalEnabled = c["networkList"][0][
+								"withdrawalEnable"
+						].ConvertInvariant<bool>(),
+					MinWithdrawalSize = (
+								c["networkList"][0]["withdrawMin"] ?? 0
+						).ConvertInvariant<decimal>(),
+					BaseAddress = (
+								c["networkList"][0]["depositAddress"] ?? string.Empty
+						).ToStringInvariant(),
+					MinConfirmations = (
+								c["networkList"][0]["minConfirm"] ?? 0
+						).ConvertInvariant<int>()
 				};
 				currencies[currency.Name] = currency;
 			}
@@ -352,10 +420,14 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			return (await GetMarketSymbolsMetadataAsync()).Where(x => x.IsActive.Value).Select(x => x.MarketSymbol);
+			return (await GetMarketSymbolsMetadataAsync())
+					.Where(x => x.IsActive.Value)
+					.Select(x => x.MarketSymbol);
 		}
 
-		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<
+				IEnumerable<ExchangeMarket>
+		> OnGetMarketSymbolsMetadataAsync()
 		{
 			//https://api.poloniex.com/markets
 			// [
@@ -385,24 +457,32 @@ namespace ExchangeSharp
 
 			var symbols = await MakeJsonRequestAsync<JToken>("/markets");
 
-			return symbols.Select(symbol => new ExchangeMarket
-			{
-				MarketSymbol = symbol["symbol"].ToStringInvariant(),
-				IsActive = ParsePairState(symbol["state"].ToStringInvariant()),
-				BaseCurrency = symbol["baseCurrencyName"].ToStringInvariant(),
-				QuoteCurrency = symbol["quoteCurrencyName"].ToStringInvariant(),
-				MinTradeSize = symbol["symbolTradeLimit"]["minQuantity"].Value<decimal>(),
-				MaxTradeSize = decimal.MaxValue,
-				MinTradeSizeInQuoteCurrency = symbol["symbolTradeLimit"]["minAmount"].Value<decimal>(),
-				MinPrice = CryptoUtility.PrecisionToStepSize(symbol["symbolTradeLimit"]["priceScale"]
-					.Value<decimal>()),
-				MaxPrice = decimal.MaxValue,
-				PriceStepSize =
-					CryptoUtility.PrecisionToStepSize(symbol["symbolTradeLimit"]["priceScale"].Value<decimal>()),
-				QuantityStepSize =
-					CryptoUtility.PrecisionToStepSize(symbol["symbolTradeLimit"]["quantityScale"].Value<decimal>()),
-				MarginEnabled = symbol["crossMargin"]["supportCrossMargin"].Value<bool>()
-			});
+			return symbols.Select(
+					symbol =>
+							new ExchangeMarket
+							{
+								MarketSymbol = symbol["symbol"].ToStringInvariant(),
+								IsActive = ParsePairState(symbol["state"].ToStringInvariant()),
+								BaseCurrency = symbol["baseCurrencyName"].ToStringInvariant(),
+								QuoteCurrency = symbol["quoteCurrencyName"].ToStringInvariant(),
+								MinTradeSize = symbol["symbolTradeLimit"]["minQuantity"].Value<decimal>(),
+								MaxTradeSize = decimal.MaxValue,
+								MinTradeSizeInQuoteCurrency = symbol["symbolTradeLimit"][
+											"minAmount"
+									].Value<decimal>(),
+								MinPrice = CryptoUtility.PrecisionToStepSize(
+											symbol["symbolTradeLimit"]["priceScale"].Value<decimal>()
+									),
+								MaxPrice = decimal.MaxValue,
+								PriceStepSize = CryptoUtility.PrecisionToStepSize(
+											symbol["symbolTradeLimit"]["priceScale"].Value<decimal>()
+									),
+								QuantityStepSize = CryptoUtility.PrecisionToStepSize(
+											symbol["symbolTradeLimit"]["quantityScale"].Value<decimal>()
+									),
+								MarginEnabled = symbol["crossMargin"]["supportCrossMargin"].Value<bool>()
+							}
+			);
 		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
@@ -419,7 +499,9 @@ namespace ExchangeSharp
 			return null;
 		}
 
-		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		protected override async Task<
+				IEnumerable<KeyValuePair<string, ExchangeTicker>>
+		> OnGetTickersAsync()
 		{
 			//https://api.poloniex.com/markets/ticker24h
 			// [ {
@@ -448,15 +530,26 @@ namespace ExchangeSharp
 			{
 				var symbol = instrument["symbol"].ToStringInvariant();
 				var ticker = await this.ParseTickerAsync(
-					instrument, symbol, askKey: "ask", bidKey: "bid", baseVolumeKey: "quantity", lastKey: "close",
-					quoteVolumeKey: "amount", timestampKey: "ts", timestampType: TimestampType.UnixMilliseconds);
+						instrument,
+						symbol,
+						askKey: "ask",
+						bidKey: "bid",
+						baseVolumeKey: "quantity",
+						lastKey: "close",
+						quoteVolumeKey: "amount",
+						timestampKey: "ts",
+						timestampType: TimestampType.UnixMilliseconds
+				);
 				tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
 			}
 
 			return tickers;
 		}
 
-		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(
+				string marketSymbol,
+				int maxCount = 100
+		)
 		{
 			//https://api.poloniex.com/markets/{symbol}/orderBook?scale={scale}&limit={limit}
 			// {
@@ -466,13 +559,16 @@ namespace ExchangeSharp
 			//  "bids" : [ "24700.03", "1.006472", "24700.02", "0.001208", "24698.71", "0.607319", "24697.99", "0.001973", "24688.50", "0.133", "24679.41", "0.4", "24679.40", "0.135", "24678.55", "0.3", "24667.00", "0.262", "24661.39", "0.14" ],
 			//  "ts" : 1677005825637
 			// }
-			var response = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}/orderBook?limit={maxCount}");
+			var response = await MakeJsonRequestAsync<JToken>(
+					$"/markets/{marketSymbol}/orderBook?limit={maxCount}"
+			);
 			return response.ParseOrderBookFromJTokenArray();
 		}
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(
-			string marketSymbol,
-			int? limit = null)
+				string marketSymbol,
+				int? limit = null
+		)
 		{
 			//https://api.poloniex.com/markets/{symbol}/trades?limit={limit}
 			// Returns a list of recent trades, request param limit is optional, its default value is 500, and max value is 1000.
@@ -490,24 +586,35 @@ namespace ExchangeSharp
 
 			limit = (limit == null || limit < 1 || limit > 1000) ? 1000 : limit;
 
-			var tradesResponse = await MakeJsonRequestAsync<JToken>($"/markets/{marketSymbol}/trades?limit={limit}");
+			var tradesResponse = await MakeJsonRequestAsync<JToken>(
+					$"/markets/{marketSymbol}/trades?limit={limit}"
+			);
 
 			var trades = tradesResponse
-				.Select(t =>
-					t.ParseTrade(
-						amountKey: "amount", priceKey: "price", typeKey: "takerSide",
-						timestampKey: "ts", TimestampType.UnixMilliseconds, idKey: "id",
-						typeKeyIsBuyValue: "BUY")).ToList();
+					.Select(
+							t =>
+									t.ParseTrade(
+											amountKey: "amount",
+											priceKey: "price",
+											typeKey: "takerSide",
+											timestampKey: "ts",
+											TimestampType.UnixMilliseconds,
+											idKey: "id",
+											typeKeyIsBuyValue: "BUY"
+									)
+					)
+					.ToList();
 
 			return trades;
 		}
 
 		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(
-			string marketSymbol,
-			int periodSeconds,
-			DateTime? startDate = null,
-			DateTime? endDate = null,
-			int? limit = null)
+				string marketSymbol,
+				int periodSeconds,
+				DateTime? startDate = null,
+				DateTime? endDate = null,
+				int? limit = null
+		)
 		{
 			//https://api.poloniex.com/markets/{symbol}/candles?interval={interval}&limit={limit}&startTime={startTime}&endTime={endTime}
 			// [
@@ -533,7 +640,8 @@ namespace ExchangeSharp
 			var url = $"/markets/{marketSymbol}/candles?interval={period}&limit={limit}";
 			if (startDate != null)
 			{
-				url = $"{url}&startTime={new DateTimeOffset(startDate.Value).ToUnixTimeMilliseconds()}";
+				url =
+						$"{url}&startTime={new DateTimeOffset(startDate.Value).ToUnixTimeMilliseconds()}";
 			}
 
 			if (endDate != null)
@@ -542,48 +650,80 @@ namespace ExchangeSharp
 			}
 
 			var candleResponse = await MakeJsonRequestAsync<JToken>(url);
-			return candleResponse
-				.Select(cr => this.ParseCandle(
-					cr, marketSymbol, periodSeconds, 2, 1, 0, 3, 12, TimestampType.UnixMilliseconds,
-					5, 4, 10));
+			return candleResponse.Select(
+					cr =>
+							this.ParseCandle(
+									cr,
+									marketSymbol,
+									periodSeconds,
+									2,
+									1,
+									0,
+									3,
+									12,
+									TimestampType.UnixMilliseconds,
+									5,
+									4,
+									10
+							)
+			);
 		}
 
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
-			var response =
-				await MakeJsonRequestAsync<JToken>("/accounts/balances", payload: await GetNoncePayloadAsync());
+			var response = await MakeJsonRequestAsync<JToken>(
+					"/accounts/balances",
+					payload: await GetNoncePayloadAsync()
+			);
 			return (response[0]?["balances"] ?? throw new InvalidOperationException())
-				.Select(x => new
-				{
-					Currency = x["currency"].Value<string>(),
-					TotalBalance = x["available"].Value<decimal>() + x["hold"].Value<decimal>()
-				})
-				.ToDictionary(k => k.Currency, v => v.TotalBalance);
+					.Select(
+							x =>
+									new
+									{
+										Currency = x["currency"].Value<string>(),
+										TotalBalance = x["available"].Value<decimal>()
+													+ x["hold"].Value<decimal>()
+									}
+					)
+					.ToDictionary(k => k.Currency, v => v.TotalBalance);
 		}
 
-		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		protected override async Task<
+				Dictionary<string, decimal>
+		> OnGetAmountsAvailableToTradeAsync()
 		{
-			var response =
-				await MakeJsonRequestAsync<JToken>("/accounts/balances", payload: await GetNoncePayloadAsync());
+			var response = await MakeJsonRequestAsync<JToken>(
+					"/accounts/balances",
+					payload: await GetNoncePayloadAsync()
+			);
 			return (response[0]?["balances"] ?? throw new InvalidOperationException())
-				.Select(x => new
-				{
-					Currency = x["currency"].Value<string>(),
-					AvailableBalance = x["available"].Value<decimal>()
-				})
-				.ToDictionary(k => k.Currency, v => v.AvailableBalance);
+					.Select(
+							x =>
+									new
+									{
+										Currency = x["currency"].Value<string>(),
+										AvailableBalance = x["available"].Value<decimal>()
+									}
+					)
+					.ToDictionary(k => k.Currency, v => v.AvailableBalance);
 		}
 
-		protected override async Task<Dictionary<string, decimal>> OnGetMarginAmountsAvailableToTradeAsync(
-			bool includeZeroBalances)
+		protected override async Task<
+				Dictionary<string, decimal>
+		> OnGetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances)
 		{
-			var response =
-				await MakeJsonRequestAsync<JToken>("/margin/borrowStatus", payload: await GetNoncePayloadAsync());
-			var balances = response.Select(x => new
-			{
-				Currency = x["currency"].Value<string>(),
-				AvailableBalance = x["available"].Value<decimal>()
-			});
+			var response = await MakeJsonRequestAsync<JToken>(
+					"/margin/borrowStatus",
+					payload: await GetNoncePayloadAsync()
+			);
+			var balances = response.Select(
+					x =>
+							new
+							{
+								Currency = x["currency"].Value<string>(),
+								AvailableBalance = x["available"].Value<decimal>()
+							}
+			);
 			if (includeZeroBalances)
 			{
 				balances = balances.Where(x => x.AvailableBalance > 0);
@@ -592,7 +732,9 @@ namespace ExchangeSharp
 			return balances.ToDictionary(k => k.Currency, v => v.AvailableBalance);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
+				ExchangeOrderRequest order
+		)
 		{
 			if (order.Price == null && order.OrderType != OrderType.Market)
 				throw new ArgumentNullException(nameof(order.Price));
@@ -632,7 +774,8 @@ namespace ExchangeSharp
 					payload["type"] = "MARKET";
 					break;
 				case OrderType.Stop:
-				default: throw new ArgumentOutOfRangeException(nameof(order.OrderType));
+				default:
+					throw new ArgumentOutOfRangeException(nameof(order.OrderType));
 			}
 
 			foreach (var kvp in order.ExtraParameters)
@@ -640,75 +783,99 @@ namespace ExchangeSharp
 				payload[kvp.Key] = kvp.Value;
 			}
 
-			var response = await MakeJsonRequestAsync<JToken>("/orders", payload: payload, requestMethod: "POST");
+			var response = await MakeJsonRequestAsync<JToken>(
+					"/orders",
+					payload: payload,
+					requestMethod: "POST"
+			);
 			var orderInfo = await GetOrderDetailsAsync(response["id"].ToStringInvariant());
 
 			return orderInfo;
 		}
 
 		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
-			string marketSymbol = null)
+				string marketSymbol = null
+		)
 		{
 			var query = !string.IsNullOrEmpty(marketSymbol) ? $"?symbol={marketSymbol}" : "";
-			var result = await MakeJsonRequestAsync<JToken>($"/orders{query}", payload: await GetNoncePayloadAsync());
+			var result = await MakeJsonRequestAsync<JToken>(
+					$"/orders{query}",
+					payload: await GetNoncePayloadAsync()
+			);
 
-			return result
-				.Select(o => ParseOrder(o, marketSymbol)).ToList();
+			return result.Select(o => ParseOrder(o, marketSymbol)).ToList();
 		}
 
 		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(
-			string orderId,
-			string marketSymbol = null,
-			bool isClientOrderId = false)
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
-			var result =
-				await MakeJsonRequestAsync<JToken>($"/orders/{orderId}", payload: await GetNoncePayloadAsync());
+			var result = await MakeJsonRequestAsync<JToken>(
+					$"/orders/{orderId}",
+					payload: await GetNoncePayloadAsync()
+			);
 			return ParseOrder(result);
 		}
 
-		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(
-			string marketSymbol = null,
-			DateTime? afterDate = null)
+		protected override async Task<
+				IEnumerable<ExchangeOrderResult>
+		> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
 		{
 			var query = !string.IsNullOrEmpty(marketSymbol) ? $"?symbol={marketSymbol}" : "";
 			if (afterDate != null)
 			{
-				var startDateParam = $"startDate={new DateTimeOffset(afterDate.Value).ToUnixTimeMilliseconds()}";
+				var startDateParam =
+						$"startDate={new DateTimeOffset(afterDate.Value).ToUnixTimeMilliseconds()}";
 				query = query.Length > 0 ? $"?{startDateParam}" : $"&{startDateParam}";
 			}
 
-			var result = await MakeJsonRequestAsync<JToken>($"/trades{query}", payload: await GetNoncePayloadAsync());
+			var result = await MakeJsonRequestAsync<JToken>(
+					$"/trades{query}",
+					payload: await GetNoncePayloadAsync()
+			);
 
 			return ParseCompletedOrderDetails(result);
 		}
 
 		protected override async Task OnCancelOrderAsync(
-			string orderId,
-			string marketSymbol = null,
-			bool isClientOrderId = false)
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
 			await MakeJsonRequestAsync<JToken>(
-				$"/orders/{orderId}",
-				payload: await GetNoncePayloadAsync(),
-				requestMethod: "DELETE");
+					$"/orders/{orderId}",
+					payload: await GetNoncePayloadAsync(),
+					requestMethod: "DELETE"
+			);
 		}
 
 		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(
-			ExchangeWithdrawalRequest withdrawalRequest)
+				ExchangeWithdrawalRequest withdrawalRequest
+		)
 		{
 			// If we have an address tag, verify that Polo lets you specify it as part of the withdrawal
 			if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
 			{
-				if (!WithdrawalFieldCount.TryGetValue(withdrawalRequest.Currency, out int fieldCount) ||
-				    fieldCount == 0)
+				if (
+						!WithdrawalFieldCount.TryGetValue(
+								withdrawalRequest.Currency,
+								out int fieldCount
+						)
+						|| fieldCount == 0
+				)
 				{
 					throw new APIException(
-						$"Coin {withdrawalRequest.Currency} has unknown withdrawal field count. Please manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and add it to PoloniexWithdrawalFields.csv before calling Withdraw");
+							$"Coin {withdrawalRequest.Currency} has unknown withdrawal field count. Please manually verify the number of fields allowed during a withdrawal (Address + Tag = 2) and add it to PoloniexWithdrawalFields.csv before calling Withdraw"
+					);
 				}
 				else if (fieldCount == 1)
 				{
 					throw new APIException(
-						$"Coin {withdrawalRequest.Currency} only allows an address to be specified and address tag {withdrawalRequest.AddressTag} was provided.");
+							$"Coin {withdrawalRequest.Currency} only allows an address to be specified and address tag {withdrawalRequest.AddressTag} was provided."
+					);
 				}
 				else if (fieldCount > 2)
 				{
@@ -717,10 +884,14 @@ namespace ExchangeSharp
 			}
 
 			var paramsList = new List<object>
-			{
-				"currency", NormalizeMarketSymbol(withdrawalRequest.Currency), "amount", withdrawalRequest.Amount,
-				"address", withdrawalRequest.Address
-			};
+						{
+								"currency",
+								NormalizeMarketSymbol(withdrawalRequest.Currency),
+								"amount",
+								withdrawalRequest.Amount,
+								"address",
+								withdrawalRequest.Address
+						};
 			if (!string.IsNullOrWhiteSpace(withdrawalRequest.AddressTag))
 			{
 				paramsList.Add("paymentId");
@@ -737,8 +908,9 @@ namespace ExchangeSharp
 		}
 
 		protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(
-			string currency,
-			bool forceRegenerate = false)
+				string currency,
+				bool forceRegenerate = false
+		)
 		{
 			// Never reuse IOTA addresses
 			if (currency.Equals("MIOTA", StringComparison.OrdinalIgnoreCase))
@@ -747,8 +919,13 @@ namespace ExchangeSharp
 			}
 
 			IReadOnlyDictionary<string, ExchangeCurrency> currencies = await GetCurrenciesAsync();
-			var depositAddresses = new Dictionary<string, ExchangeDepositDetails>(StringComparer.OrdinalIgnoreCase);
-			if (!forceRegenerate && !(await TryFetchExistingAddresses(currency, currencies, depositAddresses)))
+			var depositAddresses = new Dictionary<string, ExchangeDepositDetails>(
+					StringComparer.OrdinalIgnoreCase
+			);
+			if (
+					!forceRegenerate
+					&& !(await TryFetchExistingAddresses(currency, currencies, depositAddresses))
+			)
 			{
 				return null;
 			}
@@ -764,14 +941,20 @@ namespace ExchangeSharp
 		/// <summary>Gets the deposit history for a symbol</summary>
 		/// <param name="currency">(ignored) The currency to check.</param>
 		/// <returns>Collection of ExchangeCoinTransfers</returns>
-		protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
+		protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(
+				string currency
+		)
 		{
-			JToken result = await MakePrivateAPIRequestAsync("returnDepositsWithdrawals",
-				new object[]
-				{
-					"start", DateTime.MinValue.ToUniversalTime().UnixTimestampFromDateTimeSeconds(),
-					"end", CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds()
-				});
+			JToken result = await MakePrivateAPIRequestAsync(
+					"returnDepositsWithdrawals",
+					new object[]
+					{
+										"start",
+										DateTime.MinValue.ToUniversalTime().UnixTimestampFromDateTimeSeconds(),
+										"end",
+										CryptoUtility.UtcNow.UnixTimestampFromDateTimeSeconds()
+					}
+			);
 
 			var transactions = new List<ExchangeTransaction>();
 
@@ -783,7 +966,9 @@ namespace ExchangeSharp
 					Address = token["address"].ToStringInvariant(),
 					Amount = token["amount"].ConvertInvariant<decimal>(),
 					BlockchainTxId = token["txid"].ToStringInvariant(),
-					Timestamp = token["timestamp"].ConvertInvariant<double>().UnixTimeStampToDateTimeSeconds()
+					Timestamp = token["timestamp"]
+								.ConvertInvariant<double>()
+								.UnixTimeStampToDateTimeSeconds()
 				};
 
 				string status = token["status"].ToStringUpperInvariant();
@@ -809,63 +994,104 @@ namespace ExchangeSharp
 		}
 
 		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(
-			Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
-			params string[] symbols) =>
-			await ConnectWebsocketPublicAsync(
-				async (socket) => { await SubscribeToChannel(socket, "ticker", symbols); },
-				async (socket, symbol, sArray, token) =>
-				{
-					var tickers = new List<KeyValuePair<string, ExchangeTicker>>
-					{
-						new KeyValuePair<string, ExchangeTicker>(symbol,
-							await this.ParseTickerWebSocketAsync(symbol, token))
-					};
-					callback(tickers);
-				});
+				Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
+				params string[] symbols
+		) =>
+				await ConnectWebsocketPublicAsync(
+						async (socket) =>
+						{
+							await SubscribeToChannel(socket, "ticker", symbols);
+						},
+						async (socket, symbol, sArray, token) =>
+						{
+							var tickers = new List<KeyValuePair<string, ExchangeTicker>>
+								{
+												new KeyValuePair<string, ExchangeTicker>(
+														symbol,
+														await this.ParseTickerWebSocketAsync(symbol, token)
+												)
+								};
+							callback(tickers);
+						}
+				);
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
-			Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
-			params string[] marketSymbols) =>
-			await ConnectWebsocketPublicAsync(
-				async (socket) => { await SubscribeToChannel(socket, "trades", marketSymbols); },
-				async (socket, symbol, sArray, token) =>
-				{
-					var trade = token.ParseTrade(amountKey: "quantity", priceKey: "price", typeKey: "takerSide",
-						timestampKey: "ts", TimestampType.UnixMilliseconds, idKey: "id");
-					await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
-				});
+				Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+				params string[] marketSymbols
+		) =>
+				await ConnectWebsocketPublicAsync(
+						async (socket) =>
+						{
+							await SubscribeToChannel(socket, "trades", marketSymbols);
+						},
+						async (socket, symbol, sArray, token) =>
+						{
+							var trade = token.ParseTrade(
+											amountKey: "quantity",
+											priceKey: "price",
+											typeKey: "takerSide",
+											timestampKey: "ts",
+											TimestampType.UnixMilliseconds,
+											idKey: "id"
+									);
+							await callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
+						}
+				);
 
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
-			Action<ExchangeOrderBook> callback,
-			int maxCount = 20,
-			params string[] marketSymbols) =>
-			await ConnectWebsocketPublicAsync(
-				async (socket) => { await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount); },
-				(socket, symbol, sArray, token) =>
-				{
-					var book = token.ParseOrderBookFromJTokenArrays();
-					book.MarketSymbol = symbol;
-					callback(book);
-					return Task.CompletedTask;
-				});
+				Action<ExchangeOrderBook> callback,
+				int maxCount = 20,
+				params string[] marketSymbols
+		) =>
+				await ConnectWebsocketPublicAsync(
+						async (socket) =>
+						{
+							await SubscribeToOrderBookDepthChannel(socket, marketSymbols, maxCount);
+						},
+						(socket, symbol, sArray, token) =>
+						{
+							var book = token.ParseOrderBookFromJTokenArrays();
+							book.MarketSymbol = symbol;
+							callback(book);
+							return Task.CompletedTask;
+						}
+				);
 
 		protected override async Task<IWebSocket> OnGetCandlesWebSocketAsync(
-			Func<MarketCandle, Task> callback,
-			int periodSeconds,
-			params string[] marketSymbols) =>
-			await ConnectWebsocketPublicAsync(
-				async (socket) =>
-				{
-					await SubscribeToChannel(socket,
-						$"candles_{CryptoUtility.SecondsToPeriodStringLongReverse(periodSeconds).ToLowerInvariant()}",
-						marketSymbols);
-				}, async (socket, symbol, sArray, token) =>
-				{
-					var candle = this.ParseCandle(token, symbol, periodSeconds, "open", "high", "low", "close",
-						"ts", TimestampType.UnixMilliseconds, "quantity", "amount", null, "tradeCount");
+				Func<MarketCandle, Task> callback,
+				int periodSeconds,
+				params string[] marketSymbols
+		) =>
+				await ConnectWebsocketPublicAsync(
+						async (socket) =>
+						{
+							await SubscribeToChannel(
+											socket,
+											$"candles_{CryptoUtility.SecondsToPeriodStringLongReverse(periodSeconds).ToLowerInvariant()}",
+											marketSymbols
+									);
+						},
+						async (socket, symbol, sArray, token) =>
+						{
+							var candle = this.ParseCandle(
+											token,
+											symbol,
+											periodSeconds,
+											"open",
+											"high",
+											"low",
+											"close",
+											"ts",
+											TimestampType.UnixMilliseconds,
+											"quantity",
+											"amount",
+											null,
+											"tradeCount"
+									);
 
-					await callback(candle);
-				});
+							await callback(candle);
+						}
+				);
 
 		private static string ParseFeesCurrency(bool isBuy, string symbol)
 		{
@@ -881,9 +1107,10 @@ namespace ExchangeSharp
 		}
 
 		private async Task<bool> TryFetchExistingAddresses(
-			string currency,
-			IReadOnlyDictionary<string, ExchangeCurrency> currencies,
-			Dictionary<string, ExchangeDepositDetails> depositAddresses)
+				string currency,
+				IReadOnlyDictionary<string, ExchangeCurrency> currencies,
+				Dictionary<string, ExchangeDepositDetails> depositAddresses
+		)
 		{
 			JToken result = await MakePrivateAPIRequestAsync("returnDepositAddresses");
 			foreach (JToken jToken in result)
@@ -891,7 +1118,14 @@ namespace ExchangeSharp
 				var token = (JProperty)jToken;
 				var details = new ExchangeDepositDetails { Currency = token.Name };
 
-				if (!TryPopulateAddressAndTag(currency, currencies, details, token.Value.ToStringInvariant()))
+				if (
+						!TryPopulateAddressAndTag(
+								currency,
+								currencies,
+								details,
+								token.Value.ToStringInvariant()
+						)
+				)
 				{
 					return false;
 				}
@@ -903,10 +1137,11 @@ namespace ExchangeSharp
 		}
 
 		private static bool TryPopulateAddressAndTag(
-			string currency,
-			IReadOnlyDictionary<string, ExchangeCurrency> currencies,
-			ExchangeDepositDetails details,
-			string address)
+				string currency,
+				IReadOnlyDictionary<string, ExchangeCurrency> currencies,
+				ExchangeDepositDetails details,
+				string address
+		)
 		{
 			if (currencies.TryGetValue(currency, out ExchangeCurrency coin))
 			{
@@ -930,23 +1165,24 @@ namespace ExchangeSharp
 
 		private static bool ParsePairState(string state)
 		{
-			if (string.IsNullOrWhiteSpace(state)) return false;
+			if (string.IsNullOrWhiteSpace(state))
+				return false;
 
 			return state == "NORMAL";
 		}
 
 		private static ExchangeAPIOrderResult ParseOrderStatus(string status) =>
-			status.ToUpperInvariant() switch
-			{
-				"NEW" => ExchangeAPIOrderResult.Open,
-				"PARTIALLY_FILLED" => ExchangeAPIOrderResult.FilledPartially,
-				"FILLED" => ExchangeAPIOrderResult.Filled,
-				"PENDING_CANCEL" => ExchangeAPIOrderResult.PendingCancel,
-				"PARTIALLY_CANCELED" => ExchangeAPIOrderResult.FilledPartiallyAndCancelled,
-				"CANCELED" => ExchangeAPIOrderResult.Canceled,
-				"FAILED" => ExchangeAPIOrderResult.Rejected,
-				_ => ExchangeAPIOrderResult.Unknown
-			};
+				status.ToUpperInvariant() switch
+				{
+					"NEW" => ExchangeAPIOrderResult.Open,
+					"PARTIALLY_FILLED" => ExchangeAPIOrderResult.FilledPartially,
+					"FILLED" => ExchangeAPIOrderResult.Filled,
+					"PENDING_CANCEL" => ExchangeAPIOrderResult.PendingCancel,
+					"PARTIALLY_CANCELED" => ExchangeAPIOrderResult.FilledPartiallyAndCancelled,
+					"CANCELED" => ExchangeAPIOrderResult.Canceled,
+					"FAILED" => ExchangeAPIOrderResult.Rejected,
+					_ => ExchangeAPIOrderResult.Unknown
+				};
 
 		/// <summary>
 		/// Create a deposit address
@@ -955,17 +1191,24 @@ namespace ExchangeSharp
 		/// <param name="currencies">Lookup of existing currencies</param>
 		/// <returns>ExchangeDepositDetails with an address or a BaseAddress/AddressTag pair.</returns>
 		private async Task<ExchangeDepositDetails> CreateDepositAddress(
-			string currency,
-			IReadOnlyDictionary<string, ExchangeCurrency> currencies)
+				string currency,
+				IReadOnlyDictionary<string, ExchangeCurrency> currencies
+		)
 		{
-			JToken result =
-				await MakePrivateAPIRequestAsync("generateNewAddress", new object[] { "currency", currency });
-			var details = new ExchangeDepositDetails
-			{
-				Currency = currency,
-			};
+			JToken result = await MakePrivateAPIRequestAsync(
+					"generateNewAddress",
+					new object[] { "currency", currency }
+			);
+			var details = new ExchangeDepositDetails { Currency = currency, };
 
-			if (!TryPopulateAddressAndTag(currency, currencies, details, result["response"].ToStringInvariant()))
+			if (
+					!TryPopulateAddressAndTag(
+							currency,
+							currencies,
+							details,
+							result["response"].ToStringInvariant()
+					)
+			)
 			{
 				return null;
 			}
@@ -974,71 +1217,89 @@ namespace ExchangeSharp
 		}
 
 		private Task<IWebSocket> ConnectWebsocketPublicAsync(
-			Func<IWebSocket, Task> connected,
-			Func<IWebSocket, string, string[], JToken, Task> callback)
+				Func<IWebSocket, Task> connected,
+				Func<IWebSocket, string, string[], JToken, Task> callback
+		)
 		{
 			Timer pingTimer = null;
 			return ConnectPublicWebSocketAsync(
-				url: "/public",
-				messageCallback: async (socket, msg) =>
-				{
-					var token = JToken.Parse(msg.ToStringFromUTF8());
-					var eventType = token["event"]?.ToStringInvariant();
-					if (eventType != null)
+					url: "/public",
+					messageCallback: async (socket, msg) =>
 					{
-						if (eventType != "error") return;
-						Logger.Info("Websocket unable to connect: " + token["msg"]?.ToStringInvariant());
-						return;
-					}
+						var token = JToken.Parse(msg.ToStringFromUTF8());
+						var eventType = token["event"]?.ToStringInvariant();
+						if (eventType != null)
+						{
+							if (eventType != "error")
+								return;
+							Logger.Info(
+												"Websocket unable to connect: " + token["msg"]?.ToStringInvariant()
+										);
+							return;
+						}
 
-					if (token["data"] == null) return;
+						if (token["data"] == null)
+							return;
 
-					foreach (var d in token["data"])
+						foreach (var d in token["data"])
+						{
+							await callback(socket, d["symbol"]?.ToStringInvariant(), null, d);
+						}
+					},
+					connectCallback: async (socket) =>
 					{
-						await callback(socket, d["symbol"]?.ToStringInvariant(), null, d);
+						await connected(socket);
+						pingTimer ??= new Timer(
+											callback: async s =>
+													await socket.SendMessageAsync(
+															JsonConvert.SerializeObject(
+																	new { Event = "ping" },
+																	SerializerSettings
+															)
+													),
+											null,
+											0,
+											15000
+									);
+					},
+					disconnectCallback: socket =>
+					{
+						pingTimer?.Dispose();
+						pingTimer = null;
+						return Task.CompletedTask;
 					}
-				},
-				connectCallback: async (socket) =>
-				{
-					await connected(socket);
-					pingTimer ??= new Timer(
-						callback: async s =>
-							await socket.SendMessageAsync(
-								JsonConvert.SerializeObject(new { Event = "ping" }, SerializerSettings)),
-						null, 0, 15000);
-				},
-				disconnectCallback: socket =>
-				{
-					pingTimer?.Dispose();
-					pingTimer = null;
-					return Task.CompletedTask;
-				});
+			);
 		}
 
 		private static async Task SubscribeToChannel(
-			IWebSocket socket,
-			string channel,
-			string[] marketSymbols)
+				IWebSocket socket,
+				string channel,
+				string[] marketSymbols
+		)
 		{
 			if (marketSymbols.Length == 0)
 			{
 				marketSymbols = new[] { "all" };
 			}
 
-			var payload = JsonConvert.SerializeObject(new
-			{
-				Event = "subscribe",
-				Channel = new[] { channel },
-				Symbols = marketSymbols
-			}, SerializerSettings);
+			var payload = JsonConvert.SerializeObject(
+					new
+					{
+						Event = "subscribe",
+						Channel = new[] { channel },
+						Symbols = marketSymbols
+					},
+					SerializerSettings
+			);
 
 			await socket.SendMessageAsync(payload);
 		}
 
 		private async Task SubscribeToOrderBookDepthChannel(
-			IWebSocket socket,
-			string[] marketSymbols,
-			int depth = 20)
+				IWebSocket socket,
+				string[] marketSymbols,
+				int depth = 20
+		)
 		{
 			var depthIsValid = depth == 5 || depth == 10 || depth == 20;
 			if (!depthIsValid)
@@ -1048,13 +1309,16 @@ namespace ExchangeSharp
 				marketSymbols = (await OnGetMarketSymbolsAsync()).ToArray();
 			}
 
-			var payload = JsonConvert.SerializeObject(new
-			{
-				Event = "subscribe",
-				Channel = new[] { "book" },
-				Symbols = marketSymbols,
-				Depth = depth
-			}, SerializerSettings);
+			var payload = JsonConvert.SerializeObject(
+					new
+					{
+						Event = "subscribe",
+						Channel = new[] { "book" },
+						Symbols = marketSymbols,
+						Depth = depth
+					},
+					SerializerSettings
+			);
 
 			await socket.SendMessageAsync(payload);
 		}

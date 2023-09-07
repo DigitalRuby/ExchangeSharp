@@ -8,10 +8,15 @@ using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
 {
-	[Verb("ws-orderbook", HelpText =
-		"Connects to the given exchange websocket and keeps printing the first bid and ask prices and amounts for the given market symbols.\n"
-		+ "If market symbol is not set then uses all.")]
-	public class WebSocketsOrderbookOption : BaseOption, IOptionPerExchange, IOptionWithMultipleMarketSymbol
+	[Verb(
+			"ws-orderbook",
+			HelpText = "Connects to the given exchange websocket and keeps printing the first bid and ask prices and amounts for the given market symbols.\n"
+					+ "If market symbol is not set then uses all."
+	)]
+	public class WebSocketsOrderbookOption
+			: BaseOption,
+					IOptionPerExchange,
+					IOptionWithMultipleMarketSymbol
 	{
 		public override async Task RunCommand()
 		{
@@ -20,8 +25,8 @@ namespace ExchangeSharpConsole.Options
 				var symbols = await ValidateMarketSymbolsAsync(api, MarketSymbols.ToArray(), true);
 
 				return await api.GetFullOrderBookWebSocketAsync(
-					OrderBookCallback,
-					symbols : symbols
+						OrderBookCallback,
+						symbols: symbols
 				);
 			}
 
@@ -30,13 +35,13 @@ namespace ExchangeSharpConsole.Options
 
 		private static void OrderBookCallback(ExchangeOrderBook msg)
 		{
-			var(_, bid) = msg.Bids.FirstOrDefault();
-			var(_, ask) = msg.Asks.FirstOrDefault();
+			var (_, bid) = msg.Bids.FirstOrDefault();
+			var (_, ask) = msg.Asks.FirstOrDefault();
 
 			Console.WriteLine(
-				$"[{msg.MarketSymbol,-8}:{msg.SequenceId,10}] "
-				+ $"{bid.Price,10} ({bid.Amount,9:N2}) | "
-				+ $"{ask.Price,10} ({ask.Amount,9:N})"
+					$"[{msg.MarketSymbol,-8}:{msg.SequenceId,10}] "
+							+ $"{bid.Price,10} ({bid.Amount,9:N2}) | "
+							+ $"{ask.Price,10} ({ask.Amount,9:N})"
 			);
 		}
 

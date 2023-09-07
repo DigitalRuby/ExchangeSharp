@@ -32,12 +32,8 @@ namespace ExchangeSharp
 
 			public ExchangeCurrency ToExchangeCurrency()
 			{
-				return new ExchangeCurrency()
-				{
-					Name = Product,
-					FullName = ProductFullName
-				};
+				return new ExchangeCurrency() { Name = Product, FullName = ProductFullName };
 			}
 		}
-    }
+	}
 }

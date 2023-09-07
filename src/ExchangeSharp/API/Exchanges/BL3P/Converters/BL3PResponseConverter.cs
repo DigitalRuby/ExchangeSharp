@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 namespace ExchangeSharp.BL3P
 {
 	internal class BL3PResponseConverter<TSuccess> : JsonComplexObjectConverter<BL3PResponsePayload>
-		where TSuccess : BL3PResponsePayload, new()
+			where TSuccess : BL3PResponsePayload, new()
 	{
 		protected override BL3PResponsePayload Create(JsonReader reader)
 		{
@@ -15,7 +15,7 @@ namespace ExchangeSharp.BL3P
 					continue;
 				}
 
-				var prop = (string) reader.Value;
+				var prop = (string)reader.Value;
 
 				switch (prop)
 				{

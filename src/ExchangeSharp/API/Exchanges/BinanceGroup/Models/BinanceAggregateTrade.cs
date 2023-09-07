@@ -16,6 +16,7 @@ namespace ExchangeSharp.BinanceGroup
 	{
 		public long FirstTradeId { get; set; }
 		public long LastTradeId { get; set; }
+
 		public override string ToString()
 		{
 			return string.Format("{0},{1},{2}", base.ToString(), FirstTradeId, LastTradeId);

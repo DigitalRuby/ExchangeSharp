@@ -1,11 +1,6 @@
 ﻿{
-  "BL3P":
-  [
-    "BTCEUR",
-    "LTCEUR"
-  ],
-  "BitBank":
-  [
+  "BL3P": ["BTCEUR", "LTCEUR"],
+  "BitBank": [
     "btc_jpy",
     "xrp_jpy",
     "ltc_btc",
@@ -15,8 +10,7 @@
     "bcc_jpy",
     "bcc_btc"
   ],
-  "Gemini":
-  [
+  "Gemini": [
     "btcusd",
     "ethbtc",
     "ethusd",
@@ -33,8 +27,7 @@
     "zecbch",
     "zecltc"
   ],
-  "Coinbase":
-  [
+  "Coinbase": [
     "BTC-EUR",
     "ZRX-BTC",
     "EOS-BTC",
@@ -89,8 +82,7 @@
     "LTC-BTC",
     "DAI-USDC"
   ],
-  "Kraken":
-  [
+  "Kraken": [
     "ADACAD",
     "ADAETH",
     "ADAEUR",
@@ -191,8 +183,7 @@
     "XZECZJPY",
     "XZECZUSD"
   ],
-  "Bitfinex":
-  [
+  "Bitfinex": [
     "BTCUSD",
     "LTCUSD",
     "LTCBTC",
@@ -618,8 +609,7 @@
     "BTCF0USTF0",
     "ETHF0USTF0"
   ],
-  "ZBcom":
-  [
+  "ZBcom": [
     "zb_qc",
     "zb_usdt",
     "zb_btc",
@@ -811,8 +801,7 @@
     "lvn_usdt",
     "tsr_usdt"
   ],
-  "Bithumb":
-  [
+  "Bithumb": [
     "BTC",
     "ETH",
     "DASH",
@@ -912,8 +901,7 @@
     "BTT",
     "HYC"
   ],
-  "Huobi":
-  [
+  "Huobi": [
     "ontbtc",
     "wicceth",
     "cvceth",
@@ -1467,8 +1455,7 @@
     "cvcusdt",
     "algobtc"
   ],
-  "Poloniex":
-  [
+  "Poloniex": [
     "BTC_BCN",
     "BTC_BTS",
     "BTC_CLAM",
@@ -1571,8 +1558,7 @@
     "USDT_GRIN",
     "USDT_DGB"
   ],
-  "Binance":
-  [
+  "Binance": [
     "ETHBTC",
     "LTCBTC",
     "BNBBTC",
@@ -2211,8 +2197,7 @@
     "NKNBTC",
     "NKNUSDT"
   ],
-  "Bitstamp":
-  [
+  "Bitstamp": [
     "ltcusd",
     "ethusd",
     "xrpeur",
@@ -2229,8 +2214,7 @@
     "ethbtc",
     "etheur"
   ],
-  "OKEx":
-  [
+  "OKEx": [
     "XPO-USDT",
     "BCH-BTC",
     "BSV-BTC",
@@ -2689,8 +2673,7 @@
     "XRP-USD-SWAP",
     "ETC-USD-SWAP"
   ],
-  "Bittrex":
-  [
+  "Bittrex": [
     "BTC-LTC",
     "BTC-DOGE",
     "BTC-VTC",
@@ -3059,8 +3042,7 @@
     "USDT-VET",
     "BTC-SIX"
   ],
-  "OKCoin":
-  [
+  "OKCoin": [
     "BTC-USD",
     "LTC-USD",
     "ETH-USD",
@@ -3092,8 +3074,7 @@
     "BCH-EUR",
     "EURS-EUR"
   ],
-  "Digifinex":
-  [
+  "Digifinex": [
     "BTC_USDT",
     "ETH_USDT",
     "DFT_USDT",
@@ -3401,8 +3382,7 @@
     "GIB_USDT",
     "HTP_USDT"
   ],
-  "HitBTC":
-  [
+  "HitBTC": [
     "BCNBTC",
     "BTCUSD",
     "DASHBTC",
@@ -4311,8 +4291,7 @@
     "WINUSD",
     "ADKBTC"
   ],
-  "LBank":
-  [
+  "LBank": [
     "fbc_usdt",
     "hds_usdt",
     "galt_usdt",
@@ -4467,8 +4446,7 @@
     "trx_usdt",
     "grs_btc"
   ],
-  "Livecoin":
-  [
+  "Livecoin": [
     "BNT/BTC",
     "SFT/ETH",
     "GOLD/BTC",
@@ -5515,8 +5493,7 @@
     "FORTYTWO/BTC",
     "UNRC/USD"
   ],
-  "KuCoin":
-  [
+  "KuCoin": [
     "REQ-ETH",
     "REQ-BTC",
     "PAY-ETH",
@@ -5972,8 +5949,7 @@
     "GRIN-ETH",
     "GRIN-USDT"
   ],
-  "Yobit":
-  [
+  "Yobit": [
     "ltc_btc",
     "nmc_btc",
     "ppc_btc",
@@ -14424,8 +14400,7 @@
     "btc_usd",
     "yovi_btc"
   ],
-  "BitMEX":
-  [
+  "BitMEX": [
     "XBTZ14",
     "XBTF15",
     "XBTZ14_F15",

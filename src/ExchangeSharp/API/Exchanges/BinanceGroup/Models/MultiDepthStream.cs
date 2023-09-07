@@ -12,14 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.BinanceGroup
 {
-    using Newtonsoft.Json;
+	using Newtonsoft.Json;
 
-    internal class MultiDepthStream
-    {
-        [JsonProperty("stream")]
-        public string Stream { get; set; }
+	internal class MultiDepthStream
+	{
+		[JsonProperty("stream")]
+		public string Stream { get; set; }
 
-        [JsonProperty("data")]
-        public MarketDepthDiffUpdate Data { get; set; }
-    }
+		[JsonProperty("data")]
+		public MarketDepthDiffUpdate Data { get; set; }
+	}
 }

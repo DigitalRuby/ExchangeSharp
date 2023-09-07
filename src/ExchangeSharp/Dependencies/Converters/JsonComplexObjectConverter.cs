@@ -27,10 +27,10 @@ namespace ExchangeSharp.Dependencies.Converters
 		}
 
 		public override object ReadJson(
-			JsonReader reader,
-			Type objectType,
-			object existingValue,
-			JsonSerializer serializer
+				JsonReader reader,
+				Type objectType,
+				object existingValue,
+				JsonSerializer serializer
 		)
 		{
 			var jObject = JObject.Load(reader);

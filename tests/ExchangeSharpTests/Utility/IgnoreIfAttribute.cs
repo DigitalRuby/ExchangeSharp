@@ -30,19 +30,25 @@ namespace Microsoft.VisualStudio.TestTools.UnitTesting
 			try
 			{
 				// Search for the method or prop specified by name in this class or any parent classes.
-				var searchFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy |
-				                  BindingFlags.Static;
-				Debug.Assert(testMethod.MethodInfo.DeclaringType != null,
-					"testMethod.MethodInfo.DeclaringType != null");
-				var member = testMethod.MethodInfo.DeclaringType.GetMember(IgnoreCriteriaMemberName, searchFlags)
-					.FirstOrDefault();
+				var searchFlags =
+						BindingFlags.Public
+						| BindingFlags.NonPublic
+						| BindingFlags.FlattenHierarchy
+						| BindingFlags.Static;
+				Debug.Assert(
+						testMethod.MethodInfo.DeclaringType != null,
+						"testMethod.MethodInfo.DeclaringType != null"
+				);
+				var member = testMethod.MethodInfo.DeclaringType
+						.GetMember(IgnoreCriteriaMemberName, searchFlags)
+						.FirstOrDefault();
 
 				switch (member)
 				{
 					case MethodInfo method:
-						return (bool) method.Invoke(null, null);
+						return (bool)method.Invoke(null, null);
 					case PropertyInfo prop:
-						return (bool) prop.GetValue(null);
+						return (bool)prop.GetValue(null);
 					default:
 						throw new ArgumentOutOfRangeException(nameof(member));
 				}
@@ -50,7 +56,7 @@ namespace Microsoft.VisualStudio.TestTools.UnitTesting
 			catch (Exception e)
 			{
 				var message =
-					$"Conditional ignore bool returning method/prop {IgnoreCriteriaMemberName} not found. Ensure the method/prop is in the same class as the test method, marked as `static`, returns a `bool`, and doesn't accept any parameters.";
+						$"Conditional ignore bool returning method/prop {IgnoreCriteriaMemberName} not found. Ensure the method/prop is in the same class as the test method, marked as `static`, returns a `bool`, and doesn't accept any parameters.";
 				throw new ArgumentException(message, e);
 			}
 		}

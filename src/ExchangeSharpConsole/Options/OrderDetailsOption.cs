@@ -6,7 +6,11 @@ using ExchangeSharpConsole.Options.Interfaces;
 namespace ExchangeSharpConsole.Options
 {
 	[Verb("order-details", HelpText = "Fetch the order details from the exchange.")]
-	public class OrderDetailsOption : BaseOption, IOptionPerExchange, IOptionPerOrderId, IOptionWithMarketSymbol
+	public class OrderDetailsOption
+			: BaseOption,
+					IOptionPerExchange,
+					IOptionPerOrderId,
+					IOptionWithMarketSymbol
 	{
 		public override async Task RunCommand()
 		{

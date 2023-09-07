@@ -8,8 +8,11 @@ using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
 {
-	[Verb("stats", HelpText = "Show stats from 4 exchanges.\n" +
-	                          "This is a great way to see the price, order book and other useful stats.")]
+	[Verb(
+			"stats",
+			HelpText = "Show stats from 4 exchanges.\n"
+					+ "This is a great way to see the price, order book and other useful stats."
+	)]
 	public class StatsOption : BaseOption, IOptionWithInterval
 	{
 		public override async Task RunCommand()
@@ -17,11 +20,10 @@ namespace ExchangeSharpConsole.Options
 			var marketSymbol = "BTC-USD";
 			var marketSymbol2 = "XXBTZUSD";
 
-			IExchangeAPI
-				apiCoinbase = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Coinbase),
-				apiGemini = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Gemini),
-				apiKraken = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Kraken),
-				apiBitfinex = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Bitfinex);
+			IExchangeAPI apiCoinbase = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Coinbase),
+					apiGemini = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Gemini),
+					apiKraken = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Kraken),
+					apiBitfinex = await ExchangeAPI.GetExchangeAPIAsync(ExchangeName.Bitfinex);
 
 			//TODO: Make this multi-threaded and add parameters
 			Console.WriteLine("Use CTRL-C to stop.");
@@ -57,14 +59,42 @@ namespace ExchangeSharpConsole.Options
 				var bidPriceSum4 = orders4.Bids.Values.Sum(o => o.Price);
 
 				Console.Clear();
-				Console.WriteLine("GDAX: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}", ticker.Last,
-					ticker.Volume.QuoteCurrencyVolume, askAmountSum, askPriceSum, bidAmountSum, bidPriceSum);
-				Console.WriteLine("GEMI: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}", ticker2.Last,
-					ticker2.Volume.QuoteCurrencyVolume, askAmountSum2, askPriceSum2, bidAmountSum2, bidPriceSum2);
-				Console.WriteLine("KRAK: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}", ticker3.Last,
-					ticker3.Volume.QuoteCurrencyVolume, askAmountSum3, askPriceSum3, bidAmountSum3, bidPriceSum3);
-				Console.WriteLine("BITF: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}", ticker4.Last,
-					ticker4.Volume.QuoteCurrencyVolume, askAmountSum4, askPriceSum4, bidAmountSum4, bidPriceSum4);
+				Console.WriteLine(
+						"GDAX: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}",
+						ticker.Last,
+						ticker.Volume.QuoteCurrencyVolume,
+						askAmountSum,
+						askPriceSum,
+						bidAmountSum,
+						bidPriceSum
+				);
+				Console.WriteLine(
+						"GEMI: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}",
+						ticker2.Last,
+						ticker2.Volume.QuoteCurrencyVolume,
+						askAmountSum2,
+						askPriceSum2,
+						bidAmountSum2,
+						bidPriceSum2
+				);
+				Console.WriteLine(
+						"KRAK: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}",
+						ticker3.Last,
+						ticker3.Volume.QuoteCurrencyVolume,
+						askAmountSum3,
+						askPriceSum3,
+						bidAmountSum3,
+						bidPriceSum3
+				);
+				Console.WriteLine(
+						"BITF: {0,13:N}, {1,15:N}, {2,8:N}, {3,13:N}, {4,8:N}, {5,13:N}",
+						ticker4.Last,
+						ticker4.Volume.QuoteCurrencyVolume,
+						askAmountSum4,
+						askPriceSum4,
+						bidAmountSum4,
+						bidPriceSum4
+				);
 				Thread.Sleep(IntervalMs);
 			}
 		}

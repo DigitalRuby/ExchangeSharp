@@ -108,7 +108,10 @@ namespace ExchangeSharp
 		/// <param name="currency">Currency to get address for.</param>
 		/// <param name="forceRegenerate">True to regenerate the address</param>
 		/// <returns>Deposit address details (including tag if applicable, such as XRP)</returns>
-		Task<ExchangeDepositDetails> GetDepositAddressAsync(string currency, bool forceRegenerate = false);
+		Task<ExchangeDepositDetails> GetDepositAddressAsync(
+				string currency,
+				bool forceRegenerate = false
+		);
 
 		/// <summary>
 		/// Gets the deposit history for a currency
@@ -137,7 +140,14 @@ namespace ExchangeSharp
 		/// <param name="marketSymbol">Symbol to get historical data for</param>
 		/// <param name="startDate">Optional start date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
 		/// <param name="endDate">Optional UTC end date time to start getting the historical data at, null for the most recent data. Not all exchanges support this.</param>
-		Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
+		Task GetHistoricalTradesAsync(
+				Func<IEnumerable<ExchangeTrade>, bool> callback,
+				string marketSymbol,
+				DateTime? startDate = null,
+				DateTime? endDate = null,
+				int? limit = null
+		);
+
 		//Task GetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null);
 
 		// Task<ExchangeOrderBook> GetOrderBookAsync(string marketSymbol, int maxCount = 100); is in IOrderBookProvider
@@ -149,7 +159,11 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="marketSymbol">Market Symbol</param>
 		/// <returns>Trades</returns>
-		Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol, int? limit = null);
+		Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(
+				string marketSymbol,
+				int? limit = null
+		);
+
 		//Task<IEnumerable<ExchangeTrade>> GetRecentTradesAsync(string marketSymbol);
 
 		/// <summary>
@@ -161,7 +175,13 @@ namespace ExchangeSharp
 		/// <param name="endDate">Optional end date to get candles for</param>
 		/// <param name="limit">Max results, can be used instead of startDate and endDate if desired</param>
 		/// <returns>Candles</returns>
-		Task<IEnumerable<MarketCandle>> GetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
+		Task<IEnumerable<MarketCandle>> GetCandlesAsync(
+				string marketSymbol,
+				int periodSeconds,
+				DateTime? startDate = null,
+				DateTime? endDate = null,
+				int? limit = null
+		);
 
 		/// <summary>
 		/// Get fees
@@ -186,7 +206,9 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="includeZeroBalances">Include currencies with zero balance in return value</param>
 		/// <returns>Dictionary of symbols and amounts available to trade in margin account</returns>
-		Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(bool includeZeroBalances = false);
+		Task<Dictionary<string, decimal>> GetMarginAmountsAvailableToTradeAsync(
+				bool includeZeroBalances = false
+		);
 
 		/// <summary>
 		/// Place an order
@@ -209,14 +231,20 @@ namespace ExchangeSharp
 		/// <param name="marketSymbol">Market Symbol</param>
 		/// <param name="isClientOrderId">Whether the order id parameter is the server assigned id or client provided id</param>
 		/// <returns>Order details</returns>
-		Task<ExchangeOrderResult> GetOrderDetailsAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false);
+		Task<ExchangeOrderResult> GetOrderDetailsAsync(
+				string orderId,
+				string? marketSymbol = null,
+				bool isClientOrderId = false
+		);
 
 		/// <summary>
 		/// Get the details of all open orders
 		/// </summary>
 		/// <param name="marketSymbol">Market symbol to get open orders for or null for all</param>
 		/// <returns>All open order details for the specified symbol</returns>
-		Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(string? marketSymbol = null);
+		Task<IEnumerable<ExchangeOrderResult>> GetOpenOrderDetailsAsync(
+				string? marketSymbol = null
+		);
 
 		/// <summary>
 		/// Get the details of all completed orders
@@ -224,7 +252,10 @@ namespace ExchangeSharp
 		/// <param name="marketSymbol">Market symbol to get completed orders for or null for all</param>
 		/// <param name="afterDate">Only returns orders on or after the specified date/time</param>
 		/// <returns>All completed order details for the specified symbol, or all if null symbol</returns>
-		Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(string? marketSymbol = null, DateTime? afterDate = null);
+		Task<IEnumerable<ExchangeOrderResult>> GetCompletedOrderDetailsAsync(
+				string? marketSymbol = null,
+				DateTime? afterDate = null
+		);
 
 		/// <summary>
 		/// Cancel an order, an exception is thrown if failure
@@ -232,7 +263,11 @@ namespace ExchangeSharp
 		/// <param name="orderId">Order id of the order to cancel</param>
 		/// <param name="marketSymbol">Market symbol of the order to cancel (not required for most exchanges)</param>
 		/// <param name="isClientOrderId">Whether the order id parameter is the server assigned id or client provided id</param>
-		Task CancelOrderAsync(string orderId, string? marketSymbol = null, bool isClientOrderId = false);
+		Task CancelOrderAsync(
+				string orderId,
+				string? marketSymbol = null,
+				bool isClientOrderId = false
+		);
 
 		/// <summary>
 		/// Asynchronous withdraws request.
@@ -270,7 +305,11 @@ namespace ExchangeSharp
 		/// <param name="periodSeconds">Candle interval in seconds</param>
 		/// <param name="marketSymbols">Market Symbols</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		Task<IWebSocket> GetCandlesWebSocketAsync(Func<MarketCandle, Task> callbackAsync, int periodSeconds, params string[] marketSymbols);
+		Task<IWebSocket> GetCandlesWebSocketAsync(
+				Func<MarketCandle, Task> callbackAsync,
+				int periodSeconds,
+				params string[] marketSymbols
+		);
 
 		/// <summary>
 		/// Get all position updates via web socket
@@ -285,7 +324,10 @@ namespace ExchangeSharp
 		/// <param name="callback">Callback</param>
 		/// <param name="symbols">Symbols. If no symbols are specified, this will get the tickers for all symbols. NOTE: Some exchanges don't allow you to specify which symbols to return.</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		Task<IWebSocket> GetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] symbols);
+		Task<IWebSocket> GetTickersWebSocketAsync(
+				Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
+				params string[] symbols
+		);
 
 		/// <summary>
 		/// Get information about trades via web socket
@@ -293,7 +335,10 @@ namespace ExchangeSharp
 		/// <param name="callback">Callback (symbol and trade)</param>
 		/// <param name="marketSymbols">Market symbols</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		Task<IWebSocket> GetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols);
+		Task<IWebSocket> GetTradesWebSocketAsync(
+				Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+				params string[] marketSymbols
+		);
 
 		// Task<IWebSocket> GetDeltaOrderBookWebSocketAsync is in IOrderBookProvider
 
@@ -309,7 +354,9 @@ namespace ExchangeSharp
 		/// </summary>
 		/// <param name="callback">Callback</param>
 		/// <returns>Web socket, call Dispose to close</returns>
-		Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(Action<ExchangeOrderResult> callback);
+		Task<IWebSocket> GetCompletedOrderDetailsWebSocketAsync(
+				Action<ExchangeOrderResult> callback
+		);
 
 		/// <summary>
 		/// Get user detail over web socket

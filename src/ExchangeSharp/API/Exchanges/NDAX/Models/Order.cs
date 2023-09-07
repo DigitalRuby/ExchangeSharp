@@ -96,7 +96,9 @@ namespace ExchangeSharp
 			[JsonProperty("OMSId")]
 			public long OmsId { get; set; }
 
-			public ExchangeOrderResult ToExchangeOrderResult(Dictionary<string, long> symbolToIdMapping)
+			public ExchangeOrderResult ToExchangeOrderResult(
+					Dictionary<string, long> symbolToIdMapping
+			)
 			{
 				ExchangeAPIOrderResult orderResult;
 				switch (OrderState.ToLowerInvariant())
@@ -120,8 +122,11 @@ namespace ExchangeSharp
 						orderResult = ExchangeAPIOrderResult.Filled;
 						break;
 					default:
-						throw new NotImplementedException($"Unexpected status type: {OrderState.ToLowerInvariant()}");
-				};
+						throw new NotImplementedException(
+								$"Unexpected status type: {OrderState.ToLowerInvariant()}"
+						);
+				}
+					;
 				var symbol = symbolToIdMapping.Where(pair => pair.Value.Equals(Instrument));
 				return new ExchangeOrderResult()
 				{
@@ -131,11 +136,9 @@ namespace ExchangeSharp
 					Price = Price,
 					Result = orderResult,
 					OrderDate = ReceiveTime.UnixTimeStampToDateTimeMilliseconds(),
-
 					OrderId = OrderId.ToStringInvariant(),
-
 				};
 			}
 		}
-    }
+	}
 }

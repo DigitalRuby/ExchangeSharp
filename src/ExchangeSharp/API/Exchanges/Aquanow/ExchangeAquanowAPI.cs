@@ -12,12 +12,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-	using ExchangeSharp.Aquanow;
-	using Newtonsoft.Json;
-	using Newtonsoft.Json.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
+	using ExchangeSharp.Aquanow;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Linq;
 
 	public sealed partial class ExchangeAquanowAPI : ExchangeAPI
 	{
@@ -47,50 +47,69 @@ namespace ExchangeSharp
 		}
 
 		// NOT SUPPORTED
-		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		protected override async Task<
+				IEnumerable<KeyValuePair<string, ExchangeTicker>>
+		> OnGetTickersAsync()
 		{
-			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			List<KeyValuePair<string, ExchangeTicker>> tickers =
+					new List<KeyValuePair<string, ExchangeTicker>>();
 			JToken symbols = await MakeJsonRequestAsync<JToken>("/availablesymbols", MarketUrl);
 			foreach (string symbol in symbols)
 			{
-				JToken bestPriceSymbol = await MakeJsonRequestAsync<JToken>($"/bestprice?symbol={symbol}", MarketUrl);
+				JToken bestPriceSymbol = await MakeJsonRequestAsync<JToken>(
+						$"/bestprice?symbol={symbol}",
+						MarketUrl
+				);
 				decimal bid = bestPriceSymbol["bestBid"].ConvertInvariant<decimal>();
 				decimal ask = bestPriceSymbol["bestAsk"].ConvertInvariant<decimal>();
-				ExchangeTicker ticker = new ExchangeTicker { Exchange = Name, MarketSymbol = symbol, Bid = bid, Ask = ask, ApiResponse = bestPriceSymbol };
+				ExchangeTicker ticker = new ExchangeTicker
+				{
+					Exchange = Name,
+					MarketSymbol = symbol,
+					Bid = bid,
+					Ask = ask,
+					ApiResponse = bestPriceSymbol
+				};
 				tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol, ticker));
 			}
 			return tickers;
 		}
 
-		protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
+		protected override async Task<
+				IReadOnlyDictionary<string, ExchangeCurrency>
+		> OnGetCurrenciesAsync()
 		{
 			var currencies = new Dictionary<string, ExchangeCurrency>();
 			var symbols = await GetMarketSymbolsAsync();
 			foreach (string symbol in symbols)
 			{
-				var currency = new ExchangeCurrency
-				{
-					Name = symbol
-				};
+				var currency = new ExchangeCurrency { Name = symbol };
 				currencies[currency.Name] = currency;
 			}
 
 			return currencies;
 		}
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override async Task ProcessRequestAsync(
+				IHttpWebRequest request,
+				Dictionary<string, object> payload
+		)
 		{
 			if (CanMakeAuthenticatedRequest(payload))
 			{
 				request.AddHeader("content-type", "application/json");
-				var sigContent = new signatureContent { httpMethod = request.Method, path = request.RequestUri.LocalPath, nonce = payload["nonce"].ToStringInvariant() };
+				var sigContent = new signatureContent
+				{
+					httpMethod = request.Method,
+					path = request.RequestUri.LocalPath,
+					nonce = payload["nonce"].ToStringInvariant()
+				};
 				string json = JsonConvert.SerializeObject(sigContent);
 				string bodyRequest = JsonConvert.SerializeObject(payload);
 				string hexSha384 = CryptoUtility.SHA384Sign(json, PrivateApiKey.ToUnsecureString());
 				request.AddHeader("x-api-key", PublicApiKey.ToUnsecureString());
 				request.AddHeader("x-signature", hexSha384);
-				request.AddHeader("x-nonce", payload["nonce"].ToStringInvariant()
-				);
+				request.AddHeader("x-nonce", payload["nonce"].ToStringInvariant());
 				if (request.Method == "GET")
 				{
 					await CryptoUtility.WriteToRequestAsync(request, null);
@@ -103,20 +122,32 @@ namespace ExchangeSharp
 		}
 
 		// DONE
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
+				ExchangeOrderRequest order
+		)
 		{
-			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null)
+				throw new NotSupportedException(
+						"Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature."
+				);
 			// In Aquanow market order, when buying crypto the amount of crypto that is bought is the receiveQuantity
 			// and when selling the amount of crypto that is sold is the deliverQuantity
 			string amountParameter = order.IsBuy ? "receiveQuantity" : "deliverQuantity";
 			string amountReceived = order.IsBuy ? "deliverQuantity" : "receiveQuantity";
-			string feesCurrency = order.IsBuy ? order.MarketSymbol.Substring(0, order.MarketSymbol.IndexOf('-')) : order.MarketSymbol.Substring(order.MarketSymbol.IndexOf('-') + 1);
+			string feesCurrency = order.IsBuy
+					? order.MarketSymbol.Substring(0, order.MarketSymbol.IndexOf('-'))
+					: order.MarketSymbol.Substring(order.MarketSymbol.IndexOf('-') + 1);
 			var payload = await GetNoncePayloadAsync();
 			payload["ticker"] = order.MarketSymbol;
 			payload["tradeSide"] = order.IsBuy ? "buy" : "sell";
 			payload[amountParameter] = order.Amount;
 			order.ExtraParameters.CopyTo(payload);
-			JToken token = await MakeJsonRequestAsync<JToken>("/trades/v1/market", null, payload, "POST");
+			JToken token = await MakeJsonRequestAsync<JToken>(
+					"/trades/v1/market",
+					null,
+					payload,
+					"POST"
+			);
 			var orderDetailsPayload = await GetNoncePayloadAsync();
 
 			//{
@@ -131,7 +162,12 @@ namespace ExchangeSharp
 			//   }
 			//}
 
-			JToken result = await MakeJsonRequestAsync<JToken>($"/trades/v1/order?orderId={token["payload"]["orderId"].ToStringInvariant()}", null, orderDetailsPayload, "GET");
+			JToken result = await MakeJsonRequestAsync<JToken>(
+					$"/trades/v1/order?orderId={token["payload"]["orderId"].ToStringInvariant()}",
+					null,
+					orderDetailsPayload,
+					"GET"
+			);
 			// {
 			//   "priceArrival": 9223.5,
 			//   "orderId": "24cf77ad-7e93-44d7-86f8-b9d9a046b008",
@@ -171,9 +207,13 @@ namespace ExchangeSharp
 			ExchangeOrderResult orderDetails = new ExchangeOrderResult
 			{
 				OrderId = result["orderId"].ToStringInvariant(),
-				AmountFilled = result["fillQtyQuote"].ToStringInvariant().ConvertInvariant<decimal>(),
+				AmountFilled = result["fillQtyQuote"]
+							.ToStringInvariant()
+							.ConvertInvariant<decimal>(),
 				Amount = payload[amountParameter].ConvertInvariant<decimal>(),
-				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["tradeTime"].ConvertInvariant<double>()),
+				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(
+							result["tradeTime"].ConvertInvariant<double>()
+					),
 				Message = result["message"].ToStringInvariant(),
 				IsBuy = order.IsBuy,
 				Fees = token["payload"]["fee"].ConvertInvariant<decimal>(),
@@ -184,7 +224,9 @@ namespace ExchangeSharp
 			switch (result["tradeStatus"].ToStringInvariant())
 			{
 				case "COMPLETE":
-					orderDetails.AveragePrice = result["tradePriceAvg"].ToStringInvariant().ConvertInvariant<decimal>();
+					orderDetails.AveragePrice = result["tradePriceAvg"]
+							.ToStringInvariant()
+							.ConvertInvariant<decimal>();
 					orderDetails.Result = ExchangeAPIOrderResult.Filled;
 					break;
 
@@ -195,25 +237,43 @@ namespace ExchangeSharp
 			return orderDetails;
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
 			if (string.IsNullOrWhiteSpace(orderId))
 			{
 				return null;
 			}
-			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId)
+				throw new NotSupportedException(
+						"Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature"
+				);
 			var payload = await GetNoncePayloadAsync();
-			JToken result = await MakeJsonRequestAsync<JToken>($"/trades/v1/order?orderId={orderId}", null, payload, "GET");
+			JToken result = await MakeJsonRequestAsync<JToken>(
+					$"/trades/v1/order?orderId={orderId}",
+					null,
+					payload,
+					"GET"
+			);
 			bool isBuy = result["tradeSide"].ToStringInvariant() == "buy" ? true : false;
 			ExchangeOrderResult orderDetails = new ExchangeOrderResult
 			{
 				OrderId = result["orderId"].ToStringInvariant(),
-				AmountFilled = result["fillQtyQuote"].ToStringInvariant().ConvertInvariant<decimal>(),
+				AmountFilled = result["fillQtyQuote"]
+							.ToStringInvariant()
+							.ConvertInvariant<decimal>(),
 				Amount = result["tradeSize"].ConvertInvariant<decimal>(),
-				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(result["tradeTime"].ConvertInvariant<double>()),
+				OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(
+							result["tradeTime"].ConvertInvariant<double>()
+					),
 				Message = result["message"].ToStringInvariant(),
 				IsBuy = isBuy,
-				Fees = result["fillFeeQuote"].ConvertInvariant<decimal>() + result["fillFeeQuotaAqua"].ConvertInvariant<decimal>(),
+				Fees =
+							result["fillFeeQuote"].ConvertInvariant<decimal>()
+							+ result["fillFeeQuotaAqua"].ConvertInvariant<decimal>(),
 				FeesCurrency = result["quoteSymbol"].ToStringInvariant(),
 				MarketSymbol = result["symbol"].ToStringInvariant(),
 				Price = result["priceArrival"].ToStringInvariant().ConvertInvariant<decimal>(),
@@ -221,7 +281,9 @@ namespace ExchangeSharp
 			switch (result["tradeStatus"].ToStringInvariant())
 			{
 				case "COMPLETE":
-					orderDetails.AveragePrice = result["tradePriceAvg"].ToStringInvariant().ConvertInvariant<decimal>();
+					orderDetails.AveragePrice = result["tradePriceAvg"]
+							.ToStringInvariant()
+							.ConvertInvariant<decimal>();
 					orderDetails.Result = ExchangeAPIOrderResult.Filled;
 					break;
 
@@ -233,14 +295,29 @@ namespace ExchangeSharp
 			return orderDetails;
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		protected override async Task OnCancelOrderAsync(
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
-			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId)
+				throw new NotSupportedException(
+						"Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature"
+				);
 			var payload = await GetNoncePayloadAsync();
 			payload["orderId"] = orderId;
-			JToken token = await MakeJsonRequestAsync<JToken>("/trades/v1/order", null, payload, "DELETE");
+			JToken token = await MakeJsonRequestAsync<JToken>(
+					"/trades/v1/order",
+					null,
+					payload,
+					"DELETE"
+			);
 		}
 	}
 
-	public partial class ExchangeName { public const string Aquanow = "Aquanow"; }
+	public partial class ExchangeName
+	{
+		public const string Aquanow = "Aquanow";
+	}
 }

@@ -12,7 +12,7 @@ namespace Microsoft.VisualStudio.TestTools.UnitTesting
 		public TestPlatforms FlagPlatform { get; }
 
 		public PlatformSpecificTestAttribute(TestPlatforms flagPlatform, string message = null)
-			: base(null, message)
+				: base(null, message)
 		{
 			FlagPlatform = flagPlatform;
 		}

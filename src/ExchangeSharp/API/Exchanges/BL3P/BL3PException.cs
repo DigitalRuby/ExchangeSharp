@@ -9,7 +9,7 @@ namespace ExchangeSharp.BL3P
 		public string ErrorCode { get; }
 
 		internal BL3PException(BL3PResponsePayloadError error)
-			: this(error?.Message)
+				: this(error?.Message)
 		{
 			if (error == null)
 				throw new ArgumentNullException(nameof(error));
@@ -17,20 +17,12 @@ namespace ExchangeSharp.BL3P
 		}
 
 		public BL3PException(string message)
-			: base(message)
-		{
-		}
+				: base(message) { }
 
 		public BL3PException(string message, Exception inner)
-			: base(message, inner)
-		{
-		}
+				: base(message, inner) { }
 
-		protected BL3PException(
-			SerializationInfo info,
-			StreamingContext context
-		) : base(info, context)
-		{
-		}
+		protected BL3PException(SerializationInfo info, StreamingContext context)
+				: base(info, context) { }
 	}
 }

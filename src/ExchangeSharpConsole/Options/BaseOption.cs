@@ -26,7 +26,7 @@ namespace ExchangeSharpConsole.Options
 				return;
 			}
 
-			using(var proc = Process.GetCurrentProcess())
+			using (var proc = Process.GetCurrentProcess())
 			{
 				Console.Error.WriteLine($"Connect debugger to PID: {proc.Id}.");
 				Console.Error.WriteLine("Waiting...");
@@ -38,8 +38,9 @@ namespace ExchangeSharpConsole.Options
 			}
 		}
 #endif
-		public bool IsInteractiveSession
-			=> !(Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected);
+
+		public bool IsInteractiveSession =>
+				!(Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected);
 
 		public abstract Task RunCommand();
 
@@ -64,7 +65,7 @@ namespace ExchangeSharpConsole.Options
 			if (!IsInteractiveSession)
 			{
 				throw new NotSupportedException(
-					"It still not supported to read secure input without a interactive terminal session."
+						"It still not supported to read secure input without a interactive terminal session."
 				);
 			}
 
@@ -122,7 +123,10 @@ namespace ExchangeSharpConsole.Options
 			return ExchangeAPI.GetExchangeAPIAsync(exchangeName);
 		}
 
-		protected async Task RunWebSocket(string exchangeName, Func<IExchangeAPI, Task<IWebSocket>> getWebSocket)
+		protected async Task RunWebSocket(
+				string exchangeName,
+				Func<IExchangeAPI, Task<IWebSocket>> getWebSocket
+		)
 		{
 			using var api = await ExchangeAPI.GetExchangeAPIAsync(exchangeName);
 
@@ -170,9 +174,14 @@ namespace ExchangeSharpConsole.Options
 		/// Makes the app keep running after main thread has exited
 		/// </summary>
 		/// <param name="callback">A callback for when the user press CTRL-C or Q</param>
-		protected static IDisposable KeepSessionAlive(Action callback = null) => new ConsoleSessionKeeper(callback);
+		protected static IDisposable KeepSessionAlive(Action callback = null) =>
+				new ConsoleSessionKeeper(callback);
 
-		protected static async Task<string[]> ValidateMarketSymbolsAsync(IExchangeAPI api, string[] marketSymbols, bool isWebSocket = false)
+		protected static async Task<string[]> ValidateMarketSymbolsAsync(
+				IExchangeAPI api,
+				string[] marketSymbols,
+				bool isWebSocket = false
+		)
 		{
 			var apiSymbols = (await api.GetMarketSymbolsAsync(isWebSocket)).ToArray();
 
@@ -181,20 +190,19 @@ namespace ExchangeSharpConsole.Options
 				return apiSymbols;
 			}
 
-			return ValidateMarketSymbolsInternal(api, marketSymbols, apiSymbols)
-				.ToArray();
+			return ValidateMarketSymbolsInternal(api, marketSymbols, apiSymbols).ToArray();
 		}
 
 		private static IEnumerable<string> ValidateMarketSymbolsInternal(
-			IExchangeAPI api,
-			string[] marketSymbols,
-			string[] apiSymbols
+				IExchangeAPI api,
+				string[] marketSymbols,
+				string[] apiSymbols
 		)
 		{
 			foreach (var marketSymbol in marketSymbols)
 			{
 				var apiSymbol = apiSymbols.FirstOrDefault(
-					a => a.Equals(marketSymbol, StringComparison.OrdinalIgnoreCase)
+						a => a.Equals(marketSymbol, StringComparison.OrdinalIgnoreCase)
 				);
 
 				if (!string.IsNullOrWhiteSpace(apiSymbol))
@@ -207,8 +215,8 @@ namespace ExchangeSharpConsole.Options
 				var validSymbols = string.Join(",", apiSymbols.OrderBy(s => s));
 
 				throw new ArgumentException(
-					$"Symbol {marketSymbol} does not exist in API {api.Name}.\n"
-					+ $"Valid symbols: {validSymbols}"
+						$"Symbol {marketSymbol} does not exist in API {api.Name}.\n"
+								+ $"Valid symbols: {validSymbols}"
 				);
 			}
 		}
@@ -228,10 +236,12 @@ namespace ExchangeSharpConsole.Options
 
 			for (var i = 0; i < length; i++)
 			{
-				var(_, ask) = orderBook.Asks.ElementAtOrDefault(i);
-				var(_, bid) = orderBook.Bids.ElementAtOrDefault(i);
-				Console.WriteLine($"{bid.Price,10} ({bid.Amount,9:N2}) | "
-					+ $"{ask.Price,10} ({ask.Amount,9:N})");
+				var (_, ask) = orderBook.Asks.ElementAtOrDefault(i);
+				var (_, bid) = orderBook.Bids.ElementAtOrDefault(i);
+				Console.WriteLine(
+						$"{bid.Price,10} ({bid.Amount,9:N2}) | "
+								+ $"{ask.Price,10} ({ask.Amount,9:N})"
+				);
 			}
 		}
 	}

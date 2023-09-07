@@ -12,19 +12,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Class encapsulating a withdrawal response from an exchange
-    /// </summary>
-    public sealed class ExchangeWithdrawalResponse
-    {
-        /// <summary>The message of the transacion.</summary>
-        public string Message { get; set; }
+	/// <summary>
+	/// Class encapsulating a withdrawal response from an exchange
+	/// </summary>
+	public sealed class ExchangeWithdrawalResponse
+	{
+		/// <summary>The message of the transacion.</summary>
+		public string Message { get; set; }
 
-        /// <summary>The identifier for the transaction.</summary>
-        public string Id { get; set; }
+		/// <summary>The identifier for the transaction.</summary>
+		public string Id { get; set; }
 
-        /// <summary>Whether the withdrawal was successful</summary>
-        public bool Success { get; set; } = true;
+		/// <summary>Whether the withdrawal was successful</summary>
+		public bool Success { get; set; } = true;
 
 		/// <summary>Fee for the withdrawal</summary>
 		public decimal? Fee { get; set; }
@@ -32,8 +32,8 @@ namespace ExchangeSharp
 		/// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
 		/// <returns>A <see cref="System.String" /> that represents this instance.</returns>
 		public override string ToString()
-        {
-            return $"Success: {Success} Id: {Id ?? "null"} Message: {Message ?? "null"}";
-        }
-    }
+		{
+			return $"Success: {Success} Id: {Id ?? "null"} Message: {Message ?? "null"}";
+		}
+	}
 }

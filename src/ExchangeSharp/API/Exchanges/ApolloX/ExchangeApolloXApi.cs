@@ -1,10 +1,10 @@
-using ExchangeSharp.BinanceGroup;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ExchangeSharp.BinanceGroup;
+using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -16,5 +16,8 @@ namespace ExchangeSharp
 		public override string BaseUrlApi => $"{BaseUrl}/fapi/v1";
 	}
 
-	public partial class ExchangeName { public const string ApolloX = "ApolloX"; }
+	public partial class ExchangeName
+	{
+		public const string ApolloX = "ApolloX";
+	}
 }

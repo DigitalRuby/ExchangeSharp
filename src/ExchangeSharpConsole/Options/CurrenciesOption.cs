@@ -1,8 +1,8 @@
+using System;
+using System.Threading.Tasks;
 using CommandLine;
 using ExchangeSharpConsole.Options.Interfaces;
 using Newtonsoft.Json;
-using System;
-using System.Threading.Tasks;
 
 namespace ExchangeSharpConsole.Options
 {

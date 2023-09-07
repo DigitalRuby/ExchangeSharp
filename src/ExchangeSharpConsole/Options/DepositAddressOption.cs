@@ -1,7 +1,7 @@
-using CommandLine;
-using ExchangeSharpConsole.Options.Interfaces;
 using System;
 using System.Threading.Tasks;
+using CommandLine;
+using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
 {

@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "josefpihrt-vscode.roslynator",
+        "ms-dotnettools.csharp"
+    ]
+}

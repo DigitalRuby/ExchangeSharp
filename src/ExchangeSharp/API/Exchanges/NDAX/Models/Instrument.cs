@@ -64,7 +64,10 @@ namespace ExchangeSharp
 				{
 					BaseCurrency = Product1Symbol,
 					QuoteCurrency = Product2Symbol,
-					IsActive = SessionStatus.Equals("running", StringComparison.InvariantCultureIgnoreCase),
+					IsActive = SessionStatus.Equals(
+								"running",
+								StringComparison.InvariantCultureIgnoreCase
+						),
 					MarginEnabled = false,
 					MarketId = InstrumentId.ToStringInvariant(),
 					MarketSymbol = Symbol,
@@ -72,5 +75,5 @@ namespace ExchangeSharp
 				};
 			}
 		}
-    }
+	}
 }

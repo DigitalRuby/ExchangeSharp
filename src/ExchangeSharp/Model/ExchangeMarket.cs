@@ -12,14 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp
 {
-    /// <summary>Representation of a market on an exchange.</summary>
-    public class ExchangeMarket
-    {
-        /// <summary>Id of the market (specific to the exchange), null if none</summary>
-        public string MarketId { get; set; }
+	/// <summary>Representation of a market on an exchange.</summary>
+	public class ExchangeMarket
+	{
+		/// <summary>Id of the market (specific to the exchange), null if none</summary>
+		public string MarketId { get; set; }
 
-        /// <summary>Gets or sets the symbol representing the market's currency pair.</summary>
-        public string MarketSymbol { get; set; }
+		/// <summary>Gets or sets the symbol representing the market's currency pair.</summary>
+		public string MarketSymbol { get; set; }
 
 		/// <summary>Aternate market symbol</summary>
 		public string AltMarketSymbol { get; set; }
@@ -30,52 +30,52 @@ namespace ExchangeSharp
 		/// <summary>A value indicating whether the market is active.</summary>
 		public bool? IsActive { get; set; }
 
-        /// <summary>In a pair like ZRX/BTC, BTC is the quote currency.</summary>
-        public string QuoteCurrency { get; set; }
+		/// <summary>In a pair like ZRX/BTC, BTC is the quote currency.</summary>
+		public string QuoteCurrency { get; set; }
 
-        /// <summary>In a pair like ZRX/BTC, ZRX is the base currency.</summary>
-        public string BaseCurrency { get; set; }
+		/// <summary>In a pair like ZRX/BTC, ZRX is the base currency.</summary>
+		public string BaseCurrency { get; set; }
 
-        /// <summary>The minimum size of the trade in the unit of "BaseCurrency". For example, in
-        /// DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE</summary>
-        public decimal? MinTradeSize { get; set; }
+		/// <summary>The minimum size of the trade in the unit of "BaseCurrency". For example, in
+		/// DOGE/BTC the MinTradeSize is currently 423.72881356 DOGE</summary>
+		public decimal? MinTradeSize { get; set; }
 
-        /// <summary>The maximum size of the trade in the unit of "BaseCurrency".</summary>
-        public decimal? MaxTradeSize { get; set; }
+		/// <summary>The maximum size of the trade in the unit of "BaseCurrency".</summary>
+		public decimal? MaxTradeSize { get; set; }
 
-        /// <summary>The minimum size of the trade in the unit of "QuoteCurrency". To determine an order's
-        /// trade size in terms of the Quote Currency, you need to calculate: price * quantity
-        /// NOTE: Not all exchanges provide this information</summary>
-        public decimal? MinTradeSizeInQuoteCurrency { get; set; }
+		/// <summary>The minimum size of the trade in the unit of "QuoteCurrency". To determine an order's
+		/// trade size in terms of the Quote Currency, you need to calculate: price * quantity
+		/// NOTE: Not all exchanges provide this information</summary>
+		public decimal? MinTradeSizeInQuoteCurrency { get; set; }
 
-        /// <summary>The maximum size of the trade in the unit of "QuoteCurrency". To determine an order's
-        /// trade size in terms of the Quote Currency, you need to calculate: price * quantity
-        /// NOTE: Not all exchanges provide this information</summary>
-        public decimal? MaxTradeSizeInQuoteCurrency { get; set; }
+		/// <summary>The maximum size of the trade in the unit of "QuoteCurrency". To determine an order's
+		/// trade size in terms of the Quote Currency, you need to calculate: price * quantity
+		/// NOTE: Not all exchanges provide this information</summary>
+		public decimal? MaxTradeSizeInQuoteCurrency { get; set; }
 
-        /// <summary>The minimum price of the pair.</summary>
-        public decimal? MinPrice { get; set; }
+		/// <summary>The minimum price of the pair.</summary>
+		public decimal? MinPrice { get; set; }
 
-        /// <summary>The maximum price of the pair.</summary>
-        public decimal? MaxPrice { get; set; }
+		/// <summary>The maximum price of the pair.</summary>
+		public decimal? MaxPrice { get; set; }
 
-        /// <summary>Defines the intervals that a price can be increased/decreased by. The following
-        /// must be true for price: Price % PriceStepSize == 0 Null if unknown or not applicable.</summary>
-        public decimal? PriceStepSize { get; set; }
+		/// <summary>Defines the intervals that a price can be increased/decreased by. The following
+		/// must be true for price: Price % PriceStepSize == 0 Null if unknown or not applicable.</summary>
+		public decimal? PriceStepSize { get; set; }
 
-        /// <summary>Defines the intervals that a quantity can be increased/decreased by. The
-        /// following must be true for quantity: (Quantity-MinTradeSize) % QuantityStepSize == 0 Null
-        /// if unknown or not applicable.</summary>
-        public decimal? QuantityStepSize { get; set; }
+		/// <summary>Defines the intervals that a quantity can be increased/decreased by. The
+		/// following must be true for quantity: (Quantity-MinTradeSize) % QuantityStepSize == 0 Null
+		/// if unknown or not applicable.</summary>
+		public decimal? QuantityStepSize { get; set; }
 
-        /// <summary>
-        /// Margin trading enabled for this market
-        /// </summary>
-        public bool? MarginEnabled { get; set; }
+		/// <summary>
+		/// Margin trading enabled for this market
+		/// </summary>
+		public bool? MarginEnabled { get; set; }
 
-        public override string ToString()
-        {
-            return $"{MarketSymbol}, {BaseCurrency}-{QuoteCurrency}";
-        }
-    }
+		public override string ToString()
+		{
+			return $"{MarketSymbol}, {BaseCurrency}-{QuoteCurrency}";
+		}
+	}
 }

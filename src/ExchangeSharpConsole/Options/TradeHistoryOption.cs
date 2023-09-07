@@ -7,10 +7,17 @@ using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
 {
-	[Verb("trade-history", HelpText = "Print trade history from an Exchange to output.\n" +
-	                                  "Example: trade-history -e Binance -s btcusdt --since \"2018-05-17\" --to \"2018-05-18\"")]
-	public class TradeHistoryOption : BaseOption, IOptionPerExchange, IOptionPerMarketSymbol, IOptionWithStartDate,
-		IOptionWithEndDate
+	[Verb(
+			"trade-history",
+			HelpText = "Print trade history from an Exchange to output.\n"
+					+ "Example: trade-history -e Binance -s btcusdt --since \"2018-05-17\" --to \"2018-05-18\""
+	)]
+	public class TradeHistoryOption
+			: BaseOption,
+					IOptionPerExchange,
+					IOptionPerMarketSymbol,
+					IOptionWithStartDate,
+					IOptionWithEndDate
 	{
 		public override async Task RunCommand()
 		{
@@ -31,12 +38,7 @@ namespace ExchangeSharpConsole.Options
 				endDate = DateTime.Parse(ToDateString).ToUniversalTime();
 			}
 
-			await api.GetHistoricalTradesAsync(
-				PrintTrades,
-				MarketSymbol,
-				startDate,
-				endDate
-			);
+			await api.GetHistoricalTradesAsync(PrintTrades, MarketSymbol, startDate, endDate);
 		}
 
 		private static bool PrintTrades(IEnumerable<ExchangeTrade> trades)
@@ -44,8 +46,8 @@ namespace ExchangeSharpConsole.Options
 			foreach (var trade in trades)
 			{
 				Console.WriteLine(
-					$"Trade at timestamp {trade.Timestamp.ToLocalTime()}: "
-					+ $"{trade.Id}/{trade.Price}/{trade.Amount}"
+						$"Trade at timestamp {trade.Timestamp.ToLocalTime()}: "
+								+ $"{trade.Id}/{trade.Price}/{trade.Amount}"
 				);
 			}
 

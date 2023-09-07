@@ -43,7 +43,10 @@ namespace ExchangeSharp
 				var depositInfo = JsonConvert.DeserializeObject(DepositInfo) as JArray;
 				var address = depositInfo.Last().ToStringInvariant();
 				var addressTag = string.Empty;
-				var split = address.Split(new[] { "?dt=", "?memoid=" }, StringSplitOptions.RemoveEmptyEntries);
+				var split = address.Split(
+						new[] { "?dt=", "?memoid=" },
+						StringSplitOptions.RemoveEmptyEntries
+				);
 				if (split.Length > 1)
 				{
 					address = split[0];
@@ -55,8 +58,7 @@ namespace ExchangeSharp
 					AddressTag = addressTag,
 					Currency = cryptoCode
 				};
-
 			}
 		}
-    }
+	}
 }

@@ -6,7 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ExchangeSharp")]
-[assembly: AssemblyDescription("ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges.")]
+[assembly: AssemblyDescription(
+		"ExchangeSharp is a C# API for working with various cryptocurrency exchanges. Web sockets are also supported for some exchanges."
+)]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Digital Ruby, LLC")]
 [assembly: AssemblyProduct("ExchangeSharp")]

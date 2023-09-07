@@ -9,15 +9,21 @@ using ExchangeSharpConsole.Options.Interfaces;
 namespace ExchangeSharpConsole.Options
 {
 	[Verb("orderbook", HelpText = "Prints the order book from an exchange.")]
-	public class OrderBookOption : BaseOption,
-		IOptionPerExchange, IOptionWithMultipleMarketSymbol, IOptionWithMaximum, IOptionWithKey
+	public class OrderBookOption
+			: BaseOption,
+					IOptionPerExchange,
+					IOptionWithMultipleMarketSymbol,
+					IOptionWithMaximum,
+					IOptionWithKey
 	{
 		public override async Task RunCommand()
 		{
 			using var api = await GetExchangeInstanceAsync(ExchangeName);
 
-			if (!string.IsNullOrWhiteSpace(KeyPath)
-			    && !KeyPath.Equals(Constants.DefaultKeyPath, StringComparison.Ordinal))
+			if (
+					!string.IsNullOrWhiteSpace(KeyPath)
+					&& !KeyPath.Equals(Constants.DefaultKeyPath, StringComparison.Ordinal)
+			)
 			{
 				api.LoadAPIKeys(KeyPath);
 			}
@@ -35,8 +41,8 @@ namespace ExchangeSharpConsole.Options
 		}
 
 		private async Task<IEnumerable<KeyValuePair<string, ExchangeOrderBook>>> GetOrderBooks(
-			string[] marketSymbols,
-			IExchangeAPI api
+				string[] marketSymbols,
+				IExchangeAPI api
 		)
 		{
 			IEnumerable<KeyValuePair<string, ExchangeOrderBook>> orderBooks;
@@ -48,14 +54,14 @@ namespace ExchangeSharpConsole.Options
 			else
 			{
 				var orderBooksList = await Task.WhenAll(
-					marketSymbols.Select(async ms =>
-					{
-						var orderBook = await api.GetOrderBookAsync(ms, Max);
+						marketSymbols.Select(async ms =>
+						{
+							var orderBook = await api.GetOrderBookAsync(ms, Max);
 
-						orderBook.MarketSymbol ??= ms;
+							orderBook.MarketSymbol ??= ms;
 
-						return orderBook;
-					})
+							return orderBook;
+						})
 				);
 				orderBooks = orderBooksList.ToDictionary(k => k.MarketSymbol, v => v);
 			}

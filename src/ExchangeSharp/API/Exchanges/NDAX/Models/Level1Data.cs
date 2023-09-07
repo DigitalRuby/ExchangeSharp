@@ -69,7 +69,10 @@ namespace ExchangeSharp
 
 			public ExchangeTicker ToExchangeTicker(string exchangeName, string currencyPair)
 			{
-				var currencyParts = currencyPair.Split(new[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
+				var currencyParts = currencyPair.Split(
+						new[] { "_" },
+						StringSplitOptions.RemoveEmptyEntries
+				);
 				return new ExchangeTicker()
 				{
 					Exchange = exchangeName,

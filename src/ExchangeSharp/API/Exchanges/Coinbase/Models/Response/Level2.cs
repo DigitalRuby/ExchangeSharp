@@ -12,18 +12,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Coinbase
 {
-    using System;
-    using System.Collections.Generic;
+	using System;
+	using System.Collections.Generic;
 
-    using Newtonsoft.Json;
+	using Newtonsoft.Json;
 
-    internal class Level2 : BaseMessage
-    {
-        [JsonProperty("product_id")]
-        public string ProductId { get; set; }
+	internal class Level2 : BaseMessage
+	{
+		[JsonProperty("product_id")]
+		public string ProductId { get; set; }
 
-        public DateTime Time { get; set; }
+		public DateTime Time { get; set; }
 
-        public List<string[]> Changes { get; set; }
-    }
+		public List<string[]> Changes { get; set; }
+	}
 }

@@ -47,7 +47,7 @@ namespace ExchangeSharp
 		}
 
 		public ExchangeBL3PAPI(ref string publicApiKey, ref string privateApiKey)
-			: this()
+				: this()
 		{
 			if (publicApiKey == null)
 				throw new ArgumentNullException(nameof(publicApiKey));
@@ -62,8 +62,7 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
-			return (await OnGetMarketSymbolsMetadataAsync())
-				.Select(em => em.MarketSymbol);
+			return (await OnGetMarketSymbolsMetadataAsync()).Select(em => em.MarketSymbol);
 		}
 
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
@@ -71,54 +70,58 @@ namespace ExchangeSharp
 			var result = await MakeJsonRequestAsync<JObject>($"/{marketSymbol}/ticker");
 
 			return await this.ParseTickerAsync(
-				result,
-				marketSymbol,
-				askKey: "ask",
-				bidKey: "bid",
-				lastKey: "last",
-				baseVolumeKey: "volume.24h",
-				timestampKey: "timestamp",
-				timestampType: TimestampType.UnixSeconds
+					result,
+					marketSymbol,
+					askKey: "ask",
+					bidKey: "bid",
+					lastKey: "last",
+					baseVolumeKey: "volume.24h",
+					timestampKey: "timestamp",
+					timestampType: TimestampType.UnixSeconds
 			);
 		}
 
-		protected internal override Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override Task<
+				IEnumerable<ExchangeMarket>
+		> OnGetMarketSymbolsMetadataAsync()
 		{
-			return Task.FromResult(new[]
-			{
-				// For now we only support these two coins
-				new ExchangeMarket
-				{
-					BaseCurrency = "BTC",
-					IsActive = true,
-					MarketSymbol = "BTCEUR",
-					QuoteCurrency = "EUR"
-				},
-				new ExchangeMarket
-				{
-					BaseCurrency = "LTC",
-					IsActive = true,
-					MarketSymbol = "LTCEUR",
-					QuoteCurrency = "EUR"
-				}
-			} as IEnumerable<ExchangeMarket>);
+			return Task.FromResult(
+					new[]
+					{
+                    // For now we only support these two coins
+                    new ExchangeMarket
+										{
+												BaseCurrency = "BTC",
+												IsActive = true,
+												MarketSymbol = "BTCEUR",
+												QuoteCurrency = "EUR"
+										},
+										new ExchangeMarket
+										{
+												BaseCurrency = "LTC",
+												IsActive = true,
+												MarketSymbol = "LTCEUR",
+												QuoteCurrency = "EUR"
+										}
+					} as IEnumerable<ExchangeMarket>
+			);
 		}
 
-		protected override Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		protected override Task<
+				IEnumerable<KeyValuePair<string, ExchangeTicker>>
+		> OnGetTickersAsync()
 		{
-			return Task.WhenAll(
-				OnGetTickerAsync("BTCEUR"),
-				OnGetTickerAsync("LTCEUR")
-			).ContinueWith(
-				r => r.Result.ToDictionary(t => t.MarketSymbol, t => t).AsEnumerable(),
-				TaskContinuationOptions.OnlyOnRanToCompletion
-			);
+			return Task.WhenAll(OnGetTickerAsync("BTCEUR"), OnGetTickerAsync("LTCEUR"))
+					.ContinueWith(
+							r => r.Result.ToDictionary(t => t.MarketSymbol, t => t).AsEnumerable(),
+							TaskContinuationOptions.OnlyOnRanToCompletion
+					);
 		}
 
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
-			Action<ExchangeOrderBook> callback,
-			int maxCount = 20,
-			params string[] marketSymbols
+				Action<ExchangeOrderBook> callback,
+				int maxCount = 20,
+				params string[] marketSymbols
 		)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
@@ -128,7 +131,9 @@ namespace ExchangeSharp
 
 			Task MessageCallback(IWebSocket _, byte[] msg)
 			{
-				var bl3POrderBook = JsonConvert.DeserializeObject<BL3POrderBook>(msg.ToStringFromUTF8());
+				var bl3POrderBook = JsonConvert.DeserializeObject<BL3POrderBook>(
+						msg.ToStringFromUTF8()
+				);
 
 				var exchangeOrderBook = ConvertToExchangeOrderBook(maxCount, bl3POrderBook);
 
@@ -138,13 +143,18 @@ namespace ExchangeSharp
 			}
 
 			return new MultiWebsocketWrapper(
-				await Task.WhenAll(
-					marketSymbols.Select(ms => ConnectPublicWebSocketAsync($"{ms}/orderbook", MessageCallback))
-				)
+					await Task.WhenAll(
+							marketSymbols.Select(
+									ms => ConnectPublicWebSocketAsync($"{ms}/orderbook", MessageCallback)
+							)
+					)
 			);
 		}
 
-		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
+				Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+				params string[] marketSymbols
+		)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
@@ -154,22 +164,32 @@ namespace ExchangeSharp
 			{ // {{	"date": 1573255932, "marketplace": "BTCEUR", "price_int": 802466000, "type": "buy", "amount_int": 6193344 }	}
 				var token = JToken.Parse(msg.ToStringFromUTF8());
 				var symbol = token["marketplace"].ToStringInvariant();
-				var trade = token.ParseTrade(amountKey: "amount_int", priceKey: "price_int", typeKey: "type", timestampKey: "date",
-					timestampType: TimestampType.UnixSeconds,
-					idKey: null, // + TODO: add Id Key when BL3P starts providing this info
-					typeKeyIsBuyValue: "buy");
+				var trade = token.ParseTrade(
+						amountKey: "amount_int",
+						priceKey: "price_int",
+						typeKey: "type",
+						timestampKey: "date",
+						timestampType: TimestampType.UnixSeconds,
+						idKey: null, // + TODO: add Id Key when BL3P starts providing this info
+						typeKeyIsBuyValue: "buy"
+				);
 				callback(new KeyValuePair<string, ExchangeTrade>(symbol, trade));
 				return Task.CompletedTask;
 			}
 
 			return new MultiWebsocketWrapper(
-				await Task.WhenAll(
-					marketSymbols.Select(ms => ConnectPublicWebSocketAsync($"{ms}/trades", MessageCallback))
-				)
+					await Task.WhenAll(
+							marketSymbols.Select(
+									ms => ConnectPublicWebSocketAsync($"{ms}/trades", MessageCallback)
+							)
+					)
 			);
 		}
 
-		private static ExchangeOrderBook ConvertToExchangeOrderBook(int maxCount, BL3POrderBook bl3POrderBook)
+		private static ExchangeOrderBook ConvertToExchangeOrderBook(
+				int maxCount,
+				BL3POrderBook bl3POrderBook
+		)
 		{
 			var exchangeOrderBook = new ExchangeOrderBook
 			{
@@ -178,16 +198,16 @@ namespace ExchangeSharp
 			};
 
 			var asks = bl3POrderBook.Asks
-				.OrderBy(b => b.Price, exchangeOrderBook.Asks.Comparer)
-				.Take(maxCount);
+					.OrderBy(b => b.Price, exchangeOrderBook.Asks.Comparer)
+					.Take(maxCount);
 			foreach (var ask in asks)
 			{
 				exchangeOrderBook.Asks.Add(ask.Price, ask.ToExchangeOrder());
 			}
 
 			var bids = bl3POrderBook.Bids
-				.OrderBy(b => b.Price, exchangeOrderBook.Bids.Comparer)
-				.Take(maxCount);
+					.OrderBy(b => b.Price, exchangeOrderBook.Bids.Comparer)
+					.Take(maxCount);
 			foreach (var bid in bids)
 			{
 				exchangeOrderBook.Bids.Add(bid.Price, bid.ToExchangeOrder());
@@ -196,15 +216,21 @@ namespace ExchangeSharp
 			return exchangeOrderBook;
 		}
 
-		protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+		protected override bool CanMakeAuthenticatedRequest(
+				IReadOnlyDictionary<string, object> payload
+		)
 		{
 			return !(PublicApiKey is null) && !(PrivateApiKey is null);
 		}
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override async Task ProcessRequestAsync(
+				IHttpWebRequest request,
+				Dictionary<string, object> payload
+		)
 		{
-			var formData = await request.WritePayloadFormToRequestAsync(payload)
-				.ConfigureAwait(false);
+			var formData = await request
+					.WritePayloadFormToRequestAsync(payload)
+					.ConfigureAwait(false);
 
 			if (CanMakeAuthenticatedRequest(payload))
 			{
@@ -218,7 +244,8 @@ namespace ExchangeSharp
 		{
 			//TODO: Use csharp8 ranges
 			var index = Array.IndexOf(request.RequestUri.Segments, "1/");
-			var callPath = string.Join(string.Empty, request.RequestUri.Segments.Skip(index + 1)).TrimStart('/');
+			var callPath = string.Join(string.Empty, request.RequestUri.Segments.Skip(index + 1))
+					.TrimStart('/');
 			var postData = $"{callPath}\0{formData}";
 			var privateKeyBase64 = Convert.FromBase64String(PrivateApiKey.ToUnsecureString());
 
@@ -231,92 +258,135 @@ namespace ExchangeSharp
 			return Convert.ToBase64String(hashBytes);
 		}
 
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
+				ExchangeOrderRequest order
+		)
 		{
-			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null)
+				throw new NotSupportedException(
+						"Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature."
+				);
 			var roundedAmount = order.RoundAmount();
 			var amountInt = converterToEight.FromDecimal(roundedAmount);
 
-			var feeCurrency = (order.ExtraParameters.ContainsKey("fee_currency")
-					? order.ExtraParameters["fee_currency"] ?? DefaultFeeCurrency
-					: DefaultFeeCurrency)
-				.ToString()
-				.ToUpperInvariant();
+			var feeCurrency = (
+					order.ExtraParameters.ContainsKey("fee_currency")
+							? order.ExtraParameters["fee_currency"] ?? DefaultFeeCurrency
+							: DefaultFeeCurrency
+			)
+					.ToString()
+					.ToUpperInvariant();
 
 			var data = new Dictionary<string, object>
-			{
-				{"amount_int", amountInt},
-				{"type", order.IsBuy ? "bid" : "ask"},
-				{"fee_currency", feeCurrency},
-			};
+						{
+								{ "amount_int", amountInt },
+								{ "type", order.IsBuy ? "bid" : "ask" },
+								{ "fee_currency", feeCurrency },
+						};
 
 			switch (order.OrderType)
 			{
 				case OrderType.Limit:
-					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
+					if (order.Price == null)
+						throw new ArgumentNullException(nameof(order.Price));
 					data["price_int"] = converterToFive.FromDecimal(order.Price.Value);
 					break;
 				case OrderType.Market:
-					if (order.Price == null) throw new ArgumentNullException(nameof(order.Price));
-					data["amount_funds_int"] = converterToFive.FromDecimal(roundedAmount * order.Price.Value);
+					if (order.Price == null)
+						throw new ArgumentNullException(nameof(order.Price));
+					data["amount_funds_int"] = converterToFive.FromDecimal(
+							roundedAmount * order.Price.Value
+					);
 					break;
 				default:
 					throw new NotSupportedException($"{order.OrderType} is not supported");
 			}
 
-			var result = (await MakeJsonRequestAsync<BL3POrderAddResponse>(
-					$"/{order.MarketSymbol}/money/order/add",
-					payload: data
-				)).Except();
+			var result = (
+					await MakeJsonRequestAsync<BL3POrderAddResponse>(
+							$"/{order.MarketSymbol}/money/order/add",
+							payload: data
+					)
+			).Except();
 
-			var orderDetails = await GetOrderDetailsAsync(result.OrderId, marketSymbol: order.MarketSymbol);
+			var orderDetails = await GetOrderDetailsAsync(
+					result.OrderId,
+					marketSymbol: order.MarketSymbol
+			);
 
 			return orderDetails;
 		}
 
-		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 100)
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(
+				string marketSymbol,
+				int maxCount = 100
+		)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
-				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
+				throw new ArgumentException(
+						"Value cannot be null or whitespace.",
+						nameof(marketSymbol)
+				);
 
-			var bl3pOrderBook = (await MakeJsonRequestAsync<BL3PReponseFullOrderBook>($"/{marketSymbol}/money/depth/full"))
-				.Except();
+			var bl3pOrderBook = (
+					await MakeJsonRequestAsync<BL3PReponseFullOrderBook>(
+							$"/{marketSymbol}/money/depth/full"
+					)
+			).Except();
 
-			bl3pOrderBook.MarketSymbol??= marketSymbol;
+			bl3pOrderBook.MarketSymbol ??= marketSymbol;
 
 			return ConvertToExchangeOrderBook(maxCount, bl3pOrderBook);
 		}
 
-		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		protected override async Task OnCancelOrderAsync(
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
-				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
-			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
+				throw new ArgumentException(
+						"Value cannot be null or whitespace.",
+						nameof(marketSymbol)
+				);
+			if (isClientOrderId)
+				throw new NotSupportedException(
+						"Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature"
+				);
 
-			(await MakeJsonRequestAsync<BL3PEmptyResponse>(
-					$"/{marketSymbol}/money/order/cancel",
-					payload: new Dictionary<string, object>
-					{
-						{"order_id", orderId}
-					}
-				)).Except();
+			(
+					await MakeJsonRequestAsync<BL3PEmptyResponse>(
+							$"/{marketSymbol}/money/order/cancel",
+							payload: new Dictionary<string, object> { { "order_id", orderId } }
+					)
+			).Except();
 		}
 
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(
+				string orderId,
+				string marketSymbol = null,
+				bool isClientOrderId = false
+		)
 		{
 			if (string.IsNullOrWhiteSpace(marketSymbol))
-				throw new ArgumentException("Value cannot be null or whitespace.", nameof(marketSymbol));
-			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+				throw new ArgumentException(
+						"Value cannot be null or whitespace.",
+						nameof(marketSymbol)
+				);
+			if (isClientOrderId)
+				throw new NotSupportedException(
+						"Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature"
+				);
 
-			var data = new Dictionary<string, object>
-			{
-				{"order_id", orderId}
-			};
+			var data = new Dictionary<string, object> { { "order_id", orderId } };
 
-			var result = (await MakeJsonRequestAsync<BL3POrderResultResponse>(
-					$"/{marketSymbol}/money/order/result",
-					payload: data
-				)).Except();
+			var result = (
+					await MakeJsonRequestAsync<BL3POrderResultResponse>(
+							$"/{marketSymbol}/money/order/result",
+							payload: data
+					)
+			).Except();
 
 			return new ExchangeOrderResult
 			{
@@ -338,11 +408,13 @@ namespace ExchangeSharp
 			};
 		}
 
-		protected override Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(params ExchangeOrderRequest[] order)
+		protected override Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(
+				params ExchangeOrderRequest[] order
+		)
 		{
 			Debug.WriteLine(
-				"Splitting orders in single order calls as BL3P does not support batch operations yet",
-				"WARN"
+					"Splitting orders in single order calls as BL3P does not support batch operations yet",
+					"WARN"
 			);
 			return Task.WhenAll(order.Select(OnPlaceOrderAsync));
 		}

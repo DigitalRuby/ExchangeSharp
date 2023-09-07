@@ -18,50 +18,54 @@ using System.Threading.Tasks;
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Information about an exchange
-    /// </summary>
-    public sealed class ExchangeInfo
-    {
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="api">Exchange API</param>
-        /// <param name="marketSymbols">Market symbols</param>
-        /// <param name="marketSymbol">The market symbol to trade by default, can be null</param>
-        public ExchangeInfo(IExchangeAPI api, IReadOnlyCollection<string> marketSymbols, string marketSymbol = null)
-        {
-            API = api;
-            MarketSymbols = marketSymbols;
-            TradeInfo = new ExchangeTradeInfo(this, marketSymbol);
-        }
+	/// <summary>
+	/// Information about an exchange
+	/// </summary>
+	public sealed class ExchangeInfo
+	{
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="api">Exchange API</param>
+		/// <param name="marketSymbols">Market symbols</param>
+		/// <param name="marketSymbol">The market symbol to trade by default, can be null</param>
+		public ExchangeInfo(
+				IExchangeAPI api,
+				IReadOnlyCollection<string> marketSymbols,
+				string marketSymbol = null
+		)
+		{
+			API = api;
+			MarketSymbols = marketSymbols;
+			TradeInfo = new ExchangeTradeInfo(this, marketSymbol);
+		}
 
-        /// <summary>
-        /// Update the exchange info - get new trade info, etc.
-        /// </summary>
-        public async Task UpdateAsync()
-        {
-            await TradeInfo.UpdateAsync();
-        }
+		/// <summary>
+		/// Update the exchange info - get new trade info, etc.
+		/// </summary>
+		public async Task UpdateAsync()
+		{
+			await TradeInfo.UpdateAsync();
+		}
 
-        /// <summary>
-        /// API to interact with the exchange
-        /// </summary>
-        public IExchangeAPI API { get; private set; }
+		/// <summary>
+		/// API to interact with the exchange
+		/// </summary>
+		public IExchangeAPI API { get; private set; }
 
-        /// <summary>
-        /// User assigned identifier of the exchange, can be left at zero if not needed
-        /// </summary>
-        public int Id { get; set; }
+		/// <summary>
+		/// User assigned identifier of the exchange, can be left at zero if not needed
+		/// </summary>
+		public int Id { get; set; }
 
-        /// <summary>
-        /// Market symbols of the exchange
-        /// </summary>
-        public IReadOnlyCollection<string> MarketSymbols { get; private set; }
+		/// <summary>
+		/// Market symbols of the exchange
+		/// </summary>
+		public IReadOnlyCollection<string> MarketSymbols { get; private set; }
 
-        /// <summary>
-        /// Latest trade info for the exchange
-        /// </summary>
-        public ExchangeTradeInfo TradeInfo { get; private set; }
-    }
+		/// <summary>
+		/// Latest trade info for the exchange
+		/// </summary>
+		public ExchangeTradeInfo TradeInfo { get; private set; }
+	}
 }

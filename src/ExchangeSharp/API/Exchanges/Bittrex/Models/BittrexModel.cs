@@ -18,252 +18,254 @@ using Newtonsoft.Json;
 
 namespace ExchangeSharp
 {
-    public partial class ExchangeBittrexAPI
-    {
-        /// <summary>Order book type</summary>
-        internal enum OrderBookType
-        {
-            /// <summary>Only show buy orders</summary>
-            Buy,
+	public partial class ExchangeBittrexAPI
+	{
+		/// <summary>Order book type</summary>
+		internal enum OrderBookType
+		{
+			/// <summary>Only show buy orders</summary>
+			Buy,
 
-            /// <summary>Only show sell orders</summary>
-            Sell,
+			/// <summary>Only show sell orders</summary>
+			Sell,
 
-            /// <summary>Show all orders</summary>
-            Both
-        }
+			/// <summary>Show all orders</summary>
+			Both
+		}
 
-        /// <summary>Whether the order is partially or fully filled</summary>
-        internal enum FillType
-        {
-            Fill,
+		/// <summary>Whether the order is partially or fully filled</summary>
+		internal enum FillType
+		{
+			Fill,
 
-            PartialFill
-        }
+			PartialFill
+		}
 
-        internal enum OrderSide
-        {
-            Buy,
+		internal enum OrderSide
+		{
+			Buy,
 
-            Sell
-        }
+			Sell
+		}
 
-        internal enum OrderType
-        {
-            Limit,
+		internal enum OrderType
+		{
+			Limit,
 
-            Market
-        }
+			Market
+		}
 
-        internal enum OrderSideExtended
-        {
-            LimitBuy,
+		internal enum OrderSideExtended
+		{
+			LimitBuy,
 
-            LimitSell
-        }
+			LimitSell
+		}
 
-        internal enum TickInterval
-        {
-            OneMinute,
+		internal enum TickInterval
+		{
+			OneMinute,
 
-            FiveMinutes,
+			FiveMinutes,
 
-            HalfHour,
+			HalfHour,
 
-            OneHour,
+			OneHour,
 
-            OneDay
-        }
+			OneDay
+		}
 
-        internal enum TimeInEffect
-        {
-            GoodTillCancelled,
+		internal enum TimeInEffect
+		{
+			GoodTillCancelled,
 
-            ImmediateOrCancel
-        }
+			ImmediateOrCancel
+		}
 
-        internal enum ConditionType
-        {
-            None,
+		internal enum ConditionType
+		{
+			None,
 
-            GreaterThan,
+			GreaterThan,
 
-            LessThan,
+			LessThan,
 
-            StopLossFixed,
+			StopLossFixed,
 
-            StopLossPercentage
-        }
+			StopLossPercentage
+		}
 
-        internal enum OrderUpdateType
-        {
-            Open,
+		internal enum OrderUpdateType
+		{
+			Open,
 
-            PartialFill,
+			PartialFill,
 
-            Fill,
+			Fill,
 
-            Cancel
-        }
+			Cancel
+		}
 
-        internal class BittrexStreamOrderBookUpdateEntry : BittrexStreamOrderBookEntry
-        {
-            /// <summary>how to handle data (used by stream)</summary>
-            [JsonProperty("TY")]
-            public OrderBookEntryType Type { get; set; }
-        }
+		internal class BittrexStreamOrderBookUpdateEntry : BittrexStreamOrderBookEntry
+		{
+			/// <summary>how to handle data (used by stream)</summary>
+			[JsonProperty("TY")]
+			public OrderBookEntryType Type { get; set; }
+		}
 
-        internal class BittrexStreamOrderBookEntry
-        {
-            /// <summary>Total quantity of order at this price</summary>
-            [JsonProperty("Q")]
-            public decimal Quantity { get; set; }
+		internal class BittrexStreamOrderBookEntry
+		{
+			/// <summary>Total quantity of order at this price</summary>
+			[JsonProperty("Q")]
+			public decimal Quantity { get; set; }
 
-            /// <summary>Price of the orders</summary>
-            [JsonProperty("R")]
-            public decimal Rate { get; set; }
-        }
+			/// <summary>Price of the orders</summary>
+			[JsonProperty("R")]
+			public decimal Rate { get; set; }
+		}
 
-        internal enum OrderBookEntryType
-        {
-            NewEntry = 0,
+		internal enum OrderBookEntryType
+		{
+			NewEntry = 0,
 
-            RemoveEntry = 1,
+			RemoveEntry = 1,
 
-            UpdateEntry = 2
-        }
+			UpdateEntry = 2
+		}
 
-        internal class BittrexStreamUpdateExchangeState
-        {
-            [JsonProperty("N")]
-            public long Nonce { get; set; }
+		internal class BittrexStreamUpdateExchangeState
+		{
+			[JsonProperty("N")]
+			public long Nonce { get; set; }
 
-            /// <summary>Name of the market</summary>
-            [JsonProperty("M")]
-            public string MarketName { get; set; }
+			/// <summary>Name of the market</summary>
+			[JsonProperty("M")]
+			public string MarketName { get; set; }
 
-            /// <summary>Buys in the order book</summary>
-            [JsonProperty("Z")]
-            public List<BittrexStreamOrderBookUpdateEntry> Buys { get; set; }
+			/// <summary>Buys in the order book</summary>
+			[JsonProperty("Z")]
+			public List<BittrexStreamOrderBookUpdateEntry> Buys { get; set; }
 
-            /// <summary>Sells in the order book</summary>
-            [JsonProperty("S")]
-            public List<BittrexStreamOrderBookUpdateEntry> Sells { get; set; }
+			/// <summary>Sells in the order book</summary>
+			[JsonProperty("S")]
+			public List<BittrexStreamOrderBookUpdateEntry> Sells { get; set; }
 
-            /// <summary>Market history</summary>
-            [JsonProperty("f")]
-            public List<BittrexStreamFill> Fills { get; set; }
-        }
+			/// <summary>Market history</summary>
+			[JsonProperty("f")]
+			public List<BittrexStreamFill> Fills { get; set; }
+		}
 
-        internal class BittrexStreamFill
-        {
-            /// <summary>Timestamp of the fill</summary>
-            [JsonProperty("T")]
-            [JsonConverter(typeof(TimestampConverter))]
-            public DateTime Timestamp { get; set; }
+		internal class BittrexStreamFill
+		{
+			/// <summary>Timestamp of the fill</summary>
+			[JsonProperty("T")]
+			[JsonConverter(typeof(TimestampConverter))]
+			public DateTime Timestamp { get; set; }
 
-            /// <summary>Quantity of the fill</summary>
-            [JsonProperty("Q")]
-            public decimal Quantity { get; set; }
+			/// <summary>Quantity of the fill</summary>
+			[JsonProperty("Q")]
+			public decimal Quantity { get; set; }
 
-            /// <summary>Rate of the fill</summary>
-            [JsonProperty("R")]
-            public decimal Rate { get; set; }
+			/// <summary>Rate of the fill</summary>
+			[JsonProperty("R")]
+			public decimal Rate { get; set; }
 
-            /// <summary>The side of the order</summary>
-            [JsonConverter(typeof(OrderSideConverter))]
-            [JsonProperty("OT")]
-            public OrderSide OrderSide { get; set; }
+			/// <summary>The side of the order</summary>
+			[JsonConverter(typeof(OrderSideConverter))]
+			[JsonProperty("OT")]
+			public OrderSide OrderSide { get; set; }
 
-	    /// <summary>Rate of the fill</summary>
-	    [JsonProperty("FI")]
-	    public long FillId { get; set; }
-	}	
+			/// <summary>Rate of the fill</summary>
+			[JsonProperty("FI")]
+			public long FillId { get; set; }
+		}
 
-	internal class BittrexStreamQueryExchangeState
-        {
-            [JsonProperty("N")]
-            public long Nonce { get; set; }
+		internal class BittrexStreamQueryExchangeState
+		{
+			[JsonProperty("N")]
+			public long Nonce { get; set; }
 
-            /// <summary>Name of the market</summary>
-            [JsonProperty("M")]
-            public string MarketName { get; set; }
+			/// <summary>Name of the market</summary>
+			[JsonProperty("M")]
+			public string MarketName { get; set; }
 
-            /// <summary>Buys in the order book</summary>
-            [JsonProperty("Z")]
-            public List<BittrexStreamOrderBookEntry> Buys { get; set; }
+			/// <summary>Buys in the order book</summary>
+			[JsonProperty("Z")]
+			public List<BittrexStreamOrderBookEntry> Buys { get; set; }
 
-            /// <summary>Sells in the order book</summary>
-            [JsonProperty("S")]
-            public List<BittrexStreamOrderBookEntry> Sells { get; set; }
+			/// <summary>Sells in the order book</summary>
+			[JsonProperty("S")]
+			public List<BittrexStreamOrderBookEntry> Sells { get; set; }
 
-            /// <summary>Market history</summary>
-            [JsonProperty("f")]
-            public List<BittrexStreamMarketHistory> Fills { get; set; }
-        }
+			/// <summary>Market history</summary>
+			[JsonProperty("f")]
+			public List<BittrexStreamMarketHistory> Fills { get; set; }
+		}
 
-        internal class OrderSideConverter : BaseConverter<OrderSide>
-        {
-            public OrderSideConverter()
-                : this(true)
-            {
-            }
+		internal class OrderSideConverter : BaseConverter<OrderSide>
+		{
+			public OrderSideConverter()
+					: this(true) { }
 
-            public OrderSideConverter(bool quotes)
-                : base(quotes)
-            {
-            }
+			public OrderSideConverter(bool quotes)
+					: base(quotes) { }
 
-            protected override Dictionary<OrderSide, string> Mapping => new Dictionary<OrderSide, string> { { OrderSide.Buy, "BUY" }, { OrderSide.Sell, "SELL" } };
-        }
+			protected override Dictionary<OrderSide, string> Mapping =>
+					new Dictionary<OrderSide, string>
+					{
+										{ OrderSide.Buy, "BUY" },
+										{ OrderSide.Sell, "SELL" }
+					};
+		}
 
-        internal class BittrexStreamMarketHistory
-        {
-            /// <summary>The order id</summary>
-            [JsonProperty("I")]
-            public long Id { get; set; }
+		internal class BittrexStreamMarketHistory
+		{
+			/// <summary>The order id</summary>
+			[JsonProperty("I")]
+			public long Id { get; set; }
 
-            /// <summary>Timestamp of the order</summary>
-            [JsonConverter(typeof(TimestampConverter))]
-            [JsonProperty("T")]
-            public DateTime Timestamp { get; set; }
+			/// <summary>Timestamp of the order</summary>
+			[JsonConverter(typeof(TimestampConverter))]
+			[JsonProperty("T")]
+			public DateTime Timestamp { get; set; }
 
-            /// <summary>Quantity of the order</summary>
-            [JsonProperty("Q")]
-            public decimal Quantity { get; set; }
+			/// <summary>Quantity of the order</summary>
+			[JsonProperty("Q")]
+			public decimal Quantity { get; set; }
 
-            /// <summary>Price of the order</summary>
-            [JsonProperty("P")]
-            public decimal Price { get; set; }
+			/// <summary>Price of the order</summary>
+			[JsonProperty("P")]
+			public decimal Price { get; set; }
 
-            /// <summary>Total price of the order</summary>
-            [JsonProperty("t")]
-            public decimal Total { get; set; }
+			/// <summary>Total price of the order</summary>
+			[JsonProperty("t")]
+			public decimal Total { get; set; }
 
-            /// <summary>Whether the order was fully filled</summary>
-            [JsonConverter(typeof(FillTypeConverter))]
-            [JsonProperty("F")]
-            public FillType FillType { get; set; }
+			/// <summary>Whether the order was fully filled</summary>
+			[JsonConverter(typeof(FillTypeConverter))]
+			[JsonProperty("F")]
+			public FillType FillType { get; set; }
 
-            /// <summary>The side of the order</summary>
-            [JsonConverter(typeof(OrderSideConverter))]
-            [JsonProperty("OT")]
-            public OrderSide OrderSide { get; set; }
+			/// <summary>The side of the order</summary>
+			[JsonConverter(typeof(OrderSideConverter))]
+			[JsonProperty("OT")]
+			public OrderSide OrderSide { get; set; }
 
-            public class FillTypeConverter : BaseConverter<FillType>
-            {
-                public FillTypeConverter()
-                    : this(true)
-                {
-                }
+			public class FillTypeConverter : BaseConverter<FillType>
+			{
+				public FillTypeConverter()
+						: this(true) { }
 
-                public FillTypeConverter(bool quotes)
-                    : base(quotes)
-                {
-                }
+				public FillTypeConverter(bool quotes)
+						: base(quotes) { }
 
-                protected override Dictionary<FillType, string> Mapping => new Dictionary<FillType, string> { { FillType.Fill, "FILL" }, { FillType.PartialFill, "PARTIAL_FILL" } };
-            }
-        }
-    }
+				protected override Dictionary<FillType, string> Mapping =>
+						new Dictionary<FillType, string>
+						{
+												{ FillType.Fill, "FILL" },
+												{ FillType.PartialFill, "PARTIAL_FILL" }
+						};
+			}
+		}
+	}
 }

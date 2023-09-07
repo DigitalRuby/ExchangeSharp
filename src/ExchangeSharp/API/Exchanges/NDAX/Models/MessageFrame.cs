@@ -46,5 +46,5 @@ namespace ExchangeSharp
 				return JsonConvert.DeserializeObject<T>(Payload);
 			}
 		}
-    }
+	}
 }

@@ -6,12 +6,20 @@ using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
 {
-	[Verb("buy", HelpText = "Adds a buy order to a given exchange.\n" +
-	                        "This sub-command will perform an action that can lead to loss of funds.\n" +
-	                        "Be sure to test it first with a dry-run.")]
-	public class BuyOption : BaseOption,
-		IOptionPerExchange, IOptionWithDryRun,
-		IOptionWithKey, IOptionWithInterval, IOptionWithWait, IOptionWithOrderInfo
+	[Verb(
+			"buy",
+			HelpText = "Adds a buy order to a given exchange.\n"
+					+ "This sub-command will perform an action that can lead to loss of funds.\n"
+					+ "Be sure to test it first with a dry-run."
+	)]
+	public class BuyOption
+			: BaseOption,
+					IOptionPerExchange,
+					IOptionWithDryRun,
+					IOptionWithKey,
+					IOptionWithInterval,
+					IOptionWithWait,
+					IOptionWithOrderInfo
 	{
 		public override async Task RunCommand()
 		{
@@ -35,8 +43,7 @@ namespace ExchangeSharpConsole.Options
 
 			if (Wait)
 			{
-				await WaitForOrder(result, api)
-					.ConfigureAwait(false);
+				await WaitForOrder(result, api).ConfigureAwait(false);
 			}
 			else
 			{
@@ -51,10 +58,12 @@ namespace ExchangeSharpConsole.Options
 				Console.Clear();
 				Console.WriteLine(order);
 
-				await Task.Delay(IntervalMs)
-					.ConfigureAwait(false);
+				await Task.Delay(IntervalMs).ConfigureAwait(false);
 
-				order = await api.GetOrderDetailsAsync(order.OrderId, marketSymbol: order.MarketSymbol);
+				order = await api.GetOrderDetailsAsync(
+						order.OrderId,
+						marketSymbol: order.MarketSymbol
+				);
 			}
 
 			Console.Clear();

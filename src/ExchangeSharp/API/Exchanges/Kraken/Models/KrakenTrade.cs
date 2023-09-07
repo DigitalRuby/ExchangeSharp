@@ -21,6 +21,7 @@ namespace ExchangeSharp.Kraken
 	public class KrakenTrade : ExchangeTrade
 	{
 		public OrderType OrderType { get; set; }
+
 		public override string ToString()
 		{
 			return string.Format("{0},{1}", base.ToString(), OrderType);

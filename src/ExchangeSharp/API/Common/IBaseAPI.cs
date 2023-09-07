@@ -28,10 +28,10 @@ using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
-    /// <summary>
-    /// Base interface for all API implementations
-    /// </summary>
-    public interface IBaseAPI : IAPIRequestHandler, INamed
+	/// <summary>
+	/// Base interface for all API implementations
+	/// </summary>
+	public interface IBaseAPI : IAPIRequestHandler, INamed
 	{
 		#region Properties
 		/// <summary>
@@ -58,30 +58,30 @@ namespace ExchangeSharp
 		/// </summary>
 		SecureString? PublicApiKey { get; set; }
 
-        /// <summary>
-        /// Optional private API key
-        /// </summary>
-        SecureString? PrivateApiKey { get; set; }
+		/// <summary>
+		/// Optional private API key
+		/// </summary>
+		SecureString? PrivateApiKey { get; set; }
 
-        /// <summary>
-        /// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
-        /// Most exchanges do not require this, but Coinbase is an example of one that does
-        /// </summary>
-        System.Security.SecureString? Passphrase { get; set; }
+		/// <summary>
+		/// Pass phrase API key - only needs to be set if you are using private authenticated end points. Please use CryptoUtility.SaveUnprotectedStringsToFile to store your API keys, never store them in plain text!
+		/// Most exchanges do not require this, but Coinbase is an example of one that does
+		/// </summary>
+		System.Security.SecureString? Passphrase { get; set; }
 
 		// RateLimit is in IAPIRequestHandler
 
 		// RequestTimeout is in IAPIRequestHandler
 
-        /// <summary>
-        /// Request window - most services do not use this, but Binance API is an example of one that does
-        /// </summary>
-        TimeSpan RequestWindow { get; set; }
+		/// <summary>
+		/// Request window - most services do not use this, but Binance API is an example of one that does
+		/// </summary>
+		TimeSpan RequestWindow { get; set; }
 
-        /// <summary>
-        /// Nonce style
-        /// </summary>
-        NonceStyle NonceStyle { get; }
+		/// <summary>
+		/// Nonce style
+		/// </summary>
+		NonceStyle NonceStyle { get; }
 
 		/// <summary>
 		/// The nonce end point for pulling down a server timestamp - override OnGetNonceOffset if you need custom handling
@@ -121,31 +121,40 @@ namespace ExchangeSharp
 		/// <param name="encryptedFile">Encrypted file to load keys from</param>
 		void LoadAPIKeys(string encryptedFile);
 
-        /// <summary>
-        ///  Load API keys from unsecure strings
-        /// <param name="publicApiKey">Public Api Key</param>
-        /// <param name="privateApiKey">Private Api Key</param>
-        /// <param name="passPhrase">Pass phrase, null for none</param>
-        /// </summary>
-        void LoadAPIKeysUnsecure(string publicApiKey, string privateApiKey, string? passPhrase = null);
+		/// <summary>
+		///  Load API keys from unsecure strings
+		/// <param name="publicApiKey">Public Api Key</param>
+		/// <param name="privateApiKey">Private Api Key</param>
+		/// <param name="passPhrase">Pass phrase, null for none</param>
+		/// </summary>
+		void LoadAPIKeysUnsecure(
+				string publicApiKey,
+				string privateApiKey,
+				string? passPhrase = null
+		);
 
-        /// <summary>
-        /// Generate a nonce
-        /// </summary>
-        /// <returns>Nonce (can be string, long, double, etc., so object is used)</returns>
-        Task<object> GenerateNonceAsync();
+		/// <summary>
+		/// Generate a nonce
+		/// </summary>
+		/// <returns>Nonce (can be string, long, double, etc., so object is used)</returns>
+		Task<object> GenerateNonceAsync();
 
-        /// <summary>
-        /// Make a JSON request to an API end point
-        /// </summary>
-        /// <typeparam name="T">Type of object to parse JSON as</typeparam>
-        /// <param name="url">Path and query</param>
-        /// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
-        /// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
-        /// <param name="requestMethod">Request method or null for default</param>
-        /// <returns>Result decoded from JSON response</returns>
-        Task<T> MakeJsonRequestAsync<T>(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? requestMethod = null);
+		/// <summary>
+		/// Make a JSON request to an API end point
+		/// </summary>
+		/// <typeparam name="T">Type of object to parse JSON as</typeparam>
+		/// <param name="url">Path and query</param>
+		/// <param name="baseUrl">Override the base url, null for the default BaseUrl</param>
+		/// <param name="payload">Payload, can be null. For private API end points, the payload must contain a 'nonce' key set to GenerateNonce value.</param>
+		/// <param name="requestMethod">Request method or null for default</param>
+		/// <returns>Result decoded from JSON response</returns>
+		Task<T> MakeJsonRequestAsync<T>(
+				string url,
+				string? baseUrl = null,
+				Dictionary<string, object>? payload = null,
+				string? requestMethod = null
+		);
 
-        #endregion Methods
-    }
+		#endregion Methods
+	}
 }

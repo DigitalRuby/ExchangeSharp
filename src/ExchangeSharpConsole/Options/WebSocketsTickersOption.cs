@@ -8,10 +8,15 @@ using ExchangeSharpConsole.Options.Interfaces;
 
 namespace ExchangeSharpConsole.Options
 {
-	[Verb("ws-tickers", HelpText =
-		"Connects to the given exchange websocket and keeps printing tickers from that exchange.\n" +
-		"If market symbol is not set then uses all.")]
-	public class WebSocketsTickersOption : BaseOption, IOptionPerExchange, IOptionWithMultipleMarketSymbol
+	[Verb(
+			"ws-tickers",
+			HelpText = "Connects to the given exchange websocket and keeps printing tickers from that exchange.\n"
+					+ "If market symbol is not set then uses all."
+	)]
+	public class WebSocketsTickersOption
+			: BaseOption,
+					IOptionPerExchange,
+					IOptionWithMultipleMarketSymbol
 	{
 		public override async Task RunCommand()
 		{
@@ -19,14 +24,15 @@ namespace ExchangeSharpConsole.Options
 			{
 				var symbols = await ValidateMarketSymbolsAsync(api, MarketSymbols.ToArray(), true);
 
-				return await api.GetTickersWebSocketAsync(freshTickers =>
-					{
-						foreach (var (key, ticker) in freshTickers)
+				return await api.GetTickersWebSocketAsync(
+						freshTickers =>
 						{
-							Console.WriteLine($"Market {key,8}: Ticker {ticker}");
-						}
-					},
-					symbols
+							foreach (var (key, ticker) in freshTickers)
+							{
+								Console.WriteLine($"Market {key,8}: Ticker {ticker}");
+							}
+						},
+						symbols
 				);
 			}
 

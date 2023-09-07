@@ -23,19 +23,21 @@ namespace Microsoft.VisualStudio.TestTools.UnitTesting
 					continue;
 
 				var message =
-					"Test not executed. " +
-					(string.IsNullOrWhiteSpace(ignoreAttribute.Message)
-						? $"Conditionally ignored by {ignoreAttribute.GetType().Name}."
-						: ignoreAttribute.Message);
+						"Test not executed. "
+						+ (
+								string.IsNullOrWhiteSpace(ignoreAttribute.Message)
+										? $"Conditionally ignored by {ignoreAttribute.GetType().Name}."
+										: ignoreAttribute.Message
+						);
 
 				return new[]
 				{
-					new TestResult
-					{
-						Outcome = UnitTestOutcome.Inconclusive,
-						TestFailureException = new AssertInconclusiveException(message)
-					}
-				};
+										new TestResult
+										{
+												Outcome = UnitTestOutcome.Inconclusive,
+												TestFailureException = new AssertInconclusiveException(message)
+										}
+								};
 			}
 
 			return base.Execute(testMethod);

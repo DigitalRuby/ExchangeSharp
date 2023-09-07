@@ -22,10 +22,10 @@ namespace ExchangeSharp.KuCoin
 	{
 		public string MakerOrderId { get; set; } // nullable
 		public string TakerOrderId { get; set; } // nullable
+
 		public override string ToString()
 		{
-			return string.Format("{0},{1},{2}", base.ToString(),
-				MakerOrderId, TakerOrderId);
+			return string.Format("{0},{1},{2}", base.ToString(), MakerOrderId, TakerOrderId);
 		}
 	}
 }

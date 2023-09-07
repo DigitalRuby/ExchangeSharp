@@ -37,10 +37,7 @@ namespace ExchangeSharp
 		public static IWebProxy? Proxy
 		{
 			get => ClientHandler.Proxy;
-			set
-			{
-				ClientHandler.Proxy = value;
-			}
+			set { ClientHandler.Proxy = value; }
 		}
 		public static readonly HttpClient Client = new HttpClient(ClientHandler);
 
@@ -105,7 +102,6 @@ namespace ExchangeSharp
 				set => Timeout = value;
 			}
 
-
 			public Task WriteAllAsync(byte[] data, int index, int length)
 			{
 				Request.Content = new ByteArrayContent(data, index, length);
@@ -139,7 +135,10 @@ namespace ExchangeSharp
 			{
 				get
 				{
-					return response.Headers.ToDictionary(x => x.Key, x => (IReadOnlyList<string>)x.Value.ToArray());
+					return response.Headers.ToDictionary(
+							x => x.Key,
+							x => (IReadOnlyList<string>)x.Value.ToArray()
+					);
 				}
 			}
 		}
@@ -162,7 +161,12 @@ namespace ExchangeSharp
 		/// The encoding of payload is API dependant but is typically json.</param>
 		/// <param name="method">Request method or null for default. Example: 'GET' or 'POST'.</param>
 		/// <returns>Raw response</returns>
-		public async Task<IAPIRequestMaker.RequestResult<string>> MakeRequestAsync(string url, string? baseUrl = null, Dictionary<string, object>? payload = null, string? method = null)
+		public async Task<IAPIRequestMaker.RequestResult<string>> MakeRequestAsync(
+				string url,
+				string? baseUrl = null,
+				Dictionary<string, object>? payload = null,
+				string? method = null
+		)
 		{
 			await new SynchronizationContextRemover();
 			await api.RateLimit.WaitToProceedAsync();
@@ -189,7 +193,7 @@ namespace ExchangeSharp
 			using var cancel = new CancellationTokenSource(request.Timeout);
 			try
 			{
-				RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri);// when start make a request we send the uri, this helps developers to track the http requests.
+				RequestStateChanged?.Invoke(this, RequestMakerState.Begin, uri.AbsoluteUri); // when start make a request we send the uri, this helps developers to track the http requests.
 				response = await Client.SendAsync(request.Request, cancel.Token);
 				if (response == null)
 				{
@@ -197,12 +201,21 @@ namespace ExchangeSharp
 				}
 				responseString = await response.Content.ReadAsStringAsync();
 
-				if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created)
+				if (
+						response.StatusCode != HttpStatusCode.OK
+						&& response.StatusCode != HttpStatusCode.Created
+				)
 				{
 					// 404 maybe return empty responseString
 					if (string.IsNullOrWhiteSpace(responseString))
 					{
-						throw new APIException(string.Format("{0} - {1}", response.StatusCode.ConvertInvariant<int>(), response.StatusCode));
+						throw new APIException(
+								string.Format(
+										"{0} - {1}",
+										response.StatusCode.ConvertInvariant<int>(),
+										response.StatusCode
+								)
+						);
 					}
 
 					throw new APIException(responseString);
@@ -225,12 +238,21 @@ namespace ExchangeSharp
 			{
 				response?.Dispose();
 			}
-			return new IAPIRequestMaker.RequestResult<string>() { Response = responseString, HTTPHeaderDate = response.Headers.Date };
+			return new IAPIRequestMaker.RequestResult<string>()
+			{
+				Response = responseString,
+				HTTPHeaderDate = response.Headers.Date
+			};
 		}
 
 		/// <summary>
 		/// An action to execute when a request has been made (this request and state and object (response or exception))
 		/// </summary>
-		public Action<IAPIRequestMaker, RequestMakerState, object>? RequestStateChanged { get; set; }
+		public Action<
+				IAPIRequestMaker,
+				RequestMakerState,
+				object
+		>? RequestStateChanged
+		{ get; set; }
 	}
 }

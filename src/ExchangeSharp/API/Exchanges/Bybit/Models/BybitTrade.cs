@@ -10,10 +10,10 @@ namespace ExchangeSharp.Bybit
 		/// Cross sequence (internal value)
 		/// </summary>
 		public long CrossSequence { get; set; }
+
 		public override string ToString()
 		{
 			return string.Format("{0},{1}", base.ToString(), CrossSequence);
 		}
-
 	}
 }

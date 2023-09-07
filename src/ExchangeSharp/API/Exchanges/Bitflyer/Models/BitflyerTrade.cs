@@ -11,7 +11,12 @@ namespace ExchangeSharp.Bitflyer
 
 		public override string ToString()
 		{
-			return string.Format("{0},{1}, {2}", base.ToString(), BuyChildOrderAcceptanceId, SellChildOrderAcceptanceId);
+			return string.Format(
+					"{0},{1}, {2}",
+					base.ToString(),
+					BuyChildOrderAcceptanceId,
+					SellChildOrderAcceptanceId
+			);
 		}
 	}
 }

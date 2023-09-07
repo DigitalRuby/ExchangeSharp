@@ -13,35 +13,35 @@ namespace ExchangeSharpConsole
 		internal readonly Parser Parser;
 
 		public Type[] CommandOptions { get; } =
-		{
-			typeof(BuyOption),
-			typeof(CancelOrderOption),
-			typeof(CandlesOption),
-			typeof(ConvertOption),
-			typeof(DepositAddressOption),
-			typeof(CurrenciesOption),
-			typeof(ExampleOption),
-			typeof(ExportOption),
-			typeof(InteractiveOption),
-			typeof(KeysOption),
-			typeof(MarketSymbolsMetadataOption),
-			typeof(MarketSymbolsOption),
-			typeof(OrderBookOption),
-			typeof(OrderDetailsOption),
-			typeof(OrderHistoryOption),
-			typeof(SellOption),
-			typeof(StatsOption),
-			typeof(SupportedExchangesOption),
-			typeof(TestOption),
-			typeof(TickerOption),
-			typeof(TradeHistoryOption),
-			typeof(WebSocketsOrderbookOption),
-			typeof(WebSocketsPositionsOption),
-			typeof(WebSocketsTickersOption),
-			typeof(WebSocketsTradesOption),
-			typeof(WebSocketsCandlesOption),
-			typeof(WithdrawOption)
-		};
+				{
+								typeof(BuyOption),
+								typeof(CancelOrderOption),
+								typeof(CandlesOption),
+								typeof(ConvertOption),
+								typeof(DepositAddressOption),
+								typeof(CurrenciesOption),
+								typeof(ExampleOption),
+								typeof(ExportOption),
+								typeof(InteractiveOption),
+								typeof(KeysOption),
+								typeof(MarketSymbolsMetadataOption),
+								typeof(MarketSymbolsOption),
+								typeof(OrderBookOption),
+								typeof(OrderDetailsOption),
+								typeof(OrderHistoryOption),
+								typeof(SellOption),
+								typeof(StatsOption),
+								typeof(SupportedExchangesOption),
+								typeof(TestOption),
+								typeof(TickerOption),
+								typeof(TradeHistoryOption),
+								typeof(WebSocketsOrderbookOption),
+								typeof(WebSocketsPositionsOption),
+								typeof(WebSocketsTickersOption),
+								typeof(WebSocketsTradesOption),
+								typeof(WebSocketsCandlesOption),
+								typeof(WithdrawOption)
+						};
 
 		public Program()
 		{
@@ -65,9 +65,9 @@ namespace ExchangeSharpConsole
 			var optionList = new List<BaseOption>();
 
 			Parser
-				.ParseArguments(args, CommandOptions)
-				.WithParsed(opt => optionList.Add((BaseOption) opt))
-				.WithNotParsed(errs => (error, help) = ValidateParseErrors(errs));
+					.ParseArguments(args, CommandOptions)
+					.WithParsed(opt => optionList.Add((BaseOption)opt))
+					.WithNotParsed(errs => (error, help) = ValidateParseErrors(errs));
 
 			options = optionList;
 

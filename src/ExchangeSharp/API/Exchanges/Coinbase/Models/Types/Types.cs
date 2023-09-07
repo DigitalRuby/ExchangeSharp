@@ -18,6 +18,7 @@ namespace ExchangeSharp.Coinbase
 	{
 		[EnumMember(Value = "buy")]
 		Buy,
+
 		[EnumMember(Value = "sell")]
 		Sell
 	}
@@ -26,8 +27,10 @@ namespace ExchangeSharp.Coinbase
 	{
 		[EnumMember(Value = "Unknown")]
 		Unknown,
+
 		[EnumMember(Value = "loss")]
 		Loss,
+
 		[EnumMember(Value = "entry")]
 		Entry,
 	}

@@ -12,10 +12,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace ExchangeSharp.Aquanow
 {
-    internal class signatureContent
-    {
-        public string httpMethod { get; set; }
-        public string path { get; set; }
-        public object nonce { get; set; }
-    }
+	internal class signatureContent
+	{
+		public string httpMethod { get; set; }
+		public string path { get; set; }
+		public object nonce { get; set; }
+	}
 }

@@ -1,0 +1,22 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#753ca1",
+    "activityBar.foreground": "#ffffff",
+    "activityBar.inactiveForeground": "#ffffff99",
+    "activityBarBadge.background": "#d211fd",
+    "activityBarBadge.foreground": "#ffffff",
+    "statusBar.noFolderBackground": "#642596",
+    "statusBar.background": "#753ca1",
+    "statusBar.foreground": "#ffffff",
+    "statusBarItem.hoverBackground": "#642596",
+    "titleBar.activeBackground": "#753ca1",
+    "titleBar.activeForeground": "#ffffff"
+  },
+  "[csharp]": {
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": false,
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "editor.renderWhitespace": "all"
+}

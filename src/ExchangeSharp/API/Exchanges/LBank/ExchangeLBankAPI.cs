@@ -59,7 +59,9 @@ namespace ExchangeSharp
 		#region PUBLIC API*********************************************
 
 		//GetSymbolsMetadata
-		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<
+				IEnumerable<ExchangeMarket>
+		> OnGetMarketSymbolsMetadataAsync()
 		{
 			var currencyPairs = await OnGetMarketSymbolsAsync();
 			return ParseMarket(currencyPairs);
@@ -83,7 +85,9 @@ namespace ExchangeSharp
 		}
 
 		//GetTickers  4
-		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		protected override async Task<
+				IEnumerable<KeyValuePair<string, ExchangeTicker>>
+		> OnGetTickersAsync()
 		{
 			//https://api.lbank.info/v1/ticker.do?symbol=all
 
@@ -95,12 +99,17 @@ namespace ExchangeSharp
 		}
 
 		//GetOrderBook 5
-		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
+		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(
+				string symbol,
+				int maxCount = 100
+		)
 		{
 			//https://api.lbank.info/v1/depth.do?symbol=eth_btc&size=60&merge=1
 
 			maxCount = Math.Min(maxCount, ORDER_BOOK_MAX_SIZE);
-			JToken resp = await this.MakeJsonRequestAsync<JToken>($"/depth.do?symbol={symbol}&size={maxCount}&merge=0");
+			JToken resp = await this.MakeJsonRequestAsync<JToken>(
+					$"/depth.do?symbol={symbol}&size={maxCount}&merge=0"
+			);
 			CheckResponseToken(resp);
 			ExchangeOrderBook book = resp.ParseOrderBookFromJTokenArrays();
 			book.SequenceId = resp["timestamp"].ConvertInvariant<long>();
@@ -108,25 +117,43 @@ namespace ExchangeSharp
 		}
 
 		//GetRecentTrades   6
-		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string symbol, int? limit = null)
+		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(
+				string symbol,
+				int? limit = null
+		)
 		{
 			//https://api.lbank.info/v1/trades.do?symbol=eth_btc&size=600
-			int requestLimit = (limit == null || limit < 1 || limit > RECENT_TRADS_MAX_SIZE) ? RECENT_TRADS_MAX_SIZE : (int)limit;
+			int requestLimit =
+					(limit == null || limit < 1 || limit > RECENT_TRADS_MAX_SIZE)
+							? RECENT_TRADS_MAX_SIZE
+							: (int)limit;
 
-			JToken resp = await this.MakeJsonRequestAsync<JToken>($"/trades.do?symbol={symbol}&size={requestLimit}");
+			JToken resp = await this.MakeJsonRequestAsync<JToken>(
+					$"/trades.do?symbol={symbol}&size={requestLimit}"
+			);
 			CheckResponseToken(resp);
 			return ParseRecentTrades(resp, symbol);
 		}
 
 		//GetCandles   7
-		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string symbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
+		protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(
+				string symbol,
+				int periodSeconds,
+				DateTime? startDate = null,
+				DateTime? endDate = null,
+				int? limit = null
+		)
 		{
 			//Get http://api.lbank.info/v1/kline.do
 			limit = limit ?? 100;
 			DateTime fromDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
 			string type = CryptoUtility.SecondsToPeriodString(periodSeconds);
-			long timestamp = CryptoUtility.UnixTimestampFromDateTimeSeconds(fromDate).ConvertInvariant<long>();
-			JToken resp = await MakeJsonRequestAsync<JToken>($"/kline.do?symbol={symbol}&size={limit}&type={type}&time={timestamp}");
+			long timestamp = CryptoUtility
+					.UnixTimestampFromDateTimeSeconds(fromDate)
+					.ConvertInvariant<long>();
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					$"/kline.do?symbol={symbol}&size={limit}&type={type}&time={timestamp}"
+			);
 			CheckResponseToken(resp);
 			return ParseMarketCandle(resp);
 		}
@@ -149,14 +176,15 @@ namespace ExchangeSharp
 				}
 
 				markets.Add(
-					new ExchangeMarket
-					{
-						MarketId = item,
-						MarketSymbol = item,
-						BaseCurrency = pair[0],
-						QuoteCurrency = pair[1],
-						IsActive = true,
-					});
+						new ExchangeMarket
+						{
+							MarketId = item,
+							MarketSymbol = item,
+							BaseCurrency = pair[0],
+							QuoteCurrency = pair[1],
+							IsActive = true,
+						}
+				);
 			}
 
 			return markets;
@@ -164,7 +192,8 @@ namespace ExchangeSharp
 
 		private List<KeyValuePair<string, ExchangeTicker>> ParseTickers(JToken obj)
 		{
-			List<KeyValuePair<string, ExchangeTicker>> tickerList = new List<KeyValuePair<string, ExchangeTicker>>();
+			List<KeyValuePair<string, ExchangeTicker>> tickerList =
+					new List<KeyValuePair<string, ExchangeTicker>>();
 
 			foreach (JObject token in obj)
 			{
@@ -207,7 +236,9 @@ namespace ExchangeSharp
 			//},
 			string symbol = resp["symbol"].ConvertInvariant<string>();
 			string[] pair = symbol.ToUpperInvariant().Split(this.MarketSymbolSeparator[0]);
-			DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(resp["timestamp"].ConvertInvariant<long>());
+			DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(
+					resp["timestamp"].ConvertInvariant<long>()
+			);
 			JToken obj = resp["ticker"];
 			decimal volume = obj["vol"].ConvertInvariant<decimal>();
 
@@ -245,14 +276,15 @@ namespace ExchangeSharp
 				DateTime timestamp = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(ms);
 
 				exTradeList.Add(
-					new ExchangeTrade
-					{
-						Id = token["tid"].ToStringInvariant(),
-						Timestamp = timestamp,
-						Price = token["price"].ConvertInvariant<decimal>(),
-						Amount = token["amount"].ConvertInvariant<decimal>(),
-						IsBuy = token["type"].ToStringLowerInvariant() == "buy"
-					});
+						new ExchangeTrade
+						{
+							Id = token["tid"].ToStringInvariant(),
+							Timestamp = timestamp,
+							Price = token["price"].ConvertInvariant<decimal>(),
+							Amount = token["amount"].ConvertInvariant<decimal>(),
+							IsBuy = token["type"].ToStringLowerInvariant() == "buy"
+						}
+				);
 			}
 
 			return exTradeList;
@@ -266,7 +298,9 @@ namespace ExchangeSharp
 			{
 				MarketCandle candle = new MarketCandle
 				{
-					Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(item[0].ConvertInvariant<long>()),
+					Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(
+								item[0].ConvertInvariant<long>()
+						),
 					OpenPrice = item[1].ConvertInvariant<decimal>(),
 					HighPrice = item[2].ConvertInvariant<decimal>(),
 					LowPrice = item[3].ConvertInvariant<decimal>(),
@@ -288,28 +322,43 @@ namespace ExchangeSharp
 		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
 		{
 			Dictionary<string, object> payload = new Dictionary<string, object>
-			{
-			{ "api_key", PublicApiKey.ToUnsecureString() }
-			};
-			JToken resp = await MakeJsonRequestAsync<JToken>("/user_info.do", null, (Dictionary<string, object>)payload, "POST");
+						{
+								{ "api_key", PublicApiKey.ToUnsecureString() }
+						};
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					"/user_info.do",
+					null,
+					(Dictionary<string, object>)payload,
+					"POST"
+			);
 			CheckResponseToken(resp);
 			return ParseAmounts(resp, true);
 		}
 
 		//PlaceOrder   9
-		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
+				ExchangeOrderRequest order
+		)
 		{
-			if (order.IsPostOnly != null) throw new NotSupportedException("Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature.");
+			if (order.IsPostOnly != null)
+				throw new NotSupportedException(
+						"Post Only orders are not supported by this exchange or not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature."
+				);
 			Dictionary<string, object> payload = new Dictionary<string, object>
-		   {
-				{ "amount", order.Amount },
-				{ "api_key", PublicApiKey.ToUnsecureString() },
-				{ "price", order.Price },
-				{ "symbol", order.MarketSymbol },
-				{ "type", order.IsBuy ? "buy" : "sell"}
-		   };
+						{
+								{ "amount", order.Amount },
+								{ "api_key", PublicApiKey.ToUnsecureString() },
+								{ "price", order.Price },
+								{ "symbol", order.MarketSymbol },
+								{ "type", order.IsBuy ? "buy" : "sell" }
+						};
 
-			JToken resp = await MakeJsonRequestAsync<JToken>("/create_order.do", null, payload, "POST");
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					"/create_order.do",
+					null,
+					payload,
+					"POST"
+			);
 
 			CheckResponseToken(resp);
 
@@ -317,15 +366,22 @@ namespace ExchangeSharp
 		}
 
 		//GetOpenOrderDetails  10
-		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol)
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
+				string marketSymbol
+		)
 		{
 			Dictionary<string, object> payload = new Dictionary<string, object>
-					{
-						{ "api_key", PublicApiKey.ToUnsecureString() },
-						{ "symbol", marketSymbol }
-					};
+						{
+								{ "api_key", PublicApiKey.ToUnsecureString() },
+								{ "symbol", marketSymbol }
+						};
 
-			JToken resp = await MakeJsonRequestAsync<JToken>("/orders_info_no_deal.do", null, payload, "POST");
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					"/orders_info_no_deal.do",
+					null,
+					payload,
+					"POST"
+			);
 
 			CheckResponseToken(resp);
 
@@ -333,45 +389,76 @@ namespace ExchangeSharp
 		}
 
 		//GetCompletedOrderDetails  11
-		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+		protected override async Task<
+				IEnumerable<ExchangeOrderResult>
+		> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
 		{
 			Dictionary<string, object> payload = new Dictionary<string, object>
-			{
-				{ "api_key", PublicApiKey.ToUnsecureString() },
-				{ "symbol", marketSymbol }
-			};
+						{
+								{ "api_key", PublicApiKey.ToUnsecureString() },
+								{ "symbol", marketSymbol }
+						};
 
-			JToken resp = await MakeJsonRequestAsync<JToken>("/orders_info_history.do", null, payload, "POST");
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					"/orders_info_history.do",
+					null,
+					payload,
+					"POST"
+			);
 			CheckResponseToken(resp);
 			return ParseOrderList(resp, ExchangeAPIOrderResult.Filled);
 		}
 
 		//CancelOrder   12
-		protected override async Task OnCancelOrderAsync(string orderId, string symbol = null, bool isClientOrderId = false)
+		protected override async Task OnCancelOrderAsync(
+				string orderId,
+				string symbol = null,
+				bool isClientOrderId = false
+		)
 		{
-			if (isClientOrderId) throw new NotSupportedException("Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId)
+				throw new NotSupportedException(
+						"Cancelling by client order ID is not supported in ExchangeSharp. Please submit a PR if you are interested in this feature"
+				);
 			Dictionary<string, object> payload = new Dictionary<string, object>
-			{
-				{ "api_key", PublicApiKey.ToUnsecureString() },
-				{ "order_id", orderId },
-				{ "symbol", symbol },
-			};
-			JToken resp = await MakeJsonRequestAsync<JToken>("/cancel_order.do", null, payload, "POST");
+						{
+								{ "api_key", PublicApiKey.ToUnsecureString() },
+								{ "order_id", orderId },
+								{ "symbol", symbol },
+						};
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					"/cancel_order.do",
+					null,
+					payload,
+					"POST"
+			);
 			CheckResponseToken(resp);
 		}
 
 		//GetOrderDetails   13
-		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string symbol = null, bool isClientOrderId = false)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(
+				string orderId,
+				string symbol = null,
+				bool isClientOrderId = false
+		)
 		{
-			if (isClientOrderId) throw new NotSupportedException("Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature");
+			if (isClientOrderId)
+				throw new NotSupportedException(
+						"Querying by client order ID is not implemented in ExchangeSharp. Please submit a PR if you are interested in this feature"
+				);
 			Dictionary<string, object> payload = new Dictionary<string, object>
-			{
-				{ "api_key", PublicApiKey.ToUnsecureString() },
-				{ "order_id", orderId },
-				{ "symbol", symbol }
-			};
+						{
+								{ "api_key", PublicApiKey.ToUnsecureString() },
+								{ "order_id", orderId },
+								{ "symbol", symbol }
+						};
 
-			JToken resp = await MakeJsonRequestAsync<JToken>("/orders_info.do", null, payload, "POST");
+			JToken resp = await MakeJsonRequestAsync<JToken>(
+					"/orders_info.do",
+					null,
+					payload,
+					"POST"
+			);
 			CheckResponseToken(resp);
 			var orderResultList = ParseOrderList(resp, ExchangeAPIOrderResult.Unknown);
 			CheckResponseList(orderResultList, orderId);
@@ -380,7 +467,9 @@ namespace ExchangeSharp
 		}
 
 		//Withdraw  14
-		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+		protected override async Task<ExchangeWithdrawalResponse> OnWithdrawAsync(
+				ExchangeWithdrawalRequest withdrawalRequest
+		)
 		{
 			if (string.IsNullOrWhiteSpace(withdrawalRequest.Currency))
 			{
@@ -392,15 +481,20 @@ namespace ExchangeSharp
 			}
 
 			Dictionary<string, object> payload = new Dictionary<string, object>
-			{
-				{ "account", withdrawalRequest.Address },
-				{ "amount", withdrawalRequest.Amount },
-				{ "api_key", PublicApiKey.ToUnsecureString() },
-				{ "assetCode", withdrawalRequest.Currency },
-				{ "fee", withdrawalRequest.TakeFeeFromAmount }
-			};
+						{
+								{ "account", withdrawalRequest.Address },
+								{ "amount", withdrawalRequest.Amount },
+								{ "api_key", PublicApiKey.ToUnsecureString() },
+								{ "assetCode", withdrawalRequest.Currency },
+								{ "fee", withdrawalRequest.TakeFeeFromAmount }
+						};
 
-			JObject resp = await MakeJsonRequestAsync<JObject>("/withdraw.do", null, payload, "POST");
+			JObject resp = await MakeJsonRequestAsync<JObject>(
+					"/withdraw.do",
+					null,
+					payload,
+					"POST"
+			);
 
 			CheckResponseToken(resp);
 
@@ -408,23 +502,25 @@ namespace ExchangeSharp
 		}
 
 		//Withdraws  15
-		protected override Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
+		protected override Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(
+				string currency
+		)
 		{
 			throw new NotImplementedException();
 			/*
-            Dictionary<string, object> payload = new Dictionary<string, object>
-                {
-                    { "api_key", PublicApiKey.ToUnsecureString() },
-                    { "assetCode", currency },
-                    { "status", 0 } // all
-                };
+			Dictionary<string, object> payload = new Dictionary<string, object>
+					{
+							{ "api_key", PublicApiKey.ToUnsecureString() },
+							{ "assetCode", currency },
+							{ "status", 0 } // all
+					};
 
-            JObject resp = await MakeJsonRequestAsync<JObject>("/withdraws.do", null, payload, "POST");
+			JObject resp = await MakeJsonRequestAsync<JObject>("/withdraws.do", null, payload, "POST");
 
-            CheckResponseToken(resp);
+			CheckResponseToken(resp);
 
-            return ParseWithdrawListResponse(resp);
-            */
+			return ParseWithdrawListResponse(resp);
+			*/
 		}
 
 		#endregion TRADING API*********************************************
@@ -474,7 +570,10 @@ namespace ExchangeSharp
 			return orderResult;
 		}
 
-		private List<ExchangeOrderResult> ParseOrderList(JToken orderList, ExchangeAPIOrderResult status)
+		private List<ExchangeOrderResult> ParseOrderList(
+				JToken orderList,
+				ExchangeAPIOrderResult status
+		)
 		{
 			JToken orders = orderList["orders"];
 
@@ -526,7 +625,8 @@ namespace ExchangeSharp
 
 		private List<ExchangeWithdrawalResponse> ParseWithdrawListResponse(JToken withdrawList)
 		{
-			List<ExchangeWithdrawalResponse> withdrawResponseList = new List<ExchangeWithdrawalResponse>();
+			List<ExchangeWithdrawalResponse> withdrawResponseList =
+					new List<ExchangeWithdrawalResponse>();
 
 			JToken withdraws = withdrawList["list"];
 
@@ -542,38 +642,44 @@ namespace ExchangeSharp
 		#endregion PARSERS PrivateAPI
 
 		#region Websockets
-		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
+				Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+				params string[] marketSymbols
+		)
 		{
 			if (marketSymbols == null || marketSymbols.Length == 0)
 			{
 				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
 			}
-			return await ConnectPublicWebSocketAsync("", async (_socket, msg) =>
-			{
-				/* {
-					 "trade":{
-						 "volume":6.3607,
-						 "amount":77148.9303,
-						 "price":12129,
-						 "direction":"sell",
-						 "TS":"2019-06-28T19:55:49.460"
-					 },
-					 "type":"trade",
-					 "pair":"btc_usdt",
-					 "SERVER":"V2",
-					 "TS":"2019-06-28T19:55:49.466"
-					}*/
-				JToken token = JToken.Parse(msg.ToStringFromUTF8());
-				if (token["status"].ToStringInvariant() == "error")
-				{
-					if (token["message"].ToStringInvariant().Contains("Invalid order pairs"))
+			return await ConnectPublicWebSocketAsync(
+					"",
+					async (_socket, msg) =>
 					{
-						// ignore, bc invalid order pairs are normal in LBank
-					}
-					else throw new APIException(token["message"].ToStringInvariant());
-				}
-				if (token["action"].ToStringInvariant() == "ping")
-				{/* # ping
+						/* {
+								 "trade":{
+										 "volume":6.3607,
+										 "amount":77148.9303,
+										 "price":12129,
+										 "direction":"sell",
+										 "TS":"2019-06-28T19:55:49.460"
+								 },
+								 "type":"trade",
+								 "pair":"btc_usdt",
+								 "SERVER":"V2",
+								 "TS":"2019-06-28T19:55:49.466"
+								}*/
+						JToken token = JToken.Parse(msg.ToStringFromUTF8());
+						if (token["status"].ToStringInvariant() == "error")
+						{
+							if (token["message"].ToStringInvariant().Contains("Invalid order pairs"))
+							{
+								// ignore, bc invalid order pairs are normal in LBank
+							}
+							else
+								throw new APIException(token["message"].ToStringInvariant());
+						}
+						if (token["action"].ToStringInvariant() == "ping")
+						{ /* # ping
 					{
 						"action":"ping",
 						"ping":"0ca8f854-7ba7-4341-9d86-d3327e52804e"
@@ -583,42 +689,52 @@ namespace ExchangeSharp
 						"action":"pong",
 						"pong":"0ca8f854-7ba7-4341-9d86-d3327e52804e"
 					} */
-					var pong = new
-					{
-						action = "pong",
-						pong = token["ping"].ToStringInvariant(),
-					};
-					await _socket.SendMessageAsync(pong);
-				}
-				else if (token["type"].ToStringInvariant() == "trade")
-				{
-					var trade = token["trade"].ParseTrade("amount", "price", "direction", "TS", TimestampType.Iso8601China, null);
-					string marketSymbol = token["pair"].ToStringInvariant();
-					await callback(new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade));
-				}
-			}, async (_socket) =>
-			{ /* {
+							var pong = new { action = "pong", pong = token["ping"].ToStringInvariant(), };
+							await _socket.SendMessageAsync(pong);
+						}
+						else if (token["type"].ToStringInvariant() == "trade")
+						{
+							var trade = token["trade"].ParseTrade(
+												"amount",
+												"price",
+												"direction",
+												"TS",
+												TimestampType.Iso8601China,
+												null
+										);
+							string marketSymbol = token["pair"].ToStringInvariant();
+							await callback(
+												new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade)
+										);
+						}
+					},
+					async (_socket) =>
+					{ /* {
 					"action":"subscribe",
 					"subscribe":"trade",
 					"pair":"eth_btc"
 				  }*/
-				foreach (var marketSymbol in marketSymbols)
-				{
-					var subscribeRequest = new
-					{
-						action = "subscribe",
-						subscribe = "trade",
-						pair = marketSymbol,
-					};
-					await _socket.SendMessageAsync(subscribeRequest);
-				}
-			});
+						foreach (var marketSymbol in marketSymbols)
+						{
+							var subscribeRequest = new
+							{
+								action = "subscribe",
+								subscribe = "trade",
+								pair = marketSymbol,
+							};
+							await _socket.SendMessageAsync(subscribeRequest);
+						}
+					}
+			);
 		}
 		#endregion
 
 		#region HELPERS
 
-		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		protected override async Task ProcessRequestAsync(
+				IHttpWebRequest request,
+				Dictionary<string, object> payload
+		)
 		{
 			if (payload == null || request.Method == "GET")
 			{
@@ -677,7 +793,11 @@ namespace ExchangeSharp
 			{
 				throw new APIException("Missing response");
 			}
-			else if (!(token is JArray) && !token["result"].ConvertInvariant<bool>() && token["error_code"] != null)
+			else if (
+					!(token is JArray)
+					&& !token["result"].ConvertInvariant<bool>()
+					&& token["error_code"] != null
+			)
 			{
 				int errorCode = token["error_code"].ConvertInvariant<int>();
 				string errMsg = GetErrorMsg(errorCode);
@@ -692,7 +812,10 @@ namespace ExchangeSharp
 
 		private void CheckResponseList(List<ExchangeOrderResult> orderResultList, string orderId)
 		{
-			if (orderResultList.Count == 0 || (orderResultList.Count > 0 && orderResultList[0].OrderId != orderId))
+			if (
+					orderResultList.Count == 0
+					|| (orderResultList.Count > 0 && orderResultList[0].OrderId != orderId)
+			)
 			{
 				throw new APIException("Missing response");
 			}
@@ -704,43 +827,111 @@ namespace ExchangeSharp
 
 			switch (errorCode)
 			{
-				case 10000: errMsg = "Internal error"; break;
-				case 10001: errMsg = "Required parameters cannot be empty"; break;
-				case 10002: errMsg = "Verification failed"; break;
-				case 10003: errMsg = "illegal parameters"; break;
-				case 10004: errMsg = "User requests are too frequent"; break;
-				case 10005: errMsg = "Key does not exist"; break;
-				case 10006: errMsg = "User does not exist"; break;
-				case 10007: errMsg = "Invalid signature"; break;
-				case 10008: errMsg = "This currency pair does not support"; break;
+				case 10000:
+					errMsg = "Internal error";
+					break;
+				case 10001:
+					errMsg = "Required parameters cannot be empty";
+					break;
+				case 10002:
+					errMsg = "Verification failed";
+					break;
+				case 10003:
+					errMsg = "illegal parameters";
+					break;
+				case 10004:
+					errMsg = "User requests are too frequent";
+					break;
+				case 10005:
+					errMsg = "Key does not exist";
+					break;
+				case 10006:
+					errMsg = "User does not exist";
+					break;
+				case 10007:
+					errMsg = "Invalid signature";
+					break;
+				case 10008:
+					errMsg = "This currency pair does not support";
+					break;
 
-				case 10009: errMsg = "Limit order can not be missing the order price and order quantity"; break;
-				case 10010: errMsg = "Order price or order quantity must be greater than 0"; break;
-				case 10013: errMsg = "Minimum trading amount less than position 0.001"; break;
-				case 10014: errMsg = "Insufficient amount of account currency"; break;
-				case 10015: errMsg = "Order type error"; break;
-				case 10016: errMsg = "Account balance is insufficient"; break;
-				case 10017: errMsg = "Server exception"; break;
-				case 10018: errMsg = "The number of order inquiry cannot be greater than 50 and less than 1"; break;
+				case 10009:
+					errMsg = "Limit order can not be missing the order price and order quantity";
+					break;
+				case 10010:
+					errMsg = "Order price or order quantity must be greater than 0";
+					break;
+				case 10013:
+					errMsg = "Minimum trading amount less than position 0.001";
+					break;
+				case 10014:
+					errMsg = "Insufficient amount of account currency";
+					break;
+				case 10015:
+					errMsg = "Order type error";
+					break;
+				case 10016:
+					errMsg = "Account balance is insufficient";
+					break;
+				case 10017:
+					errMsg = "Server exception";
+					break;
+				case 10018:
+					errMsg =
+							"The number of order inquiry cannot be greater than 50 and less than 1";
+					break;
 
-				case 10019: errMsg = "The number of withdrawals cannot be greater than 3 and less than 1"; break;
-				case 10020: errMsg = "Minimum trading amount less than the amount of 0.001"; break;
-				case 10021: errMsg = "Minimum transaction amount less than the limit order transaction price 0.01"; break;
-				case 10022: errMsg = "Insufficient key authority"; break;
-				case 10023: errMsg = "Does not support market price trading"; break;
-				case 10024: errMsg = "Users cannot trade the pair"; break;
-				case 10025: errMsg = "Order has been dealt"; break;
-				case 10026: errMsg = "Order has been revoked"; break;
-				case 10027: errMsg = "Order is being revoked"; break;
+				case 10019:
+					errMsg = "The number of withdrawals cannot be greater than 3 and less than 1";
+					break;
+				case 10020:
+					errMsg = "Minimum trading amount less than the amount of 0.001";
+					break;
+				case 10021:
+					errMsg =
+							"Minimum transaction amount less than the limit order transaction price 0.01";
+					break;
+				case 10022:
+					errMsg = "Insufficient key authority";
+					break;
+				case 10023:
+					errMsg = "Does not support market price trading";
+					break;
+				case 10024:
+					errMsg = "Users cannot trade the pair";
+					break;
+				case 10025:
+					errMsg = "Order has been dealt";
+					break;
+				case 10026:
+					errMsg = "Order has been revoked";
+					break;
+				case 10027:
+					errMsg = "Order is being revoked";
+					break;
 
-				case 10100: errMsg = "No coin rights"; break;
-				case 10101: errMsg = "The coin rate is wrong"; break;
-				case 10102: errMsg = "The amount of the coin is less than the single minimum"; break;
-				case 10103: errMsg = "The amount of the coin exceeds the daily limit"; break;
-				case 10104: errMsg = "The order has been processed and cannot be revoked"; break;
-				case 10105: errMsg = "The order has been cancelled"; break;
+				case 10100:
+					errMsg = "No coin rights";
+					break;
+				case 10101:
+					errMsg = "The coin rate is wrong";
+					break;
+				case 10102:
+					errMsg = "The amount of the coin is less than the single minimum";
+					break;
+				case 10103:
+					errMsg = "The amount of the coin exceeds the daily limit";
+					break;
+				case 10104:
+					errMsg = "The order has been processed and cannot be revoked";
+					break;
+				case 10105:
+					errMsg = "The order has been cancelled";
+					break;
 
-				default: errMsg = $"Unknown error code: {errorCode}"; break;
+				default:
+					errMsg = $"Unknown error code: {errorCode}";
+					break;
 			}
 
 			return errMsg;
@@ -749,5 +940,8 @@ namespace ExchangeSharp
 		#endregion HELPERS
 	}
 
-	public partial class ExchangeName { public const string LBank = "LBank"; }
+	public partial class ExchangeName
+	{
+		public const string LBank = "LBank";
+	}
 }

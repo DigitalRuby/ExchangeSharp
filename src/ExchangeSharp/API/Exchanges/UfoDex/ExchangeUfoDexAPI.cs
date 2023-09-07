@@ -45,7 +45,9 @@ namespace ExchangeSharp
 					BaseCurrency = symbols[1],
 					QuoteCurrencyVolume = token["Volume"].ConvertInvariant<decimal>(),
 					BaseCurrencyVolume = token["BaseVolume"].ConvertInvariant<decimal>(),
-					Timestamp = token["GenTime"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds()
+					Timestamp = token["GenTime"]
+									.ConvertInvariant<long>()
+									.UnixTimeStampToDateTimeMilliseconds()
 				}
 			};
 		}
@@ -67,19 +69,27 @@ namespace ExchangeSharp
 			return ParseTicker(result);
 		}
 
-		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		protected override async Task<
+				IEnumerable<KeyValuePair<string, ExchangeTicker>>
+		> OnGetTickersAsync()
 		{
-			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			List<KeyValuePair<string, ExchangeTicker>> tickers =
+					new List<KeyValuePair<string, ExchangeTicker>>();
 
 			JToken result = await MakeJsonRequestAsync<JToken>("/gettickers");
 			foreach (JProperty token in result)
 			{
 				// {"UFO/BTC":{Ticker JSON}, "UFO/LTC":{Ticker JSON}, ...}
-				tickers.Add(new KeyValuePair<string, ExchangeTicker>(token.Name, ParseTicker(token.Value)));
+				tickers.Add(
+						new KeyValuePair<string, ExchangeTicker>(token.Name, ParseTicker(token.Value))
+				);
 			}
 			return tickers;
 		}
 	}
 
-	public partial class ExchangeName { public const string UfoDex = "UfoDex"; }
+	public partial class ExchangeName
+	{
+		public const string UfoDex = "UfoDex";
+	}
 }

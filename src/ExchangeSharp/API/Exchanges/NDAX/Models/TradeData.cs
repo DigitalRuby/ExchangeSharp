@@ -1,10 +1,10 @@
-using ExchangeSharp.NDAX;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ExchangeSharp.NDAX;
+using Newtonsoft.Json;
 
 namespace ExchangeSharp.NDAX
 {
@@ -14,6 +14,7 @@ namespace ExchangeSharp.NDAX
 		UpTick = 1,
 		DownTick = 2,
 	}
+
 	public enum TakerSide : byte
 	{
 		Buy = 0,
@@ -27,10 +28,18 @@ namespace ExchangeSharp.NDAX
 		public Direction Direction { get; set; }
 		public bool IsBlockTrade { get; set; }
 		public long ClientOrderId { get; set; }
+
 		public override string ToString()
 		{
-			return string.Format("{0},{1},{2},{3},{4},{5}", base.ToString(),
-				Order1Id, Order2Id, Direction, IsBlockTrade, ClientOrderId);
+			return string.Format(
+					"{0},{1},{2},{3},{4},{5}",
+					base.ToString(),
+					Order1Id,
+					Order2Id,
+					Direction,
+					IsBlockTrade,
+					ClientOrderId
+			);
 		}
 	}
 }

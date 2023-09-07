@@ -7,6 +7,6 @@ namespace ExchangeSharp.API.Exchanges.Coinmate.Models
 		public decimal Price { get; set; }
 		public decimal Amount { get; set; }
 		public string CurrencyPair { get; set; }
-		public string TradeType { get; set; }	
+		public string TradeType { get; set; }
 	}
 }

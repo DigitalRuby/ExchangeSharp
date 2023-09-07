@@ -21,9 +21,9 @@ namespace ExchangeSharpConsole.Options
 				{
 					var ticker = await api.GetTickerAsync(MarketSymbol);
 					tickers = new List<KeyValuePair<string, ExchangeTicker>>
-					{
-						new KeyValuePair<string, ExchangeTicker>(MarketSymbol, ticker)
-					};
+										{
+												new KeyValuePair<string, ExchangeTicker>(MarketSymbol, ticker)
+										};
 				}
 				else
 				{
