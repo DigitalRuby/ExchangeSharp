@@ -15,7 +15,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,7 +25,7 @@ namespace ExchangeSharp
   /// If you are using legacy API keys from previous Coinbase versions they must be upgraded to Advanced Trade on the Coinbase site.
   /// These keys must be set before using the Coinbase API (sorry).
   /// </summary>
-  public sealed class ExchangeCoinbaseAPI : ExchangeAPI
+	public sealed class ExchangeCoinbaseAPI : ExchangeAPI
   {
   	private const string ADVFILL = "advanced_trade_fill";
   	private const string CURRENCY = "currency";
@@ -114,14 +113,14 @@ namespace ExchangeSharp
   	/// <param name="marketSymbol"></param>
   	/// <returns></returns>
   	public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
-      {
+    {
   		if (marketSymbol.StartsWith("USD-") || marketSymbol.StartsWith("EUR-") || marketSymbol.StartsWith("GRP-"))
   		{
   			var split = marketSymbol.Split(GlobalMarketSymbolSeparator);
   			return Task.FromResult(split[1] + GlobalMarketSymbolSeparator + split[0]);
   		}
   		else return Task.FromResult(marketSymbol);
-      }
+    }
 
   	protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
   	{
@@ -151,7 +150,7 @@ namespace ExchangeSharp
   		JToken products = await MakeJsonRequestAsync<JToken>("/products");
   		foreach (JToken product in products[PRODUCTS])
   		{
-  			markets.Add(new ExchangeMarket
+  			markets.Add(new ExchangeMarket()
   			{
   				MarketSymbol = product[PRODUCTID].ToStringUpperInvariant(),
   				BaseCurrency = product["base_currency_id"].ToStringUpperInvariant(),
@@ -213,18 +212,18 @@ namespace ExchangeSharp
   		foreach (JToken book in books[PRICEBOOKS])
   		{
   			var split = book[PRODUCTID].ToString().Split(GlobalMarketSymbolSeparator);
-  			// This endpoint does not provide a last or open for the ExchangeTicker 
+  			// This endpoint does not provide a last or open for the ExchangeTicker. We might get this from the sockets, but this call is extremely fast?
   			tickers.Add(new KeyValuePair<string, ExchangeTicker>(book[PRODUCTID].ToString(), new ExchangeTicker()
   			{
   				MarketSymbol = book[PRODUCTID].ToString(),
   				Ask = book[ASKS][0][PRICE].ConvertInvariant<decimal>(),
   				Bid = book[BIDS][0][PRICE].ConvertInvariant<decimal>(),
-    			    Volume = new ExchangeVolume()
+    		  Volume = new ExchangeVolume()
   				{
-    					BaseCurrency = split[0],
+    				BaseCurrency = split[0],
   					BaseCurrencyVolume = book[BIDS][0][SIZE].ConvertInvariant<decimal>(),
   					QuoteCurrency = split[1],
-  				    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
+  				  QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
   					Timestamp = Timestamp
   				}
   			}));
@@ -234,6 +233,7 @@ namespace ExchangeSharp
 
   	protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
   	{
+			// Again, me might also get this from the sockets, but this seems preferable for now.
   		JToken ticker = await MakeJsonRequestAsync<JToken>("/best_bid_ask?product_ids=" + marketSymbol.ToUpperInvariant());
   		JToken book = ticker[PRICEBOOKS][0];
   		var split = book[PRODUCTID].ToString().Split(GlobalMarketSymbolSeparator);
@@ -242,12 +242,12 @@ namespace ExchangeSharp
   			MarketSymbol = book[PRODUCTID].ToString(),
   			Ask = book[ASKS][0][PRICE].ConvertInvariant<decimal>(),
   			Bid = book[BIDS][0][PRICE].ConvertInvariant<decimal>(),
-    		    Volume = new ExchangeVolume()
+    	  Volume = new ExchangeVolume()
   			{
-    				BaseCurrency = split[0],
+    			BaseCurrency = split[0],
   				BaseCurrencyVolume = book[BIDS][0][SIZE].ConvertInvariant<decimal>(),
   				QuoteCurrency = split[1],
-  			    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
+  		    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
   				Timestamp = DateTime.UtcNow
   			}
   		};	
@@ -264,7 +264,7 @@ namespace ExchangeSharp
 
   	protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = 100)
   	{
-  		// Limit is required but maxed at 100 with no pagination available
+  		// Limit is required but maxed at 100 with no pagination available. Check Sockets?
   		limit = (limit == null || limit < 1 || limit > 100) ? 100 : (int)limit;
   		JToken trades = await MakeJsonRequestAsync<JToken>("/products/" + marketSymbol.ToUpperInvariant() + "/ticker?limit=" + limit);
   		List<ExchangeTrade> tradeList = new List<ExchangeTrade>();
@@ -401,7 +401,7 @@ namespace ExchangeSharp
   		pagination = PaginationType.V3Cursor;
   		string startURL = "/orders/historical/fills";
 		
-  		if (!string.IsNullOrEmpty(marketSymbol)) startURL += "?product_id=" + marketSymbol;
+  		if (!string.IsNullOrEmpty(marketSymbol)) startURL += "?product_id=" + marketSymbol.ToStringUpperInvariant();
   		if (afterDate != null) startURL += marketSymbol == null ? "?" : "&" + "start_sequence_timestamp=" + ((DateTimeOffset)afterDate).ToUnixTimeSeconds();
   		JToken token = await MakeJsonRequestAsync<JToken>(startURL);
   		startURL +=  marketSymbol == null && afterDate == null ? "?" : "&" + "cursor=";
@@ -564,7 +564,7 @@ namespace ExchangeSharp
   		string marketSymbol = string.Empty;
   		bool isBuy = true;
 
-  		Debug.WriteLine(result["type"].ToStringInvariant());
+  		//Debug.WriteLine(result["type"].ToStringInvariant());
   		switch(result["type"].ToStringInvariant())
   		{
   			case ADVFILL:
@@ -590,7 +590,7 @@ namespace ExchangeSharp
   				return new ExchangeOrderResult {OrderId = result["id"].ToStringInvariant(), Message = result["type"].ToStringInvariant(), };
   		}
 
-  		amount = result["amount"]["amount"].ConvertInvariant<decimal>(amountFilled);
+  		amount = result[AMOUNT][AMOUNT].ConvertInvariant<decimal>(amountFilled);
   		amountFilled = amount;
 
   		price = result[ADVFILL]["fill_price"].ConvertInvariant<decimal>();
