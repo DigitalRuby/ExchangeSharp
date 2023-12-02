@@ -434,7 +434,7 @@ namespace ExchangeSharp
   		await MakeJsonRequestAsync<JArray>("/orders/batch_cancel", payload: payload, requestMethod: "POST");
   	}
 
-/// <summary>
+	/// <summary>
 	/// This supports two Entries in the Order ExtraParameters:
 	/// "post_only" : true/false (defaults to false if does not exist)
 	/// "gtd_timestamp : datetime (determines GTD order type if exists, otherwise GTC
@@ -470,23 +470,23 @@ namespace ExchangeSharp
 			case OrderType.Stop:
 				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
 				{
-					configuration.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
-					{
-						{"base_size", order.Amount.ToStringInvariant() },
-						{"limit_price", order.Price.ToStringInvariant() },
-						{"stop_price", order.StopPrice.ToStringInvariant() },
-						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
-						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
-					});
-				}
-				else
-				{
 					configuration.Add("stop_limit_stop_limit_gtd", new Dictionary<string, object>()
 					{
 						{"base_size", order.Amount.ToStringInvariant() },
 						{"limit_price", order.Price.ToStringInvariant() },
 						{"stop_price", order.StopPrice.ToStringInvariant() },
 						{"end_time", ((DateTimeOffset)order.ExtraParameters["gtd_timestamp"].ToDateTimeInvariant()).ToUnixTimeSeconds().ToString() },		// This is a bit convoluted? Is this the right format?
+						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
+						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
+					});
+				}
+				else
+				{
+					configuration.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
+					{
+						{"base_size", order.Amount.ToStringInvariant() },
+						{"limit_price", order.Price.ToStringInvariant() },
+						{"stop_price", order.StopPrice.ToStringInvariant() },
 						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
 						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
 					});
@@ -507,15 +507,15 @@ namespace ExchangeSharp
 		// We don't have the proper return type for the POST - will probably require a separate parsing function and return Success/Fail
 		return ParseOrder(result);
 	}
-  	protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
-  	{
-  		return base.OnWithdrawAsync(withdrawalRequest);
-  	}
+  protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+  {
+  	return base.OnWithdrawAsync(withdrawalRequest);
+  }
 
 
-  	#endregion
+ 	#endregion
 
-  	#region SocketEndpoints
+ 		#region SocketEndpoints
 
   	protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 100, params string[] marketSymbols)
   	{
@@ -534,7 +534,7 @@ namespace ExchangeSharp
 
   	#endregion
 
-  	#region PrivateFunctions
+		#region PrivateFunctions
 
   	private async Task<Dictionary<string, decimal>> GetAmounts(bool AvailableOnly)
   	{
