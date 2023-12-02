@@ -69,28 +69,20 @@ namespace ExchangeSharp
   	/// <param name="maker"></param>
   	/// <param name="state"></param>
   	/// <param name="Response"></param>
-  	private void ProcessResponse(IAPIRequestMaker maker, RequestMakerState state, object response)
-  	{
+  private void ProcessResponse(IAPIRequestMaker maker, RequestMakerState state, object response)
+  {
   		// We can bypass serialization if we already know the last call isn't paginated
   		if (state == RequestMakerState.Finished && pagination != PaginationType.None)
   		{
-  			var token = JsonConvert.DeserializeObject<JToken>((string)response);
-  			if (pagination == PaginationType.V3)
-  			{ 
-  				if (token != null && token["has_next"] != null)	cursorNext = token["has_next"].Equals("True") ? token[CURSOR].ToStringInvariant() : null;
-  				else cursorNext = null;
-  			}
-  			else if (pagination == PaginationType.V3Cursor)		// Only used for V3 fills - go figure.
-  			{
-  				if (token != null && token[CURSOR] != null) cursorNext = token[CURSOR].ToStringInvariant();
-  				else cursorNext = null;
-  			}
-  			else
-  			{
-  				if (token["pagination"] != null) cursorNext = token["pagination"]["next_starting_after"]?.ToStringInvariant();
-  				else cursorNext = null;
-  			}
-  			if (cursorNext == string.Empty) cursorNext = null;
+				cursorNext = null;
+  			JToken token = JsonConvert.DeserializeObject<JToken>((string)response);
+				if (token == null) return;
+				switch(pagination)
+				{	
+					case PaginationType.V2: cursorNext = token["pagination"]?["next_starting_after"]?.ToStringInvariant(); break;
+					case PaginationType.V3: cursorNext = token["has_next"].ToStringInvariant().Equals("True") ? token[CURSOR]?.ToStringInvariant() : null; break;
+					case PaginationType.V3Cursor: cursorNext = token[CURSOR]?.ToStringInvariant(); break;		// Only used for V3 Fills - go figure.
+				}
   		}
   	}
 
@@ -442,11 +434,79 @@ namespace ExchangeSharp
   		await MakeJsonRequestAsync<JArray>("/orders/batch_cancel", payload: payload, requestMethod: "POST");
   	}
 
-  	protected override Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
-  	{
-			return base.OnPlaceOrderAsync(order);	
-  	}
+/// <summary>
+	/// This supports two Entries in the Order ExtraParameters:
+	/// "post_only" : true/false (defaults to false if does not exist)
+	/// "gtd_timestamp : datetime (determines GTD order type if exists, otherwise GTC
+	/// </summary>
+	/// <param name="order"></param>
+	/// <returns></returns>
+	protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+	{
+		Dictionary<string, object> configuration = new Dictionary<string, object>();
+		switch (order.OrderType)
+		{
+			case OrderType.Limit:
+				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
+				{
+					configuration.Add("limit_limit_gtd", new Dictionary<string, object>()
+					{
+						{"base_size", order.Amount.ToStringInvariant() },
+						{"limit_price", order.Price.ToStringInvariant() },
+						{"end_time", ((DateTimeOffset)order.ExtraParameters["gtd_timestamp"].ToDateTimeInvariant()).ToUnixTimeSeconds().ToString() },		// This is a bit convoluted? Is this the right format?
+						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
+					});
+				}
+				else
+				{ 
+					configuration.Add("limit_limit_gtc", new Dictionary<string, object>()
+					{
+						{"base_size", order.Amount.ToStringInvariant() },
+						{"limit_price", order.Price.ToStringInvariant() },
+						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
+					});
+				}
+				break;
+			case OrderType.Stop:
+				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
+				{
+					configuration.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
+					{
+						{"base_size", order.Amount.ToStringInvariant() },
+						{"limit_price", order.Price.ToStringInvariant() },
+						{"stop_price", order.StopPrice.ToStringInvariant() },
+						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
+						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
+					});
+				}
+				else
+				{
+					configuration.Add("stop_limit_stop_limit_gtd", new Dictionary<string, object>()
+					{
+						{"base_size", order.Amount.ToStringInvariant() },
+						{"limit_price", order.Price.ToStringInvariant() },
+						{"stop_price", order.StopPrice.ToStringInvariant() },
+						{"end_time", ((DateTimeOffset)order.ExtraParameters["gtd_timestamp"].ToDateTimeInvariant()).ToUnixTimeSeconds().ToString() },		// This is a bit convoluted? Is this the right format?
+						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
+						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
+					});
+				}
+				break;
+			case OrderType.Market:
+				configuration.Add("market_market_ioc", new Dictionary<string, object>()
+				{
+					{"base_size", order.Amount.ToStringInvariant() }
+				});
+				break;
+		}
 
+		Dictionary<string, object> payload = new Dictionary<string, object>	{	{ "order_configuration", configuration}	};
+		string side = order.IsBuy ? "buy" : "sell";
+		JToken result = await MakeJsonRequestAsync<JToken>($"/orders?product_id={order.MarketSymbol.ToUpperInvariant()}&side={side}", payload: payload, requestMethod: "POST");
+
+		// We don't have the proper return type for the POST - will probably require a separate parsing function and return Success/Fail
+		return ParseOrder(result);
+	}
   	protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
   	{
   		return base.OnWithdrawAsync(withdrawalRequest);
