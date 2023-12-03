@@ -10,7 +10,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-using ExchangeSharp.Coinbase;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -522,10 +522,48 @@ namespace ExchangeSharp
 			return base.OnGetDeltaOrderBookWebSocketAsync(callback);
   	}
 
-  	protected override Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
+  	protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
   	{
-			return base.OnGetTickersWebSocketAsync(callback, marketSymbols);
-  	}
+			return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+			{
+				JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
+
+				var timestamp = tokens["timestamp"].ConvertInvariant<DateTime>();
+				List<KeyValuePair<string, ExchangeTicker>> ticks = new List<KeyValuePair<string, ExchangeTicker>>();
+				foreach(var token in tokens["events"]?[0]?["tickers"])
+				{
+					string product = token["product_id"].ToStringInvariant();
+					var split = product.Split(GlobalMarketSymbolSeparator);
+					ticks.Add(new KeyValuePair<string, ExchangeTicker>(product, new ExchangeTicker()
+					{
+							// We don't have Bid or Ask info on this feed
+							ApiResponse = token,
+  			 	    Last = token["price"].ConvertInvariant<decimal>(),
+							Volume = new ExchangeVolume()
+							{
+								BaseCurrency = split[0],
+								QuoteCurrency = split[1],
+								BaseCurrencyVolume = token["volume_24_h"].ConvertInvariant<decimal>(),
+								Timestamp = timestamp			  
+							}
+					} ));
+			}
+			callback?.Invoke(ticks);
+		}, async (_socket) =>
+		{
+			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
+			string signature = CryptoUtility.SHA256Sign(timestamp + "ticker" + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
+			var subscribeRequest = new
+			{
+				type = "subscribe",
+				product_ids = marketSymbols,
+				channel = "ticker",
+				api_key = PublicApiKey.ToUnsecureString(),
+				timestamp,
+				signature
+			};
+			await _socket.SendMessageAsync(subscribeRequest);
+		});  	}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
@@ -535,7 +573,7 @@ namespace ExchangeSharp
 				JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
 				foreach(var token in tokens["events"]?[0]?["trades"])
 				{
-					await callback(new KeyValuePair<string, ExchangeTrade>(token["product_id"].ToStringInvariant(), new ExchangeTrade()
+					await callback?.Invoke(new KeyValuePair<string, ExchangeTrade>(token["product_id"].ToStringInvariant(), new ExchangeTrade()
 					{
 						Amount = token["size"].ConvertInvariant<decimal>(),
 						Price = token["price"].ConvertInvariant<decimal>(),
