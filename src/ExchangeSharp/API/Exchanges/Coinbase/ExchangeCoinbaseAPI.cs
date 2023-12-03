@@ -163,7 +163,7 @@ namespace ExchangeSharp
 
   	protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
   	{
-  		var currencies = new Dictionary<string, ExchangeCurrency>();
+  		var currencies = new Dictionary<string, ExchangeCurrency>();		// We could order the return (like Market Symbols are) if we populate as a list then sort and select into a dictionary before return, but is it worth the overhead?
 
   		// We don't have a currencies endpoint, but we can derive the currencies by splitting the products (includes fiat - filter if you wish)
   		JToken products = await MakeJsonRequestAsync<JToken>("/products");
@@ -527,10 +527,39 @@ namespace ExchangeSharp
 			return base.OnGetTickersWebSocketAsync(callback, marketSymbols);
   	}
 
-		protected override Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
-			return base.OnGetTradesWebSocketAsync(callback, marketSymbols);
-		}
+			if (marketSymbols == null || marketSymbols.Length == 0) marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+			{
+				JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
+				foreach(var token in tokens["events"]?[0]?["trades"])
+				{
+					await callback(new KeyValuePair<string, ExchangeTrade>(token["product_id"].ToStringInvariant(), new ExchangeTrade()
+					{
+						Amount = token["size"].ConvertInvariant<decimal>(),
+						Price = token["price"].ConvertInvariant<decimal>(),
+						IsBuy = token["side"].ToStringInvariant().Equals("buy"),
+						Id = token["trade_id"].ToStringInvariant(),
+						Timestamp = token["time"].ConvertInvariant<DateTime>()
+					}));
+				}
+			}, async (_socket) =>
+			{
+				string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
+				string signature = CryptoUtility.SHA256Sign(timestamp + "market_trades" + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
+				var subscribeRequest = new
+				{
+					type = "subscribe",
+					product_ids = marketSymbols,
+					channel = "market_trades",
+					api_key = PublicApiKey.ToUnsecureString(),
+					timestamp,
+					signature
+				};
+				await _socket.SendMessageAsync(subscribeRequest);
+		});
+	}
 
   	#endregion
 
