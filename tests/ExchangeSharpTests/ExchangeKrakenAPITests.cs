@@ -38,7 +38,7 @@ namespace ExchangeSharpTests
 			var extendedOrder = api.ExtendResultsWithOrderDescr(new ExchangeOrderResult(), toParse);
 
 			extendedOrder.IsBuy.Should().BeTrue();
-			extendedOrder.Amount.Should().Be(0.001254);
+			extendedOrder.Amount.Should().Be(0.001254m);
 			extendedOrder.MarketSymbol.Should().Be("BTCUSDT");
 			extendedOrder.Price.Should().Be(1000);
 		}

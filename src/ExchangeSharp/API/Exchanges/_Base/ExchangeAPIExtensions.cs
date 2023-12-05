@@ -21,7 +21,6 @@ using ExchangeSharp.BinanceGroup;
 using ExchangeSharp.Bitflyer;
 using ExchangeSharp.Bitstamp;
 using ExchangeSharp.Bybit;
-using ExchangeSharp.Coinbase;
 using ExchangeSharp.Kraken;
 using ExchangeSharp.KuCoin;
 using ExchangeSharp.NDAX;
@@ -835,31 +834,6 @@ namespace ExchangeSharp
 			return trade;
 		}
 
-		internal static ExchangeTrade ParseTradeCoinbase(
-				this JToken token,
-				object amountKey,
-				object priceKey,
-				object typeKey,
-				object timestampKey,
-				TimestampType timestampType,
-				object idKey,
-				string typeKeyIsBuyValue = "buy"
-		)
-		{
-			var trade = ParseTradeComponents<CoinbaseTrade>(
-					token,
-					amountKey,
-					priceKey,
-					typeKey,
-					timestampKey,
-					timestampType,
-					idKey,
-					typeKeyIsBuyValue
-			);
-			trade.MakerOrderId = (Guid)token["maker_order_id"];
-			trade.TakerOrderId = (Guid)token["taker_order_id"];
-			return trade;
-		}
 
 		internal static ExchangeTrade ParseTradeFTX(
 				this JToken token,
