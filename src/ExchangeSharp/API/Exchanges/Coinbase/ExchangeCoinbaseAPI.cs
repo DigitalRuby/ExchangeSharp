@@ -10,7 +10,6 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -25,28 +24,13 @@ namespace ExchangeSharp
   /// If you are using legacy API keys from previous Coinbase versions they must be upgraded to Advanced Trade on the Coinbase site.
   /// These keys must be set before using the Coinbase API (sorry).
   /// </summary>
-	public sealed class ExchangeCoinbaseAPI : ExchangeAPI
+  public sealed partial class ExchangeCoinbaseAPI : ExchangeAPI
   {
-  	private const string ADVFILL = "advanced_trade_fill";
-  	private const string CURRENCY = "currency";
-  	private const string PRODUCTID = "product_id";
-  	private const string PRODUCTS = "products";
-  	private const string PRICEBOOK = "pricebook";
-  	private const string PRICEBOOKS = "pricebooks";
-  	private const string ASKS = "asks";
-  	private const string BIDS = "bids";
-  	private const string PRICE = "price";
-  	private const string AMOUNT = "amount";
-  	private const string VALUE = "value";
-  	private const string SIZE = "size";
-  	private const string CURSOR = "cursor";
-
-
   	public override string BaseUrl { get; set; } = "https://api.coinbase.com/api/v3/brokerage";
-  	private readonly string BaseURLV2 = "https://api.coinbase.com/v2";	// For Wallet Support
+  	private readonly string BaseUrlV2 = "https://api.coinbase.com/v2";	// For Wallet Support
   	public override string BaseUrlWebSocket { get; set; } = "wss://advanced-trade-ws.coinbase.com";
 	
-  	private enum PaginationType { None, V2, V3, V3Cursor}
+  	private enum PaginationType { None, V2, V3}
   	private PaginationType pagination = PaginationType.None;
   	private string cursorNext;								
 
@@ -54,11 +38,12 @@ namespace ExchangeSharp
 
   	private ExchangeCoinbaseAPI()
   	{
+  		MarketSymbolIsUppercase = true;
   		MarketSymbolIsReversed = false;
   		RequestContentType = "application/json";
   		NonceStyle = NonceStyle.None;
   		WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
-  		RateLimit = new RateGate(10, TimeSpan.FromSeconds(1));
+  		RateLimit = new RateGate(30, TimeSpan.FromSeconds(1));
   		base.RequestMaker.RequestStateChanged = ProcessResponse;
   	}
 
@@ -69,60 +54,42 @@ namespace ExchangeSharp
   	/// <param name="maker"></param>
   	/// <param name="state"></param>
   	/// <param name="Response"></param>
-  private void ProcessResponse(IAPIRequestMaker maker, RequestMakerState state, object response)
-  {
-  		// We can bypass serialization if we already know the last call isn't paginated
-  		if (state == RequestMakerState.Finished && pagination != PaginationType.None)
-  		{
-				cursorNext = null;
-  			JToken token = JsonConvert.DeserializeObject<JToken>((string)response);
-				if (token == null) return;
-				switch(pagination)
-				{	
-					case PaginationType.V2: cursorNext = token["pagination"]?["next_starting_after"]?.ToStringInvariant(); break;
-					case PaginationType.V3: cursorNext = token["has_next"].ToStringInvariant().Equals("True") ? token[CURSOR]?.ToStringInvariant() : null; break;
-					case PaginationType.V3Cursor: cursorNext = token[CURSOR]?.ToStringInvariant(); break;		// Only used for V3 Fills - go figure.
-				}
-  		}
+  	private void ProcessResponse(IAPIRequestMaker maker, RequestMakerState state, object response)
+   	{
+   		// We can bypass serialization if we already know the last call isn't paginated
+   		if (state == RequestMakerState.Finished && pagination != PaginationType.None)
+   		{
+   			JToken token = JsonConvert.DeserializeObject<JToken>((string)response);
+ 				if (token == null) return;
+ 				switch(pagination)
+ 				{	
+ 					case PaginationType.V2: cursorNext = token["pagination"]?["next_starting_after"]?.ToStringInvariant(); break;
+ 					case PaginationType.V3: cursorNext = token[CURSOR]?.ToStringInvariant(); break;
+ 				}
+ 			}
   	}
 
-  	#region BaseOverrides
+		#region BaseOverrides
 
   	/// <summary>
   	/// Overridden because we no longer need a nonce in the payload and passphrase is no longer used
   	/// </summary>
   	/// <param name="payload"></param>
   	/// <returns></returns>
-  	protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
-      {
-          return (PrivateApiKey != null && PublicApiKey != null);
-      }
+		protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
+		{	
+			return (PrivateApiKey != null && PublicApiKey != null);
+		}
 
-  	/// <summary>
-  	/// Sometimes the Fiat pairs are reported backwards, but Coinbase requires the fiat to be last of the pair
-  	/// Only three Fiat Currencies are supported
-  	/// </summary>
-  	/// <param name="marketSymbol"></param>
-  	/// <returns></returns>
-  	public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
-    {
-  		if (marketSymbol.StartsWith("USD-") || marketSymbol.StartsWith("EUR-") || marketSymbol.StartsWith("GRP-"))
-  		{
-  			var split = marketSymbol.Split(GlobalMarketSymbolSeparator);
-  			return Task.FromResult(split[1] + GlobalMarketSymbolSeparator + split[0]);
-  		}
-  		else return Task.FromResult(marketSymbol);
-    }
-
-  	protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
-  	{
+		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
+		{
   		if (CanMakeAuthenticatedRequest(payload))
-  		{
+			{
   			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();	// If you're skittish about the local clock, you may retrieve the timestamp from the Coinbase Site
   			string body = CryptoUtility.GetJsonForPayload(payload);
 
-  			// V2 wants PathAndQuery, V3 wants LocalPath for the sig 
-  			string path = request.RequestUri.AbsoluteUri.StartsWith(BaseURLV2) ? request.RequestUri.PathAndQuery : request.RequestUri.LocalPath;
+  			// V2 wants PathAndQuery, V3 wants LocalPath for the sig (I guess they wanted to shave a nano-second or two - silly)
+  			string path = request.RequestUri.AbsoluteUri.StartsWith(BaseUrlV2) ? request.RequestUri.PathAndQuery : request.RequestUri.LocalPath;
   			string signature = CryptoUtility.SHA256Sign(timestamp + request.Method.ToUpperInvariant() + path + body, PrivateApiKey.ToUnsecureString());		
 
   			request.AddHeader("CB-ACCESS-KEY", PublicApiKey.ToUnsecureString());
@@ -130,11 +97,27 @@ namespace ExchangeSharp
   			request.AddHeader("CB-ACCESS-TIMESTAMP", timestamp);
   			if (request.Method == "POST") await CryptoUtility.WriteToRequestAsync(request, body);
   		}
-  	}
+		}
 
-  	#endregion
+		/// <summary>
+		/// Sometimes the Fiat pairs are reported backwards, but Coinbase requires the fiat to be last of the pair
+		/// Only three Fiat Currencies are supported
+		/// </summary>
+		/// <param name="marketSymbol"></param>
+		/// <returns></returns>
+		public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(string marketSymbol)
+		{
+  		if (marketSymbol.StartsWith("USD-") || marketSymbol.StartsWith("EUR-") || marketSymbol.StartsWith("GRP-"))
+  		{
+  			var split = marketSymbol.Split(GlobalMarketSymbolSeparator);
+  			return Task.FromResult(split[1] + GlobalMarketSymbolSeparator + split[0]);
+  		}
+  		else return Task.FromResult(marketSymbol);
+		}
 
-  	#region GeneralProductEndpoints
+  #endregion
+
+		#region GeneralProductEndpoints
 
   	protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
   	{
@@ -142,12 +125,12 @@ namespace ExchangeSharp
   		JToken products = await MakeJsonRequestAsync<JToken>("/products");
   		foreach (JToken product in products[PRODUCTS])
   		{
-  			markets.Add(new ExchangeMarket()
+  			markets.Add(new ExchangeMarket
   			{
   				MarketSymbol = product[PRODUCTID].ToStringUpperInvariant(),
   				BaseCurrency = product["base_currency_id"].ToStringUpperInvariant(),
   				QuoteCurrency = product["quote_currency_id"].ToStringUpperInvariant(),
-  				IsActive = string.Equals(product["status"].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase),
+  				IsActive = string.Equals(product[STATUS].ToStringInvariant(), "online", StringComparison.OrdinalIgnoreCase),
   				MinTradeSize = product["base_min_size"].ConvertInvariant<decimal>(),
   				MaxTradeSize = product["base_max_size"].ConvertInvariant<decimal>(),
   				PriceStepSize = product["quote_increment"].ConvertInvariant<decimal>()
@@ -163,7 +146,7 @@ namespace ExchangeSharp
 
   	protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
   	{
-  		var currencies = new Dictionary<string, ExchangeCurrency>();		// We could order the return (like Market Symbols are) if we populate as a list then sort and select into a dictionary before return, but is it worth the overhead?
+  		var currencies = new Dictionary<string, ExchangeCurrency>();
 
   		// We don't have a currencies endpoint, but we can derive the currencies by splitting the products (includes fiat - filter if you wish)
   		JToken products = await MakeJsonRequestAsync<JToken>("/products");
@@ -200,22 +183,22 @@ namespace ExchangeSharp
   	{
   		var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
   		JToken books = await MakeJsonRequestAsync<JToken>("/best_bid_ask");
-  		var Timestamp = CryptoUtility.ParseTimestamp(books["time"], TimestampType.Iso8601UTC);
+  		var Timestamp = CryptoUtility.ParseTimestamp(books[TIME], TimestampType.Iso8601UTC);
   		foreach (JToken book in books[PRICEBOOKS])
   		{
   			var split = book[PRODUCTID].ToString().Split(GlobalMarketSymbolSeparator);
-  			// This endpoint does not provide a last or open for the ExchangeTicker. We might get this from the sockets, but this call is extremely fast?
+  			// This endpoint does not provide a last or open for the ExchangeTicker 
   			tickers.Add(new KeyValuePair<string, ExchangeTicker>(book[PRODUCTID].ToString(), new ExchangeTicker()
   			{
   				MarketSymbol = book[PRODUCTID].ToString(),
   				Ask = book[ASKS][0][PRICE].ConvertInvariant<decimal>(),
   				Bid = book[BIDS][0][PRICE].ConvertInvariant<decimal>(),
-    		  Volume = new ExchangeVolume()
+			    Volume = new ExchangeVolume()
   				{
-    				BaseCurrency = split[0],
-  					BaseCurrencyVolume = book[BIDS][0][SIZE].ConvertInvariant<decimal>(),
-  					QuoteCurrency = split[1],
-  				  QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
+						BaseCurrency = split[0],
+	  				BaseCurrencyVolume = book[BIDS][0][SIZE].ConvertInvariant<decimal>(),
+						QuoteCurrency = split[1],
+  			    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
   					Timestamp = Timestamp
   				}
   			}));
@@ -225,8 +208,7 @@ namespace ExchangeSharp
 
   	protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
   	{
-			// Again, me might also get this from the sockets, but this seems preferable for now.
-  		JToken ticker = await MakeJsonRequestAsync<JToken>("/best_bid_ask?product_ids=" + marketSymbol.ToUpperInvariant());
+  		JToken ticker = await MakeJsonRequestAsync<JToken>("/best_bid_ask?product_ids=" + marketSymbol);
   		JToken book = ticker[PRICEBOOKS][0];
   		var split = book[PRODUCTID].ToString().Split(GlobalMarketSymbolSeparator);
   		return new ExchangeTicker()
@@ -234,12 +216,12 @@ namespace ExchangeSharp
   			MarketSymbol = book[PRODUCTID].ToString(),
   			Ask = book[ASKS][0][PRICE].ConvertInvariant<decimal>(),
   			Bid = book[BIDS][0][PRICE].ConvertInvariant<decimal>(),
-    	  Volume = new ExchangeVolume()
+ 		    Volume = new ExchangeVolume()
   			{
-    			BaseCurrency = split[0],
+   				BaseCurrency = split[0],
   				BaseCurrencyVolume = book[BIDS][0][SIZE].ConvertInvariant<decimal>(),
   				QuoteCurrency = split[1],
-  		    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
+ 			    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
   				Timestamp = DateTime.UtcNow
   			}
   		};	
@@ -247,7 +229,7 @@ namespace ExchangeSharp
 
   	protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 50)
   	{
-  		JToken token = await MakeJsonRequestAsync<JToken>("/product_book?product_id=" + marketSymbol.ToUpperInvariant() + "&limit=" + maxCount);
+  		JToken token = await MakeJsonRequestAsync<JToken>("/product_book?product_id=" + marketSymbol + "&limit=" + maxCount);
   		ExchangeOrderBook orderBook = new ExchangeOrderBook();
   		foreach(JToken bid in token[PRICEBOOK][BIDS]) orderBook.Bids.Add(bid[PRICE].ConvertInvariant<decimal>(), new ExchangeOrderPrice(){ Price = bid[PRICE].ConvertInvariant<decimal>(), Amount = bid[SIZE].ConvertInvariant<decimal>() });
   		foreach(JToken ask in token[PRICEBOOK][ASKS]) orderBook.Asks.Add(ask[PRICE].ConvertInvariant<decimal>(), new ExchangeOrderPrice(){ Price = ask[PRICE].ConvertInvariant<decimal>(), Amount = ask[SIZE].ConvertInvariant<decimal>() });
@@ -256,25 +238,12 @@ namespace ExchangeSharp
 
   	protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(string marketSymbol, int? limit = 100)
   	{
-  		// Limit is required but maxed at 100 with no pagination available. Check Sockets?
+  		// Limit is required but maxed at 100 with no pagination available
   		limit = (limit == null || limit < 1 || limit > 100) ? 100 : (int)limit;
-  		JToken trades = await MakeJsonRequestAsync<JToken>("/products/" + marketSymbol.ToUpperInvariant() + "/ticker?limit=" + limit);
+  		JToken trades = await MakeJsonRequestAsync<JToken>("/products/" + marketSymbol + "/ticker?limit=" + limit);
   		List<ExchangeTrade> tradeList = new List<ExchangeTrade>();
-  		foreach (JToken trade in trades["trades"]) tradeList.Add(trade.ParseTrade(SIZE, PRICE, "side", "time", TimestampType.Iso8601UTC, "trade_id"));
+  		foreach (JToken trade in trades[TRADES]) tradeList.Add(trade.ParseTrade(SIZE, PRICE, SIDE, TIME, TimestampType.Iso8601UTC, TRADEID));
   		return tradeList;
-  	}
-
-  	protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string marketSymbol, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
-  	{
-  		// There is no Historical Trades endpoint. The best we can do is get the last 100 trades and filter.
-  		// Check for this data on the sockets?
-  		var trades = await OnGetRecentTradesAsync(marketSymbol.ToUpperInvariant());
-
-  		if (startDate != null) trades = trades.Where(t => t.Timestamp >= startDate);
-  		if (endDate != null) trades = trades.Where(t => t.Timestamp <= endDate);;
-  		if (limit != null) trades = trades.Take((int)limit);
-
-  		callback(trades);
   	}
 
   	protected override async Task<IEnumerable<MarketCandle>> OnGetCandlesAsync(string marketSymbol, int periodSeconds, DateTime? startDate = null, DateTime? endDate = null, int? limit = null)
@@ -290,7 +259,7 @@ namespace ExchangeSharp
   		else if (periodSeconds <= 21600) { granularity = "SIX_HOUR"; periodSeconds = 21600; }
   		else { granularity = "ONE_DAY"; periodSeconds = 86400; }
 
-  		// Returned Candle count is restricted to 300 - and they don't paginate this call
+  		// Returned Candle count is restricted to 300 and they don't paginate this call
   		// We're going to keep retrieving candles 300 at a time until we get our date range for the granularity
   		if (startDate == null) startDate = CryptoUtility.UtcNow.AddMinutes(-(periodSeconds * 300));
   		if (startDate >= endDate) throw new APIException("Invalid Date Range");
@@ -300,7 +269,7 @@ namespace ExchangeSharp
   		List<MarketCandle> candles = new List<MarketCandle>();
   		while (true) 
   		{ 
-  			JToken token = await MakeJsonRequestAsync<JToken>(string.Format("/products/{0}/candles?start={1}&end={2}&granularity={3}", marketSymbol.ToUpperInvariant(), ((DateTimeOffset)RangeStart).ToUnixTimeSeconds(), ((DateTimeOffset)RangeEnd).ToUnixTimeSeconds(), granularity));
+  			JToken token = await MakeJsonRequestAsync<JToken>(string.Format("/products/{0}/candles?start={1}&end={2}&granularity={3}", marketSymbol, ((DateTimeOffset)RangeStart).ToUnixTimeSeconds(), ((DateTimeOffset)RangeEnd).ToUnixTimeSeconds(), granularity));
   			foreach (JToken candle in token["candles"])	candles.Add(this.ParseCandle(candle, marketSymbol, periodSeconds, "open", "high", "low", "close", "start", TimestampType.UnixSeconds, "volume"));
   			if (RangeStart > startDate)
   			{
@@ -320,7 +289,7 @@ namespace ExchangeSharp
   		JToken token = await this.MakeJsonRequestAsync<JToken>("/transaction_summary");
   		Dictionary<string, decimal> fees = new Dictionary<string, decimal>();
 
-  		// We can chose between maker and taker fee, but currently ExchangeSharp only supports 1 fee rate per symbol.
+  		// We can chose between maker and taker fee, but currently ExchangeSharp only supports 1 fee rate per market symbol.
   		// Here, we choose taker fee, which is usually higher
   		decimal makerRate = token["fee_tier"]["taker_fee_rate"].Value<decimal>(); //percentage between 0 and 1
 
@@ -330,7 +299,7 @@ namespace ExchangeSharp
 
   	#endregion
 
-  	#region AccountSpecificEndpoints
+ 		#region AccountSpecificEndpoints
 
   	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call. 
   	protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
@@ -338,7 +307,7 @@ namespace ExchangeSharp
   		if (Accounts  == null) await GetAmounts(true);		// Populate Accounts Cache
   		if (Accounts.ContainsKey(symbol))
   		{
-  			JToken accountWalletAddress = await this.MakeJsonRequestAsync<JToken>($"/accounts/{Accounts[symbol]}/addresses", BaseURLV2);
+  			JToken accountWalletAddress = await this.MakeJsonRequestAsync<JToken>($"/accounts/{Accounts[symbol]}/addresses", BaseUrlV2);
   			return new ExchangeDepositDetails { Address = accountWalletAddress[0]["address"].ToStringInvariant(), Currency = symbol };		// We only support a single Wallet/Address (Coinbase is the only Exchange that has multiple)
   		}
   		throw new APIException($"Address not found for {symbol}");
@@ -366,242 +335,283 @@ namespace ExchangeSharp
   		return await GetTx(false, currency);
   	}
 
-  	/// <summary>
-  	/// WARNING: Only Advanced Trade Open Orders are supported. 
-  	/// </summary>
-  	/// <param name="marketSymbol"></param>
-  	/// <returns></returns>
+
+  	// Warning: Max Open orders returned is 1000, which shouldn't be a problem. If it is (yikes), this can be replaced with the WebSocket User Channel.
   	protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string marketSymbol = null)
   	{
   		List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-  		// Max return count is 1000 with no pagination available
-  		JToken array = await MakeJsonRequestAsync<JToken>("/orders/historical/batch?order_status=OPEN" + marketSymbol == null || marketSymbol == string.Empty ? string.Empty : "&product_id=" + marketSymbol );
-  		foreach (JToken order in array) if (order["type"].ToStringInvariant().Equals(ADVFILL)) orders.Add(ParseOrder(order));
-  		return orders;
-  	}
-
-  	/// <summary>
-  	/// WARNING: Only Advanced Trade Completed Orders are supported. 
-  	/// </summary>
-  	/// <param name="marketSymbol"></param>
-  	/// <param name="afterDate"></param>
-  	/// <returns></returns>
-  	protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
-  	{
-  		// Legacy Orders may be retrieved using V2 (not implemented here - see GetTx in code below)
-  		List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
-  		pagination = PaginationType.V3Cursor;
-  		string startURL = "/orders/historical/fills";
-		
-  		if (!string.IsNullOrEmpty(marketSymbol)) startURL += "?product_id=" + marketSymbol.ToStringUpperInvariant();
-  		if (afterDate != null) startURL += marketSymbol == null ? "?" : "&" + "start_sequence_timestamp=" + ((DateTimeOffset)afterDate).ToUnixTimeSeconds();
-  		JToken token = await MakeJsonRequestAsync<JToken>(startURL);
-  		startURL +=  marketSymbol == null && afterDate == null ? "?" : "&" + "cursor=";
+  		pagination = PaginationType.V3;
+  		string uri = string.IsNullOrEmpty(marketSymbol) ? "/orders/historical/batch?order_status=OPEN" : $"/orders/historical/batch?product_id={marketSymbol}&order_status=OPEN";   // Parameter order is critical
+  		JToken token = await MakeJsonRequestAsync<JToken>(uri);
   		while(true)
   		{ 
-  			foreach (JToken fill in token["fills"])
-  			{ 
-  				orders.Add(new ExchangeOrderResult()
-  				{
-  					MarketSymbol = fill[PRODUCTID].ToStringInvariant(),
-  					TradeId = fill["trade_id"].ToStringInvariant(),
-  					OrderId = fill["order_id"].ToStringInvariant(),
-  					OrderDate = fill["trade_time"].ToDateTimeInvariant(),
-  					IsBuy = fill["side"].ToStringInvariant() == "buy",
-  					Amount = fill[SIZE].ConvertInvariant<decimal>(),
-  					AmountFilled = fill[SIZE].ConvertInvariant<decimal>(),
-  					Price = fill[PRICE].ConvertInvariant<decimal>(),
-  					Fees = fill["commission"].ConvertInvariant<decimal>(),
-  					AveragePrice = fill[PRICE].ConvertInvariant<decimal>()
-  				});
-  			}
+  			foreach (JToken order in token[ORDERS]) if (order[TYPE].ToStringInvariant().Equals(ADVFILL)) orders.Add(ParseOrder(order));
   			if (string.IsNullOrEmpty(cursorNext)) break;
-  			token = await MakeJsonRequestAsync<JToken>(startURL + cursorNext);
-  		} 
+  			token = await MakeJsonRequestAsync<JToken>(uri + "&cursor=" + cursorNext);
+  		}
   		pagination = PaginationType.None;
   		return orders;
   	}
 
-	protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
-	{
-  		JToken obj = await MakeJsonRequestAsync<JToken>("/orders/historical/" + orderId);
-  		return ParseOrder(obj);
+  	protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+  	{
+  		List<ExchangeOrderResult> orders = new List<ExchangeOrderResult>();
+  		pagination = PaginationType.V3;
+  		string uri = string.IsNullOrEmpty(marketSymbol) ? "/orders/historical/batch?order_status=FILLED" : $"/orders/historical/batch?product_id={marketSymbol}&order_status=OPEN";   // Parameter order is critical
+  		JToken token = await MakeJsonRequestAsync<JToken>(uri);
+  		while(true)
+  		{ 
+  			foreach (JToken order in token[ORDERS]) orders.Add(ParseOrder(order));
+  			if (string.IsNullOrEmpty(cursorNext)) break;
+  			token = await MakeJsonRequestAsync<JToken>(uri + "&cursor=" + cursorNext);
+  		}
+  		pagination = PaginationType.None;
+  		return orders;
   	}
 
-	protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
-	{
-  		Dictionary<string, object> payload = new Dictionary<string, object>() {{ "order_ids", new [] { orderId } }	};
-  		await MakeJsonRequestAsync<JArray>("/orders/batch_cancel", payload: payload, requestMethod: "POST");
-  	}
-
-	/// <summary>
-	/// This supports two Entries in the Order ExtraParameters:
-	/// "post_only" : true/false (defaults to false if does not exist)
-	/// "gtd_timestamp : datetime (determines GTD order type if exists, otherwise GTC
-	/// </summary>
-	/// <param name="order"></param>
-	/// <returns></returns>
-	protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
-	{
-		Dictionary<string, object> configuration = new Dictionary<string, object>();
-		switch (order.OrderType)
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-			case OrderType.Limit:
-				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
-				{
-					configuration.Add("limit_limit_gtd", new Dictionary<string, object>()
-					{
-						{"base_size", order.Amount.ToStringInvariant() },
-						{"limit_price", order.Price.ToStringInvariant() },
-						{"end_time", ((DateTimeOffset)order.ExtraParameters["gtd_timestamp"].ToDateTimeInvariant()).ToUnixTimeSeconds().ToString() },		// This is a bit convoluted? Is this the right format?
-						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
-					});
-				}
-				else
-				{ 
-					configuration.Add("limit_limit_gtc", new Dictionary<string, object>()
-					{
-						{"base_size", order.Amount.ToStringInvariant() },
-						{"limit_price", order.Price.ToStringInvariant() },
-						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
-					});
-				}
-				break;
-			case OrderType.Stop:
-				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
-				{
-					configuration.Add("stop_limit_stop_limit_gtd", new Dictionary<string, object>()
-					{
-						{"base_size", order.Amount.ToStringInvariant() },
-						{"limit_price", order.Price.ToStringInvariant() },
-						{"stop_price", order.StopPrice.ToStringInvariant() },
-						{"end_time", ((DateTimeOffset)order.ExtraParameters["gtd_timestamp"].ToDateTimeInvariant()).ToUnixTimeSeconds().ToString() },		// This is a bit convoluted? Is this the right format?
-						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
-						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
-					});
-				}
-				else
-				{
-					configuration.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
-					{
-						{"base_size", order.Amount.ToStringInvariant() },
-						{"limit_price", order.Price.ToStringInvariant() },
-						{"stop_price", order.StopPrice.ToStringInvariant() },
-						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
-						//{"stop_direction", "UNKNOWN_STOP_DIRECTION" }    // set stop direction?
-					});
-				}
-				break;
-			case OrderType.Market:
-				configuration.Add("market_market_ioc", new Dictionary<string, object>()
-				{
-					{"base_size", order.Amount.ToStringInvariant() }
-				});
-				break;
-		}
+  		JToken obj = await MakeJsonRequestAsync<JToken>("/orders/historical/" + orderId);
+  		return ParseOrder(obj["order"]);
+ 		}
 
-		Dictionary<string, object> payload = new Dictionary<string, object>	{	{ "order_configuration", configuration}	};
-		string side = order.IsBuy ? "buy" : "sell";
-		JToken result = await MakeJsonRequestAsync<JToken>($"/orders?product_id={order.MarketSymbol.ToUpperInvariant()}&side={side}", payload: payload, requestMethod: "POST");
+ 		/// <summary>
+ 		/// This supports two Entries in the Order ExtraParameters:
+ 		/// "post_only" : bool (defaults to false if does not exist)
+ 		/// "gtd_timestamp : datetime (determines GTD order type if exists, otherwise GTC
+ 		/// </summary>
+ 		/// <param name="order"></param>
+ 		/// <returns></returns>
+	 	protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+  	{
+  		Dictionary<string, object> payload = new Dictionary<string, object>();
 
-		// We don't have the proper return type for the POST - will probably require a separate parsing function and return Success/Fail
-		return ParseOrder(result);
-	}
-  protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
-  {
-  	return base.OnWithdrawAsync(withdrawalRequest);
-  }
+  		// According to the V3 Docs, a Unique Client OrderId is required. Currently this doesn't seem to be enforced by the API, but...
+  		// If not set by the client give them one instead of throwing an exception. Uncomment below if you would rather not.
+  		//if (string.IsNullOrEmpty(order.ClientOrderId)) throw new ApplicationException("Client Order Id is required");
+  		if (string.IsNullOrEmpty(order.ClientOrderId)) { order.ClientOrderId =  Guid.NewGuid().ToString(); }
 
+  		payload["client_order_id"] = order.ClientOrderId;
+  		payload["product_id"] = order.MarketSymbol;
+  		payload["side"] = order.IsBuy ? BUY : "SELL";
 
- 	#endregion
+  		Dictionary<string, object> orderConfig = new Dictionary<string, object>();
+  		switch (order.OrderType)
+  		{
+  			case OrderType.Limit:
+  				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
+  				{
+  					orderConfig.Add("limit_limit_gtd", new Dictionary<string, object>()
+  					{
+  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"limit_price", order.Price.ToStringInvariant() },
+  						{"end_time", order.ExtraParameters["gtd_timestamp"] },	
+  						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", false) }
+  					});
+  				}
+  				else
+  				{ 
+  					orderConfig.Add("limit_limit_gtc", new Dictionary<string, object>()
+  					{
+  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"limit_price", order.Price.ToStringInvariant() },
+  						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
+  					});
+  				}
+  				break;
+  			case OrderType.Stop:
+  				if (order.ExtraParameters.ContainsKey("gtd_timestamp"))
+  				{
+  					orderConfig.Add("stop_limit_stop_limit_gtd", new Dictionary<string, object>()
+  					{
+  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"limit_price", order.Price.ToStringInvariant() },
+  						{"stop_price", order.StopPrice.ToStringInvariant() },
+  						{"end_time", order.ExtraParameters["gtd_timestamp"] },
+  					});
+  				}
+  				else
+  				{
+  					orderConfig.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
+  					{
+  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"limit_price", order.Price.ToStringInvariant() },
+  						{"stop_price", order.StopPrice.ToStringInvariant() },
+  					});
+  				}
+  				break;
+  			case OrderType.Market:
+  				if (order.IsBuy) orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "quote_size", order.Amount.ToStringInvariant() }});
+  				else orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "base_size", order.Amount.ToStringInvariant() }});
+  				break;
+  		}
+
+  		payload.Add("order_configuration", orderConfig);
+
+  		try
+  		{
+  			JToken result = await MakeJsonRequestAsync<JToken>($"/orders", payload: payload, requestMethod: "POST"  );
+  			// The Post doesn't return with any status, just a new OrderId. To get the Order Details we have to reQuery.
+  			return await OnGetOrderDetailsAsync(result[ORDERID].ToStringInvariant());
+  		}
+  		catch (Exception ex) // All fails come back with an exception. 
+  		{
+  			var token = JToken.Parse(ex.Message);
+  			return new ExchangeOrderResult(){ Result = ExchangeAPIOrderResult.Rejected, ClientOrderId = order.ClientOrderId, ResultCode = token["error_response"]["error"].ToStringInvariant() };
+  		}
+  	}
+
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+  			Dictionary<string, object> payload = new Dictionary<string, object>() {{ "order_ids", new [] { orderId } }	};
+	  		await MakeJsonRequestAsync<JArray>("/orders/batch_cancel", payload: payload, requestMethod: "POST");
+ 		}
+
+  	protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
+  	{
+  		return base.OnWithdrawAsync(withdrawalRequest);
+  	}
+
+  	#endregion
 
  		#region SocketEndpoints
 
   	protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 100, params string[] marketSymbols)
   	{
-			return base.OnGetDeltaOrderBookWebSocketAsync(callback);
+  		return ConnectWebSocketAsync("/", (_socket, msg) =>
+  		{
+  			JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
+  			if (tokens[EVENTS][0][TYPE] == null || tokens[EVENTS][0]["updates"] == null ) return Task.CompletedTask;
+
+  			string type = tokens[EVENTS][0][TYPE].ToStringInvariant();
+  			if (type.Equals("update") || type.Equals("snapshot"))
+  			{
+  				var book = new ExchangeOrderBook(){ MarketSymbol = tokens[EVENTS][0][PRODUCTID].ToStringInvariant(), LastUpdatedUtc = DateTime.UtcNow, SequenceId =  tokens["sequence_num"].ConvertInvariant<long>() };
+  				int askCount = 0, bidCount = 0;
+  				foreach(var token in tokens[EVENTS][0]["updates"])
+  				{
+  					if (token[SIDE].ToStringInvariant().Equals("bid"))
+  					{
+  						if (bidCount++ < maxCount)
+  						{
+  							decimal price = token[PRICELEVEL].ConvertInvariant<decimal>();
+  							book.Bids.Add( price, new ExchangeOrderPrice(){ Price = price, Amount=token["new_quantity"].ConvertInvariant<decimal>()} );
+  						}
+  					}
+  					else if (token[SIDE].ToStringInvariant().Equals("offer"))  // One would think this would be 'ask' but no...
+  					{
+  						if (askCount++ < maxCount)
+  						{
+  							decimal price = token[PRICELEVEL].ConvertInvariant<decimal>();
+  							book.Asks.Add( price, new ExchangeOrderPrice(){ Price = price, Amount=token["new_quantity"].ConvertInvariant<decimal>()} );
+  						}
+  					}
+  					if (askCount >= maxCount && bidCount >=maxCount) break;
+  				}
+  				callback?.Invoke(book);
+  			} 
+  			return Task.CompletedTask;				
+  		}, async (_socket) =>
+  		{
+  			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
+  			string signature = CryptoUtility.SHA256Sign(timestamp + LEVEL2 + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
+  			var subscribeRequest = new
+  			{
+  				type = SUBSCRIBE,
+  				product_ids = marketSymbols,
+  				channel = LEVEL2,
+  				api_key = PublicApiKey.ToUnsecureString(),
+  				timestamp,
+  				signature
+  			};
+  			await _socket.SendMessageAsync(subscribeRequest);
+  		});
   	}
 
   	protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
   	{
-			return await ConnectWebSocketAsync("/", async (_socket, msg) =>
-			{
-				JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
+  		return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+  		{
+  			JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
 
-				var timestamp = tokens["timestamp"].ConvertInvariant<DateTime>();
-				List<KeyValuePair<string, ExchangeTicker>> ticks = new List<KeyValuePair<string, ExchangeTicker>>();
-				foreach(var token in tokens["events"]?[0]?["tickers"])
-				{
-					string product = token["product_id"].ToStringInvariant();
-					var split = product.Split(GlobalMarketSymbolSeparator);
-					ticks.Add(new KeyValuePair<string, ExchangeTicker>(product, new ExchangeTicker()
-					{
-							// We don't have Bid or Ask info on this feed
-							ApiResponse = token,
-  			 	    Last = token["price"].ConvertInvariant<decimal>(),
-							Volume = new ExchangeVolume()
-							{
-								BaseCurrency = split[0],
-								QuoteCurrency = split[1],
-								BaseCurrencyVolume = token["volume_24_h"].ConvertInvariant<decimal>(),
-								Timestamp = timestamp			  
-							}
-					} ));
-			}
-			callback?.Invoke(ticks);
-		}, async (_socket) =>
-		{
-			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
-			string signature = CryptoUtility.SHA256Sign(timestamp + "ticker" + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
-			var subscribeRequest = new
-			{
-				type = "subscribe",
-				product_ids = marketSymbols,
-				channel = "ticker",
-				api_key = PublicApiKey.ToUnsecureString(),
-				timestamp,
-				signature
-			};
-			await _socket.SendMessageAsync(subscribeRequest);
-		});  	}
+  			var timestamp = tokens["timestamp"].ConvertInvariant<DateTime>();
+  			List<KeyValuePair<string, ExchangeTicker>> ticks = new List<KeyValuePair<string, ExchangeTicker>>();
+  			foreach(var token in tokens[EVENTS]?[0]?["tickers"])
+  			{
+  				string product = token[PRODUCTID].ToStringInvariant();
+  				var split = product.Split(GlobalMarketSymbolSeparator);
+
+  				ticks.Add(new KeyValuePair<string, ExchangeTicker>(product, new ExchangeTicker()
+  				{
+  					// We don't have Bid or Ask info on this feed
+ 					  ApiResponse = token,
+ 			 	    Last = token[PRICE].ConvertInvariant<decimal>(),
+  					Volume = new ExchangeVolume()
+  					{
+  						BaseCurrency = split[0],
+  						QuoteCurrency = split[1],
+  						BaseCurrencyVolume = token["volume_24_h"].ConvertInvariant<decimal>(),
+  						Timestamp = timestamp			  
+  					}
+  				} ));
+  			}
+  			callback?.Invoke(ticks);
+  		}, async (_socket) =>
+  		{
+  			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
+  			string signature = CryptoUtility.SHA256Sign(timestamp + TICKER + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
+  			var subscribeRequest = new
+  			{
+  				type = SUBSCRIBE,
+  				product_ids = marketSymbols,
+  				channel = TICKER,
+  				api_key = PublicApiKey.ToUnsecureString(),
+  				timestamp,
+  				signature
+  			};
+  			await _socket.SendMessageAsync(subscribeRequest);
+  		});
+  	}
 
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
-			if (marketSymbols == null || marketSymbols.Length == 0) marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-			return await ConnectWebSocketAsync("/", async (_socket, msg) =>
-			{
-				JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
-				foreach(var token in tokens["events"]?[0]?["trades"])
-				{
-					await callback?.Invoke(new KeyValuePair<string, ExchangeTrade>(token["product_id"].ToStringInvariant(), new ExchangeTrade()
-					{
-						Amount = token["size"].ConvertInvariant<decimal>(),
-						Price = token["price"].ConvertInvariant<decimal>(),
-						IsBuy = token["side"].ToStringInvariant().Equals("buy"),
-						Id = token["trade_id"].ToStringInvariant(),
-						Timestamp = token["time"].ConvertInvariant<DateTime>()
-					}));
-				}
-			}, async (_socket) =>
-			{
-				string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
-				string signature = CryptoUtility.SHA256Sign(timestamp + "market_trades" + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
-				var subscribeRequest = new
-				{
-					type = "subscribe",
-					product_ids = marketSymbols,
-					channel = "market_trades",
-					api_key = PublicApiKey.ToUnsecureString(),
-					timestamp,
-					signature
-				};
-				await _socket.SendMessageAsync(subscribeRequest);
-		});
-	}
+  		if (marketSymbols == null || marketSymbols.Length == 0) marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+  		return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+  		{
+  			JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
+  			if (tokens[EVENTS][0][TRADES] == null) return; // This is most likely a subscription confirmation (they don't document this)
+  			foreach(var token in tokens[EVENTS]?[0]?[TRADES])
+  			{
+  				if (token[TRADEID] == null) continue;
+  				callback?.Invoke(new KeyValuePair<string, ExchangeTrade>(token[PRODUCTID].ToStringInvariant(), new ExchangeTrade()
+  				{
+  					Amount = token[SIZE].ConvertInvariant<decimal>(),
+  					Price = token[PRICE].ConvertInvariant<decimal>(),
+  					IsBuy = token[SIDE].ToStringInvariant().Equals(BUY),
+  					Id = token[TRADEID].ToStringInvariant(),
+  					Timestamp = token[TIME].ConvertInvariant<DateTime>()
+  				}));
+  			}
+  		}, async (_socket) =>
+  		{
+  			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
+  			string signature = CryptoUtility.SHA256Sign(timestamp + MARKETTRADES + string.Join(",", marketSymbols), PrivateApiKey.ToUnsecureString());
+  			var subscribeRequest = new
+  			{
+  				type = SUBSCRIBE,
+  				product_ids = marketSymbols,
+  				channel = MARKETTRADES,
+  				api_key = PublicApiKey.ToUnsecureString(),
+  				timestamp,
+  				signature
+  			};
+  			await _socket.SendMessageAsync(subscribeRequest);
+  		});
+  	}
 
-  	#endregion
+ 	#endregion
 
-		#region PrivateFunctions
+ 		#region PrivateFunctions
 
   	private async Task<Dictionary<string, decimal>> GetAmounts(bool AvailableOnly)
   	{
@@ -618,7 +628,7 @@ namespace ExchangeSharp
   				decimal amount = AvailableOnly ? account["available_balance"][VALUE].ConvertInvariant<decimal>() : account["available_balance"][VALUE].ConvertInvariant<decimal>() + account["hold"][VALUE].ConvertInvariant<decimal>();
   				if (amount > 0.0m) amounts[account[CURRENCY].ToStringInvariant()] = amount;
   			}
-  			if (cursorNext == null) break;
+  			if (string.IsNullOrEmpty(cursorNext)) break;
   			token = await MakeJsonRequestAsync<JToken>("/accounts?starting_after=" + cursorNext);
   		} 
   		pagination = PaginationType.None;
@@ -636,21 +646,18 @@ namespace ExchangeSharp
   		if (Accounts  == null) await GetAmounts(true);		
   		pagination = PaginationType.V2;
   		List<ExchangeTransaction> transfers = new List<ExchangeTransaction>();
-  		JToken tokens = await MakeJsonRequestAsync<JToken>($"accounts/{Accounts[currency]}/transactions", BaseURLV2);
+  		JToken tokens = await MakeJsonRequestAsync<JToken>($"accounts/{Accounts[currency]}/transactions", BaseUrlV2);
   		while(true)
   		{ 
   			foreach (JToken token in tokens)
   			{
   				// A "send" to Coinbase is when someone "sent" you coin - or a receive to the rest of the world
   				// Likewise, a "receive" is when someone "received" coin from you. In other words, it's back-asswards.
-  				if (!Withdrawals && token["type"].ToStringInvariant().Equals("send")) transfers.Add(ParseTransaction(token));
-  				else if (Withdrawals && token["type"].ToStringInvariant().Equals("receive")) transfers.Add(ParseTransaction(token));
-
-  				// Legacy Order and other Coinbase Tx Types can be parsed using this V2 code block
-  				//var tmp = ParseOrder(token);
+  				if (!Withdrawals && token[TYPE].ToStringInvariant().Equals("send")) transfers.Add(ParseTransaction(token));
+  				else if (Withdrawals && token[TYPE].ToStringInvariant().Equals("receive")) transfers.Add(ParseTransaction(token));
   			}
   			if (string.IsNullOrEmpty(cursorNext)) break;
-  			tokens = await MakeJsonRequestAsync<JToken>($"accounts/{Accounts[currency]}/transactions?starting_after={cursorNext}", BaseURLV2);
+  			tokens = await MakeJsonRequestAsync<JToken>($"accounts/{Accounts[currency]}/transactions?starting_after={cursorNext}", BaseUrlV2);
   		} 
   		pagination = PaginationType.None;
   		return transfers;
@@ -671,7 +678,7 @@ namespace ExchangeSharp
   			Currency = token[AMOUNT][CURRENCY].ToStringInvariant(),
   			Amount = token[AMOUNT][AMOUNT].ConvertInvariant<decimal>(),
   			Timestamp = token["created_at"].ToObject<DateTime>(),
-  			Status = token["status"].ToStringInvariant() == "completed" ? TransactionStatus.Complete : TransactionStatus.Unknown,
+  			Status = token[STATUS].ToStringInvariant() == "completed" ? TransactionStatus.Complete : TransactionStatus.Unknown,
   			Notes = token["description"].ToStringInvariant()
   			// Address 
   			// AddressTag 
@@ -679,86 +686,29 @@ namespace ExchangeSharp
   		};
   	}
 
-
-  	/// <summary>
-  	/// Parse both Advanced Trade and Legacy Transactions
-  	/// </summary>
-  	/// <param name="result"></param>
-  	/// <returns></returns>
   	private ExchangeOrderResult ParseOrder(JToken result)
   	{
-  		decimal amount = 0, amountFilled = 0, price = 0, fees = 0;
-  		string marketSymbol = string.Empty;
-  		bool isBuy = true;
-
-  		//Debug.WriteLine(result["type"].ToStringInvariant());
-  		switch(result["type"].ToStringInvariant())
-  		{
-  			case ADVFILL:
-  				// Buys/Sells have reversed amounts?
-
-
-  				break;
-  			case "send":
-  			case "receive":
-  				return new ExchangeOrderResult {OrderId = result["id"].ToStringInvariant(), Message = result["type"].ToStringInvariant(), };
-  			case "buy":
-  			case "sell":
-  			case "trade":
-  			case "request":
-  			case "transfer":
-
-  			case "exchange_deposit":
-  			case "fiat_deposit":
-  			case "fiat_withdrawal":
-  			case "pro_withdrawal":
-  			case "vault_withdrawal":
-  			default:
-  				return new ExchangeOrderResult {OrderId = result["id"].ToStringInvariant(), Message = result["type"].ToStringInvariant(), };
-  		}
-
-  		amount = result[AMOUNT][AMOUNT].ConvertInvariant<decimal>(amountFilled);
-  		amountFilled = amount;
-
-  		price = result[ADVFILL]["fill_price"].ConvertInvariant<decimal>();
-  		fees = result[ADVFILL]["commission"].ConvertInvariant<decimal>();
-  		marketSymbol = result[ADVFILL][PRODUCTID].ToStringInvariant(result["id"].ToStringInvariant());
-  		isBuy = (result[ADVFILL]["order_side"].ToStringInvariant() == "buy");
-
-  		ExchangeOrderResult order = new ExchangeOrderResult()
-  		{
-  			IsBuy = isBuy,
-  			Amount = amount,
-  			AmountFilled = amountFilled,
-  			Price = price,
-  			Fees = fees,
-  			FeesCurrency = result["native_amount"]["currency"].ToStringInvariant(),
-  			OrderDate = result["created_at"].ToDateTimeInvariant(),
-  			CompletedDate = result["updated_at"].ToDateTimeInvariant(),
-  			MarketSymbol = marketSymbol,
-  			OrderId = result["id"].ToStringInvariant(),
-  			Message = result["type"].ToStringInvariant()
-  		};
-
-  		switch (result["status"].ToStringInvariant())
-  		{
-  			case "completed":
-  				order.Result = ExchangeAPIOrderResult.Filled;
-  				break;
-  			case "waiting_for_clearing":
-  			case "waiting_for_signature":
-  			case "pending":
-  				order.Result = ExchangeAPIOrderResult.PendingOpen;
-  				break;
-  			case "expired":
-  			case "canceled":
-  				order.Result = ExchangeAPIOrderResult.Canceled;
-  				break;
-  			default:
-  				order.Result = ExchangeAPIOrderResult.Unknown;
-  				break;
-  		}
-  		return order;
+			return new ExchangeOrderResult
+			{
+				OrderId = result[ORDERID].ToStringInvariant(),
+				ClientOrderId = result["client_order_id"].ToStringInvariant(),
+				MarketSymbol = result[PRODUCTID].ToStringInvariant(),
+				Fees = result["total_fees"].ConvertInvariant<decimal>(),
+				OrderDate = result["created_time"].ToDateTimeInvariant(),
+				CompletedDate = result["last_fill_time"].ToDateTimeInvariant(),
+				AmountFilled = result["filled_size"].ConvertInvariant<decimal>(),
+				AveragePrice = result["average_filled_price"].ConvertInvariant<decimal>(),
+				IsBuy = result[SIDE].ToStringInvariant() == BUY,
+				Result = result[STATUS].ToStringInvariant() switch
+				{
+					"FILLED" => ExchangeAPIOrderResult.Filled,
+					"OPEN" => ExchangeAPIOrderResult.Open,
+					"CANCELLED" => ExchangeAPIOrderResult.Canceled,
+					"EXPIRED" => ExchangeAPIOrderResult.Expired,
+					"FAILED" => ExchangeAPIOrderResult.Rejected,
+					_ => ExchangeAPIOrderResult.Unknown,
+				}
+			};
   	}
 
   	#endregion
