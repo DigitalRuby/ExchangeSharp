@@ -478,7 +478,7 @@ namespace ExchangeSharp
 
   	protected override Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(Action<ExchangeOrderBook> callback, int maxCount = 100, params string[] marketSymbols)
   	{
-  		return ConnectWebSocketAsync("/", (_socket, msg) =>
+  		return ConnectWebSocketAsync(BaseUrlWebSocket, (_socket, msg) =>
   		{
   			JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
   			if (tokens[EVENTS][0][TYPE] == null || tokens[EVENTS][0]["updates"] == null ) return Task.CompletedTask;
@@ -530,7 +530,7 @@ namespace ExchangeSharp
 
   	protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback, params string[] marketSymbols)
   	{
-  		return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+  		return await ConnectWebSocketAsync(BaseUrlWebSocket, async (_socket, msg) =>
   		{
   			JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
 
@@ -576,7 +576,7 @@ namespace ExchangeSharp
 		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(Func<KeyValuePair<string, ExchangeTrade>, Task> callback, params string[] marketSymbols)
 		{
   		if (marketSymbols == null || marketSymbols.Length == 0) marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
-  		return await ConnectWebSocketAsync("/", async (_socket, msg) =>
+  		return await ConnectWebSocketAsync(BaseUrlWebSocket, async (_socket, msg) =>
   		{
   			JToken tokens = JToken.Parse(msg.ToStringFromUTF8());
   			if (tokens[EVENTS][0][TRADES] == null) return; // This is most likely a subscription confirmation (they don't document this)
