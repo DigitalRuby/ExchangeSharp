@@ -443,7 +443,7 @@ namespace ExchangeSharp
 					$"/spot/order?order_id={orderId}",
 					payload: payload
 			);
-			var x = token["data"];
+	  		var x = token["data"][0];
 			return new ExchangeOrderResult
 			{
 				MarketSymbol = x["symbol"].ToStringUpperInvariant(),
@@ -458,7 +458,7 @@ namespace ExchangeSharp
 				AveragePrice = x["avg_price"].ConvertInvariant<decimal>(),
 				Amount = x["amount"].ConvertInvariant<decimal>(),
 				AmountFilled = x["executed_amount"].ConvertInvariant<decimal>(),
-				IsBuy = x["type"].ToStringLowerInvariant() == "buy",
+				IsBuy = x["type"].ToStringLowerInvariant() == "buy_market",
 				Result = ParseOrderStatus(x["status"]),
 			};
 		}
