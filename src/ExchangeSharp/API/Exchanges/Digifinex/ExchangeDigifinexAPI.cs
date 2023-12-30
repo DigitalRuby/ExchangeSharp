@@ -443,7 +443,7 @@ namespace ExchangeSharp
 					$"/spot/order?order_id={orderId}",
 					payload: payload
 			);
-	  		var x = token["data"][0];
+	  	var x = token["data"][0];
 			return new ExchangeOrderResult
 			{
 				MarketSymbol = x["symbol"].ToStringUpperInvariant(),
