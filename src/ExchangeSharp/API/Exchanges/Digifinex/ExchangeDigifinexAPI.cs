@@ -1,11 +1,10 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -13,10 +12,10 @@ namespace ExchangeSharp
 	{
 		private string[] Urls =
 		{
-						"openapi.digifinex.com",
-						"openapi.digifinex.vip", // these other URLs don't work anymore
+			"openapi.digifinex.com",
+			"openapi.digifinex.vip", // these other URLs don't work anymore
             "openapi.digifinex.xyz",
-				};
+		};
 
 		private string fastestUrl = null;
 		private int failedUrlCount;
@@ -85,7 +84,7 @@ namespace ExchangeSharp
 				var timeFaster = now - serverDate;
 				timeWindow = "30"; // max latency of 30s
 				NonceOffset = now - serverDate; // how much time to substract from Nonce when making a request
-																				//Console.WriteLine($"NonceOffset {GetHashCode()}: {NonceOffset}");
+												//Console.WriteLine($"NonceOffset {GetHashCode()}: {NonceOffset}");
 			}
 			catch
 			{
@@ -169,9 +168,7 @@ namespace ExchangeSharp
 			};
 		}
 
-		protected internal override async Task<
-				IEnumerable<ExchangeMarket>
-		> OnGetMarketSymbolsMetadataAsync()
+		protected internal override async Task<IEnumerable<ExchangeMarket>> OnGetMarketSymbolsMetadataAsync()
 		{
 			await inited.Task;
 			JToken obj = await MakeJsonRequestAsync<JToken>("markets");
@@ -189,9 +186,8 @@ namespace ExchangeSharp
 			return (await GetMarketSymbolsMetadataAsync()).Select(x => x.MarketSymbol);
 		}
 
-		private async Task<ExchangeTicker> ParseTickerAsync(JToken x)
+		private async Task<ExchangeTicker> ParseTickerAsync(JToken t, JToken dateStr)
 		{
-			var t = x["ticker"][0];
 			var symbol = t["symbol"].ToStringUpperInvariant();
 			var (baseCurrency, quoteCurrency) = await ExchangeMarketSymbolToCurrenciesAsync(symbol);
 
@@ -210,16 +206,34 @@ namespace ExchangeSharp
 					QuoteCurrencyVolume = t["base_vol"].ConvertInvariant<decimal>(),
 					BaseCurrencyVolume = t["vol"].ConvertInvariant<decimal>(),
 					Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(
-									x["date"].ConvertInvariant<long>()
+									//t["date"].ConvertInvariant<long>()
+									dateStr.ConvertInvariant<long>()
 							),
 				},
 			};
 		}
 
+		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		{
+			List<KeyValuePair<string, ExchangeTicker>> tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+			JToken token = await MakeJsonRequestAsync<JToken>("/ticker");
+			foreach (JToken tick in token["ticker"])
+			{
+				string marketSymbol = tick["symbol"].ToStringInvariant();
+				tickers.Add(
+						new KeyValuePair<string, ExchangeTicker>(
+								marketSymbol,
+								await ParseTickerAsync(tick, token["date"])
+						)
+				);
+			}
+			return tickers;
+		}
+
 		protected override async Task<ExchangeTicker> OnGetTickerAsync(string marketSymbol)
 		{
 			JToken obj = await MakeJsonRequestAsync<JToken>($"/ticker?symbol={marketSymbol}");
-			return await ParseTickerAsync(obj);
+			return await ParseTickerAsync(obj["ticker"][0], obj["date"]);
 		}
 
 		protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(
@@ -388,9 +402,10 @@ namespace ExchangeSharp
 			);
 		}
 
-		protected override async Task<
-				IEnumerable<ExchangeOrderResult>
-		> OnGetCompletedOrderDetailsAsync(string marketSymbol = null, DateTime? afterDate = null)
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetCompletedOrderDetailsAsync(
+			string marketSymbol = null,
+			DateTime? afterDate = null
+		)
 		{
 			Dictionary<string, object> payload = await GetNoncePayloadAsync();
 			var url = "/spot/mytrades?limit=500";
@@ -443,7 +458,7 @@ namespace ExchangeSharp
 					$"/spot/order?order_id={orderId}",
 					payload: payload
 			);
-			var x = token["data"];
+			var x = token["data"][0];
 			return new ExchangeOrderResult
 			{
 				MarketSymbol = x["symbol"].ToStringUpperInvariant(),
@@ -458,7 +473,7 @@ namespace ExchangeSharp
 				AveragePrice = x["avg_price"].ConvertInvariant<decimal>(),
 				Amount = x["amount"].ConvertInvariant<decimal>(),
 				AmountFilled = x["executed_amount"].ConvertInvariant<decimal>(),
-				IsBuy = x["type"].ToStringLowerInvariant() == "buy",
+				IsBuy = x["type"].ToStringLowerInvariant() == "buy_market",
 				Result = ParseOrderStatus(x["status"]),
 			};
 		}
@@ -563,9 +578,85 @@ namespace ExchangeSharp
 
 		#region WebSocket APIs
 
-		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
-				Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+		protected override async Task<IWebSocket> OnGetTickersWebSocketAsync(
+				Action<IReadOnlyCollection<KeyValuePair<string, ExchangeTicker>>> callback,
 				params string[] marketSymbols
+		)
+		{
+			await inited.Task;
+			if (callback == null)
+			{
+				return null;
+			}
+			else if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).Take(30).ToArray();
+				Logger.Warn("subscribing to the first 30 symbols");
+			}
+			return await ConnectPublicWebSocketAsync(
+					string.Empty,
+					async (_socket, msg) =>
+					{
+						JToken token = JToken.Parse(
+													CryptoUtility
+															.DecompressDeflate(
+																	(new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()
+															)
+															.ToStringFromUTF8()
+											);
+						// doesn't send error msgs - just disconnects
+						if (token["method"].ToStringLowerInvariant() == "all_ticker.update")
+						{
+							var args = token["params"];
+							var x = args as JArray;
+							var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+
+							for (int i = 0; i < x.Count; i++)
+							{
+								var tick = x[i];
+								var symbol = tick["symbol"].ToStringUpperInvariant();
+								tickers.Add(new KeyValuePair<string, ExchangeTicker>(
+													  symbol,
+													  await this.ParseTickerWebSocketAsync(symbol, tick)
+											  )
+							  );
+							}
+							callback(tickers);
+						}
+					},
+					async (_socket2) =>
+					{
+						var id = Interlocked.Increment(ref websocketMessageId);
+						await _socket2.SendMessageAsync(
+																new
+																{
+																	id,
+																	method = "all_ticker.subscribe",
+																	@params = marketSymbols
+																}
+														);
+					}
+			);
+		}
+
+		private async Task<ExchangeTicker> ParseTickerWebSocketAsync(string symbol, JToken token)
+		{
+			return await this.ParseTickerAsync(
+					token,
+					symbol,
+					askKey: "best_ask",
+					bidKey: "best_bid",
+					lastKey: "last",
+					baseVolumeKey: "base_volume_24h",
+					quoteVolumeKey: "quote_volume_24h",
+					timestampKey: "timestamp",
+					TimestampType.UnixMilliseconds
+			);
+		}
+
+		protected override async Task<IWebSocket> OnGetTradesWebSocketAsync(
+		Func<KeyValuePair<string, ExchangeTrade>, Task> callback,
+		params string[] marketSymbols
 		)
 		{
 			await inited.Task;
@@ -601,12 +692,12 @@ namespace ExchangeSharp
 						//     "id": null
 						// }
 						JToken token = JToken.Parse(
-											CryptoUtility
-													.DecompressDeflate(
-															(new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()
-													)
-													.ToStringFromUTF8()
-									);
+												CryptoUtility
+														.DecompressDeflate(
+																(new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()
+														)
+														.ToStringFromUTF8()
+										);
 						// doesn't send error msgs - just disconnects
 						if (token["method"].ToStringLowerInvariant() == "trades.update")
 						{
@@ -658,13 +749,13 @@ namespace ExchangeSharp
 					{
 						var id = Interlocked.Increment(ref websocketMessageId);
 						await _socket2.SendMessageAsync(
-											new
-											{
-												id,
-												method = "trades.subscribe",
-												@params = marketSymbols
-											}
-									);
+												new
+												{
+													id,
+													method = "trades.subscribe",
+													@params = marketSymbols
+												}
+										);
 					}
 			);
 		}
@@ -716,12 +807,12 @@ namespace ExchangeSharp
 						//  "id": null
 						//}
 						JToken token = JToken.Parse(
-											CryptoUtility
-													.DecompressDeflate(
-															(new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()
-													)
-													.ToStringFromUTF8()
-									);
+												CryptoUtility
+														.DecompressDeflate(
+																(new ArraySegment<byte>(msg, 2, msg.Length - 2)).ToArray()
+														)
+														.ToStringFromUTF8()
+										);
 						if (token["method"].ToStringLowerInvariant() == "depth.update")
 						{
 							var args = token["params"];
@@ -757,15 +848,40 @@ namespace ExchangeSharp
 					{
 						var id = Interlocked.Increment(ref websocketMessageId);
 						await _socket.SendMessageAsync(
-											new
-											{
-												id,
-												method = "depth.subscribe",
-												@params = marketSymbols
-											}
-									);
+												new
+												{
+													id,
+													method = "depth.subscribe",
+													@params = marketSymbols
+												}
+										);
 					}
 			);
+		}
+
+		private static async Task SubscribeToChannel(
+				IWebSocket socket,
+				int id,
+				string channel,
+				string[] marketSymbols
+		)
+		{
+			if (marketSymbols.Length == 0)
+			{
+				marketSymbols = new[] { "all" };
+			}
+
+			var payload = JsonConvert.SerializeObject(
+			  new
+			  {
+				  Id = id,
+				  method = channel,
+				  @params = marketSymbols
+			  },
+			  SerializerSettings
+		  );
+
+			await socket.SendMessageAsync(payload);
 		}
 
 		#endregion WebSocket APIs
