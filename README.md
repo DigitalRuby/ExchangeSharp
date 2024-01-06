@@ -80,7 +80,7 @@ Exchange constructors are private, to get access to an exchange in code use:
 
 On \*nix systems:
 
-- Run this command `curl https://github.com/jjxtra/ExchangeSharp/raw/master/install-console.sh | sh`
+- Run this command `curl https://github.com/DigitalRuby/ExchangeSharp/raw/main/install-console.sh | sh`
 
 On Windows (or manually):
 
