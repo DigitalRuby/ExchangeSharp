@@ -2,7 +2,7 @@ trigger:
   batch: false
   branches:
     include:
-    - master
+    - main
   paths:
     exclude:
     - .github/**
@@ -17,7 +17,7 @@ pr:
   autoCancel: true
   branches:
     include:
-    - master
+    - main
   paths:
     exclude:
     - .github/**
@@ -30,7 +30,7 @@ schedules:
   displayName: Monthly release
   branches:
     include:
-    - master
+    - main
 
 variables:
   BuildConfiguration: 'Release'
