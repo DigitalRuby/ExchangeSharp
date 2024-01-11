@@ -285,7 +285,7 @@ namespace ExchangeSharpTests
 					@"{""error"":""Order not found, or you are not the person who placed it.""}";
 			var polo = await CreatePoloniexAPI(response);
 			async Task a() => await polo.GetOrderDetailsAsync("1");
-			Invoking(a).Should().Throw<APIException>();
+			await Invoking(a).Should().ThrowAsync<APIException>();
 		}
 
 		[TestMethod]
@@ -295,7 +295,7 @@ namespace ExchangeSharpTests
 			var polo = await CreatePoloniexAPI(response);
 
 			async Task a() => await polo.GetOrderDetailsAsync("1");
-			Invoking(a).Should().Throw<APIException>();
+			await Invoking(a).Should().ThrowAsync<APIException>();
 		}
 
 		[TestMethod]

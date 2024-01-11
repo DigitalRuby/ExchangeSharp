@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ProjectGuid>{571623F9-1652-4669-8E17-A6FAD1426181}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>ExchangeSharpWinForms</AssemblyTitle>
     <Product>ExchangeSharpWinForms</Product>

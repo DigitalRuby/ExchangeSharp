@@ -161,11 +161,11 @@ namespace ExchangeSharp
 
 	class SocketIOWrapper : IWebSocket
 	{
-		public SocketIO socketIO;
+		public SocketIOClient.SocketIO socketIO;
 
 		public SocketIOWrapper(string url)
 		{
-			socketIO = new SocketIO(url);
+			socketIO = new SocketIOClient.SocketIO(url);
 			socketIO.Options.Transport = SocketIOClient.Transport.TransportProtocol.WebSocket;
 			socketIO.OnConnected += (s, e) => Connected?.Invoke(this);
 			socketIO.OnDisconnected += (s, e) => Disconnected?.Invoke(this);
