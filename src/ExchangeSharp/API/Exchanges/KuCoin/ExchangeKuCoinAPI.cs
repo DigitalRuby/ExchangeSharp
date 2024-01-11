@@ -863,6 +863,11 @@ namespace ExchangeSharp
 							.DateTime
 			};
 
+			if (order.AveragePrice == 0)
+			{
+				order.AveragePrice = token["dealFunds"].ConvertInvariant<decimal>() / token["dealSize"].ConvertInvariant<decimal>();
+			}
+
 			// Amount and Filled are returned as Sold and Pending, so we'll adjust
 			order.AmountFilled = token["dealSize"].ConvertInvariant<decimal>();
 			order.Amount = token["size"].ConvertInvariant<decimal>() + order.AmountFilled.Value;
@@ -895,6 +900,12 @@ namespace ExchangeSharp
 							.FromUnixTimeMilliseconds(token["createdAt"].ConvertInvariant<long>())
 							.DateTime
 			};
+
+			if (order.AveragePrice == 0)
+			{
+				order.AveragePrice = token["dealFunds"].ConvertInvariant<decimal>() / token["dealSize"].ConvertInvariant<decimal>();
+			}
+
 			if (token["cancelExist"].ToStringInvariant().ToUpper() == "TRUE")
 			{
 				order.Result = ExchangeAPIOrderResult.Canceled;
@@ -903,6 +914,7 @@ namespace ExchangeSharp
 			{
 				order.Result = ExchangeAPIOrderResult.Filled;
 			}
+
 			return order;
 		}
 
