@@ -396,7 +396,6 @@ namespace ExchangeSharp
   		payload["side"] = order.IsBuy ? BUY : "SELL";
 
   		Dictionary<string, object> orderConfig = new Dictionary<string, object>();
-			var amount = order.ShouldRoundAmount ? order.RoundAmount().ToStringInvariant() : order.Amount.ToStringInvariant();
   		switch (order.OrderType)
   		{
   			case OrderType.Limit:
@@ -404,7 +403,7 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("limit_limit_gtd", new Dictionary<string, object>()
   					{
-  						{"base_size", amount },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"end_time", order.ExtraParameters["gtd_timestamp"] },
   						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", false) }
@@ -414,7 +413,7 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("limit_limit_gtc", new Dictionary<string, object>()
   					{
-  						{"base_size", amount },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
   					});
@@ -425,7 +424,7 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("stop_limit_stop_limit_gtd", new Dictionary<string, object>()
   					{
-  						{"base_size", amount },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"stop_price", order.StopPrice.ToStringInvariant() },
   						{"end_time", order.ExtraParameters["gtd_timestamp"] },
@@ -435,15 +434,15 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
   					{
-  						{"base_size", amount },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"stop_price", order.StopPrice.ToStringInvariant() },
   					});
   				}
   				break;
   			case OrderType.Market:
-  				if (order.IsBuy) orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "quote_size", amount }});
-  				else orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "base_size", amount }});
+  				if (order.IsBuy) orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "quote_size", order.RoundAmount().ToStringInvariant() }});
+  				else orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "base_size", order.RoundAmount().ToStringInvariant() }});
   				break;
   		}
 
@@ -466,7 +465,7 @@ namespace ExchangeSharp
 					ClientOrderId = order.ClientOrderId,
 					ResultCode = $"{token["error_response"]["error"].ToStringInvariant()} - {token["error_response"]["preview_failure_reason"].ToStringInvariant()}",
 					AmountFilled = 0,
-					Amount = order.Amount,
+					Amount = order.RoundAmount(),
 					AveragePrice = 0,
 					Fees = 0,
 					FeesCurrency = "USDT"
