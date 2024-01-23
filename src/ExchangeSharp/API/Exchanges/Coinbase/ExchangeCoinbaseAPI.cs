@@ -29,10 +29,10 @@ namespace ExchangeSharp
   	public override string BaseUrl { get; set; } = "https://api.coinbase.com/api/v3/brokerage";
   	private readonly string BaseUrlV2 = "https://api.coinbase.com/v2";	// For Wallet Support
   	public override string BaseUrlWebSocket { get; set; } = "wss://advanced-trade-ws.coinbase.com";
-	
+
   	private enum PaginationType { None, V2, V3}
   	private PaginationType pagination = PaginationType.None;
-  	private string cursorNext;								
+  	private string cursorNext;
 
   	private Dictionary<string, string> Accounts = null;		// Cached Account IDs
 
@@ -62,7 +62,7 @@ namespace ExchangeSharp
    			JToken token = JsonConvert.DeserializeObject<JToken>((string)response);
  				if (token == null) return;
  				switch(pagination)
- 				{	
+ 				{
  					case PaginationType.V2: cursorNext = token["pagination"]?["next_starting_after"]?.ToStringInvariant(); break;
  					case PaginationType.V3: cursorNext = token[CURSOR]?.ToStringInvariant(); break;
  				}
@@ -77,7 +77,7 @@ namespace ExchangeSharp
   	/// <param name="payload"></param>
   	/// <returns></returns>
 		protected override bool CanMakeAuthenticatedRequest(IReadOnlyDictionary<string, object> payload)
-		{	
+		{
 			return (PrivateApiKey != null && PublicApiKey != null);
 		}
 
@@ -90,7 +90,7 @@ namespace ExchangeSharp
 
   			// V2 wants PathAndQuery, V3 wants LocalPath for the sig (I guess they wanted to shave a nano-second or two - silly)
   			string path = request.RequestUri.AbsoluteUri.StartsWith(BaseUrlV2) ? request.RequestUri.PathAndQuery : request.RequestUri.LocalPath;
-  			string signature = CryptoUtility.SHA256Sign(timestamp + request.Method.ToUpperInvariant() + path + body, PrivateApiKey.ToUnsecureString());		
+  			string signature = CryptoUtility.SHA256Sign(timestamp + request.Method.ToUpperInvariant() + path + body, PrivateApiKey.ToUnsecureString());
 
   			request.AddHeader("CB-ACCESS-KEY", PublicApiKey.ToUnsecureString());
   			request.AddHeader("CB-ACCESS-SIGN", signature);
@@ -141,7 +141,7 @@ namespace ExchangeSharp
 
   	protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
   	{
-  		return (await GetMarketSymbolsMetadataAsync()).Select(market => market.MarketSymbol);	
+  		return (await GetMarketSymbolsMetadataAsync()).Select(market => market.MarketSymbol);
   	}
 
   	protected override async Task<IReadOnlyDictionary<string, ExchangeCurrency>> OnGetCurrenciesAsync()
@@ -176,7 +176,7 @@ namespace ExchangeSharp
   				currencies[currency.Name] = currency;
   			}
   		}
-  		return currencies;		
+  		return currencies;
   	}
 
   	protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
@@ -187,7 +187,7 @@ namespace ExchangeSharp
   		foreach (JToken book in books[PRICEBOOKS])
   		{
   			var split = book[PRODUCTID].ToString().Split(GlobalMarketSymbolSeparator);
-  			// This endpoint does not provide a last or open for the ExchangeTicker 
+  			// This endpoint does not provide a last or open for the ExchangeTicker
   			tickers.Add(new KeyValuePair<string, ExchangeTicker>(book[PRODUCTID].ToString(), new ExchangeTicker()
   			{
   				MarketSymbol = book[PRODUCTID].ToString(),
@@ -224,7 +224,7 @@ namespace ExchangeSharp
  			    QuoteCurrencyVolume = book[ASKS][0][SIZE].ConvertInvariant<decimal>(),
   				Timestamp = DateTime.UtcNow
   			}
-  		};	
+  		};
   	}
 
   	protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string marketSymbol, int maxCount = 50)
@@ -267,8 +267,8 @@ namespace ExchangeSharp
   		if ((RangeEnd - RangeStart).TotalSeconds / periodSeconds > 300) RangeStart = RangeEnd.AddSeconds(-(periodSeconds * 300));
 
   		List<MarketCandle> candles = new List<MarketCandle>();
-  		while (true) 
-  		{ 
+  		while (true)
+  		{
   			JToken token = await MakeJsonRequestAsync<JToken>(string.Format("/products/{0}/candles?start={1}&end={2}&granularity={3}", marketSymbol, ((DateTimeOffset)RangeStart).ToUnixTimeSeconds(), ((DateTimeOffset)RangeEnd).ToUnixTimeSeconds(), granularity));
   			foreach (JToken candle in token["candles"])	candles.Add(this.ParseCandle(candle, marketSymbol, periodSeconds, "open", "high", "low", "close", "start", TimestampType.UnixSeconds, "volume"));
   			if (RangeStart > startDate)
@@ -278,7 +278,7 @@ namespace ExchangeSharp
   				RangeEnd = RangeEnd.AddSeconds(-(periodSeconds * 300));
   			}
   			else break;
-  		} 
+  		}
   		return candles.Where(c => c.Timestamp >= startDate).OrderBy(c => c.Timestamp);
   	}
 
@@ -301,7 +301,7 @@ namespace ExchangeSharp
 
  		#region AccountSpecificEndpoints
 
-  	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call. 
+  	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call.
   	protected override async Task<ExchangeDepositDetails> OnGetDepositAddressAsync(string symbol, bool forceRegenerate = false)
   	{
   		if (Accounts  == null) await GetAmounts(true);		// Populate Accounts Cache
@@ -323,13 +323,13 @@ namespace ExchangeSharp
   		return await GetAmounts(true);
   	}
 
-  	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call. 
+  	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call.
   	protected override async Task<IEnumerable<ExchangeTransaction>> OnGetWithdrawHistoryAsync(string currency)
   	{
   		return await GetTx(true, currency);
   	}
 
-  	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call. 
+  	// WARNING: Currently V3 doesn't support Coinbase Wallet APIs, so we are reverting to V2 for this call.
   	protected override async Task<IEnumerable<ExchangeTransaction>> OnGetDepositHistoryAsync(string currency)
   	{
   		return await GetTx(false, currency);
@@ -344,7 +344,7 @@ namespace ExchangeSharp
   		string uri = string.IsNullOrEmpty(marketSymbol) ? "/orders/historical/batch?order_status=OPEN" : $"/orders/historical/batch?product_id={marketSymbol}&order_status=OPEN";   // Parameter order is critical
   		JToken token = await MakeJsonRequestAsync<JToken>(uri);
   		while(true)
-  		{ 
+  		{
   			foreach (JToken order in token[ORDERS]) if (order[TYPE].ToStringInvariant().Equals(ADVFILL)) orders.Add(ParseOrder(order));
   			if (string.IsNullOrEmpty(cursorNext)) break;
   			token = await MakeJsonRequestAsync<JToken>(uri + "&cursor=" + cursorNext);
@@ -360,7 +360,7 @@ namespace ExchangeSharp
   		string uri = string.IsNullOrEmpty(marketSymbol) ? "/orders/historical/batch?order_status=FILLED" : $"/orders/historical/batch?product_id={marketSymbol}&order_status=OPEN";   // Parameter order is critical
   		JToken token = await MakeJsonRequestAsync<JToken>(uri);
   		while(true)
-  		{ 
+  		{
   			foreach (JToken order in token[ORDERS]) orders.Add(ParseOrder(order));
   			if (string.IsNullOrEmpty(cursorNext)) break;
   			token = await MakeJsonRequestAsync<JToken>(uri + "&cursor=" + cursorNext);
@@ -403,17 +403,17 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("limit_limit_gtd", new Dictionary<string, object>()
   					{
-  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
-  						{"end_time", order.ExtraParameters["gtd_timestamp"] },	
+  						{"end_time", order.ExtraParameters["gtd_timestamp"] },
   						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", false) }
   					});
   				}
   				else
-  				{ 
+  				{
   					orderConfig.Add("limit_limit_gtc", new Dictionary<string, object>()
   					{
-  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"post_only", order.ExtraParameters.TryGetValueOrDefault( "post_only", "false") }
   					});
@@ -424,7 +424,7 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("stop_limit_stop_limit_gtd", new Dictionary<string, object>()
   					{
-  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"stop_price", order.StopPrice.ToStringInvariant() },
   						{"end_time", order.ExtraParameters["gtd_timestamp"] },
@@ -434,15 +434,15 @@ namespace ExchangeSharp
   				{
   					orderConfig.Add("stop_limit_stop_limit_gtc", new Dictionary<string, object>()
   					{
-  						{"base_size", order.Amount.ToStringInvariant() },
+  						{"base_size", order.RoundAmount().ToStringInvariant() },
   						{"limit_price", order.Price.ToStringInvariant() },
   						{"stop_price", order.StopPrice.ToStringInvariant() },
   					});
   				}
   				break;
   			case OrderType.Market:
-  				if (order.IsBuy) orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "quote_size", order.Amount.ToStringInvariant() }});
-  				else orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "base_size", order.Amount.ToStringInvariant() }});
+  				if (order.IsBuy) orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "quote_size", order.RoundAmount().ToStringInvariant() }});
+  				else orderConfig.Add("market_market_ioc", new Dictionary<string, object>() { { "base_size", order.RoundAmount().ToStringInvariant() }});
   				break;
   		}
 
@@ -454,10 +454,22 @@ namespace ExchangeSharp
   			// The Post doesn't return with any status, just a new OrderId. To get the Order Details we have to reQuery.
   			return await OnGetOrderDetailsAsync(result[ORDERID].ToStringInvariant());
   		}
-  		catch (Exception ex) // All fails come back with an exception. 
+  		catch (Exception ex) // All fails come back with an exception.
   		{
+				Logger.Error(ex, "Failed to place coinbase error");
   			var token = JToken.Parse(ex.Message);
-  			return new ExchangeOrderResult(){ Result = ExchangeAPIOrderResult.Rejected, ClientOrderId = order.ClientOrderId, ResultCode = token["error_response"]["error"].ToStringInvariant() };
+  			return new ExchangeOrderResult(){
+					Result = ExchangeAPIOrderResult.Rejected,
+					IsBuy = payload["side"].ToStringInvariant().Equals(BUY),
+					MarketSymbol = payload["product_id"].ToStringInvariant(),
+					ClientOrderId = order.ClientOrderId,
+					ResultCode = $"{token["error_response"]["error"].ToStringInvariant()} - {token["error_response"]["preview_failure_reason"].ToStringInvariant()}",
+					AmountFilled = 0,
+					Amount = order.RoundAmount(),
+					AveragePrice = 0,
+					Fees = 0,
+					FeesCurrency = "USDT"
+				};
   		}
   	}
 
@@ -509,8 +521,8 @@ namespace ExchangeSharp
   					if (askCount >= maxCount && bidCount >=maxCount) break;
   				}
   				callback?.Invoke(book);
-  			} 
-  			return Task.CompletedTask;				
+  			}
+  			return Task.CompletedTask;
   		}, async (_socket) =>
   		{
   			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();
@@ -551,7 +563,7 @@ namespace ExchangeSharp
   						BaseCurrency = split[0],
   						QuoteCurrency = split[1],
   						BaseCurrencyVolume = token["volume_24_h"].ConvertInvariant<decimal>(),
-  						Timestamp = timestamp			  
+  						Timestamp = timestamp
   					}
   				} ));
   			}
@@ -630,7 +642,7 @@ namespace ExchangeSharp
   			}
   			if (string.IsNullOrEmpty(cursorNext)) break;
   			token = await MakeJsonRequestAsync<JToken>("/accounts?starting_after=" + cursorNext);
-  		} 
+  		}
   		pagination = PaginationType.None;
   		return amounts;
   	}
@@ -643,12 +655,12 @@ namespace ExchangeSharp
   	/// <returns></returns>
   	private async Task<List<ExchangeTransaction>> GetTx(bool Withdrawals, string currency)
   	{
-  		if (Accounts  == null) await GetAmounts(true);		
+  		if (Accounts  == null) await GetAmounts(true);
   		pagination = PaginationType.V2;
   		List<ExchangeTransaction> transfers = new List<ExchangeTransaction>();
   		JToken tokens = await MakeJsonRequestAsync<JToken>($"accounts/{Accounts[currency]}/transactions", BaseUrlV2);
   		while(true)
-  		{ 
+  		{
   			foreach (JToken token in tokens)
   			{
   				// A "send" to Coinbase is when someone "sent" you coin - or a receive to the rest of the world
@@ -658,7 +670,7 @@ namespace ExchangeSharp
   			}
   			if (string.IsNullOrEmpty(cursorNext)) break;
   			tokens = await MakeJsonRequestAsync<JToken>($"accounts/{Accounts[currency]}/transactions?starting_after={cursorNext}", BaseUrlV2);
-  		} 
+  		}
   		pagination = PaginationType.None;
   		return transfers;
   	}
@@ -672,7 +684,7 @@ namespace ExchangeSharp
   	{
   		// The Coin Address/TxFee isn't available but can be retrieved using the Network Hash/BlockChainId
   		return new ExchangeTransaction()
-  		{ 
+  		{
   			PaymentId = token["id"].ToStringInvariant(),				// Not sure how this is used elsewhere but here it is the Coinbase TransactionID
   			BlockchainTxId = token["network"]["hash"].ToStringInvariant(),
   			Currency = token[AMOUNT][CURRENCY].ToStringInvariant(),
@@ -680,9 +692,9 @@ namespace ExchangeSharp
   			Timestamp = token["created_at"].ToObject<DateTime>(),
   			Status = token[STATUS].ToStringInvariant() == "completed" ? TransactionStatus.Complete : TransactionStatus.Unknown,
   			Notes = token["description"].ToStringInvariant()
-  			// Address 
-  			// AddressTag 
-  			// TxFee 
+  			// Address
+  			// AddressTag
+  			// TxFee
   		};
   	}
 
