@@ -34,7 +34,6 @@ namespace ExchangeSharp
 
 		private ExchangeKrakenAPI()
 		{
-			RequestMethod = "POST";
 			RequestContentType = "application/x-www-form-urlencoded";
 			MarketSymbolSeparator = string.Empty;
 			NonceStyle = NonceStyle.UnixMilliseconds;
