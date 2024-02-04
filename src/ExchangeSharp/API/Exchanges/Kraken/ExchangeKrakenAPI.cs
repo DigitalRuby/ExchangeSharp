@@ -1484,7 +1484,7 @@ namespace ExchangeSharp
 		/// <returns></returns>
 		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
 				Action<ExchangeOrderBook> callback,
-				int maxCount = 20,
+				int maxCount = 100,
 				params string[] marketSymbols
 		)
 		{
@@ -1639,7 +1639,7 @@ namespace ExchangeSharp
 						{
 							Event = ActionType.Subscribe,
 							Pairs = marketSymbols.ToList(),
-							SubscriptionSettings = new Subscription { Name = "book", Depth = 100 }
+							SubscriptionSettings = new Subscription { Name = "book", Depth = maxCount }
 						};
 						await _socket.SendMessageAsync(channelAction);
 					}

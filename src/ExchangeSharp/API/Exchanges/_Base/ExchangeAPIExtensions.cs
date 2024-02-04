@@ -45,7 +45,7 @@ namespace ExchangeSharp
 		public static async Task<IWebSocket> GetFullOrderBookWebSocketAsync(
 				this IOrderBookProvider api,
 				Action<ExchangeOrderBook> callback,
-				int maxCount = 20,
+				int maxCount = 100,
 				params string[] symbols
 		)
 		{
