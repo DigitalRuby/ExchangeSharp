@@ -831,34 +831,44 @@ namespace ExchangeSharp
 			);
 		}
 
-		private static ExchangeOrderResult ParseOrder(JToken token) =>
-				new ExchangeOrderResult()
-				{
-					OrderId = token["ordId"].Value<string>(),
-					OrderDate = DateTimeOffset
-								.FromUnixTimeMilliseconds(token["cTime"].Value<long>())
-								.DateTime,
-					Result = token["state"].Value<string>() switch
-					{
-						"canceled" => ExchangeAPIOrderResult.Canceled,
-						"live" => ExchangeAPIOrderResult.Open,
-						"partially_filled" => ExchangeAPIOrderResult.FilledPartially,
-						"filled" => ExchangeAPIOrderResult.Filled,
-						_ => ExchangeAPIOrderResult.Unknown
-					},
-					IsBuy = token["side"].Value<string>() == "buy",
-					IsAmountFilledReversed = false,
-					Amount = token["sz"].Value<decimal>(),
-					AmountFilled = token["accFillSz"].Value<decimal>(),
-					AveragePrice =
-								token["avgPx"].Value<string>() == string.Empty
-										? default
-										: token["avgPx"].Value<decimal>(),
-					Price = token["px"].Value<decimal>(),
-					ClientOrderId = token["clOrdId"].Value<string>(),
-					FeesCurrency = token["feeCcy"].Value<string>(),
-					MarketSymbol = token["instId"].Value<string>()
-				};
+		private static ExchangeOrderResult ParseOrder(JToken token)
+		{
+			var newResult = new ExchangeOrderResult();
+			newResult.OrderId = token["ordId"].Value<string>();
+			newResult.OrderDate = DateTimeOffset
+						.FromUnixTimeMilliseconds(token["cTime"].Value<long>())
+						.DateTime;
+			newResult.Result = token["state"].Value<string>() switch
+			{
+				"canceled" => ExchangeAPIOrderResult.Canceled,
+				"live" => ExchangeAPIOrderResult.Open,
+				"partially_filled" => ExchangeAPIOrderResult.FilledPartially,
+				"filled" => ExchangeAPIOrderResult.Filled,
+				_ => ExchangeAPIOrderResult.Unknown
+			};
+			newResult.IsBuy = token["side"].Value<string>() == "buy";
+			newResult.IsAmountFilledReversed = false;
+			newResult.Amount = token["sz"].Value<decimal>();
+			newResult.AmountFilled = token["accFillSz"].Value<decimal>();
+
+			var avgPrice = decimal.TryParse(token["avgPx"].Value<string>(), out var tempAvgPx) ? tempAvgPx : default;
+			var price = decimal.TryParse(token["px"].Value<string>(), out var tempPx) ? tempPx : default;
+			if (avgPrice == default && price != default)
+			{
+				avgPrice = price;
+			}
+			else if (price == default && avgPrice != default)
+			{
+				price = avgPrice;
+			}
+			newResult.Price = price;
+			newResult.AveragePrice = avgPrice;
+			newResult.ClientOrderId = token["clOrdId"].Value<string>();
+			newResult.FeesCurrency = token["feeCcy"].Value<string>();
+			newResult.MarketSymbol = token["instId"].Value<string>();
+
+			return newResult;
+		}
 
 		private static IEnumerable<ExchangeOrderResult> ParseOrders(JToken token) =>
 				token.Select(ParseOrder);
