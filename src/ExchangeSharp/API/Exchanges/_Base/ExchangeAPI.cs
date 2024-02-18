@@ -976,8 +976,7 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
-		/// Gets the exchange market from this exchange's SymbolsMetadata cache. This will make a network request if needed to retrieve fresh markets from the exchange using GetSymbolsMetadataAsync().
-		/// Please note that sending a symbol that is not found over and over will result in many network requests. Only send symbols that you are confident exist on the exchange.
+		/// Gets the exchange market from this exchange's SymbolsMetadata cache.
 		/// </summary>
 		/// <param name="marketSymbol">The market symbol. Ex. ADA/BTC. This is assumed to be normalized and already correct for the exchange.</param>
 		/// <returns>The ExchangeMarket or null if it doesn't exist in the cache or there was an error</returns>
@@ -993,34 +992,11 @@ namespace ExchangeSharp
 			try
 			{
 				// *NOTE*: custom caching, do not wrap in CacheMethodCall...
-				// *NOTE*: vulnerability exists where if spammed with not found symbols, lots of network calls will happen, stalling the application
-				// TODO: Add not found dictionary, or some mechanism to mitigate this risk
 				// not sure if this is needed, but adding it just in case
 				await new SynchronizationContextRemover();
-				Dictionary<string, ExchangeMarket> lookup =
-						await this.GetExchangeMarketDictionaryFromCacheAsync();
+				var lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
 
-				foreach (KeyValuePair<string, ExchangeMarket> kvp in lookup)
-				{
-					if (
-							(kvp.Key == marketSymbol)
-							|| (kvp.Value.MarketSymbol == marketSymbol)
-							|| (kvp.Value.AltMarketSymbol == marketSymbol)
-							|| (kvp.Value.AltMarketSymbol2 == marketSymbol)
-					)
-					{
-						return kvp.Value;
-					}
-				}
-
-				// try again with a fresh request
-				Cache.Remove(nameof(GetMarketSymbolsMetadataAsync));
-				Cache.Remove(
-						nameof(ExchangeAPIExtensions.GetExchangeMarketDictionaryFromCacheAsync)
-				);
-				lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
-
-				foreach (KeyValuePair<string, ExchangeMarket> kvp in lookup)
+				foreach (var kvp in lookup)
 				{
 					if (
 							(kvp.Key == marketSymbol)
