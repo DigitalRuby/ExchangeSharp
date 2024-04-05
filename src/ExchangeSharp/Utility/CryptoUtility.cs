@@ -1366,23 +1366,28 @@ namespace ExchangeSharp
 			{
 				return seconds / yearThreshold + "year";
 			}
-			else if (seconds >= monthThreshold)
+
+			if (seconds >= monthThreshold)
 			{
 				return seconds / monthThreshold + "mon";
 			}
-			else if (seconds >= weekThreshold)
+
+			if (seconds >= weekThreshold)
 			{
 				return seconds / weekThreshold + "week";
 			}
-			else if (seconds >= dayThreshold)
+
+			if (seconds >= dayThreshold)
 			{
 				return seconds / dayThreshold + "day";
 			}
-			else if (seconds >= hourThreshold)
+
+			if (seconds >= hourThreshold)
 			{
 				return seconds / hourThreshold + "hour";
 			}
-			else if (seconds >= minuteThreshold)
+
+			if (seconds >= minuteThreshold)
 			{
 				return seconds / minuteThreshold + "min";
 			}
