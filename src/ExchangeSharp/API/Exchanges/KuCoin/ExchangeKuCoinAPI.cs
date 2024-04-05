@@ -366,22 +366,25 @@ namespace ExchangeSharp
 			List<MarketCandle> candles = new List<MarketCandle>();
 
 			string periodString = PeriodSecondsToString(periodSeconds);
-			endDate = endDate ?? CryptoUtility.UtcNow;
-			startDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
-
 			var payload = new Dictionary<string, object>
 						{
 								{ "symbol", marketSymbol },
-								{ "type", periodString },
-								{ "startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds() }, // the nonce is milliseconds, this is seconds without decimal
-                { "endAt", (long)endDate.Value.UnixTimestampFromDateTimeSeconds() } // the nonce is milliseconds, this is seconds without decimal
+								{ "type", periodString }
             };
-			var addPayload = CryptoUtility.GetFormForPayload(payload, false);
+			
+			if (startDate != null)
+			{
+				payload.Add("startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());
+			}
+			if (endDate != null)
+			{
+				payload.Add("endAt", (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
+			}
 
 			// The results of this Kucoin API call are also a mess. 6 different arrays (c,t,v,h,l,o) with the index of each shared for the candle values
 			// It doesn't use their standard error format...
 			JToken token = await MakeJsonRequestAsync<JToken>(
-					"/market/candles?" + addPayload,
+					"/market/candles?" + payload.GetFormForPayload(false),
 					null,
 					payload
 			);
