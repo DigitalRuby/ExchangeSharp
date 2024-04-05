@@ -1329,19 +1329,23 @@ namespace ExchangeSharp
 			{
 				return seconds / monthThreshold + "M";
 			}
-			else if (seconds >= weekThreshold)
+
+			if (seconds >= weekThreshold)
 			{
 				return seconds / weekThreshold + (capitalAfterMinute ? "W" : "w");
 			}
-			else if (seconds >= dayThreshold)
+
+			if (seconds >= dayThreshold)
 			{
 				return seconds / dayThreshold + (capitalAfterMinute ? "D" : "d");
 			}
-			else if (seconds >= hourThreshold)
+
+			if (seconds >= hourThreshold)
 			{
 				return seconds / hourThreshold + (capitalAfterMinute ? "H" : "h");
 			}
-			else if (seconds >= minuteThreshold)
+
+			if (seconds >= minuteThreshold)
 			{
 				return seconds / minuteThreshold + "m";
 			}
