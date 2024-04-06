@@ -12,13 +12,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Cryptography;
@@ -1329,19 +1327,23 @@ namespace ExchangeSharp
 			{
 				return seconds / monthThreshold + "M";
 			}
-			else if (seconds >= weekThreshold)
+
+			if (seconds >= weekThreshold)
 			{
 				return seconds / weekThreshold + (capitalAfterMinute ? "W" : "w");
 			}
-			else if (seconds >= dayThreshold)
+
+			if (seconds >= dayThreshold)
 			{
 				return seconds / dayThreshold + (capitalAfterMinute ? "D" : "d");
 			}
-			else if (seconds >= hourThreshold)
+
+			if (seconds >= hourThreshold)
 			{
 				return seconds / hourThreshold + (capitalAfterMinute ? "H" : "h");
 			}
-			else if (seconds >= minuteThreshold)
+
+			if (seconds >= minuteThreshold)
 			{
 				return seconds / minuteThreshold + "m";
 			}
@@ -1366,23 +1368,28 @@ namespace ExchangeSharp
 			{
 				return seconds / yearThreshold + "year";
 			}
-			else if (seconds >= monthThreshold)
+
+			if (seconds >= monthThreshold)
 			{
 				return seconds / monthThreshold + "mon";
 			}
-			else if (seconds >= weekThreshold)
+
+			if (seconds >= weekThreshold)
 			{
 				return seconds / weekThreshold + "week";
 			}
-			else if (seconds >= dayThreshold)
+
+			if (seconds >= dayThreshold)
 			{
 				return seconds / dayThreshold + "day";
 			}
-			else if (seconds >= hourThreshold)
+
+			if (seconds >= hourThreshold)
 			{
 				return seconds / hourThreshold + "hour";
 			}
-			else if (seconds >= minuteThreshold)
+
+			if (seconds >= minuteThreshold)
 			{
 				return seconds / minuteThreshold + "min";
 			}

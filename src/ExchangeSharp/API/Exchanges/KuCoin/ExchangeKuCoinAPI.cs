@@ -44,42 +44,7 @@ namespace ExchangeSharp
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 		}
 
-		public override string PeriodSecondsToString(int seconds)
-		{
-			switch (seconds)
-			{
-				case 60:
-					return "1min";
-				case 180:
-					return "3min";
-				case 300:
-					return "5min";
-				case 900:
-					return "15min";
-				case 1800:
-					return "30min";
-				case 3600:
-					return "1hour";
-				case 7200:
-					return "2hour";
-				case 14400:
-					return "4hour";
-				case 21600:
-					return "6hour";
-				case 28800:
-					return "8hour";
-				case 43200:
-					return "12hour";
-				case 86400:
-					return "1D";
-				case 604800:
-					return "1W";
-				default:
-					throw new ArgumentException(
-							$"{nameof(seconds)} must be 60, 180, 300, 900, 1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400, 604800"
-					);
-			}
-		}
+		public override string PeriodSecondsToString(int seconds) => CryptoUtility.SecondsToPeriodStringLong(seconds);
 
 		protected override JToken CheckJsonResponse(JToken result)
 		{
@@ -401,22 +366,25 @@ namespace ExchangeSharp
 			List<MarketCandle> candles = new List<MarketCandle>();
 
 			string periodString = PeriodSecondsToString(periodSeconds);
-			endDate = endDate ?? CryptoUtility.UtcNow;
-			startDate = startDate ?? CryptoUtility.UtcNow.AddDays(-1);
-
 			var payload = new Dictionary<string, object>
 						{
 								{ "symbol", marketSymbol },
-								{ "type", periodString },
-								{ "startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds() }, // the nonce is milliseconds, this is seconds without decimal
-                { "endAt", (long)endDate.Value.UnixTimestampFromDateTimeSeconds() } // the nonce is milliseconds, this is seconds without decimal
+								{ "type", periodString }
             };
-			var addPayload = CryptoUtility.GetFormForPayload(payload, false);
+			
+			if (startDate != null)
+			{
+				payload.Add("startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());
+			}
+			if (endDate != null)
+			{
+				payload.Add("endAt", (long)endDate.Value.UnixTimestampFromDateTimeSeconds());
+			}
 
 			// The results of this Kucoin API call are also a mess. 6 different arrays (c,t,v,h,l,o) with the index of each shared for the candle values
 			// It doesn't use their standard error format...
 			JToken token = await MakeJsonRequestAsync<JToken>(
-					"/market/candles?" + addPayload,
+					"/market/candles?" + payload.GetFormForPayload(false),
 					null,
 					payload
 			);
