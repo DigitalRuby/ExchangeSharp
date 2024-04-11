@@ -270,13 +270,18 @@ namespace ExchangeSharp.BinanceGroup
 					market.PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>();
 				}
 
-				// MIN_NOTIONAL
-				JToken? minNotionalFilter = filters?.FirstOrDefault(
+				// NOTIONAL or MIN_NOTIONAL
+				JToken? notionalFilter =
+					filters?.FirstOrDefault(
+						x => string.Equals(x["filterType"].ToStringUpperInvariant(), "NOTIONAL")
+					)
+					??
+					filters?.FirstOrDefault(
 						x => string.Equals(x["filterType"].ToStringUpperInvariant(), "MIN_NOTIONAL")
-				);
-				if (minNotionalFilter != null)
+					);
+				if (notionalFilter != null)
 				{
-					market.MinTradeSizeInQuoteCurrency = minNotionalFilter[
+					market.MinTradeSizeInQuoteCurrency = notionalFilter[
 							"minNotional"
 					].ConvertInvariant<decimal>();
 				}
