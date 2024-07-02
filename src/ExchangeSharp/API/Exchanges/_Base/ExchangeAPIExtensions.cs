@@ -1096,8 +1096,8 @@ namespace ExchangeSharp
 					out decimal baseVolume,
 					out decimal convertVolume
 			);
-			candle.BaseCurrencyVolume = (double)baseVolume;
-			candle.QuoteCurrencyVolume = (double)convertVolume;
+			candle.BaseCurrencyVolume = baseVolume;
+			candle.QuoteCurrencyVolume = convertVolume;
 			if (weightedAverageKey != null)
 			{
 				candle.WeightedAverage = token[weightedAverageKey].ConvertInvariant<decimal>();
