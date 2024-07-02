@@ -131,7 +131,7 @@ namespace ExchangeSharpTests
 			candle.HighPrice.Should().Be(1665719m);
 			candle.LowPrice.Should().Be(1612861m);
 			candle.ClosePrice.Should().Be(1629941);
-			candle.BaseCurrencyVolume.Should().Be(5.8362);
+			candle.BaseCurrencyVolume.Should().Be(5.8362m);
 			candle.Timestamp
 					.Should()
 					.Be(DateTimeOffset.FromUnixTimeMilliseconds(1514160000000).DateTime);

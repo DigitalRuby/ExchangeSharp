@@ -399,7 +399,7 @@ namespace ExchangeSharp
 										LowPrice = enumerable.ElementAt(2).Value<decimal>(),
 										OpenPrice = enumerable.ElementAt(3).Value<decimal>(),
 										ClosePrice = enumerable.ElementAt(4).Value<decimal>(),
-										BaseCurrencyVolume = enumerable.ElementAt(5).Value<double>(),
+										BaseCurrencyVolume = enumerable.ElementAt(5).Value<decimal>(),
 									}
 					)
 					.Where(candle => !endDate.HasValue || candle.Timestamp <= endDate);

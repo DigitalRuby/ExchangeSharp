@@ -305,7 +305,7 @@ namespace ExchangeSharp
 					HighPrice = item[2].ConvertInvariant<decimal>(),
 					LowPrice = item[3].ConvertInvariant<decimal>(),
 					ClosePrice = item[4].ConvertInvariant<decimal>(),
-					BaseCurrencyVolume = item[5].ConvertInvariant<double>()
+					BaseCurrencyVolume = item[5].ConvertInvariant<decimal>()
 				};
 
 				candles.Add(candle);

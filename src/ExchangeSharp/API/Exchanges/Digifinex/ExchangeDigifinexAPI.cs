@@ -330,7 +330,7 @@ namespace ExchangeSharp
 								Timestamp = CryptoUtility.UnixTimeStampToDateTimeSeconds(
 											x[0].ConvertInvariant<long>()
 									),
-								BaseCurrencyVolume = x[1].ConvertInvariant<double>(),
+								BaseCurrencyVolume = x[1].ConvertInvariant<decimal>(),
 								ClosePrice = x[2].ConvertInvariant<decimal>(),
 								HighPrice = x[3].ConvertInvariant<decimal>(),
 								LowPrice = x[4].ConvertInvariant<decimal>(),

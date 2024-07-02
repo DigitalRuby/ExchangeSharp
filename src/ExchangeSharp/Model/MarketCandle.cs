@@ -66,12 +66,12 @@ namespace ExchangeSharp
 		/// <summary>
 		/// Base currency volume (i.e. in BTC-USD, this would be BTC volume)
 		/// </summary>
-		public double BaseCurrencyVolume { get; set; }
+		public decimal BaseCurrencyVolume { get; set; }
 
 		/// <summary>
 		/// Quote currency volume (i.e. in BTC-USD, this would be USD volume)
 		/// </summary>
-		public double QuoteCurrencyVolume { get; set; }
+		public decimal QuoteCurrencyVolume { get; set; }
 
 		/// <summary>
 		/// The weighted average price if provided

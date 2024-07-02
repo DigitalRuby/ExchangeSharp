@@ -121,7 +121,7 @@ namespace ExchangeSharp
 						HighPrice = data[1].ConvertInvariant<decimal>(),
 						LowPrice = data[2].ConvertInvariant<decimal>(),
 						ClosePrice = data[3].ConvertInvariant<decimal>(),
-						BaseCurrencyVolume = data[4].ConvertInvariant<double>(),
+						BaseCurrencyVolume = data[4].ConvertInvariant<decimal>(),
 						Timestamp = timestamp,
 					};
 					result.Add(candle);

@@ -305,7 +305,7 @@ namespace ExchangeSharp
 													candleToken[0],
 													TimestampType.UnixSeconds
 											),
-										BaseCurrencyVolume = candleToken[1].ConvertInvariant<double>(),
+										BaseCurrencyVolume = candleToken[1].ConvertInvariant<decimal>(),
 										ClosePrice = candleToken[2].ConvertInvariant<decimal>(),
 										ExchangeName = Name,
 										HighPrice = candleToken[3].ConvertInvariant<decimal>(),

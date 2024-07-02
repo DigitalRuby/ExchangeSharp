@@ -224,9 +224,9 @@ namespace ExchangeSharpConsole.Options
 									&& !string.IsNullOrWhiteSpace(candles[0].Name)
 									&& candles[0].ExchangeName == api.Name
 									&& candles[0].PeriodSeconds == 86400
-									&& candles[0].BaseCurrencyVolume > 0.0
-									&& candles[0].QuoteCurrencyVolume > 0.0
-									&& candles[0].WeightedAverage >= 0m
+									&& candles[0].BaseCurrencyVolume > 0
+									&& candles[0].QuoteCurrencyVolume > 0
+									&& candles[0].WeightedAverage >= 0
 					);
 
 					Console.WriteLine($"OK ({candles.Length})");

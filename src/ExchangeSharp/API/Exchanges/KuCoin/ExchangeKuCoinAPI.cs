@@ -371,7 +371,7 @@ namespace ExchangeSharp
 								{ "symbol", marketSymbol },
 								{ "type", periodString }
             };
-			
+
 			if (startDate != null)
 			{
 				payload.Add("startAt", (long)startDate.Value.UnixTimestampFromDateTimeSeconds());
@@ -406,8 +406,8 @@ namespace ExchangeSharp
 								ClosePrice = token[i][2].ConvertInvariant<decimal>(),
 								HighPrice = token[i][3].ConvertInvariant<decimal>(),
 								LowPrice = token[i][4].ConvertInvariant<decimal>(),
-								BaseCurrencyVolume = token[i][5].ConvertInvariant<double>(),
-								QuoteCurrencyVolume = token[i][6].ConvertInvariant<double>()
+								BaseCurrencyVolume = token[i][5].ConvertInvariant<decimal>(),
+								QuoteCurrencyVolume = token[i][6].ConvertInvariant<decimal>()
 							}
 					);
 				}
