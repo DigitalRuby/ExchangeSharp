@@ -24,49 +24,50 @@ Feel free to visit the discord channel at <https://discord.gg/58ktxXuTVK> and ch
 The following cryptocurrency exchanges are supported:  
 (Web socket key: T = tickers, R = trades, B = orderbook / delta orderbook, O = private orders, U = user data)
 
-| Exchange Name           | Public REST | Private REST | Web Socket    | Notes                                       |
-| ----------------------- | ----------- | ------------ | ------------- | ------------------------------------------- |
-| ApolloX                 | x           | x            | T R B O U     |                                             |
-| Aquanow                 | wip         | x            |               |                                             |
-| Binance                 | x           | x            | T R B O U     |                                             |
-| ~~Binance Jersey~~      | ~~x~~       | ~~x~~        | ~~T R B O U~~ | Ceased operations                           |
-| Binance.US              | x           | x            | T R B O U     |                                             |
-| Binance DEX             |             |              |   R           |                                             |
-| Bitbank                 | x           | x            |               |                                             |
-| Bitfinex                | x           | x            | T R   O       |                                             |
-| Bitflyer                |             |              |   R           |                                             |
-| Bithumb                 | x           |              |   R           |                                             |
-| BitMEX                  | x           | x            |   R   O       |                                             |
-| Bitstamp                | x           | x            |   R           |                                             |
-| Bittrex                 | x           | x            | T R           |                                             |
-| BL3P                    | x           | x            |   R B         | Trades stream does not send trade's ids.    |
-| Bleutrade               | x           | x            |               |                                             |
-| BtcTurk                 |             |              |   R           |                                             |
-| BTSE                    | x           | x            |               |                                             |
-| Bybit                   | x           | x            |   R           | Has public method for Websocket Positions   |
-| Coinbase (Advanced)     | x           | x            | T R   O U     |                                             |
-| Coincheck               |             |              |   R           |                                             |
-| Coinmate                | x           | x            |               |                                             |
-| Crypto.com              |             |              |   R           |                                             |
-| Digifinex               | x           | x            |   R B         |                                             |
-| Dydx                    |             |              |   R           |                                             |
-| FTX                     | x           | x            | T R           |                                             |
-| FTX.us                  | x           | x            | T R           |                                             |
-| gate.io                 | x           | x            |   R           |                                             |
-| Gemini                  | x           | x            | T R B         |                                             |
-| HitBTC                  | x           | x            |   R           |                                             |
-| Huobi                   | x           | x            |   R B         |                                             |
-| Kraken                  | x           | x            |   R           | Dark order symbols not supported            |
-| KuCoin                  | x           | x            | T R           |                                             |
-| LBank                   | x           | x            |   R           |                                             |
-| Livecoin                | x           | x            |               |                                             |
-| NDAX                    | x           | x            | T R           |                                             |
-| OKCoin                  | x           | x            |   R B         |                                             |
-| OKEx                    | x           | x            | T R B O       |                                             |
-| Poloniex                | x           | x            | T R B         |                                             |
-| UPbit                   |             |              |   R           |                                             |
-| YoBit                   | x           | x            |               |                                             |
-| ZB.com                  | wip         |              |   R           |                                             |
+| Exchange Name       | Public REST | Private REST | Web Socket    | Notes                                       |
+|---------------------| ----------- |--------------| ------------- | ------------------------------------------- |
+| ApolloX             | x           | x            | T R B O U     |                                             |
+| Aquanow             | wip         | x            |               |                                             |
+| Binance             | x           | x            | T R B O U     |                                             |
+| ~~Binance Jersey~~  | ~~x~~       | ~~x~~        | ~~T R B O U~~ | Ceased operations                           |
+| Binance.US          | x           | x            | T R B O U     |                                             |
+| Binance DEX         |             |              |   R           |                                             |
+| Bitbank             | x           | x            |               |                                             |
+| Bitfinex            | x           | x            | T R   O       |                                             |
+| Bitflyer            |             |              |   R           |                                             |
+| Bithumb             | x           |              |   R           |                                             |
+| BitMEX              | x           | x            |   R   O       |                                             |
+| Bitstamp            | x           | x            |   R           |                                             |
+| Bittrex             | x           | x            | T R           |                                             |
+| BL3P                | x           | x            |   R B         | Trades stream does not send trade's ids.    |
+| Bleutrade           | x           | x            |               |                                             |
+| BtcTurk             |             |              |   R           |                                             |
+| BTSE                | x           | x            |               |                                             |
+| Bybit               | x           | x            |   R           | Has public method for Websocket Positions   |
+| Coinbase (Advanced) | x           | x            | T R   O U     |                                             |
+| Coincheck           |             |              |   R           |                                             |
+| Coinmate            | x           | x            |               |                                             |
+| Crypto.com          |             |              |   R           |                                             |
+| Digifinex           | x           | x            |   R B         |                                             |
+| Dydx                |             |              |   R           |                                             |
+| FTX                 | x           | x            | T R           |                                             |
+| FTX.us              | x           | x            | T R           |                                             |
+| gate.io             | x           | x            |   R           |                                             |
+| Gemini              | x           | x            | T R B         |                                             |
+| HitBTC              | x           | x            |   R           |                                             |
+| Huobi               | x           | x            |   R B         |                                             |
+| Kraken              | x           | x            |   R           | Dark order symbols not supported            |
+| KuCoin              | x           | x            | T R           |                                             |
+| LBank               | x           | x            |   R           |                                             |
+| Livecoin            | x           | x            |               |                                             |
+| MEXC                | x           |              |               |                                             |
+| NDAX                | x           | x            | T R           |                                             |
+| OKCoin              | x           | x            |   R B         |                                             |
+| OKEx                | x           | x            | T R B O       |                                             |
+| Poloniex            | x           | x            | T R B         |                                             |
+| UPbit               |             |              |   R           |                                             |
+| YoBit               | x           | x            |               |                                             |
+| ZB.com              | wip         |              |   R           |                                             |
 
 The following cryptocurrency services are supported:
 
