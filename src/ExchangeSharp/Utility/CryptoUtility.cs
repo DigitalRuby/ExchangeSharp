@@ -1310,6 +1310,42 @@ namespace ExchangeSharp
 		}
 
 		/// <summary>
+		/// Convert seconds to a period string, i.e. 1m, 5m, 60m, 4h, 1d, 1W, 1M
+		/// </summary>
+		/// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
+		/// <returns>Period string</returns>
+		public static string SecondsToPeriodInMinutesUpToHourString(int seconds)
+		{
+			const int minuteThreshold = 60;
+			const int hourThreshold = 60 * 60;
+			const int dayThreshold = 60 * 60 * 24;
+			const int weekThreshold = dayThreshold * 7;
+			const int monthThreshold = dayThreshold * 30;
+
+			if (seconds >= monthThreshold)
+			{
+				return seconds / monthThreshold + "M";
+			}
+
+			if (seconds >= weekThreshold)
+			{
+				return seconds / weekThreshold + "W";
+			}
+
+			if (seconds >= dayThreshold)
+			{
+				return seconds / dayThreshold + "d";
+			}
+
+			if (seconds >= hourThreshold)
+			{
+				return seconds / 60 + "m";
+			}
+
+			return seconds / minuteThreshold + "m";
+		}
+
+		/// <summary>
 		/// Convert seconds to a period string, i.e. 5s, 1m, 2h, 3d, 1w, 1M, etc.
 		/// </summary>
 		/// <param name="seconds">Seconds. Use 60 for minute, 3600 for hour, 3600*24 for day, 3600*24*30 for month.</param>
