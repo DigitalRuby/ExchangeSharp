@@ -202,6 +202,219 @@ namespace ExchangeSharp
 						7
 					));
 		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
+		{
+			var token = await GetBalance();
+			return (token["balances"] ?? throw new InvalidOperationException())
+				.Select(
+					x =>
+						new
+						{
+							Currency = x["asset"].Value<string>(),
+							TotalBalance = x["free"].Value<decimal>()
+							               + x["locked"].Value<decimal>()
+						}
+				)
+				.ToDictionary(k => k.Currency, v => v.TotalBalance);
+		}
+
+		protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
+		{
+			var token = await GetBalance();
+			return (token["balances"] ?? throw new InvalidOperationException())
+				.Select(
+					x =>
+						new
+						{
+							Currency = x["asset"].Value<string>(),
+							AvailableBalance = x["free"].Value<decimal>()
+							                   + x["locked"].Value<decimal>()
+						}
+				)
+				.ToDictionary(k => k.Currency, v => v.AvailableBalance);
+		}
+
+		protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(
+			string marketSymbol = null)
+		{
+			if (string.IsNullOrEmpty(marketSymbol))
+			{
+				throw new ArgumentNullException(nameof(marketSymbol), $"Market symbol cannot be null");
+			}
+
+			var token = await MakeJsonRequestAsync<JToken>($"/openOrders?symbol={marketSymbol.ToUpperInvariant()}",
+				payload: await GetNoncePayloadAsync());
+
+			return token.Select(ParseOrder);
+		}
+
+		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
+		{
+			if (string.IsNullOrEmpty(order.MarketSymbol))
+			{
+				throw new ArgumentNullException(nameof(order.MarketSymbol));
+			}
+			if (order.Price == null && order.OrderType != OrderType.Market)
+			{
+				throw new ArgumentNullException(nameof(order.Price));
+			}
+
+			var payload = await GetNoncePayloadAsync();
+			payload["symbol"] = order.MarketSymbol;
+			payload["quantity"] = order.Amount;
+			payload["side"] = order.IsBuy ? "BUY" : "SELL";
+
+			if (order.OrderType != OrderType.Market)
+			{
+				decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
+				payload["price"] = orderPrice;
+				if (order.IsPostOnly != true)
+					payload["type"] = "LIMIT";
+			}
+
+			switch (order.OrderType)
+			{
+				case OrderType.Limit when !order.IsPostOnly.GetValueOrDefault():
+					payload["type"] = "LIMIT";
+					break;
+				case OrderType.Limit when order.IsPostOnly.GetValueOrDefault():
+					payload["type"] = "LIMIT_MAKER";
+					break;
+				case OrderType.Market:
+					payload["type"] = "MARKET";
+					break;
+				case OrderType.Stop:
+				default:
+					throw new ArgumentOutOfRangeException(nameof(order.OrderType));
+			}
+
+			if (!string.IsNullOrEmpty(order.ClientOrderId))
+			{
+				payload["clientOrderId"] = order.ClientOrderId;
+			}
+
+			order.ExtraParameters.CopyTo(payload);
+
+			var token = await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "POST");
+
+			// MEXC does not return order status with the place order response, so we need to send one more request to get the order details.
+			return await GetOrderDetailsAsync(
+				(token["orderId"] ?? throw new InvalidOperationException()).ToStringInvariant(),
+				order.MarketSymbol
+			);
+		}
+
+		protected override async Task<ExchangeOrderResult> OnGetOrderDetailsAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (string.IsNullOrEmpty(marketSymbol))
+			{
+				throw new ArgumentNullException(nameof(marketSymbol), $"Market symbol cannot be null");
+			}
+
+			if (string.IsNullOrEmpty(orderId))
+			{
+				throw new ArgumentNullException(
+					nameof(orderId),
+					"Order details request requires order ID or client-supplied order ID"
+				);
+			}
+
+			var param = isClientOrderId ? $"origClientOrderId={orderId}" : $"orderId={orderId}";
+			var token = await MakeJsonRequestAsync<JToken>($"/order?symbol={marketSymbol.ToUpperInvariant()}&{param}",
+				payload: await GetNoncePayloadAsync());
+
+			return ParseOrder(token);
+		}
+
+		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
+		{
+			if (string.IsNullOrEmpty(orderId))
+			{
+				throw new ArgumentNullException(
+					nameof(orderId),
+					"Cancel order request requires order ID"
+				);
+			}
+
+			if (string.IsNullOrEmpty(marketSymbol))
+			{
+				throw new ArgumentNullException(
+					nameof(marketSymbol),
+					"Cancel order request requires symbol"
+				);
+			}
+
+			var payload = await GetNoncePayloadAsync();
+			payload["symbol"] = marketSymbol!;
+			switch (isClientOrderId)
+			{
+				case true:
+					payload["origClientOrderId"] = orderId;
+					break;
+				default:
+					payload["orderId"] = orderId;
+					break;
+			}
+
+			await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "DELETE");
+		}
+
+		private async Task<JToken> GetBalance()
+		{
+			var token = await MakeJsonRequestAsync<JToken>("/account", payload: await GetNoncePayloadAsync());
+			return token;
+		}
+
+		private static ExchangeOrderResult ParseOrder(JToken token)
+		{
+			// [
+			// {
+			// 	"symbol": "LTCBTC",
+			// 	"orderId": "C02__443776347957968896088",
+			// 	"orderListId": -1,
+			// 	"clientOrderId": "",
+			// 	"price": "0.001395",
+			// 	"origQty": "0.004",
+			// 	"executedQty": "0",
+			// 	"cummulativeQuoteQty": "0",
+			// 	"status": "NEW",
+			// 	"timeInForce": null,
+			// 	"type": "LIMIT",
+			// 	"side": "SELL",
+			// 	"stopPrice": null,
+			// 	"icebergQty": null,
+			// 	"time": 1721586762185,
+			// 	"updateTime": null,
+			// 	"isWorking": true,
+			// 	"origQuoteOrderQty": "0.00000558"
+			// }
+			// ]
+
+			return new ExchangeOrderResult
+			{
+				OrderId = token["orderId"].ToStringInvariant(),
+				ClientOrderId = token["orderListId"].ToStringInvariant(),
+				MarketSymbol = token["symbol"].ToStringInvariant(),
+				Amount = token["origQty"].ConvertInvariant<decimal>(),
+				AmountFilled = token["executedQty"].ConvertInvariant<decimal>(),
+				Price = token["price"].ConvertInvariant<decimal>(),
+				IsBuy = token["side"].ToStringInvariant() == "BUY",
+				OrderDate = token["time"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
+				Result = ParseOrderStatus(token["status"].ToStringInvariant())
+			};
+		}
+
+		private static ExchangeAPIOrderResult ParseOrderStatus(string status) =>
+			status.ToUpperInvariant() switch
+			{
+				"NEW" => ExchangeAPIOrderResult.Open,
+				"PARTIALLY_FILLED" => ExchangeAPIOrderResult.FilledPartially,
+				"FILLED" => ExchangeAPIOrderResult.Filled,
+				"PARTIALLY_CANCELED" => ExchangeAPIOrderResult.FilledPartiallyAndCancelled,
+				"CANCELED" => ExchangeAPIOrderResult.Canceled,
+				_ => ExchangeAPIOrderResult.Unknown
+			};
 	}
 
 	public partial class ExchangeName
