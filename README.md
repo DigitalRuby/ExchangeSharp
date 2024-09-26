@@ -43,7 +43,7 @@ The following cryptocurrency exchanges are supported:
 | Bleutrade           | x           | x            |               |                                             |
 | BtcTurk             |             |              |   R           |                                             |
 | BTSE                | x           | x            |               |                                             |
-| Bybit               | x           | x            |   R           | Has public method for Websocket Positions   |
+| Bybit               | x           | x            |   R B         | Has public method for Websocket Positions   |
 | Coinbase (Advanced) | x           | x            | T R   O U     |                                             |
 | Coincheck           |             |              |   R           |                                             |
 | Coinmate            | x           | x            |               |                                             |
@@ -57,7 +57,7 @@ The following cryptocurrency exchanges are supported:
 | HitBTC              | x           | x            |   R           |                                             |
 | Huobi               | x           | x            |   R B         |                                             |
 | Kraken              | x           | x            |   R           | Dark order symbols not supported            |
-| KuCoin              | x           | x            | T R           |                                             |
+| KuCoin              | x           | x            | T R B         |                                             |
 | LBank               | x           | x            |   R           |                                             |
 | Livecoin            | x           | x            |               |                                             |
 | MEXC                | x           | x            |               |                                             |
