@@ -170,7 +170,7 @@ namespace ExchangeSharp
 						{
 							// First response from exchange will be the full order book.
 							// Subsequent updates will be deltas, at least some exchanges have their heads on straight
-							if (!foundFullBook)
+							if (!foundFullBook || newOrderBook.IsFromSnapshot)
 							{
 								fullBooks[newOrderBook.MarketSymbol] = fullOrderBook = newOrderBook;
 							}
