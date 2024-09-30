@@ -37,6 +37,8 @@ namespace ExchangeSharp
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 			RateLimit = new RateGate(10, TimeSpan.FromSeconds(1));
 			RequestWindow = TimeSpan.FromSeconds(15);
+			MarketSymbolSeparator = string.Empty;
+			MarketSymbolIsUppercase = true;
 		}
 
 		protected override async Task OnGetNonceOffset()
@@ -268,6 +270,69 @@ namespace ExchangeSharp
 			book.MarketSymbol = token["s"].ToStringInvariant();
 			book.IsFromSnapshot = true;
 			return book;
+		}
+
+		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
+		{
+			//{
+			//  "retCode": 0,
+			//  "retMsg": "OK",
+			//  "result": {
+			//    "category": "spot",
+			//    "list": [
+			//      {
+			//      "symbol": "MOJOUSDT",
+			//        "bid1Price": "0.01755",
+			//        "bid1Size": "128.66",
+			//        "ask1Price": "0.01763",
+			//        "ask1Size": "311.27",
+			//        "lastPrice": "0.01759",
+			//        "prevPrice24h": "0.01848",
+			//        "price24hPcnt": "-0.0482",
+			//        "highPrice24h": "0.01851",
+			//        "lowPrice24h": "0.01726",
+			//        "turnover24h": "67118.0455931",
+			//        "volume24h": "3769556.35"
+			//      },
+			//      ...
+			//    ]
+			//  }
+			//}
+
+			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+
+			var marketSymbolsMetadata = await GetMarketSymbolsMetadataAsync();
+
+			var url = $"/v5/market/tickers?category={MarketCategory.ToStringLowerInvariant()}";
+			var token = await MakeJsonRequestAsync<JToken>(url);
+			var tickerList = token["list"];
+			foreach (var ticker in tickerList)
+			{
+				var marketSymbol = ticker["symbol"].ToStringInvariant();
+				if (!marketSymbolsMetadata.Any(x => x.MarketSymbol == marketSymbol))
+				{
+					// "Please always use the Trading symbols found in the instrument-info api, then query tickers by those symbols." - Bybit API support
+					continue;
+				}
+
+				var exchangeTicker = await this.ParseTickerAsync(
+					ticker,
+					marketSymbol,
+					"ask1Price",
+					"bid1Price",
+					"lastPrice",
+					// https://bybit-exchange.github.io/docs/faq#what-is-the-difference-between-turnover-and-volume
+					"volume24h", // Volume: is in the same currency as the quantity's currency
+					"turnover24h" // Turnover: is in the opposite currency to the quantity's currency
+				);
+
+				tickers.Add(new KeyValuePair<string, ExchangeTicker>(
+					marketSymbol,
+					exchangeTicker
+				));
+			}
+
+			return tickers;
 		}
 
 		#endregion Public
