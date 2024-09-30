@@ -274,7 +274,6 @@ namespace ExchangeSharp
 
 		protected override async Task<IEnumerable<KeyValuePair<string, ExchangeTicker>>> OnGetTickersAsync()
 		{
-			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
 			//{
 			//  "retCode": 0,
 			//  "retMsg": "OK",
@@ -300,20 +299,31 @@ namespace ExchangeSharp
 			//  }
 			//}
 
+			var tickers = new List<KeyValuePair<string, ExchangeTicker>>();
+
+			var marketSymbolsMetadata = await GetMarketSymbolsMetadataAsync();
+
 			var url = $"/v5/market/tickers?category={MarketCategory.ToStringLowerInvariant()}";
 			var token = await MakeJsonRequestAsync<JToken>(url);
 			var tickerList = token["list"];
 			foreach (var ticker in tickerList)
 			{
 				var marketSymbol = ticker["symbol"].ToStringInvariant();
+				if (!marketSymbolsMetadata.Any(x => x.MarketSymbol == marketSymbol))
+				{
+					// "Please always use the Trading symbols found in the instrument-info api, then query tickers by those symbols." - Bybit API support
+					continue;
+				}
+
 				var exchangeTicker = await this.ParseTickerAsync(
 					ticker,
 					marketSymbol,
 					"ask1Price",
 					"bid1Price",
 					"lastPrice",
-					"volume24h",
-					"turnover24h"
+					// https://bybit-exchange.github.io/docs/faq#what-is-the-difference-between-turnover-and-volume
+					"volume24h", // Volume: is in the same currency as the quantity's currency
+					"turnover24h" // Turnover: is in the opposite currency to the quantity's currency
 				);
 
 				tickers.Add(new KeyValuePair<string, ExchangeTicker>(
