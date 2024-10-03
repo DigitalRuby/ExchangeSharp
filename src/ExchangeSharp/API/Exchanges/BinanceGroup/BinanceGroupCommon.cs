@@ -1145,6 +1145,11 @@ namespace ExchangeSharp.BinanceGroup
 				payload["addressTag"] = withdrawalRequest.AddressTag;
 			}
 
+			if (!string.IsNullOrWhiteSpace(withdrawalRequest.Network))
+			{
+				payload["network"] = withdrawalRequest.Network;
+			}
+
 			JToken response = await MakeJsonRequestAsync<JToken>(
 					"/capital/withdraw/apply",
 					BaseUrlSApi,
