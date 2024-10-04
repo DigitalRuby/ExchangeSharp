@@ -159,13 +159,12 @@ namespace ExchangeSharp
 			{
 				var priceFilter = marketJson["priceFilter"];
 				var sizeFilter = marketJson["lotSizeFilter"];
-				bool isInverse = MarketCategory == MarketCategory.Inverse;
+
 				var market = new ExchangeMarket()
 				{
 					MarketSymbol = marketJson["symbol"].ToStringInvariant(),
 					BaseCurrency = marketJson["baseCoin"].ToStringInvariant(),
 					QuoteCurrency = marketJson["quoteCoin"].ToStringInvariant(),
-					QuantityStepSize = sizeFilter["qtyStep"].ConvertInvariant<decimal>(),
 					MinPrice = priceFilter["minPrice"].ConvertInvariant<decimal>(),
 					MaxPrice = priceFilter["maxPrice"].ConvertInvariant<decimal>(),
 					PriceStepSize = priceFilter["tickSize"].ConvertInvariant<decimal>(),
@@ -173,7 +172,8 @@ namespace ExchangeSharp
 								marketJson["status"] == null
 								|| marketJson["status"].ToStringLowerInvariant() == "trading"
 				};
-				if (isInverse)
+
+				if (MarketCategory == MarketCategory.Inverse)
 				{
 					market.MinTradeSizeInQuoteCurrency = sizeFilter[
 							"minOrderQty"
@@ -187,6 +187,16 @@ namespace ExchangeSharp
 					market.MinTradeSize = sizeFilter["minOrderQty"].ConvertInvariant<decimal>();
 					market.MaxTradeSize = sizeFilter["maxOrderQty"].ConvertInvariant<decimal>();
 				}
+
+				if (MarketCategory == MarketCategory.Spot)
+				{
+					market.QuantityStepSize = sizeFilter["basePrecision"].ConvertInvariant<decimal>();
+				}
+				else
+				{
+					market.QuantityStepSize = sizeFilter["qtyStep"].ConvertInvariant<decimal>();
+				}
+
 				markets.Add(market);
 			}
 			return markets;

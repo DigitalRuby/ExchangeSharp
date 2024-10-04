@@ -424,108 +424,86 @@ namespace ExchangeSharp
 		> OnGetMarketSymbolsMetadataAsync()
 		{
 			/*
-			{
-			"ret_code": 0,
-			"ret_msg": "OK",
-			"ext_code": "",
-			"ext_info": "",
-			"result": [
-					{
-					"name": "BTCUSD",
-					"base_currency": "BTC",
-					"quote_currency": "USD",
-					"price_scale": 2,
-					"taker_fee": "0.00075",
-					"maker_fee": "-0.00025",
-					"leverage_filter": {
-							"min_leverage": 1,
-							"max_leverage": 100,
-							"leverage_step": "0.01"
-					},
-					"price_filter": {
-							"min_price": "0.5",
-							"max_price": "999999.5",
-							"tick_size": "0.5"
-					},
-					"lot_size_filter": {
-							"max_trading_qty": 1000000,
-							"min_trading_qty": 1,
-							"qty_step": 1
-					}
-					},
-					{
-					"name": "ETHUSD",
-					"base_currency": "ETH",
-					"quote_currency": "USD",
-					"price_scale": 2,
-					"taker_fee": "0.00075",
-					"maker_fee": "-0.00025",
-					"leverage_filter": {
-							"min_leverage": 1,
-							"max_leverage": 50,
-							"leverage_step": "0.01"
-					},
-					"price_filter": {
-							"min_price": "0.05",
-							"max_price": "99999.95",
-							"tick_size": "0.05"
-					},
-					"lot_size_filter": {
-							"max_trading_qty": 1000000,
-							"min_trading_qty": 1,
-							"qty_step": 1
-					}
-					},
-					{
-					"name": "EOSUSD",
-					"base_currency": "EOS",
-					"quote_currency": "USD",
-					"price_scale": 3,
-					"taker_fee": "0.00075",
-					"maker_fee": "-0.00025",
-					"leverage_filter": {
-							"min_leverage": 1,
-							"max_leverage": 50,
-							"leverage_step": "0.01"
-					},
-					"price_filter": {
-							"min_price": "0.001",
-							"max_price": "1999.999",
-							"tick_size": "0.001"
-					},
-					"lot_size_filter": {
-							"max_trading_qty": 1000000,
-							"min_trading_qty": 1,
-							"qty_step": 1
-					}
-					},
-					{
-					"name": "XRPUSD",
-					"base_currency": "XRP",
-					"quote_currency": "USD",
-					"price_scale": 4,
-					"taker_fee": "0.00075",
-					"maker_fee": "-0.00025",
-					"leverage_filter": {
-							"min_leverage": 1,
-							"max_leverage": 50,
-							"leverage_step": "0.01"
-					},
-					"price_filter": {
-							"min_price": "0.0001",
-							"max_price": "199.9999",
-							"tick_size": "0.0001"
-					},
-					"lot_size_filter": {
-							"max_trading_qty": 1000000,
-							"min_trading_qty": 1,
-							"qty_step": 1
-					}
-					}
-			],
-			"time_now": "1581411225.414179"
-			}}
-			 */
+       * Spot:
+        {
+          "retCode": 0,
+          "retMsg": "OK",
+          "result": {
+          "category": "spot",
+          "list": [
+            {
+              "symbol": "BTCUSDT",
+              "baseCoin": "BTC",
+              "quoteCoin": "USDT",
+              "innovation": "0",
+              "status": "Trading",
+              "marginTrading": "utaOnly",
+              "lotSizeFilter": {
+                "basePrecision": "0.000001",
+                "quotePrecision": "0.00000001",
+                "minOrderQty": "0.000048",
+                "maxOrderQty": "71.73956243",
+                "minOrderAmt": "1",
+                "maxOrderAmt": "4000000"
+              },
+              "priceFilter": {
+                "tickSize": "0.01"
+              },
+              "riskParameters": {
+                "limitParameter": "0.03",
+                "marketParameter": "0.03"
+              }
+            },
+          ...
+       */
+
+			/*
+       * Linear:
+        {
+          "retCode": 0,
+          "retMsg": "OK",
+          "result": {
+          "category": "linear",
+          "list": [
+            {
+              "symbol": "10000000AIDOGEUSDT",
+              "contractType": "LinearPerpetual",
+              "status": "Trading",
+              "baseCoin": "10000000AIDOGE",
+              "quoteCoin": "USDT",
+              "launchTime": "1709542899000",
+              "deliveryTime": "0",
+              "deliveryFeeRate": "",
+              "priceScale": "6",
+              "leverageFilter": {
+                "minLeverage": "1",
+                "maxLeverage": "12.50",
+                "leverageStep": "0.01"
+              },
+              "priceFilter": {
+                "minPrice": "0.000001",
+                "maxPrice": "1.999998",
+                "tickSize": "0.000001"
+              },
+              "lotSizeFilter": {
+                "maxOrderQty": "25000000",
+                "minOrderQty": "100",
+                "qtyStep": "100",
+                "postOnlyMaxOrderQty": "25000000",
+                "maxMktOrderQty": "5000000",
+                "minNotionalValue": "5"
+              },
+              "unifiedMarginTrade": true,
+              "fundingInterval": 480,
+              "settleCoin": "USDT",
+              "copyTrading": "none",
+              "upperFundingRate": "0.03",
+              "lowerFundingRate": "-0.03",
+              "isPreListing": false,
+              "preListingInfo": null
+            },
+          ...
+       */
 
 			List<ExchangeMarket> markets = new List<ExchangeMarket>();
 			JToken allSymbols = CheckRetCode(
