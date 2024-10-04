@@ -978,7 +978,6 @@ namespace ExchangeSharp
 								{ "type", (order.IsBuy ? "buy" : "sell") },
 								{ "ordertype", order.OrderType.ToString().ToLowerInvariant() },
 								{ "volume", order.RoundAmount().ToStringInvariant() },
-								{ "trading_agreement", "agree" },
 								{ "nonce", nonce }
 						};
 			if (order.OrderType != OrderType.Market)
@@ -994,7 +993,7 @@ namespace ExchangeSharp
 				payload["oflags"] = "post"; //  post-only order (available when ordertype = limit)
 			order.ExtraParameters.CopyTo(payload);
 
-			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
+			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload, "POST");
 			ExchangeOrderResult result = new ExchangeOrderResult
 			{
 				OrderDate = CryptoUtility.UtcNow,
