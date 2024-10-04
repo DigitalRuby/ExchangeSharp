@@ -50,8 +50,13 @@ namespace ExchangeSharp
 		/// </summary>
 		public SecureString Code { get; set; }
 
-		/// <summary>Returns a <see cref="System.String" /> that represents this instance.</summary>
-		/// <returns>A <see cref="System.String" /> that represents this instance.</returns>
+		/// <summary>
+		/// Network to use for the withdrawal
+		/// </summary>
+		public string Network { get; set; }
+
+		/// <summary>Returns a <see cref="string" /> that represents this instance.</summary>
+		/// <returns>A <see cref="string" /> that represents this instance.</returns>
 		public override string ToString()
 		{
 			// 2.75 ETH to 0x1234asdf
