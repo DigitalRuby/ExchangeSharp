@@ -376,7 +376,8 @@ namespace ExchangeSharp
 			JToken result = await MakeJsonRequestAsync<JToken>(
 					path,
 					null,
-					await GetNoncePayloadAsync()
+					await GetNoncePayloadAsync(),
+					"POST"
 			);
 			result = result["open"];
 			if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
@@ -445,7 +446,8 @@ namespace ExchangeSharp
 			JToken result = await MakeJsonRequestAsync<JToken>(
 					path,
 					null,
-					await GetNoncePayloadAsync()
+					await GetNoncePayloadAsync(),
+					"POST"
 			);
 			result = result["trades"];
 			if (exchangeSymbolToNormalizedSymbol.TryGetValue(symbol, out string normalizedSymbol))
@@ -923,7 +925,8 @@ namespace ExchangeSharp
 			JToken result = await MakeJsonRequestAsync<JToken>(
 					"/0/private/Balance",
 					null,
-					await GetNoncePayloadAsync()
+					await GetNoncePayloadAsync(),
+					"POST"
 			);
 			Dictionary<string, decimal> balances = new Dictionary<string, decimal>(
 					StringComparer.OrdinalIgnoreCase
@@ -946,7 +949,8 @@ namespace ExchangeSharp
 			JToken result = await MakeJsonRequestAsync<JToken>(
 					"/0/private/TradeBalance",
 					null,
-					await GetNoncePayloadAsync()
+					await GetNoncePayloadAsync(),
+					"POST"
 			);
 			Dictionary<string, decimal> balances = new Dictionary<string, decimal>();
 			foreach (JProperty prop in result)
@@ -978,7 +982,6 @@ namespace ExchangeSharp
 								{ "type", (order.IsBuy ? "buy" : "sell") },
 								{ "ordertype", order.OrderType.ToString().ToLowerInvariant() },
 								{ "volume", order.RoundAmount().ToStringInvariant() },
-								{ "trading_agreement", "agree" },
 								{ "nonce", nonce }
 						};
 			if (order.OrderType != OrderType.Market)
@@ -994,7 +997,7 @@ namespace ExchangeSharp
 				payload["oflags"] = "post"; //  post-only order (available when ordertype = limit)
 			order.ExtraParameters.CopyTo(payload);
 
-			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload);
+			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AddOrder", null, payload, "POST");
 			ExchangeOrderResult result = new ExchangeOrderResult
 			{
 				OrderDate = CryptoUtility.UtcNow,
@@ -1039,7 +1042,8 @@ namespace ExchangeSharp
 			JToken result = await MakeJsonRequestAsync<JToken>(
 					"/0/private/QueryOrders",
 					null,
-					payload
+					payload,
+					"POST"
 			);
 			ExchangeOrderResult orderResult = new ExchangeOrderResult { OrderId = orderId };
 			if (result == null || result[orderId] == null)
@@ -1115,7 +1119,7 @@ namespace ExchangeSharp
 								{ "txid", orderId },
 								{ "nonce", nonce }
 						};
-			await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload);
+			await MakeJsonRequestAsync<JToken>("/0/private/CancelOrder", null, payload, "POST");
 		}
 
 		private async Task<string> GetWebsocketToken()
@@ -1132,7 +1136,8 @@ namespace ExchangeSharp
 			JToken token = await MakeJsonRequestAsync<JToken>(
 					"/0/private/GetWebSocketsToken",
 					null,
-					payload
+					payload,
+					"POST"
 			);
 
 			return token["token"].ToString();
