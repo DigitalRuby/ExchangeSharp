@@ -126,24 +126,82 @@ namespace ExchangeSharp
 				IReadOnlyDictionary<string, ExchangeCurrency>
 		> OnGetCurrenciesAsync()
 		{
+			/**
+			 {
+				"code": "200000",
+				"data": [
+					{
+						"currency": "BTC",
+						"name": "BTC",
+						"fullName": "Bitcoin",
+						"precision": 8,
+						"confirms": null,
+						"contractAddress": null,
+						"isMarginEnabled": true,
+						"isDebitEnabled": true,
+						"chains": [
+							{
+								"chainName" : "BTC",
+								"withdrawalMinFee" : "0.001",
+								"withdrawalMinSize" : "0.0012",
+								"withdrawFeeRate" : "0",
+								"depositMinSize" : "0.0002",
+								"isWithdrawEnabled" : true,
+								"isDepositEnabled" : true,
+								"preConfirms" : 1,
+								"contractAddress" : "",
+								"chainId" : "btc",
+								"confirms" : 3
+							},
+							{
+								"chainName" : "KCC",
+								"withdrawalMinFee" : "0.00002",
+								"withdrawalMinSize" : "0.0008",
+								"withdrawFeeRate" : "0",
+								"depositMinSize" : null,
+								"isWithdrawEnabled" : true,
+								"isDepositEnabled" : true,
+								"preConfirms" : 20,
+								"contractAddress" : "0xfa93c12cd345c658bc4644d1d4e1b9615952258c",
+								"chainId" : "kcc",
+								"confirms" : 20
+							},
+							{
+								"chainName" : "BTC-Segwit",
+								"withdrawalMinFee" : "0.0005",
+								"withdrawalMinSize" : "0.0008",
+								"withdrawFeeRate" : "0",
+								"depositMinSize" : "0.0002",
+								"isWithdrawEnabled" : false,
+								"isDepositEnabled" : true,
+								"preConfirms" : 2,
+								"contractAddress" : "",
+								"chainId" : "bech32",
+								"confirms" : 2
+							}
+						]
+					}
+				]
+			}
+			*/
+
 			Dictionary<string, ExchangeCurrency> currencies =
 					new Dictionary<string, ExchangeCurrency>();
 			List<string> symbols = new List<string>();
-			// [ { "withdrawMinFee": 100000, "withdrawMinAmount": 200000, "withdrawFeeRate": 0.001, "confirmationCount": 12, "name": "Bitcoin", "tradePrecision": 7, "coin": "BTC","infoUrl": null, "enableWithdraw": true, "enableDeposit": true, "depositRemark": "", "withdrawRemark": ""  } ... ]
-			JToken token = await MakeJsonRequestAsync<JToken>("/market/open/coins");
+			JToken token = await MakeJsonRequestAsync<JToken>("/currencies");
 			foreach (JToken currency in token)
 				currencies.Add(
-						currency["coin"].ToStringInvariant(),
+						currency["currency"].ToStringInvariant(),
 						new ExchangeCurrency()
 						{
-							Name = currency["coin"].ToStringInvariant(),
-							FullName = currency["name"].ToStringInvariant(),
-							WithdrawalEnabled = currency["enableWithdraw"].ConvertInvariant<bool>(),
-							DepositEnabled = currency["enableDepost"].ConvertInvariant<bool>(),
-							TxFee = currency["withdrawFeeRate"].ConvertInvariant<decimal>(),
-							MinConfirmations = currency["confirmationCount"].ConvertInvariant<int>(),
+							Name = currency["currency"].ToStringInvariant(),
+							FullName = currency["fullName"].ToStringInvariant(),
+							WithdrawalEnabled = currency["isDepositEnabled"].ConvertInvariant<bool>(),
+							DepositEnabled = currency["isWithdrawEnabled"].ConvertInvariant<bool>(),
+							TxFee = currency["withdrawalMinFee"].ConvertInvariant<decimal>(),
+							MinConfirmations = currency["confirms"].ConvertInvariant<int>(),
 							MinWithdrawalSize = currency[
-										"withdrawMinAmount"
+										"withdrawalMinSize"
 								].ConvertInvariant<decimal>(),
 						}
 				);
