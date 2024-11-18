@@ -74,16 +74,22 @@ namespace ExchangeSharp
 			foreach (var t in token)
 			{
 				var symbol = (t["symbol"] ?? throw new ArgumentNullException()).ToStringInvariant();
-				tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol,
-					await this.ParseTickerAsync(
-						t,
-						symbol,
-						"askPrice",
-						"bidPrice",
-						"lastPrice",
-						"volume",
-						timestampType: TimestampType.UnixMilliseconds,
-						timestampKey: "closeTime")));
+				try
+				{
+					tickers.Add(new KeyValuePair<string, ExchangeTicker>(symbol,
+						await this.ParseTickerAsync(
+							t,
+							symbol,
+							"askPrice",
+							"bidPrice",
+							"lastPrice",
+							"volume",
+							timestampType: TimestampType.UnixMilliseconds,
+							timestampKey: "closeTime")));
+				}
+				catch (OverflowException)
+				{
+				}
 			}
 
 			return tickers;
