@@ -165,7 +165,33 @@ namespace ExchangeSharp
 		> OnGetMarketSymbolsMetadataAsync()
 		{
 			List<ExchangeMarket> markets = new List<ExchangeMarket>();
-			// [{"symbol":"REQ-ETH","quoteMaxSize":"99999999","enableTrading":true,"priceIncrement":"0.0000001","baseMaxSize":"1000000","baseCurrency":"REQ","quoteCurrency":"ETH","market":"ETH","quoteIncrement":"0.0000001","baseMinSize":"1","quoteMinSize":"0.00001","name":"REQ-ETH","baseIncrement":"0.0001"}, ... ]
+			/* [        {
+			"symbol": "XWG-USDT",
+            "name": "XWG-USDT",
+            "baseCurrency": "XWG",
+            "quoteCurrency": "USDT",
+            "feeCurrency": "USDT",
+            "market": "USDS",
+            "baseMinSize": "10",
+            "quoteMinSize": "0.1",
+            "baseMaxSize": "10000000000",
+            "quoteMaxSize": "99999999",
+            "baseIncrement": "0.0001",
+            "quoteIncrement": "0.0000001",
+            "priceIncrement": "0.0000001",
+            "priceLimitRate": "0.1",
+            "minFunds": "0.1",
+            "isMarginEnabled": false,
+            "enableTrading": true,
+            "st": true,
+            "callauctionIsEnabled": false,
+            "callauctionPriceFloor": null,
+            "callauctionPriceCeiling": null,
+            "callauctionFirstStageStartTime": null,
+            "callauctionSecondStageStartTime": null,
+            "callauctionThirdStageStartTime": null,
+            "tradingStartTime": 1650531600000
+				}, ... ] */
 			JToken marketSymbolTokens = await MakeJsonRequestAsync<JToken>("/symbols");
 			foreach (JToken marketSymbolToken in marketSymbolTokens)
 			{
@@ -187,6 +213,7 @@ namespace ExchangeSharp
 						].ConvertInvariant<decimal>(),
 					PriceStepSize = marketSymbolToken["priceIncrement"].ConvertInvariant<decimal>(),
 					IsActive = marketSymbolToken["enableTrading"].ConvertInvariant<bool>(),
+					IsDelistingCandidate = marketSymbolToken["st"].ConvertInvariant<bool>(),
 				};
 				markets.Add(market);
 			}
@@ -821,7 +848,7 @@ namespace ExchangeSharp
 						var deltaBook = new ExchangeOrderBook
 						{
 							IsFromSnapshot = false,
-							ExchangeName = ExchangeName.Kucoin,
+							ExchangeName = ExchangeName.KuCoin,
 							SequenceId = parsedTime,
 							MarketSymbol = symbol.ToString(),
 							LastUpdatedUtc = lastUpdatedDateTime,
@@ -1089,6 +1116,6 @@ namespace ExchangeSharp
 
 	public partial class ExchangeName
 	{
-		public const string Kucoin = "KuCoin";
+		public const string KuCoin = "KuCoin";
 	}
 }

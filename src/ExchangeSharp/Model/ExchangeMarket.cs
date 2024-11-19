@@ -27,8 +27,11 @@ namespace ExchangeSharp
 		/// <summary>Second aternate market symbol</summary>
 		public string AltMarketSymbol2 { get; set; }
 
-		/// <summary>A value indicating whether the market is active.</summary>
+		/// <summary>Whether the market is active.</summary>
 		public bool? IsActive { get; set; }
+
+		/// <summary>Whether the market is about to be delisted. Only KuCoin provides this.</summary>
+		public bool? IsDelistingCandidate { get; set; }
 
 		/// <summary>In a pair like ZRX/BTC, BTC is the quote currency.</summary>
 		public string QuoteCurrency { get; set; }
