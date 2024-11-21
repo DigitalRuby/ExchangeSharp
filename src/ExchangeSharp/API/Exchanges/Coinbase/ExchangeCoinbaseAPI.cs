@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -450,10 +451,13 @@ namespace ExchangeSharp
 
   		try
   		{
-  			JToken result = await MakeJsonRequestAsync<JToken>($"/orders", payload: payload, requestMethod: "POST"  );
-  			// The Post doesn't return with any status, just a new OrderId. To get the Order Details we have to reQuery.
-  			return await OnGetOrderDetailsAsync(result[ORDERID].ToStringInvariant());
-  		}
+  			JToken jtokenResult = await MakeJsonRequestAsync<JToken>($"/orders", payload: payload, requestMethod: "POST"  );
+				var orderResult = ParseOrder(jtokenResult["success_response"]);
+				Debug.Assert(jtokenResult.Value<bool>("success") == true);
+				// the jtokenResult doesn't have the order status inside the "success_response" portion, but rather outside of it, so need to set it manually
+				orderResult.Result = ExchangeAPIOrderResult.PendingOpen;
+				return orderResult;
+			}
   		catch (Exception ex) // All fails come back with an exception.
   		{
 				Logger.Error(ex, "Failed to place coinbase error");
