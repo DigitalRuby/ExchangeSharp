@@ -141,25 +141,38 @@ namespace ExchangeSharp.BinanceGroup
 					payload
 			);
 
-			return result
-					.Where(x => !string.IsNullOrWhiteSpace(x.AssetCode))
+			var exchangeCurrencies = result
 					.ToDictionary(
-							x => x.AssetCode,
+							x => x.Coin,
 							x =>
 									new ExchangeCurrency
 									{
-										Name = x.AssetCode,
-										FullName = x.AssetName,
-										DepositEnabled = x.EnableCharge ?? false,
-										WithdrawalEnabled = x.EnableWithdraw.GetValueOrDefault(false),
-										MinConfirmations = x.ConfirmTimes.GetValueOrDefault(0),
-										MinWithdrawalSize = x.MinProductWithdraw.GetValueOrDefault(
-													decimal.Zero
-											),
-										TxFee = x.FeeRate.GetValueOrDefault(decimal.Zero),
-										CoinType = x.ParentCode
+										Name = x.Coin,
+										FullName = x.Name,
+										DepositEnabled = x.DepositAllEnable ?? false,
+										WithdrawalEnabled = x.WithdrawAllEnable.GetValueOrDefault(false),
+										MinConfirmations = x.NetworkList
+											.Where(n => n.IsDefault)
+											.Select(n => n.MinConfirm)
+											.FirstOrDefault() ?? 0,
+										MinWithdrawalSize = x.NetworkList
+											.Where(n => n.IsDefault)
+											.Select(n => n.WithdrawMin)
+											.FirstOrDefault() ?? decimal.Zero,
+										TxFee = x.NetworkList
+											.Where(n => n.IsDefault)
+											.Select(n => n.WithdrawFee)
+											.FirstOrDefault() ?? decimal.Zero,
+										CoinType = x.IsLegalMoney == true
+											? "FIAT"
+											: x.NetworkList
+												.Where(n => n.IsDefault)
+												.Select(n => n.NetworkName)
+												.FirstOrDefault() ?? "CRYPTO",
 									}
 					);
+
+			return exchangeCurrencies;
 		}
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
