@@ -460,7 +460,7 @@ namespace ExchangeSharp
 			}
   		catch (Exception ex) // All fails come back with an exception.
   		{
-				Logger.Error(ex, "Failed to place coinbase error");
+				Logger.Error(ex, "Failed to place coinbase order");
   			var token = JToken.Parse(ex.Message);
   			return new ExchangeOrderResult(){
 					Result = ExchangeAPIOrderResult.Rejected,
@@ -479,9 +479,14 @@ namespace ExchangeSharp
 
 		protected override async Task OnCancelOrderAsync(string orderId, string marketSymbol = null, bool isClientOrderId = false)
 		{
-  			Dictionary<string, object> payload = new Dictionary<string, object>() {{ "order_ids", new [] { orderId } }	};
-	  		await MakeJsonRequestAsync<JArray>("/orders/batch_cancel", payload: payload, requestMethod: "POST");
- 		}
+  		Dictionary<string, object> payload = new Dictionary<string, object>() {{ "order_ids", new [] { orderId } }	};
+			var responseJObj = await MakeJsonRequestAsync<JObject>("/orders/batch_cancel", payload: payload, requestMethod: "POST");
+			if (responseJObj["results"][0].Value<bool>("success") != true)
+			{
+				Logger.Error("Failed to cancel coinbase order. {0}", responseJObj["results"][0].Value<string>("failure_reason"));
+				throw new APIException("Failed to cancel coinbase order. " + responseJObj["results"][0].Value<string>("failure_reason"));
+			}
+		}
 
   	protected override Task<ExchangeWithdrawalResponse> OnWithdrawAsync(ExchangeWithdrawalRequest withdrawalRequest)
   	{
