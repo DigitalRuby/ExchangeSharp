@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -143,14 +144,14 @@ namespace ExchangeSharp
 			}
 		}
 
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="api">API</param>
-		public APIRequestMaker(IAPIRequestHandler api)
-		{
-			this.api = api;
-		}
+	/// <summary>
+	/// Constructor
+	/// </summary>
+	/// <param name="api">API</param>
+	public APIRequestMaker(IAPIRequestHandler api) => this.api = api;
+
+	/// <summary> Additional headers to add to each request (for testing) </summary>
+	static internal (string, string)? AdditionalHeader = null;
 
 		/// <summary>
 		/// Make a request to a path on the API
@@ -184,6 +185,10 @@ namespace ExchangeSharp
 			request.AddHeader("accept-language", "en-US,en;q=0.5");
 			request.AddHeader("content-type", api.RequestContentType);
 			request.AddHeader("user-agent", BaseAPI.RequestUserAgent);
+			if (AdditionalHeader != null)
+			{
+				request.AddHeader(AdditionalHeader.Value.Item1, AdditionalHeader.Value.Item2);
+			}
 			request.Timeout = (int)api.RequestTimeout.TotalMilliseconds;
 			await api.ProcessRequestAsync(request, payload);
 
