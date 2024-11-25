@@ -16,7 +16,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace ExchangeSharp
 {
@@ -25,10 +27,10 @@ namespace ExchangeSharp
   /// If you are using legacy API keys from previous Coinbase versions they must be upgraded to Advanced Trade on the Coinbase site.
   /// These keys must be set before using the Coinbase API (sorry).
   /// </summary>
-  public sealed partial class ExchangeCoinbaseAPI : ExchangeAPI
+  public partial class ExchangeCoinbaseAPI : ExchangeAPI
   {
   	public override string BaseUrl { get; set; } = "https://api.coinbase.com/api/v3/brokerage";
-  	private readonly string BaseUrlV2 = "https://api.coinbase.com/v2";	// For Wallet Support
+  	protected readonly string BaseUrlV2 = "https://api.coinbase.com/v2";	// For Wallet Support
   	public override string BaseUrlWebSocket { get; set; } = "wss://advanced-trade-ws.coinbase.com";
 
   	private enum PaginationType { None, V2, V3}
@@ -37,7 +39,7 @@ namespace ExchangeSharp
 
   	private Dictionary<string, string> Accounts = null;		// Cached Account IDs
 
-  	private ExchangeCoinbaseAPI()
+  	protected ExchangeCoinbaseAPI()
   	{
   		MarketSymbolIsUppercase = true;
   		MarketSymbolIsReversed = false;
@@ -85,19 +87,11 @@ namespace ExchangeSharp
 		protected override async Task ProcessRequestAsync(IHttpWebRequest request, Dictionary<string, object> payload)
 		{
   		if (CanMakeAuthenticatedRequest(payload))
-			{
-  			string timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToStringInvariant();	// If you're skittish about the local clock, you may retrieve the timestamp from the Coinbase Site
-  			string body = CryptoUtility.GetJsonForPayload(payload);
-
-  			// V2 wants PathAndQuery, V3 wants LocalPath for the sig (I guess they wanted to shave a nano-second or two - silly)
-  			string path = request.RequestUri.AbsoluteUri.StartsWith(BaseUrlV2) ? request.RequestUri.PathAndQuery : request.RequestUri.LocalPath;
-  			string signature = CryptoUtility.SHA256Sign(timestamp + request.Method.ToUpperInvariant() + path + body, PrivateApiKey.ToUnsecureString());
-
-  			request.AddHeader("CB-ACCESS-KEY", PublicApiKey.ToUnsecureString());
-  			request.AddHeader("CB-ACCESS-SIGN", signature);
-  			request.AddHeader("CB-ACCESS-TIMESTAMP", timestamp);
-  			if (request.Method == "POST") await CryptoUtility.WriteToRequestAsync(request, body);
-  		}
+	  {
+				string endpoint = $"{request.RequestUri.Host}{request.RequestUri.AbsolutePath}";
+				string token = GenerateToken(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString(), $"{request.Method} {endpoint}");
+				request.AddHeader("Authorization", $"Bearer {token}");
+			}
 		}
 
 		/// <summary>

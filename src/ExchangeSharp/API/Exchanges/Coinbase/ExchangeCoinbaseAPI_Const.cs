@@ -1,6 +1,6 @@
 namespace ExchangeSharp
 {
-	public sealed partial class ExchangeCoinbaseAPI 
+	public partial class ExchangeCoinbaseAPI 
 	{
 		private const string ADVFILL = "advanced_trade_fill";
 		private const string AMOUNT = "amount";
