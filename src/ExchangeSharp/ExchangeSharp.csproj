@@ -22,6 +22,12 @@
     <RepositoryUrl>https://github.com/DigitalRuby/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	 <!--Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element)--> 
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	 <!--Embed source files that are not tracked by the source control manager in the PDB--> 
+	<EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 	
   <ItemGroup>
@@ -37,6 +43,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NLog" Version="5.3.4" />
     <PackageReference Include="SocketIOClient" Version="3.1.2" />
@@ -49,6 +56,7 @@
     <EmbeddedResource Include="Properties\Resources\PoloniexWithdrawalFields.csv" />
     <None Remove="nlog.config" />
     <EmbeddedResource Include="nlog.config" />
+	<!--Allows ExchangeSharpTests to directly access members that are internal-->
 	<InternalsVisibleTo Include="ExchangeSharpTests" />
   </ItemGroup>
 
