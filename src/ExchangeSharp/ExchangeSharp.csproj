@@ -19,15 +19,16 @@
 	  <Product>IPBan</Product>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade BTSE Cryptopia Coinbase GDAX Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
+	<VersionPrefix>1.2.0</VersionPrefix>
     <RepositoryUrl>https://github.com/DigitalRuby/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	 <!--Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element)--> 
+	<!--Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element)--> 
 	<PublishRepositoryUrl>true</PublishRepositoryUrl>
 	 <!--Embed source files that are not tracked by the source control manager in the PDB--> 
 	<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	<!-- Recommended: Embed symbols containing Source Link in the main file (exe/dll) -->
+	<DebugType>embedded</DebugType>
   </PropertyGroup>
 	
   <ItemGroup>
@@ -43,12 +44,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NLog" Version="5.3.4" />
     <PackageReference Include="SocketIOClient" Version="3.1.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+	<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+	<PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.4" PrivateAssets="All"/>
   </ItemGroup>
 
   <ItemGroup>
