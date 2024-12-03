@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ExchangeSharp.Models;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
@@ -51,13 +52,15 @@ namespace ExchangeSharp
 			var symbols = await MakeJsonRequestAsync<JToken>("/exchangeInfo", BaseUrl);
 
 			return (symbols["symbols"] ?? throw new ArgumentNullException())
-				.Select(symbol => new ExchangeMarket()
+				.Select(symbol => new ExchangeMarketMexc()
 				{
 					MarketSymbol = symbol["symbol"].ToStringInvariant(),
 					IsActive = symbol["isSpotTradingAllowed"].ConvertInvariant<bool>(),
 					MarginEnabled = symbol["isMarginTradingAllowed"].ConvertInvariant<bool>(),
 					BaseCurrency = symbol["baseAsset"].ToStringInvariant(),
 					QuoteCurrency = symbol["quoteAsset"].ToStringInvariant(),
+					BaseAssetPrecision = symbol["baseAssetPrecision"].ConvertInvariant<int>(),
+					QuoteAssetPrecision = symbol["quoteAssetPrecision"].ConvertInvariant<int>(),
 					QuantityStepSize = symbol["baseSizePrecision"].ConvertInvariant<decimal>(),
 					// Not 100% sure about this
 					PriceStepSize =
