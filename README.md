@@ -60,7 +60,7 @@ The following cryptocurrency exchanges are supported:
 | KuCoin              | x           | x            | T R B         |                                             |
 | LBank               | x           | x            |   R           |                                             |
 | Livecoin            | x           | x            |               |                                             |
-| MEXC                | x           | x            |               |                                             |
+| MEXC                | x           | x            |     B         |                                             |
 | NDAX                | x           | x            | T R           |                                             |
 | OKCoin              | x           | x            |   R B         |                                             |
 | OKEx                | x           | x            | T R B O       |                                             |
