@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ExchangeSharp.Models;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ExchangeSharp.API.Exchanges.MEXC.Models;
 
 namespace ExchangeSharp
 {
@@ -21,6 +23,7 @@ namespace ExchangeSharp
 			MarketSymbolSeparator = string.Empty;
 			MarketSymbolIsUppercase = true;
 			RateLimit = new RateGate(20, TimeSpan.FromSeconds(2));
+			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 		}
 
 		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
@@ -367,6 +370,110 @@ namespace ExchangeSharp
 			}
 
 			await MakeJsonRequestAsync<JToken>("/order", BaseUrl, payload, "DELETE");
+		}
+
+		protected override async Task<IWebSocket> OnGetDeltaOrderBookWebSocketAsync(
+				Action<ExchangeOrderBook> callback,
+				int maxCount = 20,
+				params string[] marketSymbols
+		)
+		{
+			if (marketSymbols == null || marketSymbols.Length == 0)
+			{
+				marketSymbols = (await GetMarketSymbolsAsync()).ToArray();
+			}
+
+			var initialSequenceIds = new Dictionary<string, long>();
+
+			return await ConnectPublicWebSocketAsync(
+					string.Empty,
+					(_socket, msg) =>
+					{
+						var json = msg.ToStringFromUTF8();
+
+						MarketDepthDiffUpdate update = null;
+						try
+						{
+							update = JsonConvert.DeserializeObject<MarketDepthDiffUpdate>(json, SerializerSettings);
+						}
+						catch
+						{
+						}
+
+						if (update == null || string.IsNullOrWhiteSpace(update.Channel) || update.Details == null)
+						{
+							return Task.CompletedTask;
+						}
+
+						if (update.Details.Version < initialSequenceIds[update.Symbol])
+						{
+							// A deprecated update should be ignored
+							return Task.CompletedTask;
+						}
+
+						var eventTimeDateTime = update.EventTime.UnixTimeStampToDateTimeMilliseconds();
+
+						var orderBook = new ExchangeOrderBook
+						{
+							IsFromSnapshot = false,
+							ExchangeName = Name,
+							SequenceId = update.Details.Version,
+							MarketSymbol = update.Symbol,
+							LastUpdatedUtc = eventTimeDateTime,
+						};
+
+						if (update.Details.Asks != null)
+						{
+							foreach (var ask in update.Details.Asks)
+							{
+								orderBook.Asks[ask.Price] = new ExchangeOrderPrice
+								{
+									Price = ask.Price,
+									Amount = ask.Volume,
+								};
+							}
+						}
+
+						if (update.Details.Bids != null)
+						{
+							foreach (var bid in update.Details.Bids)
+							{
+								orderBook.Bids[bid.Price] = new ExchangeOrderPrice
+								{
+									Price = bid.Price,
+									Amount = bid.Volume,
+								};
+							}
+						}
+
+						callback(orderBook);
+
+						return Task.CompletedTask;
+					},
+			    async (_socket) =>
+					{
+						foreach (var marketSymbol in marketSymbols) // "Every websocket connection maximum support 30 subscriptions at one time." - API docs
+						{
+							var initialBook = await OnGetOrderBookAsync(marketSymbol, maxCount);
+							initialBook.IsFromSnapshot = true;
+
+							callback(initialBook);
+
+							initialSequenceIds[marketSymbol] = initialBook.SequenceId;
+
+							var subscriptionParams = new List<string>
+							{
+								$"spot@public.increase.depth.v3.api@{marketSymbol}"
+							};
+
+							await _socket.SendMessageAsync(new WebSocketSubscription
+							{
+								Method = "SUBSCRIPTION",
+								Params = subscriptionParams,
+							});
+						}
+					}
+			);
 		}
 
 		private async Task<JToken> GetBalance()
