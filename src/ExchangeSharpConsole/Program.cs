@@ -14,6 +14,7 @@ namespace ExchangeSharpConsole
 
 		public Type[] CommandOptions { get; } =
 				{
+								typeof(BalancesOption),
 								typeof(BuyOption),
 								typeof(CancelOrderOption),
 								typeof(CandlesOption),
