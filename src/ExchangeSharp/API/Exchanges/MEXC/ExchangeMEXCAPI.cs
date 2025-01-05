@@ -241,7 +241,6 @@ namespace ExchangeSharp
 						{
 							Currency = x["asset"].Value<string>(),
 							AvailableBalance = x["free"].Value<decimal>()
-							                   + x["locked"].Value<decimal>()
 						}
 				)
 				.ToDictionary(k => k.Currency, v => v.AvailableBalance);
@@ -475,6 +474,51 @@ namespace ExchangeSharp
 					}
 			);
 		}
+		
+		protected override Task ProcessRequestAsync(
+				IHttpWebRequest request,
+				Dictionary<string, object>? payload
+		)
+		{
+			if (
+					CanMakeAuthenticatedRequest(payload)
+					|| (payload == null && request.RequestUri.AbsoluteUri.Contains("userDataStream"))
+			)
+			{
+				request.AddHeader("X-MEXC-APIKEY", PublicApiKey!.ToUnsecureString());
+			}
+			return base.ProcessRequestAsync(request, payload);
+		}
+
+		protected override Uri ProcessRequestUrl(
+				UriBuilder url,
+				Dictionary<string, object>? payload,
+				string? method
+		)
+		{
+			if (CanMakeAuthenticatedRequest(payload))
+			{
+				// payload is ignored, except for the nonce which is added to the url query - bittrex puts all the "post" parameters in the url query instead of the request body
+				var query = (url.Query ?? string.Empty).Trim('?', '&');
+				string newQuery =
+						"timestamp="
+						+ payload!["nonce"].ToStringInvariant()
+						+ (query.Length != 0 ? "&" + query : string.Empty)
+						+ (
+								payload.Count > 1
+										? "&" + CryptoUtility.GetFormForPayload(payload, false)
+										: string.Empty
+						);
+				string signature = CryptoUtility.SHA256Sign(
+						newQuery,
+						CryptoUtility.ToUnsecureBytesUTF8(PrivateApiKey)
+				);
+				newQuery += "&signature=" + signature;
+				url.Query = newQuery;
+				return url.Uri;
+			}
+			return base.ProcessRequestUrl(url, payload, method);
+		}
 
 		private async Task<JToken> GetBalance()
 		{
@@ -515,6 +559,7 @@ namespace ExchangeSharp
 				Amount = token["origQty"].ConvertInvariant<decimal>(),
 				AmountFilled = token["executedQty"].ConvertInvariant<decimal>(),
 				Price = token["price"].ConvertInvariant<decimal>(),
+				AveragePrice = token["price"].ConvertInvariant<decimal>(),
 				IsBuy = token["side"].ToStringInvariant() == "BUY",
 				OrderDate = token["time"].ConvertInvariant<long>().UnixTimeStampToDateTimeMilliseconds(),
 				Result = ParseOrderStatus(token["status"].ToStringInvariant())
