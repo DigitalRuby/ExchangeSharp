@@ -384,11 +384,27 @@ namespace ExchangeSharp
 
 			var initialSequenceIds = new Dictionary<string, long>();
 
+			foreach (var marketSymbol in marketSymbols)
+			{
+				var initialBook = await OnGetOrderBookAsync(marketSymbol, maxCount);
+				initialBook.IsFromSnapshot = true;
+
+				callback(initialBook);
+
+				initialSequenceIds[marketSymbol] = initialBook.SequenceId;
+			}
+
 			return await ConnectPublicWebSocketAsync(
 					string.Empty,
 					(_socket, msg) =>
 					{
 						var json = msg.ToStringFromUTF8();
+
+						if (json.Contains("invalid") || json.Contains("Not Subscribed"))
+						{
+							Logger.Warn(json);
+							return Task.CompletedTask;
+						}
 
 						MarketDepthDiffUpdate update = null;
 						try
@@ -451,26 +467,15 @@ namespace ExchangeSharp
 					},
 			    async (_socket) =>
 					{
-						foreach (var marketSymbol in marketSymbols) // "Every websocket connection maximum support 30 subscriptions at one time." - API docs
+						var subscriptionParams = marketSymbols
+							.Select(ms => $"spot@public.increase.depth.v3.api@{ms}")
+							.ToList();
+
+						await _socket.SendMessageAsync(new WebSocketSubscription
 						{
-							var initialBook = await OnGetOrderBookAsync(marketSymbol, maxCount);
-							initialBook.IsFromSnapshot = true;
-
-							callback(initialBook);
-
-							initialSequenceIds[marketSymbol] = initialBook.SequenceId;
-
-							var subscriptionParams = new List<string>
-							{
-								$"spot@public.increase.depth.v3.api@{marketSymbol}"
-							};
-
-							await _socket.SendMessageAsync(new WebSocketSubscription
-							{
-								Method = "SUBSCRIPTION",
-								Params = subscriptionParams,
-							});
-						}
+							Method = "SUBSCRIPTION",
+							Params = subscriptionParams,
+						});
 					}
 			);
 		}

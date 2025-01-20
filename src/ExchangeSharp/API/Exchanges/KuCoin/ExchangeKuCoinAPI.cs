@@ -40,7 +40,7 @@ namespace ExchangeSharp
 			NonceEndPointField = "data";
 			NonceEndPointStyle = NonceStyle.UnixMilliseconds;
 			MarketSymbolSeparator = "-";
-			RateLimit = new RateGate(20, TimeSpan.FromSeconds(60.0));
+			RateLimit = new RateGate(60, TimeSpan.FromSeconds(1)); // https://www.kucoin.com/docs/basic-info/request-rate-limit/rest-api
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 		}
 
@@ -875,6 +875,16 @@ namespace ExchangeSharp
 
 			var initialSequenceIds = new Dictionary<string, long>();
 
+			foreach (var marketSymbol in marketSymbols)
+			{
+				var initialBook = await OnGetOrderBookAsync(marketSymbol, maxCount);
+				initialBook.IsFromSnapshot = true;
+
+				callback(initialBook);
+
+				initialSequenceIds[marketSymbol] = initialBook.SequenceId;
+			}
+
 			var websocketUrlToken = GetWebsocketBulletToken();
 
 			return await ConnectPublicWebSocketAsync(
@@ -958,19 +968,10 @@ namespace ExchangeSharp
 					},
 					connectCallback: async (_socket) =>
 					{
-						// Get full order book snapshot when connecting
-						foreach (var marketSymbol in marketSymbols)
-						{
-							var initialBook = await OnGetOrderBookAsync(marketSymbol, maxCount);
-							initialBook.IsFromSnapshot = true;
-
-							callback(initialBook);
-
-							initialSequenceIds[marketSymbol] = initialBook.SequenceId;
-						}
+						var marketSymbolsForSubscriptionString = string.Join(",", marketSymbols);
 
 						var id = CryptoUtility.UtcNow.Ticks;
-						var topic = $"/market/level2:{string.Join(",", marketSymbols)}";
+						var topic = $"/market/level2:{marketSymbolsForSubscriptionString}";
 						await _socket.SendMessageAsync(
 								new
 								{
