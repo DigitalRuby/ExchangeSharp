@@ -278,8 +278,7 @@ namespace ExchangeSharp
 
 			if (order.OrderType != OrderType.Market)
 			{
-				decimal orderPrice = await ClampOrderPrice(order.MarketSymbol, order.Price.Value);
-				payload["price"] = orderPrice;
+				payload["price"] = order.Price.Value;
 				if (order.IsPostOnly != true)
 					payload["type"] = "LIMIT";
 			}
@@ -474,7 +473,7 @@ namespace ExchangeSharp
 					}
 			);
 		}
-		
+
 		protected override Task ProcessRequestAsync(
 				IHttpWebRequest request,
 				Dictionary<string, object>? payload
