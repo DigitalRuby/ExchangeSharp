@@ -474,28 +474,48 @@ namespace ExchangeSharp
 				string sequence = "ts"
 		)
 		{
-			var book = new ExchangeOrderBook
+			var book = new ExchangeOrderBook();
+
+			if (token == null)
 			{
-				SequenceId = token[sequence].ConvertInvariant<long>()
-			};
-			foreach (var array in token[asks])
-			{
-				var depth = new ExchangeOrderPrice
-				{
-					Price = array[0].ConvertInvariant<decimal>(),
-					Amount = array[1].ConvertInvariant<decimal>()
-				};
-				book.Asks[depth.Price] = depth;
+				Logger.Warn($"Null token in {nameof(ParseOrderBookFromJTokenArrays)}");
+				return book;
 			}
 
-			foreach (var array in token[bids])
+			book.SequenceId = token[sequence].ConvertInvariant<long>();
+
+			if (token[asks] != null)
 			{
-				var depth = new ExchangeOrderPrice
+				foreach (var array in token[asks])
 				{
-					Price = array[0].ConvertInvariant<decimal>(),
-					Amount = array[1].ConvertInvariant<decimal>()
-				};
-				book.Bids[depth.Price] = depth;
+					var depth = new ExchangeOrderPrice
+					{
+						Price = array[0].ConvertInvariant<decimal>(),
+						Amount = array[1].ConvertInvariant<decimal>()
+					};
+					book.Asks[depth.Price] = depth;
+				}
+			}
+			else
+			{
+				Logger.Warn($"No asks in {nameof(ParseOrderBookFromJTokenArrays)}");
+			}
+
+			if (token[bids] != null)
+			{
+				foreach (var array in token[bids])
+				{
+					var depth = new ExchangeOrderPrice
+					{
+						Price = array[0].ConvertInvariant<decimal>(),
+						Amount = array[1].ConvertInvariant<decimal>()
+					};
+					book.Bids[depth.Price] = depth;
+				}
+			}
+			else
+			{
+				Logger.Error($"No bids in {nameof(ParseOrderBookFromJTokenArrays)}");
 			}
 
 			return book;
