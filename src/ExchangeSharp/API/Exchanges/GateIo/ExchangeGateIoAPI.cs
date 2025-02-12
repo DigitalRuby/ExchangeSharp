@@ -343,11 +343,43 @@ namespace ExchangeSharp
 			var payload = await GetNoncePayloadAsync();
 			AddOrderToPayload(order, payload);
 
-			JToken responseToken = await MakeJsonRequestAsync<JToken>(
+			JToken responseToken;
+			try
+			{
+				responseToken = await MakeJsonRequestAsync<JToken>(
 					"/spot/orders",
 					payload: payload,
 					requestMethod: "POST"
-			);
+				);
+			}
+			catch (Exception e)
+			{
+				// Gate.io returns HTTP status code 400 when an order can't be filled.
+				if (string.Equals(
+					    e.Message,
+					    "{\"label\":\"FOK_NOT_FILL\",\"message\":\"Order cannot be filled completely\"}",
+					    StringComparison.OrdinalIgnoreCase))
+				{
+					var result = new ExchangeOrderResult
+					{
+						Amount = order.Amount,
+						AmountFilled = 0,
+						Price = order.Price,
+						AveragePrice = 0,
+						Message = string.Empty,
+						OrderId = string.Empty,
+						OrderDate = DateTime.UtcNow,
+						MarketSymbol = order.MarketSymbol,
+						IsBuy = order.IsBuy,
+						ClientOrderId = order.ClientOrderId,
+						Result = ExchangeAPIOrderResult.Canceled
+					};
+
+					return result;
+				}
+
+				throw;
+			}
 
 			return ParseOrder(responseToken);
 		}
