@@ -342,6 +342,7 @@ namespace ExchangeSharp
 
 			var payload = await GetNoncePayloadAsync();
 			AddOrderToPayload(order, payload);
+			order.ExtraParameters.CopyTo(payload);
 
 			JToken responseToken;
 			try
