@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ExchangeSharp.Models;
@@ -94,6 +95,9 @@ namespace ExchangeSharp
 							timestampKey: "closeTime")));
 				}
 				catch (OverflowException)
+				{
+				}
+				catch (InvalidDataException)
 				{
 				}
 			}
