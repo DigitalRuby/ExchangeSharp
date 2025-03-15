@@ -605,19 +605,20 @@ namespace ExchangeSharp
 		/// <typeparam name="T">Type of exchange to get</typeparam>
 		/// <returns>Exchange API or null if not found</returns>
 		[Obsolete("Use the async version")]
-		public static IExchangeAPI GetExchangeAPI<T>()
+		public static T GetExchangeAPI<T>()
 				where T : ExchangeAPI
 		{
 			return GetExchangeAPIAsync<T>().Result;
 		}
 
-		public static Task<IExchangeAPI> GetExchangeAPIAsync<T>()
+		public static async Task<T> GetExchangeAPIAsync<T>()
 				where T : ExchangeAPI
 		{
 			// note: this method will be slightly slow (milliseconds) the first time it is called due to cache miss and initialization
 			// subsequent calls with cache hits will be nanoseconds
 			Type type = typeof(T)!;
-			return GetExchangeAPIAsync(type);
+
+			return (T)await GetExchangeAPIAsync(type);
 		}
 
 		/// <summary>
