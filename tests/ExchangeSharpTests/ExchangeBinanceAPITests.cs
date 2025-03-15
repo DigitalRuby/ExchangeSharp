@@ -34,22 +34,22 @@ namespace ExchangeSharpTests
 			string toParse =
 					@"{
   ""e"": ""depthUpdate"",
-  ""E"": 123456789,    
-  ""s"": ""BNBBTC"",     
-  ""U"": 157,          
-  ""u"": 160,          
-  ""b"": [             
+  ""E"": 123456789,
+  ""s"": ""BNBBTC"",
+  ""U"": 157,
+  ""u"": 160,
+  ""b"": [
     [
-      ""0.0024"",      
+      ""0.0024"",
       ""10"",
-      []             
+      []
     ]
   ],
-  ""a"": [             
+  ""a"": [
     [
-      ""0.0026"",      
-      ""100"",         
-      []             
+      ""0.0026"",
+      ""100"",
+      []
     ]
   ]
 }";
@@ -116,7 +116,7 @@ namespace ExchangeSharpTests
 			requestMaker
 					.MakeRequestAsync(
 							"/capital/config/getall",
-							((ExchangeBinanceAPI)binance).BaseUrlSApi
+							binance.BaseUrlSApi
 					)
 					.Returns(
 							new IAPIRequestMaker.RequestResult<string>()

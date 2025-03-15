@@ -75,7 +75,7 @@ The following cryptocurrency services are supported:
 
 Exchange constructors are private, to get access to an exchange in code use:
 
-`ExchangeAPI.GetExchangeAPIAsync<>()`.
+`ExchangeAPI.GetExchangeAPIAsync<T>()`.
 
 ### Installing the CLI
 
