@@ -11,7 +11,7 @@ namespace ExchangeSharpTests;
 public class MEXCAPITests
 {
 	private const string MarketSymbol = "ETHBTC";
-	private static IExchangeAPI _api;
+	private static ExchangeMEXCAPI _api;
 
 	[AssemblyInitialize]
 	public static async Task AssemblyInitialize(TestContext testContext)
