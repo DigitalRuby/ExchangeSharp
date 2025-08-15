@@ -13,11 +13,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #region Imports
 
 using System;
-using System.Configuration;
 using System.IO;
-using System.Xml;
 using NLog;
 using NLog.Config;
+using NLog.Targets;
 
 #endregion Imports
 
@@ -103,7 +102,7 @@ namespace ExchangeSharp
 
 	/// <summary>
 	/// ExchangeSharp logger. Will never throw exceptions.
-	/// Currently the ExchangeSharp logger uses NLog internally, so make sure it is setup in your app.config file or nlog.config file.
+	/// Currently the ExchangeSharp logger uses NLog internally, so make sure it is setup in your app.config file or NLog.config file.
 	/// </summary>
 	public static class Logger
 	{
@@ -114,48 +113,54 @@ namespace ExchangeSharp
 		{
 			try
 			{
-				LogFactory factory = null;
-				if (
-						File.Exists(
-								ConfigurationManager
-										.OpenExeConfiguration(ConfigurationUserLevel.None)
-										.FilePath
-						)
-				)
+				// If configuration already provided by host, then keep it
+				var currentConfig = LogManager.Configuration;
+				if (currentConfig == null || currentConfig.AllTargets.Count == 0)
 				{
-					factory = LogManager.LoadConfiguration(
-							ConfigurationManager
-									.OpenExeConfiguration(ConfigurationUserLevel.None)
-									.FilePath
-					);
-				}
-
-				if (factory == null || factory.Configuration.AllTargets.Count == 0)
-				{
-					if (File.Exists("nlog.config"))
+					// Try load from conventional files in application base directory
+					var baseDir = AppContext.BaseDirectory;
+					string[] candidateFiles = new string[]
 					{
-						factory = LogManager.LoadConfiguration("nlog.config");
+						Path.Combine(baseDir, "NLog.config"),
+						Path.Combine(baseDir, "nlog.config")
+					};
+
+					string configPath = null;
+					foreach (var path in candidateFiles)
+					{
+						if (File.Exists(path))
+						{
+							configPath = path;
+							break;
+						}
+					}
+
+					if (!string.IsNullOrEmpty(configPath))
+					{
+						LogManager.Setup().LoadConfigurationFromFile(configPath);
 					}
 					else
 					{
-						using var resourceStream =
-								typeof(Logger).Assembly.GetManifestResourceStream(
-										"ExchangeSharp.nlog.config"
-								);
-						System.Diagnostics.Debug.Assert(
-								resourceStream != null,
-								nameof(resourceStream) + " != null"
-						);
-						using var sr = new StreamReader(resourceStream);
-						using var xr = XmlReader.Create(sr);
-						LogManager.Configuration = new XmlLoggingConfiguration(
-								xr,
-								Directory.GetCurrentDirectory()
-						);
-						factory = LogManager.LogFactory;
+						// Try load from embedded resource
+						using var resourceStream = typeof(Logger).Assembly.GetManifestResourceStream("ExchangeSharp.nlog.config");
+						if (resourceStream != null)
+						{
+							using var sr = new StreamReader(resourceStream);
+							var xml = sr.ReadToEnd();
+							LogManager.Setup().LoadConfigurationFromXml(xml);
+						}
+						else
+						{
+							// Last resort: simple in-code configuration to console
+							var cfg = new LoggingConfiguration();
+							var console = new ConsoleTarget("console");
+							cfg.AddRule(NLog.LogLevel.Info, NLog.LogLevel.Fatal, console);
+							LogManager.Configuration = cfg;
+						}
 					}
 				}
-				logger = factory.GetCurrentClassLogger();
+
+				logger = LogManager.GetCurrentClassLogger();
 			}
 			catch (Exception ex)
 			{
@@ -164,58 +169,48 @@ namespace ExchangeSharp
 			}
 		}
 
-		/// <summary>
-		/// Map IPBan log level to NLog log level
-		/// </summary>
-		/// <param name="logLevel">IPBan log level</param>
-		/// <returns>NLog log level</returns>
-		public static NLog.LogLevel GetNLogLevel(LogLevel logLevel)
-		{
+	/// <summary>
+	/// Map IPBan log level to NLog log level
+	/// </summary>
+	/// <param name="logLevel">IPBan log level</param>
+	/// <returns>NLog log level</returns>
+	public static NLog.LogLevel GetNLogLevel(LogLevel logLevel) => logLevel switch
+	{
+	  LogLevel.Critical => NLog.LogLevel.Fatal,
+	  LogLevel.Debug => NLog.LogLevel.Debug,
+	  LogLevel.Error => NLog.LogLevel.Error,
+	  LogLevel.Information => NLog.LogLevel.Info,
+	  LogLevel.Trace => NLog.LogLevel.Trace,
+	  LogLevel.Warning => NLog.LogLevel.Warn,
+	  _ => NLog.LogLevel.Off,
+	};
+
+	/*
+	/// <summary>
+	/// Map Microsoft log level to NLog log level
+	/// </summary>
+	/// <param name="logLevel">Microsoft log level</param>
+	/// <returns>NLog log level</returns>
+	public static NLog.LogLevel GetNLogLevel(Microsoft.Extensions.Logging.LogLevel logLevel)
+	{
 			switch (logLevel)
 			{
-				case LogLevel.Critical:
-					return NLog.LogLevel.Fatal;
-				case LogLevel.Debug:
-					return NLog.LogLevel.Debug;
-				case LogLevel.Error:
-					return NLog.LogLevel.Error;
-				case LogLevel.Information:
-					return NLog.LogLevel.Info;
-				case LogLevel.Trace:
-					return NLog.LogLevel.Trace;
-				case LogLevel.Warning:
-					return NLog.LogLevel.Warn;
-				default:
-					return NLog.LogLevel.Off;
+					case Microsoft.Extensions.Logging.LogLevel.Critical: return NLog.LogLevel.Fatal;
+					case Microsoft.Extensions.Logging.LogLevel.Debug: return NLog.LogLevel.Debug;
+					case Microsoft.Extensions.Logging.LogLevel.Error: return NLog.LogLevel.Error;
+					case Microsoft.Extensions.Logging.LogLevel.Information: return NLog.LogLevel.Info;
+					case Microsoft.Extensions.Logging.LogLevel.Trace: return NLog.LogLevel.Trace;
+					case Microsoft.Extensions.Logging.LogLevel.Warning: return NLog.LogLevel.Warn;
+					default: return NLog.LogLevel.Off;
 			}
-		}
+	}
+	*/
 
-		/*
-		/// <summary>
-		/// Map Microsoft log level to NLog log level
-		/// </summary>
-		/// <param name="logLevel">Microsoft log level</param>
-		/// <returns>NLog log level</returns>
-		public static NLog.LogLevel GetNLogLevel(Microsoft.Extensions.Logging.LogLevel logLevel)
-		{
-				switch (logLevel)
-				{
-						case Microsoft.Extensions.Logging.LogLevel.Critical: return NLog.LogLevel.Fatal;
-						case Microsoft.Extensions.Logging.LogLevel.Debug: return NLog.LogLevel.Debug;
-						case Microsoft.Extensions.Logging.LogLevel.Error: return NLog.LogLevel.Error;
-						case Microsoft.Extensions.Logging.LogLevel.Information: return NLog.LogLevel.Info;
-						case Microsoft.Extensions.Logging.LogLevel.Trace: return NLog.LogLevel.Trace;
-						case Microsoft.Extensions.Logging.LogLevel.Warning: return NLog.LogLevel.Warn;
-						default: return NLog.LogLevel.Off;
-				}
-		}
-		*/
-
-		/// <summary>
-		/// Log an error
-		/// </summary>
-		/// <param name="ex">Error</param>
-		public static void Error(Exception ex)
+	/// <summary>
+	/// Log an error
+	/// </summary>
+	/// <param name="ex">Error</param>
+	public static void Error(Exception ex)
 		{
 			Write(LogLevel.Error, "Exception: " + ex.ToString());
 		}
