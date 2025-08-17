@@ -140,7 +140,6 @@ namespace ExchangeSharpTests
 							|| api is ExchangeCoincheckAPI
 							|| api is ExchangeGeminiAPI
 							|| api is ExchangeMEXCAPI
-							|| api is ExchangeUfoDexAPI
 							|| api is ExchangePoloniexAPI
 							|| api is ExchangeUPbitAPI
 							|| api is ExchangeCoinbaseAPI
@@ -217,7 +216,6 @@ namespace ExchangeSharpTests
 						|| api is ExchangeBinanceJerseyAPI // ceased operations
 						|| api is ExchangeBittrexAPI // uses SignalR
 						|| api is ExchangeBL3PAPI // volume too low
-						|| api is ExchangeFTXUSAPI // volume too low. rely on FTX test
 						|| api is ExchangeLivecoinAPI // defunct
 						|| api is ExchangeOKCoinAPI // volume appears to be too low
 						|| api is ExchangeNDAXAPI // volume too low for automated testing
