@@ -19,7 +19,7 @@
 	  <Product>IPBan</Product>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>C# crypto cryptocurrency trade trader exchange sharp socket web socket websocket signalr secure API Binance BitMEX Bitfinex Bithumb Bitstamp Bittrex BL3P Bleutrade BTSE Cryptopia Coinbase GDAX Digifinex Gemini Gitbtc Huobi Kraken Kucoin Livecoin NDAX OKCoin OKEx Poloniex TuxExchange Yobit ZBcom</PackageTags>
-	<VersionPrefix>1.2.0</VersionPrefix>
+	<VersionPrefix>1.2.1</VersionPrefix>
     <RepositoryUrl>https://github.com/DigitalRuby/ExchangeSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
