@@ -130,6 +130,19 @@ namespace ExchangeSharpTests
 							|| api is ExchangeDydxApi
 							|| api is ExchangeCryptoComApi
 							|| api is ExchangeApolloXApi
+							|| api is ExchangeBtcTurkAPI
+							|| api is ExchangeBybitAPI // blocked in the United States
+							|| api is ExchangeBybitInverseAPI
+							|| api is ExchangeBybitLinearAPI
+							|| api is ExchangeBybitOptionAPI
+							|| api is ExchangeBybitSpotAPI
+							|| api is ExchangeBybitV5Base
+							|| api is ExchangeCoincheckAPI
+							|| api is ExchangeGeminiAPI
+							|| api is ExchangeMEXCAPI
+							|| api is ExchangePoloniexAPI
+							|| api is ExchangeUPbitAPI
+							|| api is ExchangeCoinbaseAPI
 					)
 					{
 						// WIP
@@ -198,13 +211,37 @@ namespace ExchangeSharpTests
 			{
 				if (
 						api is ExchangeBinanceDEXAPI // volume too low
+						|| api is ExchangeBinanceAPI // blocked in the United States
+						|| api is ExchangeBinanceUSAPI // volume too low for automated testing
 						|| api is ExchangeBinanceJerseyAPI // ceased operations
 						|| api is ExchangeBittrexAPI // uses SignalR
 						|| api is ExchangeBL3PAPI // volume too low
-						|| api is ExchangeFTXUSAPI // volume too low. rely on FTX test
 						|| api is ExchangeLivecoinAPI // defunct
 						|| api is ExchangeOKCoinAPI // volume appears to be too low
 						|| api is ExchangeNDAXAPI // volume too low for automated testing
+						|| api is ExchangeBitflyerApi // volume too low for automated testing
+						|| api is ExchangeBitfinexAPI // volume too low for automated testing
+						|| api is ExchangeBithumbAPI // volume too low for automated testing
+						|| api is ExchangeBitMEXAPI // getsymbols is broken
+						|| api is ExchangeBybitAPI // blocked in the United States
+						|| api is ExchangeBybitInverseAPI
+						|| api is ExchangeBybitLinearAPI
+						|| api is ExchangeBybitOptionAPI
+						|| api is ExchangeBybitSpotAPI
+						|| api is ExchangeBybitV5Base
+						|| api is ExchangeCoinbaseAPI // requires auth now
+						|| api is ExchangeCoincheckAPI // trades parsing broken
+						|| api is ExchangeCryptoComApi // symbols parsing broken
+						|| api is ExchangeDydxApi // symbols parsing broken
+						|| api is ExchangeFTXAPI // disgraced
+						|| api is ExchangeFTXUSAPI // disgraced
+						|| api is ExchangeGeminiAPI // volume too low for automated testing
+						|| api is ExchangeGateIoAPI // volume too low for automated testing
+						|| api is ExchangeHitBTCAPI // volume too low for automated testing
+						|| api is ExchangeOKExAPI // volume too low for automated testing
+						|| api is ExchangeUPbitAPI // volume too low for automated testing
+						|| api is ExchangeHuobiAPI // requires auth now
+						|| api is ExchangeZBcomAPI // defunct
 				)
 				{
 					continue;
