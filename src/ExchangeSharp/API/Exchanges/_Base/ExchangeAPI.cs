@@ -259,6 +259,10 @@ namespace ExchangeSharp
 				ExchangeOrderRequest order
 		) => throw new NotImplementedException();
 
+		protected virtual Task<ExchangeOrderResult> OnAmendOrderAsync(
+				ExchangeOrderRequest order
+		) => throw new NotImplementedException();
+
 		protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(
 				params ExchangeOrderRequest[] order
 		) => throw new NotImplementedException();
@@ -1305,6 +1309,13 @@ namespace ExchangeSharp
 			await new SynchronizationContextRemover();
 			order.MarketSymbol = NormalizeMarketSymbol(order.MarketSymbol);
 			return await OnPlaceOrderAsync(order);
+		}
+
+		public virtual async Task<ExchangeOrderResult> AmendOrderAsync(ExchangeOrderRequest order)
+		{
+			await new SynchronizationContextRemover();
+			order.MarketSymbol = NormalizeMarketSymbol(order.MarketSymbol);
+			return await OnAmendOrderAsync(order);
 		}
 
 		/// <summary>
