@@ -259,6 +259,10 @@ namespace ExchangeSharp
 				ExchangeOrderRequest order
 		) => throw new NotImplementedException();
 
+		protected virtual Task<ExchangeOrderResult> OnAmendOrderAsync(
+				ExchangeOrderRequest order
+		) => throw new NotImplementedException();
+
 		protected virtual Task<ExchangeOrderResult[]> OnPlaceOrdersAsync(
 				params ExchangeOrderRequest[] order
 		) => throw new NotImplementedException();

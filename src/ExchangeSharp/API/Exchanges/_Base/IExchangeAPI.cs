@@ -218,6 +218,13 @@ namespace ExchangeSharp
 		Task<ExchangeOrderResult> PlaceOrderAsync(ExchangeOrderRequest order);
 
 		/// <summary>
+		/// Amend an order
+		/// </summary>
+		/// <param name="order">Amend request</param>
+		/// <returns>Amend result and message string if any</returns>
+		Task<ExchangeOrderResult> AmendOrderAsync(ExchangeOrderRequest order); 
+
+		/// <summary>
 		/// Place bulk orders
 		/// </summary>
 		/// <param name="orders">Order requests</param>

@@ -964,6 +964,47 @@ namespace ExchangeSharp
 			return balances;
 		}
 
+		protected override async Task<ExchangeOrderResult> OnAmendOrderAsync(
+				ExchangeOrderRequest order
+		)
+		{
+			IEnumerable<ExchangeMarket> markets = await OnGetMarketSymbolsMetadataAsync();
+			ExchangeMarket market = markets
+					.Where(m => m.MarketSymbol == order.MarketSymbol)
+					.First<ExchangeMarket>();
+
+			object nonce = await GenerateNonceAsync();
+			Dictionary<string, object> payload = new Dictionary<string, object>(
+					StringComparer.OrdinalIgnoreCase
+			)
+						{
+								{ "cl_ord_id", order.ClientOrderId },
+								{ "order_qty", order.RoundAmount().ToStringInvariant() },
+								{ "limit_price", order.Price },
+								{ "post_only", order.IsPostOnly },
+								{ "nonce", nonce }
+						};
+
+			JToken token = await MakeJsonRequestAsync<JToken>("/0/private/AmendOrder", null, payload, "POST");
+			ExchangeOrderResult result = new ExchangeOrderResult
+			{
+				OrderDate = CryptoUtility.UtcNow,
+				Result = ExchangeAPIOrderResult.Open
+			};
+			if (token["txid"] is JArray array)
+			{
+				result.OrderId = array[0].ToStringInvariant();
+			}
+			if (token["descr"] is JObject descrArray)
+			{
+				result = ExtendResultsWithOrderDescr(
+						result,
+						descrArray["order"].ToStringInvariant()
+				);
+			}
+			return result;
+		}
+
 		protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(
 				ExchangeOrderRequest order
 		)
