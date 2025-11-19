@@ -1311,6 +1311,13 @@ namespace ExchangeSharp
 			return await OnPlaceOrderAsync(order);
 		}
 
+		public virtual async Task<ExchangeOrderResult> AmendOrderAsync(ExchangeOrderRequest order)
+		{
+			await new SynchronizationContextRemover();
+			order.MarketSymbol = NormalizeMarketSymbol(order.MarketSymbol);
+			return await OnAmendOrderAsync(order);
+		}
+
 		/// <summary>
 		/// Place bulk orders
 		/// </summary>
