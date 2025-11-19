@@ -388,7 +388,7 @@ namespace ExchangeSharp
 
   		payload["client_order_id"] = order.ClientOrderId;
   		payload["product_id"] = order.MarketSymbol;
-  		payload["side"] = order.IsBuy ? BUY : "SELL";
+  		payload["side"] = order.IsBuy ? "BUY" : "SELL";
 
   		Dictionary<string, object> orderConfig = new Dictionary<string, object>();
   		switch (order.OrderType)
