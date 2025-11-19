@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using System.Xml;
 
 namespace ExchangeSharp
 {
@@ -123,6 +124,130 @@ namespace ExchangeSharp
 		> OnGetMarketSymbolsMetadataAsync()
 		{
 			List<ExchangeMarket> markets = new List<ExchangeMarket>();
+
+			try
+			{
+				string html = (
+						await RequestMaker.MakeRequestAsync("/rest-api", "https://docs.gemini.com")
+				).Response;
+				int startPos = html.IndexOf(
+						"<h1 id=\"symbols-and-minimums\">Symbols and minimums</h1>"
+				);
+				if (startPos < 0)
+				{
+					throw new ApplicationException(
+							"Gemini html for symbol metadata is missing expected h1 tag and id"
+					);
+				}
+
+				startPos = html.IndexOf("<tbody>", startPos);
+				if (startPos < 0)
+				{
+					throw new ApplicationException(
+							"Gemini html for symbol metadata is missing start tbody tag"
+					);
+				}
+
+				int endPos = html.IndexOf("</tbody>", startPos);
+				if (endPos < 0)
+				{
+					throw new ApplicationException(
+							"Gemini html for symbol metadata is missing ending tbody tag"
+					);
+				}
+
+				string table = html.Substring(startPos, endPos - startPos + "</tbody>".Length);
+				string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n" + table;
+				XmlDocument doc = new XmlDocument();
+				doc.LoadXml(xml);
+				if (doc.ChildNodes.Count < 2)
+				{
+					throw new ApplicationException(
+							"Gemini html for symbol metadata does not have the expected number of nodes"
+					);
+				}
+
+				XmlNode root = doc.ChildNodes.Item(1);
+				foreach (XmlNode tr in root.ChildNodes)
+				{
+					// <tr>
+					// <th>Symbol</th>
+					// <th>Minimum Order Size</th>
+					// <th>Tick Size</th>
+					// <th>Quote Currency Price Increment</th>
+
+					// <td>btcusd</td>
+					// <td>0.00001 BTC (1e-5)</td>
+					// <td>0.00000001 BTC (1e-8)</td>
+					// <td>0.01 USD</td>
+					// </tr>
+
+					if (tr.ChildNodes.Count != 4)
+					{
+						throw new ApplicationException(
+								"Gemini html for symbol metadata does not have 4 rows per entry anymore"
+						);
+					}
+
+					ExchangeMarket market = new ExchangeMarket { IsActive = true };
+					XmlNode symbolNode = tr.ChildNodes.Item(0);
+					XmlNode minOrderSizeNode = tr.ChildNodes.Item(1);
+					XmlNode tickSizeNode = tr.ChildNodes.Item(2);
+					XmlNode incrementNode = tr.ChildNodes.Item(3);
+					string symbol = symbolNode.InnerText;
+					int minOrderSizePos = minOrderSizeNode.InnerText.IndexOf(' ');
+					if (minOrderSizePos < 0)
+					{
+						throw new ArgumentException(
+								"Min order size text does not have a space after the number"
+						);
+					}
+					decimal minOrderSize = minOrderSizeNode.InnerText
+							.Substring(0, minOrderSizePos)
+							.ConvertInvariant<decimal>();
+					int tickSizePos = tickSizeNode.InnerText.IndexOf(' ');
+					if (tickSizePos < 0)
+					{
+						throw new ArgumentException(
+								"Tick size text does not have a space after the number"
+						);
+					}
+					decimal tickSize = tickSizeNode.InnerText
+							.Substring(0, tickSizePos)
+							.ConvertInvariant<decimal>();
+					int incrementSizePos = incrementNode.InnerText.IndexOf(' ');
+					if (incrementSizePos < 0)
+					{
+						throw new ArgumentException(
+								"Increment size text does not have a space after the number"
+						);
+					}
+					decimal incrementSize = incrementNode.InnerText
+							.Substring(0, incrementSizePos)
+							.ConvertInvariant<decimal>();
+					market.MarketSymbol = symbol;
+					market.AltMarketSymbol = symbol.ToUpper();
+					market.BaseCurrency = symbol.Substring(0, symbol.Length - 3);
+					market.QuoteCurrency = symbol.Substring(symbol.Length - 3);
+					market.MinTradeSize = minOrderSize;
+					market.QuantityStepSize = tickSize;
+					market.PriceStepSize = incrementSize;
+					markets.Add(market);
+				}
+				return markets;
+			}
+			catch (Exception ex)
+			{
+				markets.Clear();
+				Logger.Error(
+						ex,
+						"Failed to parse gemini symbol metadata web page, falling back to per symbol query..."
+				);
+			}
+
+			// slow way, fetch each symbol one by one, gemini api epic fail
+			Logger.Warn("Fetching gemini symbol metadata per symbol, this may take a minute...");
+
 			string[] symbols = (await GetMarketSymbolsAsync()).ToArray();
 			List<Task> tasks = new List<Task>();
 			foreach (string symbol in symbols)
