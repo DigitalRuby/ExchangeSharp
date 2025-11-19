@@ -10,17 +10,15 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Xml;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp
 {
@@ -35,7 +33,7 @@ namespace ExchangeSharp
 			MarketSymbolIsUppercase = false;
 			MarketSymbolSeparator = string.Empty;
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
-			RateLimit = new RateGate(1, TimeSpan.FromSeconds(0.5));
+			RateLimit = new RateGate(600, TimeSpan.FromSeconds(60));
 		}
 
 		private async Task<ExchangeVolume> ParseVolumeAsync(JToken token, string symbol)
@@ -323,7 +321,7 @@ namespace ExchangeSharp
 			JToken obj = await MakeJsonRequestAsync<JToken>(
 					"/book/" + marketSymbol + "?limit_bids=" + maxCount + "&limit_asks=" + maxCount
 			);
-			return obj.ParseOrderBookFromJTokenDictionaries();
+			return obj.ParseOrderBookFromJTokenDictionaries(exchange: Name);
 		}
 
 		protected override async Task OnGetHistoricalTradesAsync(
@@ -489,7 +487,7 @@ namespace ExchangeSharp
 			{
 				foreach (JToken token in array)
 				{
-					if (marketSymbol == null || token["symbol"].ToStringInvariant() == marketSymbol)
+					if (string.IsNullOrEmpty(marketSymbol) || token["symbol"].ToStringInvariant() == marketSymbol)
 					{
 						orders.Add(ParseOrder(token));
 					}
@@ -802,6 +800,8 @@ namespace ExchangeSharp
 								foreach (var tradeToken in tradesToken)
 								{
 									var trade = ParseWebSocketTrade(tradeToken);
+									trade.Exchange = Name;
+									trade.Symbol = marketSymbol;
 									trade.Flags |= ExchangeTradeFlags.IsFromSnapshot;
 									await callback(
 														new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade)
@@ -812,6 +812,7 @@ namespace ExchangeSharp
 						{
 							string marketSymbol = token["symbol"].ToStringInvariant();
 							var trade = ParseWebSocketTrade(token);
+							trade.Exchange = Name;
 							await callback(
 												new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade)
 										);

@@ -20,6 +20,16 @@ namespace ExchangeSharp
 	public class ExchangePosition
 	{
 		/// <summary>
+		/// Client Order ID
+		/// </summary>
+		public string ClientOrderId { get; set; }
+
+		/// <summary>
+		/// Order Status
+		/// </summary>
+		public string Status { get; set; }
+
+		/// <summary>
 		/// Market Symbol
 		/// </summary>
 		public string MarketSymbol { get; set; }

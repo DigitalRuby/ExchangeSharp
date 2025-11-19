@@ -25,6 +25,16 @@ namespace ExchangeSharp
 	public class ExchangeTrade
 	{
 		/// <summary>
+		/// Exchange
+		/// </summary>
+		public string Exchange { get; set; }
+
+		/// <summary>
+		/// Symbol
+		/// </summary>
+		public string Symbol { get; set; }
+
+		/// <summary>
 		/// Timestamp
 		/// </summary>
 		public DateTime Timestamp { get; set; }

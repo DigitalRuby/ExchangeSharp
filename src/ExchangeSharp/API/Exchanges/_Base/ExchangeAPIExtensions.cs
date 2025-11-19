@@ -44,6 +44,7 @@ namespace ExchangeSharp
 		/// <returns>Web socket, call Dispose to close</returns>
 		public static async Task<IWebSocket> GetFullOrderBookWebSocketAsync(
 				this IOrderBookProvider api,
+				string exchange,
 				Action<ExchangeOrderBook> callback,
 				int maxCount = 100,
 				params string[] symbols
@@ -192,6 +193,7 @@ namespace ExchangeSharp
 
 				fullOrderBook.LastUpdatedUtc = CryptoUtility.UtcNow;
 				trimFullOrderBook(fullOrderBook);
+				fullOrderBook.ExchangeName = exchange;
 				callback(fullOrderBook);
 			}
 
@@ -469,6 +471,7 @@ namespace ExchangeSharp
 		/// <returns>Order book</returns>
 		internal static ExchangeOrderBook ParseOrderBookFromJTokenArrays(
 				this JToken token,
+				string exchange = "unknown",
 				string asks = "asks",
 				string bids = "bids",
 				string sequence = "ts"
@@ -518,6 +521,8 @@ namespace ExchangeSharp
 				Logger.Error($"No bids in {nameof(ParseOrderBookFromJTokenArrays)}");
 			}
 
+			book.ExchangeName = exchange;
+
 			return book;
 		}
 
@@ -532,6 +537,7 @@ namespace ExchangeSharp
 		/// <returns>Order book</returns>
 		internal static ExchangeOrderBook ParseOrderBookFromJTokenDictionaries(
 				this JToken token,
+				string exchange = "unknown",
 				string asks = "asks",
 				string bids = "bids",
 				string price = "price",
@@ -562,6 +568,8 @@ namespace ExchangeSharp
 				};
 				book.Bids[depth.Price] = depth;
 			}
+
+			book.ExchangeName = exchange;
 
 			return book;
 		}

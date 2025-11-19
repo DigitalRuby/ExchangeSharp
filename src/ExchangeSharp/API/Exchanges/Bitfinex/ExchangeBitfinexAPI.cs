@@ -434,6 +434,7 @@ namespace ExchangeSharp
 					};
 				}
 			}
+			orders.ExchangeName = Name;
 			return orders;
 		}
 
