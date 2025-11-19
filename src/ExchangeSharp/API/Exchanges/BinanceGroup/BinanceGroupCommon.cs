@@ -438,20 +438,24 @@ namespace ExchangeSharp.BinanceGroup
 											name.Substring(0, name.IndexOf('@'))
 									);
 
-						// buy=0 -> m = true (The buyer is maker, while the seller is taker).
-						// buy=1 -> m = false(The seller is maker, while the buyer is taker).
-						await callback(
+						ExchangeTrade trade =
+												token.ParseTradeBinance(
+														amountKey: "q",
+														priceKey: "p",
+														typeKey: "m",
+														timestampKey: "T", // use trade time (T) instead of event time (E)
+														timestampType: TimestampType.UnixMilliseconds,
+														idKey: "a",
+														typeKeyIsBuyValue: "false");
+						trade.Exchange = Name;
+						trade.Symbol = marketSymbol;
+
+					// buy=0 -> m = true (The buyer is maker, while the seller is taker).
+					// buy=1 -> m = false(The seller is maker, while the buyer is taker).
+					await callback(
 											new KeyValuePair<string, ExchangeTrade>(
 													marketSymbol,
-													token.ParseTradeBinance(
-															amountKey: "q",
-															priceKey: "p",
-															typeKey: "m",
-															timestampKey: "T", // use trade time (T) instead of event time (E)
-															timestampType: TimestampType.UnixMilliseconds,
-															idKey: "a",
-															typeKeyIsBuyValue: "false"
-													)
+													trade
 											)
 									);
 					}
@@ -525,7 +529,7 @@ namespace ExchangeSharp.BinanceGroup
 					$"/depth?symbol={marketSymbol}&limit={maxCount}",
 					BaseUrlApi
 			);
-			return obj.ParseOrderBookFromJTokenArrays(sequence: "lastUpdateId");
+			return obj.ParseOrderBookFromJTokenArrays(exchange: Name, sequence: "lastUpdateId");
 		}
 
 		protected override async Task OnGetHistoricalTradesAsync(

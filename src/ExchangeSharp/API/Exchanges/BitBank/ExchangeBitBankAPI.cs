@@ -88,6 +88,7 @@ namespace ExchangeSharp
 				}
 				result.MarketSymbol = NormalizeMarketSymbol(marketSymbol);
 			}
+			result.ExchangeName = Name;
 			return result;
 		}
 

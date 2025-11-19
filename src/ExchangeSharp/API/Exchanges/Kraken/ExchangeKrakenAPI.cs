@@ -770,7 +770,7 @@ namespace ExchangeSharp
 			JToken obj = await MakeJsonRequestAsync<JToken>(
 					"/0/public/Depth?pair=" + marketSymbol + "&count=" + maxCount
 			);
-			return obj[marketSymbol].ParseOrderBookFromJTokenArrays();
+			return obj[marketSymbol].ParseOrderBookFromJTokenArrays(exchange: Name);
 		}
 
 		protected override async Task<IEnumerable<ExchangeTrade>> OnGetRecentTradesAsync(
@@ -1154,6 +1154,8 @@ namespace ExchangeSharp
 				{
 					if (kvp.Value["descr"] is JObject descr)
 					{
+						result.ClientOrderId = kvp.Value["cl_ord_id"].ToObject<string>();
+						result.Status = kvp.Value["status"].ToObject<string>();
 						decimal epochMilliseconds = kvp.Value["opentm"].ToObject<decimal>();
 						// Preserve Kraken timestamp decimal precision by converting seconds to milliseconds.
 						epochMilliseconds = epochMilliseconds * 1000;
@@ -1399,6 +1401,8 @@ namespace ExchangeSharp
 													idKey: null,
 													typeKeyIsBuyValue: "b"
 											);
+								trade.Exchange = Name;
+								trade.Symbol = marketSymbol;
 								await callback(
 													new KeyValuePair<string, ExchangeTrade>(marketSymbol, trade)
 											);

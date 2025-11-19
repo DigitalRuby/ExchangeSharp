@@ -996,7 +996,7 @@ namespace ExchangeSharp
 				// not sure if this is needed, but adding it just in case
 				await new SynchronizationContextRemover();
 				var lookup = await this.GetExchangeMarketDictionaryFromCacheAsync();
-
+				if (lookup == null) return null;
 				foreach (var kvp in lookup)
 				{
 					if (
