@@ -56,11 +56,11 @@ jobs:
           command: 'restore'
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
       - task: DotNetCoreCLI@2
-        displayName: 'Build lib+console'
+        displayName: 'Build'
         inputs:
           command: 'build'
           projects: 'src/ExchangeSharp/ExchangeSharp.csproj'
-          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate) --output $(Build.ArtifactStagingDirectory)'
+          arguments: '--configuration $(BuildConfiguration)'
       #- task: DotNetCoreCLI@2
       #  displayName: 'Tests'
       #  inputs:
@@ -69,13 +69,15 @@ jobs:
       #    projects: 'tests/*/*.csproj'
       #    publishTestResults: true
       #    testRunTitle: 'All tests'
-      #- task: DotNetCoreCLI@2
-      #  displayName: 'NuGet Pack'
-      #  inputs:
-      #    command: pack
-      #    packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
-      #    packDestination: '$(Build.ArtifactStagingDirectory)'
-      #    versioningScheme: off
+      - task: DotNetCoreCLI@2
+        displayName: 'NuGet Pack'
+        inputs:
+          command: pack
+          packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
+          configuration: '$(BuildConfiguration)'
+          packDirectory: '$(Build.ArtifactStagingDirectory)'
+          buildProperties: 'VersionSuffix=prerelease-$(PipelineDate)'
+          nobuild: true
       - task: NuGetToolInstaller@1
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
