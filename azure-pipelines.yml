@@ -75,7 +75,7 @@ jobs:
           command: pack
           packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
           outputDir: '$(Build.ArtifactStagingDirectory)'
-          arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate) --no-build'
+          arguments: '--configuration $(BuildConfiguration) /p:VersionSuffix=prerelease-$(PipelineDate) --no-build'
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
       - task: DotNetCoreCLI@2
