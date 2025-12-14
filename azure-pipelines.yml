@@ -46,10 +46,10 @@ jobs:
       vmImage: ubuntu-latest
     steps:
       - task: UseDotNet@2
-        displayName: 'Install current .NET Core SDK'
+        displayName: 'Install current .NET SDK'
         inputs:
           packageType: sdk
-          version: 6.x
+          version: 9.x
       - task: DotNetCoreCLI@2
         displayName: 'Restore'
         inputs:
@@ -83,6 +83,7 @@ jobs:
         displayName: 'NuGet push'
         inputs:
           command: push
+          packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
           publishVstsFeed: DigitalRuby/DigitalRuby
   - job: build_tag
     displayName: Build console app
@@ -96,7 +97,7 @@ jobs:
           imageName: macOS-latest
           rid: osx-x64
         linux:
-          imageName: ubuntu-18.04
+          imageName: ubuntu-latest
           rid: linux-x64
         windows:
           imageName: windows-2019
@@ -105,11 +106,11 @@ jobs:
       vmImage: $(imageName)
     steps:
       - task: UseDotNet@2
-        displayName: 'Install current .NET Core'
+        displayName: 'Install current .NET SDK'
         condition: eq(variables['Agent.OS'], 'Darwin')
         inputs:
           packageType: sdk
-          version: 6.x
+          version: 9.x
           installationPath: $(Agent.ToolsDirectory)/dotnet
       - task: DotNetCoreCLI@2
         displayName: "Publish console executable"
@@ -118,7 +119,7 @@ jobs:
           command: 'publish' # Options: build, push, pack, publish, restore, run, test, custom
           configuration: $(BuildConfiguration)
           arguments: |
-            --force -r $(rid) -f netcoreapp30 -o "$(Build.ArtifactStagingDirectory)/$(rid)" /NoLogo /p:PublishTrimmed=True /p:PublishReadyToRun=True /p:PublishSingleFile=True /p:PublishReadyToRunShowWarnings=True /p:ShowLinkerSizeComparison=True /p:LinkerTrimNativeDeps=True
+            --force -r $(rid) -f net9.0 -o "$(Build.ArtifactStagingDirectory)/$(rid)" /NoLogo /p:PublishTrimmed=True /p:PublishReadyToRun=True /p:PublishSingleFile=True /p:PublishReadyToRunShowWarnings=True /p:ShowLinkerSizeComparison=True /p:LinkerTrimNativeDeps=True
           zipAfterPublish: true
           restoreDirectory: 
           verbosityRestore: 'Detailed'
