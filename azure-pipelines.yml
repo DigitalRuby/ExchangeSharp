@@ -76,14 +76,14 @@ jobs:
           packagesToPack: 'src/ExchangeSharp/ExchangeSharp.csproj'
           outputDir: '$(Build.ArtifactStagingDirectory)'
           arguments: '--configuration $(BuildConfiguration) --version-suffix prerelease-$(PipelineDate) --no-build'
-      - task: NuGetToolInstaller@1
       - task: NuGetAuthenticate@0
         displayName: 'NuGet Authenticate'
-      - task: NuGetCommand@2
+      - task: DotNetCoreCLI@2
         displayName: 'NuGet push'
         inputs:
           command: push
           packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+          nuGetFeedType: internal
           publishVstsFeed: DigitalRuby/DigitalRuby
   - job: build_tag
     displayName: Build console app
