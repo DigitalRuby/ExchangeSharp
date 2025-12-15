@@ -40,7 +40,7 @@ variables:
 jobs:
   - job: build_ci
     displayName: CI Build
-    timeoutInMinutes: 2
+    timeoutInMinutes: 10
     continueOnError: false
     pool:
       vmImage: ubuntu-latest
@@ -139,7 +139,7 @@ jobs:
           artifactName: build-$(rid)
   - job: publish_tag
     displayName: Publish artifacts to GH
-    timeoutInMinutes: 2
+    timeoutInMinutes: 5
     dependsOn: build_tag
     continueOnError: false
     pool:
