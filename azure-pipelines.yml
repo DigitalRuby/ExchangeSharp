@@ -40,7 +40,7 @@ variables:
 jobs:
   - job: build_ci
     displayName: CI Build
-    timeoutInMinutes: 2
+    timeoutInMinutes: 10
     continueOnError: false
     pool:
       vmImage: ubuntu-latest
