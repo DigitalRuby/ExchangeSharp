@@ -139,7 +139,7 @@ jobs:
           artifactName: build-$(rid)
   - job: publish_tag
     displayName: Publish artifacts to GH
-    timeoutInMinutes: 2
+    timeoutInMinutes: 5
     dependsOn: build_tag
     continueOnError: false
     pool:
