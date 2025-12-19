@@ -74,46 +74,26 @@ namespace ExchangeSharp.BinanceGroup
 			RateLimit = new RateGate(40, TimeSpan.FromSeconds(10));
 		}
 
+		protected virtual string[] NonThreeLetterQuoteCurrencies => new[] { "USDT", "USDC", "EURI" };
+
 		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(
 				string marketSymbol
 		)
 		{
-			// All pairs in Binance end with BTC, ETH, BNB or USDT
-			if (
-					marketSymbol.EndsWith("BTC")
-					|| marketSymbol.EndsWith("ETH")
-					|| marketSymbol.EndsWith("BNB")
-			)
+			foreach (var quoteCurrency in NonThreeLetterQuoteCurrencies)
 			{
-				string baseSymbol = marketSymbol.Substring(marketSymbol.Length - 3);
-				return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
-						(
-								marketSymbol.Replace(baseSymbol, "")
-								+ GlobalMarketSymbolSeparator
-								+ baseSymbol
-						),
-						GlobalMarketSymbolSeparator
-				);
-			}
-			if (marketSymbol.EndsWith("USDT"))
-			{
-				string baseSymbol = marketSymbol.Substring(marketSymbol.Length - 4);
-				return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
-						(
-								marketSymbol.Replace(baseSymbol, "")
-								+ GlobalMarketSymbolSeparator
-								+ baseSymbol
-						),
-						GlobalMarketSymbolSeparator
-				);
+				if (marketSymbol.EndsWith(quoteCurrency))
+				{
+					return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
+						marketSymbol.Substring(0, marketSymbol.Length - quoteCurrency.Length) +
+						GlobalMarketSymbolSeparator +
+						quoteCurrency);
+				}
 			}
 
 			return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
-					marketSymbol.Substring(0, marketSymbol.Length - 3)
-							+ GlobalMarketSymbolSeparator
-							+ (marketSymbol.Substring(marketSymbol.Length - 3, 3)),
-					GlobalMarketSymbolSeparator
-			);
+				marketSymbol.Substring(0, marketSymbol.Length - 3) + GlobalMarketSymbolSeparator +
+				marketSymbol.Substring(marketSymbol.Length - 3));
 		}
 
 		/// <summary>
