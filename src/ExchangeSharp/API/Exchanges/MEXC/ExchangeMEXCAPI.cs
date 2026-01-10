@@ -26,24 +26,7 @@ namespace ExchangeSharp
 			RateLimit = new RateGate(20, TimeSpan.FromSeconds(2));
 			WebSocketOrderBookType = WebSocketOrderBookType.FullBookFirstThenDeltas;
 		}
-
-		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(string marketSymbol)
-		{
-			var quoteLength = 3;
-			if (marketSymbol.EndsWith("USDT") ||
-			    marketSymbol.EndsWith("USDC") ||
-			    marketSymbol.EndsWith("TUSD"))
-			{
-				quoteLength = 4;
-			}
-
-			var baseSymbol = marketSymbol.Substring(marketSymbol.Length - quoteLength);
-
-			return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
-				marketSymbol.Replace(baseSymbol, "")
-				+ GlobalMarketSymbolSeparator
-				+ baseSymbol);
-		}
+		
 
 		protected override async Task<IEnumerable<string>> OnGetMarketSymbolsAsync()
 		{
