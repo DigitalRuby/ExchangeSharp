@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -52,11 +53,32 @@ namespace ExchangeSharp
 			RateLimit = new RateGate(300, TimeSpan.FromMinutes(5));
 		}
 
-		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(
+		public override async Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(
 				string marketSymbol
 		)
 		{
-			throw new NotImplementedException();
+			ExchangeMarket marketSymbolMetadata = await GetExchangeMarketFromCacheAsync(
+				marketSymbol
+			);
+			if (marketSymbolMetadata == null)
+			{
+				throw new InvalidDataException(
+					$"No market symbol metadata returned or unable to find symbol metadata for {marketSymbol}"
+				);
+			}
+
+			if (marketSymbolMetadata.BaseCurrency == "XBT")
+			{
+				marketSymbolMetadata.BaseCurrency = "BTC";
+			}
+
+			if (marketSymbolMetadata.QuoteCurrency == "XBT")
+			{
+				marketSymbolMetadata.QuoteCurrency = "BTC";
+			}
+
+			return await ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
+				marketSymbolMetadata.BaseCurrency + GlobalMarketSymbolSeparator + marketSymbolMetadata.QuoteCurrency);
 		}
 
 		public override Task<string> GlobalMarketSymbolToExchangeMarketSymbolAsync(
