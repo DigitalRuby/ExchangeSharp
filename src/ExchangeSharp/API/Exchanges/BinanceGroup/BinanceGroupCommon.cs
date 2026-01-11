@@ -74,28 +74,6 @@ namespace ExchangeSharp.BinanceGroup
 			RateLimit = new RateGate(40, TimeSpan.FromSeconds(10));
 		}
 
-		protected virtual string[] NonThreeLetterQuoteCurrencies => new[] { "USDT", "USDC", "EURI" };
-
-		public override Task<string> ExchangeMarketSymbolToGlobalMarketSymbolAsync(
-				string marketSymbol
-		)
-		{
-			foreach (var quoteCurrency in NonThreeLetterQuoteCurrencies)
-			{
-				if (marketSymbol.EndsWith(quoteCurrency))
-				{
-					return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
-						marketSymbol.Substring(0, marketSymbol.Length - quoteCurrency.Length) +
-						GlobalMarketSymbolSeparator +
-						quoteCurrency);
-				}
-			}
-
-			return ExchangeMarketSymbolToGlobalMarketSymbolWithSeparatorAsync(
-				marketSymbol.Substring(0, marketSymbol.Length - 3) + GlobalMarketSymbolSeparator +
-				marketSymbol.Substring(marketSymbol.Length - 3));
-		}
-
 		/// <summary>
 		/// Get the details of all trades
 		/// </summary>
